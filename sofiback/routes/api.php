@@ -18,4 +18,6 @@ use Illuminate\Support\Facades\Route;
  //   return $request->user();
 //});
 Route::post('/login',[\App\Http\Controllers\UserController::class,'login']);
+Route::resource('/cliente',\App\Http\Controllers\ClienteController::class);
+Route::resource('/asignar',\App\Http\Controllers\AsignarController::class);
 
