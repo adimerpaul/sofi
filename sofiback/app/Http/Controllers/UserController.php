@@ -19,7 +19,7 @@ class UserController extends Controller
     }
 
     public function login(Request $request){
-        $validar= DB::SELECT("SELECT * from personal where ci='$request->ci' and pasw ='$request->pass' ");
+        $validar= DB::SELECT("SELECT * from personal where TRIM(ci)='$request->ci' and TRIM(pasw) ='$request->pass' ");
         if(sizeof($validar)==1)
             echo 'Correcto';
         else    
@@ -32,6 +32,8 @@ class UserController extends Controller
      * @param  \Illuminate\Http\Request  $request
      * @return \Illuminate\Http\Response
      */
+
+     
     public function store(Request $request)
     {
         //
