@@ -19,5 +19,6 @@ use Illuminate\Support\Facades\Route;
 //});
 Route::post('/login',[\App\Http\Controllers\UserController::class,'login']);
 Route::resource('/cliente',\App\Http\Controllers\ClienteController::class);
+Route::resource('/user',\App\Http\Controllers\UserController::class);
 Route::resource('/asignar',\App\Http\Controllers\AsignarController::class);
 
