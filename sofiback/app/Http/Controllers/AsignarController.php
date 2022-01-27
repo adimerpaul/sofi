@@ -27,7 +27,22 @@ class AsignarController extends Controller
     {
         //
     }
+    public function store(Request $request)
+    {
+        //
+        //return $request;
+        foreach ($request->clientes as $row) {
 
+            DB::table('asignar')->insert([
+                    ['cliente_id'=>$row->cliente->Cod_Aut],
+                    ['usuario_id'=>$request->user_id],
+                    ['fecha'=>$request->fecha],
+                    ['estado'=>'PENDIENTE'],
+                    ['hora'=>'00:00:00'],
+                    ['lat'=>$row->cliente['Latitud']],
+                    ['lng'=>$row->cliente['longitud']],
+            ]);
+        }
     /**
      * Display the specified resource.
      *

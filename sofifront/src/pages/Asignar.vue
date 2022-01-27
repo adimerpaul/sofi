@@ -8,7 +8,7 @@
     <q-btn color="info" icon="search" label="consulta" @click="misasignaciones" size="xs" />
   </div>
   <div class="col-4 flex flex-center">
-    <q-btn color="positive" icon="add_circle" label="Asignar" size="xs" @click="dialog_ag=true"/>
+    <q-btn color="positive" icon="add_circle" label="Asignar" size="xs" @click="dialog_ag=true;listado=[]"/>
   </div>
   <div class="col-12">
     <q-table dense title="Asignaciones" :columns="columns" :rows="asignaciones" :filter="filter">
@@ -43,20 +43,34 @@
         </q-card-section>
         <q-card-section class="q-pt-none">
           <q-input outlined label="Fecha" v-model="fecha2"/>
-          <q-select outlined v-model="cliente"
-                        use-input
-              input-debounce="0"
-              :options="options"
-              @filter="filterFn" label="Clientes" />
-            <q-select outlined v-model="user"
+                      <q-select outlined v-model="user"
                         use-input
               input-debounce="0"
               :options="options2"
               @filter="filterFn2" label="Personal" />
+                      <div class="row">
+                        <div class="col-10">
+                                    <q-select outlined v-model="cliente"
+                        use-input
+              input-debounce="0"
+              :options="options"
+              @filter="filterFn" label="Clientes" />
+                        </div>
+                        <div class="col-2">
+                          <q-btn color="positive" icon="add" @click="listcl" />
+                        </div>
+                      </div>
+          <div>
+            <ul>
+              <li v-for="(l,index) in listado " :key="index">{{l.label}}</li>
+
+            </ul>
+          </div>
+
         </q-card-section>
         <q-card-actions align="right" class="text-primary">
           <q-btn flat label="Cancel" v-close-popup />
-          <q-btn flat label="Add address" v-close-popup />
+          <q-btn flat label="Asignar"  @click="masignar"/>
         </q-card-actions>
       </q-card>
     </q-dialog>
@@ -79,6 +93,7 @@ export default {
       usuarios:[],
       options:[],
       options2:[],
+      listado:[],
       dialog_ag:false,
       columns:[
         {label:'fecha',name:'fecha',field:'fecha'},
@@ -95,6 +110,30 @@ export default {
     this.misusuarios()
   },
   methods:{
+    masignar(){
+      if(this.user.id==undefined)
+       return false
+      if(this.listado.lenght == 0)
+        return false
+      if(this.fecha==undefined)
+        return false
+      console.log(this.listado)
+      this.$api.post('asignar',{fecha:this.fecha,user_id:this.user.id,clientes:this.listado}).then(res=>{
+        console.log(res.data)
+      })
+
+    },
+    listcl(){
+      console.log(this.cliente)
+      if(this.cliente.id!=undefined)
+      var validar=false
+      this.listado.forEach(el => {
+          if(this.cliente.cliente.Cod_Aut==el.cliente.Cod_Aut)
+          validar=true
+      });
+      if(!validar)
+      this.listado.push(this.cliente);
+    },
     misusuarios(){
       this.usuarios=[]
       this.$api.get('user').then(res=>{
@@ -140,7 +179,7 @@ export default {
       this.$api.get('cliente').then(res=>{
         // console.log(res.data)
         res.data.forEach(element => {
-          this.clientes.push({label:element.Id+' '+element.Nombres,id:element.Cod_Aut})
+          this.clientes.push({label:element.Id+' '+element.Nombres,cliente:element})
         });
       })
 
