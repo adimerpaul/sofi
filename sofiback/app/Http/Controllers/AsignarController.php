@@ -23,26 +23,25 @@ class AsignarController extends Controller
      * @param  \Illuminate\Http\Request  $request
      * @return \Illuminate\Http\Response
      */
-    public function store(Request $request)
-    {
-        //
-    }
-    public function store(Request $request)
-    {
-        //
-        //return $request;
-        foreach ($request->clientes as $row) {
 
-            DB::table('asignar')->insert([
-                    ['cliente_id'=>$row->cliente->Cod_Aut],
-                    ['usuario_id'=>$request->user_id],
-                    ['fecha'=>$request->fecha],
-                    ['estado'=>'PENDIENTE'],
-                    ['hora'=>'00:00:00'],
-                    ['lat'=>$row->cliente['Latitud']],
-                    ['lng'=>$row->cliente['longitud']],
-            ]);
+    public function store(Request $request)
+    {
+        //
+//        return $request->clientes;
+        foreach ($request->clientes as $row) {
+//            echo var_dump($row);
+            echo $row['Cod_Aut'];
+//            DB::table('asignar')->insert([
+//                ['cliente_id' => $row->cliente->Cod_Aut],
+//                ['usuario_id' => $request->user_id],
+//                ['fecha' => $request->fecha],
+//                ['estado' => 'PENDIENTE'],
+//                ['hora' => '00:00:00'],
+//                ['lat' => $row->cliente['Latitud']],
+//                ['lng' => $row->cliente['longitud']],
+//            ]);
         }
+    }
     /**
      * Display the specified resource.
      *

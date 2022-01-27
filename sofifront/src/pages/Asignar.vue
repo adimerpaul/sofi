@@ -37,41 +37,35 @@
     </q-table>
   </div>
       <q-dialog v-model="dialog_ag" >
-      <q-card style="min-width: 350px">
+        <q-card style="width: 700px; max-width: 80vw;">
         <q-card-section>
           <div class="text-h6">Asignar</div>
         </q-card-section>
-        <q-card-section class="q-pt-none">
-          <q-input outlined label="Fecha" v-model="fecha2"/>
-                      <q-select outlined v-model="user"
-                        use-input
-              input-debounce="0"
-              :options="options2"
-              @filter="filterFn2" label="Personal" />
-                      <div class="row">
-                        <div class="col-10">
-                                    <q-select outlined v-model="cliente"
-                        use-input
-              input-debounce="0"
-              :options="options"
-              @filter="filterFn" label="Clientes" />
-                        </div>
-                        <div class="col-2">
-                          <q-btn color="positive" icon="add" @click="listcl" />
-                        </div>
-                      </div>
-          <div>
-            <ul>
-              <li v-for="(l,index) in listado " :key="index">{{l.label}}</li>
-
-            </ul>
-          </div>
-
-        </q-card-section>
-        <q-card-actions align="right" class="text-primary">
-          <q-btn flat label="Cancel" v-close-popup />
-          <q-btn flat label="Asignar"  @click="masignar"/>
-        </q-card-actions>
+        <q-form @submit="masignar">
+          <q-card-section class="q-pt-none">
+            <q-input outlined dense label="Fecha" v-model="fecha2"/>
+              <div class="row">
+                <div class="col-12">
+                  <q-select  outlined v-model="user" use-input dense input-debounce="0" :options="options2" @filter="filterFn2" label="Personal" />
+                </div>
+                <div class="col-10">
+                  <q-select dense outlined v-model="cliente" use-input input-debounce="0" :options="options" @filter="filterFn" label="Clientes" />
+                </div>
+                <div class="col-2 flex flex-center">
+                  <q-btn color="positive"  icon="add_circle" @click="listcl" />
+                </div>
+              </div>
+            <div>
+              <ul>
+                <li v-for="(l,index) in listado " :key="index">{{l.label}}</li>
+              </ul>
+            </div>
+          </q-card-section>
+          <q-card-actions align="right"  class="text-primary">
+        <q-btn flat label="Cancel" icon="delete" v-close-popup />
+        <q-btn flat label="Asignar" icon="send" color="positive"  type="submit"/>
+      </q-card-actions>
+        </q-form>
       </q-card>
     </q-dialog>
 </div>
@@ -117,18 +111,18 @@ export default {
         return false
       if(this.fecha==undefined)
         return false
-      console.log(this.listado)
+      // console.log(this.listado)
       this.$api.post('asignar',{fecha:this.fecha,user_id:this.user.id,clientes:this.listado}).then(res=>{
         console.log(res.data)
       })
 
     },
     listcl(){
-      console.log(this.cliente)
+      // console.log(this.cliente)
       if(this.cliente.id!=undefined)
       var validar=false
       this.listado.forEach(el => {
-          if(this.cliente.cliente.Cod_Aut==el.cliente.Cod_Aut)
+          if(this.cliente.Cod_Aut==el.Cod_Aut)
           validar=true
       });
       if(!validar)
@@ -178,8 +172,11 @@ export default {
       this.clientes=[]
       this.$api.get('cliente').then(res=>{
         // console.log(res.data)
-        res.data.forEach(element => {
-          this.clientes.push({label:element.Id+' '+element.Nombres,cliente:element})
+        res.data.forEach(r => {
+          let d=r
+          d.label=r.Id+' '+r.Nombres
+          // this.clientes.push({label:element.Id+' '+element.Nombres,cliente:element})
+          this.clientes.push(d)
         });
       })
 
