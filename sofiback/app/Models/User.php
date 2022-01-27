@@ -25,6 +25,7 @@ class User extends Authenticatable
         'pasw',
     ];
     protected $table="personal";
+    protected $primaryKey="CodAut";
 
     /**
      * The attributes that should be hidden for serialization.

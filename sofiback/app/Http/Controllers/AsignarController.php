@@ -43,10 +43,11 @@ WHERE fecha='$fecha'");
     }
     public function misasignaciones(Request $request)
     {
-//        return DB::select("SELECT * FROM asignar a
-//INNER JOIN tbclientes c ON a.cliente_id=c.Cod_Aut
-//INNER JOIN personal u ON a.usuario_id=u.CodAut
-//WHERE fecha='$fecha'");
+        return DB::select("SELECT * FROM asignar a
+INNER JOIN tbclientes c ON a.cliente_id=c.Cod_Aut
+INNER JOIN personal u ON a.usuario_id=u.CodAut
+WHERE fecha='$request->fecha' AND
+u.CodAut='".$request->user()->CodAut."'");
     }
 
     /**

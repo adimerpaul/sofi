@@ -45,6 +45,18 @@
             </q-item-label>
           </q-item-section>
         </q-item>
+        <q-item v-if="$store.getters['login/isLoggedIn']" clickable @click="logout">
+          <q-item-section avatar>
+            <q-icon name="logout" />
+          </q-item-section>
+
+          <q-item-section>
+            <q-item-label>Salir</q-item-label>
+            <q-item-label caption>
+              Salir del sistema
+            </q-item-label>
+          </q-item-section>
+        </q-item>
       </q-list>
     </q-drawer>
 
@@ -65,6 +77,14 @@ export default {
   methods:{
       toggleLeftDrawer () {
         this.leftDrawerOpen = !this.leftDrawerOpen
+      },
+      logout(){
+        this.$q.loading.show()
+        this.$store.dispatch('login/logout')
+          .then(() => {
+            this.$q.loading.hide()
+            this.$router.push('/login')
+          })
       }
   }
   // setup () {

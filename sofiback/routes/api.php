@@ -18,7 +18,13 @@ use Illuminate\Support\Facades\Route;
  //   return $request->user();
 //});
 Route::post('/login',[\App\Http\Controllers\UserController::class,'login']);
-Route::resource('/cliente',\App\Http\Controllers\ClienteController::class);
-Route::resource('/user',\App\Http\Controllers\UserController::class);
-Route::resource('/asignar',\App\Http\Controllers\AsignarController::class);
+
+Route::group(['middleware'=>'auth:sanctum'],function (){
+    Route::resource('/cliente',\App\Http\Controllers\ClienteController::class);
+    Route::resource('/user',\App\Http\Controllers\UserController::class);
+    Route::resource('/asignar',\App\Http\Controllers\AsignarController::class);
+    Route::post('/misasignaciones',[\App\Http\Controllers\AsignarController::class,'misasignaciones']);
+    Route::post('/me',[\App\Http\Controllers\UserController::class,'me']);
+    Route::post('/logout',[\App\Http\Controllers\UserController::class,'logout']);
+});
 

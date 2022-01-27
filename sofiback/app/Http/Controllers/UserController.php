@@ -95,4 +95,19 @@ class UserController extends Controller
     {
         //
     }
+    public function logout(Request $request){
+        $request->user()->currentAccessToken()->delete();
+        return response()->json(['res'=>'salido exitosamente'],200);
+    }
+    public function me(Request $request){
+//        $user=$request->user()->with('unid')->with('permisos')->firstOrFail();
+//        $user=$request->user()
+        $user=User::where('id',$request->user()->id)
+//            ->with('unid')
+//            ->with('permisos')
+            ->firstOrFail();
+        return $user;
+
+//        return User::where('id',1)->with('unid')->get();
+    }
 }
