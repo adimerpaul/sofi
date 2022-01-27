@@ -34,6 +34,17 @@
             </q-item-label>
           </q-item-section>
         </q-item>
+        <q-item clickable exact to="misasignaciones">
+          <q-item-section avatar>
+            <q-icon name="shop" />
+          </q-item-section>
+          <q-item-section>
+            <q-item-label>Mis asignaciones </q-item-label>
+            <q-item-label caption>
+              Mis asignaciones
+            </q-item-label>
+          </q-item-section>
+        </q-item>
       </q-list>
     </q-drawer>
 

@@ -41,6 +41,13 @@ INNER JOIN tbclientes c ON a.cliente_id=c.Cod_Aut
 INNER JOIN personal u ON a.usuario_id=u.CodAut
 WHERE fecha='$fecha'");
     }
+    public function misasignaciones(Request $request)
+    {
+//        return DB::select("SELECT * FROM asignar a
+//INNER JOIN tbclientes c ON a.cliente_id=c.Cod_Aut
+//INNER JOIN personal u ON a.usuario_id=u.CodAut
+//WHERE fecha='$fecha'");
+    }
 
     /**
      * Update the specified resource in storage.
@@ -62,6 +69,6 @@ WHERE fecha='$fecha'");
      */
     public function destroy($id)
     {
-        //
+        DB::select("DELETE FROM asignar WHERE id=$id");
     }
 }

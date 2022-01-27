@@ -7,9 +7,9 @@
   <div class="col-4 flex flex-center">
     <q-btn color="info" icon="search" label="consulta" @click="misasignaciones" size="xs" />
   </div>
-  <div class="col-4 flex flex-center">
-    <q-btn color="positive" icon="add_circle" label="Asignar" size="xs" @click="dialog_ag=true"/>
-  </div>
+<!--  <div class="col-4 flex flex-center">-->
+<!--    <q-btn color="positive" icon="add_circle" label="Asignar" size="xs" @click="dialog_ag=true"/>-->
+<!--  </div>-->
   <div class="col-12">
     <q-table dense title="Asignaciones" :columns="columns" :rows="asignaciones" :filter="filter">
       <template v-slot:body-cell-personal="props">
