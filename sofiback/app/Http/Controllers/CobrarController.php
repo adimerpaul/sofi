@@ -43,20 +43,20 @@ class CobrarController extends Controller
         
     }
 
-    public function pagado($ci,$monto){
+    public function pagado(Request $request){
 
         //$CIfunc=$_SESSION['CodAut'];
 
         DB::table('tbctascow')->insert([
-        ['idCli'=>$ci],
-        ['pago'=>$monto],
-        ['CIfunc'=>$CIfunc],
-        ['fecha'=>date("Y-m-d H:i:s")]
+        'idCli'=>$request->ci,
+        'pago'=>$request->monto,
+        'CIfunc'=>$request->CIfunc,
+        'fecha'=>date("Y-m-d H:i:s")
         ]);
 
         $query=DB::SELECT(" SELECT * FROM tbctascobrar c
         INNER JOIN tbclientes cli ON cli.Id=c.CINIT
-        WHERE c.CINIT='$ci' AND  c.Nrocierre=0
+        WHERE c.CINIT='$request->ci' AND  c.Nrocierre=0
         ORDER BY c.comanda");
 
         foreach ($query as $row){
@@ -64,39 +64,41 @@ class CobrarController extends Controller
 
             if($monto>0 && $saldo!=0){
                 if ($monto>$saldo){
-                    $this->db->query("UPDATE tbctascobrar SET Acuenta=Importe WHERE codAuto='$row->CodAuto'");
+                    DB::table('tbctascobrar')->where('codAuto',$row->CodAuto)->update(['Acuenta'=>'Importe']); 
                     $monto=$monto-$saldo;
                 }else{
-                    $this->db->query("UPDATE tbctascobrar SET Acuenta=Acuenta+$monto WHERE codAuto='$row->CodAuto'");
+                    DB::table('tbctascobrar')->where('codAuto',$row->CodAuto)->update(['Acuenta'=>Acuenta + $monto]);
                     $monto=0;
                 }
             }
         }
-        echo 1;
+        return true;
     }
-    public function insertcobro(){
-        $ci=$_POST['ci'];
-        $monto=$_POST['monto'];
+
+    public function insertcobro(Request $request){
+        //$ci=$_POST['ci'];
+        //$monto=$_POST['monto'];
+        
         $CIfunc=$_SESSION['CodAut'];
 
-        $query=$this->db->query("
-SELECT * FROM tbctascobrar c
-WHERE c.CINIT='$ci' AND c.Nrocierre=0");
-        foreach ($query->result() as $row){
+        $query=DB::SELECT("SELECT * FROM tbctascobrar c
+        WHERE c.CINIT='$request->ci' AND c.Nrocierre=0");
+
+        foreach ($query as $row){
             if (isset($_POST['id'.$row->CodAuto]) && $_POST['id'.$row->CodAuto]!='' && $_POST['id'.$row->CodAuto]!=null){
                 $monto=$_POST['id'.$row->CodAuto];
                 $comanda=$row->CodAuto;
-                        $this->db->query("INSERT INTO tbctascow 
-                        SET 
-                        pago='$monto',
-                        idCli='$ci',
-                        CIfunc='$CIfunc',
-                         fecha='".date("Y-m-d H:i:s")."',
-                         comanda='$comanda'
-                        ");
+                        BD::table('tbctascow')->insert([
+                        'pago'=>$monto,
+                        'idCli'=>$request->ci,
+                        'CIfunc'=>$CIfunc,
+                         'fecha'=>date("Y-m-d H:i:s"),
+                         'comanda'=>$comanda
+                        ]);
             }
         }
-        header('Location: '.base_url().'Cobrar');
+        //header('Location: '.base_url().'Cobrar');
+        return true;
     }
     public function store(Request $request)
     {
