@@ -30,16 +30,16 @@ class AsignarController extends Controller
 //        return $request->clientes;
         foreach ($request->clientes as $row) {
 //            echo var_dump($row);
-            echo $row['Cod_Aut'];
-//            DB::table('asignar')->insert([
-//                ['cliente_id' => $row->cliente->Cod_Aut],
-//                ['usuario_id' => $request->user_id],
-//                ['fecha' => $request->fecha],
-//                ['estado' => 'PENDIENTE'],
-//                ['hora' => '00:00:00'],
-//                ['lat' => $row->cliente['Latitud']],
-//                ['lng' => $row->cliente['longitud']],
-//            ]);
+            //echo $request;
+             DB::table('asignar')->insert([
+                 'cliente_id' => $row['Cod_Aut'],
+                 'usuario_id' => $request->userid,
+                 'fecha' => $request->fecha,
+                 'estado' => 'PENDIENTE',
+                 'hora' => '00:00:00',
+                 'lat' => $row['Latitud'],
+                 'lng' => $row['longitud'],
+            ]);
         }
     }
     /**

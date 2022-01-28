@@ -111,9 +111,12 @@ export default {
         return false
       if(this.fecha==undefined)
         return false
-      // console.log(this.listado)
-      this.$api.post('asignar',{fecha:this.fecha,user_id:this.user.id,clientes:this.listado}).then(res=>{
-        console.log(res.data)
+       console.log(this.user.id)
+      
+      this.$api.post('asignar',{fecha:this.fecha,userid:this.user.id,clientes:this.listado}).then(res=>{
+        //console.log(res.data)
+        this.dialog_ag=false
+        this.misasignaciones()
       })
 
     },
