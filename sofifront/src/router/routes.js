@@ -1,6 +1,7 @@
 import Login from 'pages/Login'
 import Index from "src/pages";
 import Asignar from "pages/Asignar";
+import Cobranza from "pages/Cobranza";
 import Misasignaciones from "pages/Misasignaciones";
 const routes = [
   {
@@ -10,6 +11,7 @@ const routes = [
       { path: '', component: Index},
       { path: '/asignar', component: Asignar,meta: {requiresAuth: true} },
       { path: '/misasignaciones', component: Misasignaciones ,meta: {requiresAuth: true}},
+      { path: '/cobranza', component: Cobranza ,meta: {requiresAuth: true}},
       { path: '/login', component: Login },
     ]
   },

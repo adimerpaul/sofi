@@ -23,6 +23,7 @@
             </q-item-label>
           </q-item-section>
         </q-item>
+
         <q-item clickable exact to="asignar">
           <q-item-section avatar>
             <q-icon name="people" />
@@ -34,6 +35,7 @@
             </q-item-label>
           </q-item-section>
         </q-item>
+
         <q-item clickable exact to="misasignaciones">
           <q-item-section avatar>
             <q-icon name="shop" />
@@ -45,6 +47,19 @@
             </q-item-label>
           </q-item-section>
         </q-item>
+
+        <q-item clickable exact to="cobranza">
+          <q-item-section avatar>
+            <q-icon name="receipt" />
+          </q-item-section>
+          <q-item-section>
+            <q-item-label>Cobranzas</q-item-label>
+            <q-item-label caption>
+              Cobro a cliente
+            </q-item-label>
+          </q-item-section>
+        </q-item>
+
         <q-item v-if="$store.getters['login/isLoggedIn']" clickable @click="logout">
           <q-item-section avatar>
             <q-icon name="logout" />

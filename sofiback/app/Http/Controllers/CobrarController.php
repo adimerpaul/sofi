@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class CobrarController extends Controller
 {
@@ -22,6 +23,10 @@ class CobrarController extends Controller
      * @param  \Illuminate\Http\Request  $request
      * @return \Illuminate\Http\Response
      */
+    public function listdeudores(){
+        return DB::SELECT("SELECT * from tbclientes where id in(select CINIT from tbctascobrar where Importe!=Acuenta and Nrocierre=0)");
+        
+    }
 
     public function deudas($ci){
         return DB::SELECT("
@@ -34,12 +39,11 @@ class CobrarController extends Controller
         
     }
 
-    public function deudas2($ci){
+    public function cxcobrar($ci){
         return DB::SELECT("
-            SELECT * FROM tbctascobrar c
-            INNER JOIN tbclientes cli ON cli.Id=c.CINIT
-            WHERE c.CINIT='$ci' AND c.Nrocierre=0
-            ORDER BY c.comanda");
+            SELECT *,(Importe - Acuenta) as saldo FROM tbctascobrar 
+            WHERE CINIT='$ci' AND Nrocierre=0
+            ORDER BY comanda");
         
     }
 
