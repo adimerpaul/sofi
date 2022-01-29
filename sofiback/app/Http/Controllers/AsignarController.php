@@ -60,7 +60,7 @@ WHERE fecha='$fecha'");
         return DB::select("SELECT * FROM asignar a
 INNER JOIN tbclientes c ON a.cliente_id=c.Cod_Aut
 INNER JOIN personal u ON a.usuario_id=u.CodAut
-WHERE fecha='$request->fecha' AND
+WHERE fecha='$request->fecha' AND estado in('PENDIENTE','VOLVER') and 
 u.CodAut='".$request->user()->CodAut."'");
     }
 
@@ -74,6 +74,11 @@ u.CodAut='".$request->user()->CodAut."'");
     public function update(Request $request, $id)
     {
         //
+        $hora=date('H:i:s');
+        if($request->estado=='VOLVER')
+            $hora=date('H:i:s',strtotime('+20 minute',strtotime($hora)));
+            
+        DB::table('asignar')->where('id',$id)->update(['estado'=>$request->estado,'hora'=>$hora]);
     }
 
     /**

@@ -36,6 +36,25 @@
       </template>
     </q-table>
   </div>
+      <q-dialog v-model="dialog_pedido" >
+      <q-card style="min-width: 350px">
+        <q-card-section>
+          <div class="text-h6">Agregar a Lista Pedido {{pedido.Nombres}} </div>
+        </q-card-section>
+
+        <q-card-section class="q-pt-none">
+                <q-radio v-model="pedestado" val="PEDIDO" label="REALIZAR PEDIDO" color="green" />
+                <q-radio v-model="pedestado" val="VOLVER" label="VOLVER EN 20M" color="warning"/>
+                <q-radio v-model="pedestado" val="NOPEDIDO" label=" NO PEDIDO" color="red"/>
+        </q-card-section>
+
+        <q-card-actions align="right" class="text-primary">
+        {{pedestado}}
+          <q-btn flat label="Cancel" v-close-popup />
+          <q-btn flat label="Registrar" @click="agregar" />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
 </div>
 </q-page>
 </template>
@@ -46,6 +65,7 @@ export default {
   data(){
     return{
       filter:'',
+      pedestado:'',
       asignaciones:[],
       asignar:{},
       cliente:{label:''},
@@ -55,11 +75,13 @@ export default {
       usuarios:[],
       options:[],
       options2:[],
-      dialog_ag:false,
+      pedido:{},
+      dialog_pedido:false,
       columns:[
         {label:'fecha',name:'fecha',field:'fecha'},
         {label:'personal',name:'personal',field:'personal'},
         {label:'cliente',name:'cliente',field:'cliente'},
+        {label:'estado',name:'estado',field:'estado'},
         {label:'opciones',name:'opciones',field:'opciones'},
       ],
       fecha:date.formatDate(Date.now(),'YYYY-MM-DD')
@@ -69,8 +91,21 @@ export default {
     this.misasignaciones()
   },
   methods:{
+    agregar(){
+      if(this.pedestado=='')
+        return false
+      this.$api.put('asignar/'+this.pedido.id,{estado:this.pedestado}).then(res=>{
+        this.pedestado='';
+        this.dialog_pedido=false
+        this.misasignaciones()
+      })
+
+    },
     atender(asignar){
       console.log(asignar)
+      this.pedido=asignar;
+      this.dialog_pedido=true;
+
     },
     misasignaciones(){
       this.$q.loading.show()
