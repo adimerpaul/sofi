@@ -39,18 +39,23 @@
 
         <q-card-section class="q-pt-none">
         <div class="row"><div class="col-4">CINIT: {{ccliente.Id}}</div><div>Nombre: {{ccliente.Nombres}}</div></div>
+        <div>{{totalpago}}</div>
         </q-card-section>
         <q-card-section class="q-pt-none">
           <div class="row" v-for="(r,index) in cxcobrar" :key="index">
           <div class="col-4">Comanda: {{r.comanda}}</div>
           <div class="col-4">Saldo: {{r.saldo}}</div>
-          <div class="col-3"> <q-input dense outlined v-model="r.pago"  type="number" step="0.01"/></div> 
-          </div>
+          <div class="col-4"> <q-input dense outlined v-model="r.pago"  type="number" step="0.01"      
+          :rules="[
+           val => ((val<=parseFloat(r.saldo)&&val>=0) || val=='') || 'No debe exceder',
+           
+        ]"
+      lazy-rules/></div>           </div>
         </q-card-section>
 
         <q-card-actions align="right" class="text-primary">
           <q-btn flat label="Cancel" v-close-popup />
-          <q-btn flat label="Add address" v-close-popup />
+          <q-btn flat label="Guardar" />
         </q-card-actions>
       </q-card>
     </q-dialog>
@@ -95,6 +100,9 @@ export default {
       this.cxcobrar=[]
       this.$api.post('cxcobrar/'+cliente.Id).then(res=>{
         console.log(res.data);
+        res.data.forEach(element => {
+          element.pago=0;
+        });
         this.cxcobrar=res.data;
         this.dialog_cc=true
       })
@@ -137,6 +145,16 @@ export default {
         })
       }
 
+    }
+  },
+  computed:{
+    totalpago(){
+      let suma=0
+      this.cxcobrar.forEach(element => {
+        if(element.pago!=undefined || element.pago!='')
+        suma=suma+parseFloat(element.pago)
+      });
+      return suma;
     }
   }
 }
