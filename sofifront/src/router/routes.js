@@ -1,5 +1,5 @@
 import Login from 'pages/Login'
-import Index from "pages/Asignar";
+import Index from "pages/Index";
 import Asignar from "pages/Asignar";
 import Cobranza from "pages/Cobranza";
 import Misasignaciones from "pages/Misasignaciones";
