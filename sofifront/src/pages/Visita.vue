@@ -1,5 +1,5 @@
 <template>
-  <div style="height: 250px; width: 100%;">
+  <div style="height: 350px; width: 100%;">
     <l-map
       @ready="onReady"
       @locationfound="onLocationFound"
@@ -7,8 +7,9 @@
       v-model:zoom="zoom"
       :center="center"
       @move="log('move')"
-      @click="ubicacion"
+
     >
+<!--      @click="ubicacion"-->
       <l-tile-layer
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
       ></l-tile-layer>
@@ -19,7 +20,7 @@
 <!--        </l-tooltip>-->
 <!--      </l-marker>-->
 
-      <l-marker v-for="c in clientes" :key="c.Cod_Aut" :lat-lng="[c.Latitud, c.longitud]"  >
+      <l-marker @click="clickpedido(c)" v-for="c in clientes" :key="c.Cod_Aut" :lat-lng="[c.Latitud, c.longitud]"  >
         <l-icon><q-badge color="info">{{c.Cod_Aut}}</q-badge></l-icon>
       </l-marker>
       <l-marker :lat-lng="center"  >
@@ -110,6 +111,20 @@
 <!--        {{center}}-->
       </div>
     </div>
+    <q-dialog full-width v-model="modalpedido">
+      <q-card >
+        <q-card-section>
+          <div class="text-h6">Medium</div>
+        </q-card-section>
+        <q-card-section class="q-pt-none">
+<!--          <pre>{{cliente}}</pre>-->
+          <q-btn label="generar ruta" icon="maps" type="a" target="_blank" :href="'https://www.google.com.bo/maps/place/-17.981444,-67.106111/@-17.9814269,-67.108306,17z/data=!3m1!4b1!4m6!3m5!1s0x0:0xeda9371aeb8c1574!7e2!8m2!3d-17.981432!4d-67.1061122?hl=es'"/>
+        </q-card-section>
+        <q-card-actions align="right" class="bg-white text-teal">
+          <q-btn flat label="OK" v-close-popup />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
   </div>
 </template>
 <script>
@@ -128,6 +143,7 @@ import {
 import "leaflet/dist/leaflet.css";
 export default {
   components: {
+
     LMap,
     LIcon,
     LTileLayer,
@@ -141,12 +157,14 @@ export default {
   },
   data() {
     return {
+      modalpedido:false,
       center:[-17.970371, -67.112303],
       filter:'',
       zoom: 16,
       iconWidth: 25,
       iconHeight: 40,
       clientes:[],
+      cliente:{},
       userLocation:{},
       columns:[
         {label:'Cod_Aut',name:'Cod_Aut',field:'Cod_Aut'},
@@ -189,6 +207,10 @@ export default {
     })
   },
   methods: {
+    clickpedido(cliente){
+      this.modalpedido=true
+      this.cliente=cliente
+    },
     ubicacion(e){
       // console.log(e.latlng)
       if (e.latlng!=undefined)
