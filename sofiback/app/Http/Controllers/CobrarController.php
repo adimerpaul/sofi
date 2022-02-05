@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
+
 class CobrarController extends Controller
 {
     /**
@@ -80,30 +81,21 @@ class CobrarController extends Controller
     }
 
     public function insertcobro(Request $request){
-        //$ci=$_POST['ci'];
-        //$monto=$_POST['monto'];
-        
-        $CIfunc=$_SESSION['CodAut'];
 
-        $query=DB::SELECT("SELECT * FROM tbctascobrar c
-        WHERE c.CINIT='$request->ci' AND c.Nrocierre=0");
-
-        foreach ($query as $row){
-            if (isset($_POST['id'.$row->CodAuto]) && $_POST['id'.$row->CodAuto]!='' && $_POST['id'.$row->CodAuto]!=null){
-                $monto=$_POST['id'.$row->CodAuto];
-                $comanda=$row->CodAuto;
-                        BD::table('tbctascow')->insert([
-                        'pago'=>$monto,
-                        'idCli'=>$request->ci,
-                        'CIfunc'=>$CIfunc,
+        foreach ($request->pagos as $row){
+                //return $row['pago'];
+            DB::table('tbctascow')->insert([
+                         'comanda'=>$row['comanda'],
+                         'pago'=>floatval($row['pago']),
+                        'idCli'=>$row['CINIT'],
+                        'CiFunc'=>$row['CIFunc'],
                          'fecha'=>date("Y-m-d H:i:s"),
-                         'comanda'=>$comanda
+                         'estado'=>'CREADO',
+                         'procesado'=>0
                         ]);
-            }
         }
-        //header('Location: '.base_url().'Cobrar');
-        return true;
     }
+
     public function store(Request $request)
     {
         //

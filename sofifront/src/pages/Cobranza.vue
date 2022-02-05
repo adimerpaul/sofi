@@ -39,6 +39,7 @@
 
         <q-card-section class="q-pt-none">
         <div class="row"><div class="col-4">CINIT: {{ccliente.Id}}</div><div>Nombre: {{ccliente.Nombres}}</div></div>
+        <div><q-input outlined v-model="monto" type="number" step="0.01" label="Monto" /></div>
         <div>{{totalpago}}</div>
         </q-card-section>
         <q-card-section class="q-pt-none">
@@ -55,7 +56,7 @@
 
         <q-card-actions align="right" class="text-primary">
           <q-btn flat label="Cancel" v-close-popup />
-          <q-btn flat label="Guardar" />
+          <q-btn flat label="Guardar" @click="registrar"/>
         </q-card-actions>
       </q-card>
     </q-dialog>
@@ -81,6 +82,8 @@ export default {
       listado:[],
       ccliente:{},
       cxcobrar:[],
+      cxcdatos:[],
+      monto:0,
       dialog_cc:false,
       columns:[
         {label:'CINIT',name:'CINIT',field:'Id'},
@@ -95,6 +98,26 @@ export default {
     this.misusuarios()
   },
   methods:{
+    registrar(){
+      if(parseFloat(this.monto) != parseFloat(this.totalpago) && parseFloat(this.monto)>0)
+      {
+        this.$q.notify({
+            message:'Cantidad y Monto de ser igual',
+            color:'red',
+            icon:'error'
+          })
+          return false
+      }
+      this.cxcdatos=[]
+      this.cxcobrar.forEach(element => {
+          if(element.pago>0)
+          this.cxcdatos.push(element);
+      });
+      this.$api.post('insertcobro',{pagos:this.cxcdatos}).then(res=>{
+          console.log(res.data)
+      })
+
+    },
     ccobrar(cliente){
       this.ccliente=cliente;
       this.cxcobrar=[]
