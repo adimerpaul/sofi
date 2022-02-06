@@ -4,7 +4,7 @@
       @ready="onReady"
       @locationfound="onLocationFound"
       v-model="zoom"
-      v-model:zoom="zoom"
+      :zoom="zoom"
       :center="center"
       @move="log('move')"
 

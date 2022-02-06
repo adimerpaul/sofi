@@ -114,7 +114,13 @@ export default {
           this.cxcdatos.push(element);
       });
       this.$api.post('insertcobro',{pagos:this.cxcdatos}).then(res=>{
+        this.dialog_cc=false;
           console.log(res.data)
+                  this.$q.notify({
+            message:'Guardado Correctamente',
+            color:'green',
+            icon:'check'
+          })
       })
 
     },
