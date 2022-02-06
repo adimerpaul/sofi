@@ -29,9 +29,10 @@ class UserController extends Controller
 //            return response()->json(['res'=>'Su usuario sobre paso el limite de ingreso'],400);
 //        }
 
-        $user =User::where('ci',$request->ci)->where('pasw',$request->pasw)->get();
-//        return $user->count();
-        if ($user->count()==1){
+//        $user =User::where('TRIM(ci)',$request->ci)->where('TRIM(pasw)',$request->pasw)->get();
+        $user=DB::select("SELECT * FROM `personal` WHERE TRIM(ci)='".$request->ci."' AND TRIM(pasw)='".$request->ci."'");
+//        return sizeof($user);
+        if (sizeof($user)==1){
             $user=User::where('ci',$request->ci)
 //            ->with('unid')
 //            ->with('permisos')

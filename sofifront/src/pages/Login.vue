@@ -205,8 +205,10 @@ export default {
     },
     login () {
       this.$q.loading.show()
-      this.$store.dispatch('login/login', { ci:this.ci, pasw:this.pasw }).then(() =>{
+      this.$store.dispatch('login/login', { ci:this.ci, pasw:this.pasw }).then(res=>{
         this.$q.loading.hide()
+        // console.log(res.data)
+        // return false
         this.$router.push('/')
       })
         .catch(err => {

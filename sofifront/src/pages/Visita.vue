@@ -20,7 +20,7 @@
 <!--        </l-tooltip>-->
 <!--      </l-marker>-->
 
-      <l-marker @click="clickpedido(c)" v-for="c in clientes" :key="c.Cod_Aut" :lat-lng="[c.Latitud, c.longitud]"  >
+      <l-marker @click="clickopciones(c)" v-for="c in clientes" :key="c.Cod_Aut" :lat-lng="[c.Latitud, c.longitud]"  >
         <l-icon><q-badge color="info">{{c.Cod_Aut}}</q-badge></l-icon>
       </l-marker>
       <l-marker :lat-lng="center"  >
@@ -92,8 +92,11 @@
           </template>
           <template v-slot:top-right>
             <div class="row">
-              <div class="col-4 flex flex-center" @click="getUserPosition" >
+              <div class="col-2 flex flex-center" @click="getUserPosition" >
                 <q-btn icon="my_location" size="xs" color="primary" />
+              </div>
+              <div class="col-2 flex flex-center" @click="getCentro" >
+                <q-btn icon="my_location" size="xs" color="secondary" />
               </div>
               <div class="col-8">
                 <q-input filled dense v-model="filter" placeholder="Buscar Cliente">
@@ -111,15 +114,69 @@
 <!--        {{center}}-->
       </div>
     </div>
-    <q-dialog full-width v-model="modalpedido">
+    <q-dialog full-width v-model="modalopciones">
       <q-card >
         <q-card-section>
-          <div class="text-h6">{{cliente.Cod_Aut}} {{cliente.Nombres}}</div>
+          <div class="text-subtitle2">{{cliente.Cod_Aut}} {{cliente.Nombres}}</div>
         </q-card-section>
         <q-card-section class="q-pt-none">
 <!--          <pre>{{cliente}}</pre>-->
-          <q-btn label="generar ruta" icon="maps" type="a" target="_blank" :href="'https://www.google.com.bo/maps/place/'+cliente.Latitud+','+cliente.longitud+'/@'+cliente.Latitud+','+cliente.longitud+',17z/data=!3m1!4b1!4m6!3m5!1s0x0:0xeda9371aeb8c1574!7e2!8m2!3d-17.981432!4d-67.1061122?hl=es'"/>
-          
+          <q-btn class="q-ma-xs" label="generar ruta" color="primary" size="xs" style="width: 100%;" icon="maps" type="a" target="_blank" :href="'https://www.google.com.bo/maps/place/'+cliente.Latitud+','+cliente.longitud+'/@'+cliente.Latitud+','+cliente.longitud+',17z/data=!3m1!4b1!4m6!3m5!1s0x0:0xeda9371aeb8c1574!7e2!8m2!3d-17.981432!4d-67.1061122?hl=es'"/>
+          <q-btn class="q-ma-xs" @click="clickpedido" label="realizar pedido" color="positive" size="xs" style="width: 100%;" icon="shopping_cart" />
+          <q-btn class="q-ma-xs" label="volver 20 min" color="warning" size="xs" style="width: 100%;" icon="schedule" />
+          <q-btn class="q-ma-xs" label="no pedido" color="teal" size="xs" style="width: 100%;" icon="highlight_off" />
+        </q-card-section>
+        <q-card-actions align="right" class="bg-white text-teal">
+          <q-btn flat label="OK" v-close-popup />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
+    <q-dialog full-width v-model="modalpedido">
+      <q-card >
+        <q-card-section>
+          <div class="text-subtitle2">{{cliente.Cod_Aut}} {{cliente.Nombres}}</div>
+        </q-card-section>
+        <q-card-section class="q-pt-none">
+          <div class="row">
+            <div class="col-10">
+              <q-select label="Productos" dense outlined class="q-ma-xs" use-input input-debounce="0"  @filter="filterFn" :options="productos" v-model="producto">
+                <template v-slot:no-option>
+                  <q-item>
+                    <q-item-section class="text-grey">
+                      No results
+                    </q-item-section>
+                  </q-item>
+                </template>
+              </q-select>
+            </div>
+            <div class="col-2 flex flex-center">
+              <q-btn size="xs" color="primary" icon="add_circle" @click="agregarpedido"/>
+            </div>
+            <div class="col-12">
+              <q-table :rows="misproductos"  :filter="filteproducto" :columns="columnsproducto">
+                <template v-slot:body-cell-cantidad="props" >
+                  <q-td :props="props" >
+                    <q-btn flat @click="agregar(props.row)" class="q-ma-none q-pa-none" color="positive" icon="add_circle"/>{{ props.row.cantidad}}<q-btn flat @click="quitar(props.row,props.rowIndex)"  class="q-ma-none q-pa-none" color="negative" icon="remove_circle"/>
+                  </q-td>
+                </template>
+                <template v-slot:top-right>
+                  <div class="row">
+                    <div class="col-12">
+                      <q-input outlined dense v-model="filteproducto" placeholder="Buscar pedido">
+                        <template v-slot:append>
+                          <q-icon name="search" />
+                        </template>
+                      </q-input>
+                    </div>
+                  </div>
+                </template>
+                <template v-slot:bottom>
+                  <div class="text-subtitle2">Total: {{total}}</div>
+                </template>
+              </q-table>
+            </div>
+          </div>
+
         </q-card-section>
         <q-card-actions align="right" class="bg-white text-teal">
           <q-btn flat label="OK" v-close-popup />
@@ -158,6 +215,8 @@ export default {
   },
   data() {
     return {
+      filteproducto:'',
+      modalopciones:false,
       modalpedido:false,
       center:[-17.970371, -67.112303],
       filter:'',
@@ -166,22 +225,27 @@ export default {
       iconHeight: 40,
       clientes:[],
       cliente:{},
+      productos:[],
+      productos2:[],
+      misproductos:[],
+      producto:{label:''},
       userLocation:{},
       columns:[
         {label:'Cod_Aut',name:'Cod_Aut',field:'Cod_Aut'},
         {label:'Nombres',name:'Nombres',field:'Nombres',align:'left'},
         {label:'opcion',name:'opcion',field:'opcion'},
+      ],
+      columnsproducto:[
+        {label:'subtotal',name:'subtotal',field:'subtotal'},
+        {label:'cantidad',name:'cantidad',field:'cantidad'},
+        {label:'precio',name:'precio',field:'precio',align:'left'},
+        {label:'cod_prod',name:'cod_prod',field:'cod_prod',align:'left'},
+        {label:'nombre',name:'nombre',field:'nombre',align:'left'},
+
       ]
     };
   },
-  computed: {
-    // iconUrl() {
-    //   return `https://placekitten.com/25/40`;
-    // },
-    // iconSize() {
-    //   return [this.iconWidth, this.iconHeight];
-    // },
-  },
+
   created() {
     this.$q.loading.show()
     this.$api.get('cliente').then(res=>{
@@ -206,16 +270,71 @@ export default {
       })
       this.$q.loading.hide()
     })
+
+    this.$api.get('producto').then(res=>{
+      // console.log(res.data)
+      this.productos=[]
+      // this.productos=res.data
+      res.data.forEach(r=>{
+        let d=r
+        d.label=r.cod_prod+' '+r.Producto+' '+ parseFloat(r.Precio).toFixed(2) +'Bs '+ parseFloat(r.cantidad).toFixed(2)
+        this.productos.push(d)
+      })
+      this.productos2=this.productos
+      // this.producto=this.productos[0]
+      this.$q.loading.hide()
+    })
   },
   methods: {
-    clickpedido(cliente){
+    agregar(producto){
+      producto.cantidad = producto.cantidad+1
+      producto.subtotal = (producto.cantidad*parseFloat(producto.precio)).toFixed(2)
+    },
+    quitar(producto,index){
+      if (producto.cantidad==1){
+        this.misproductos.splice(index, 1);
+      }else {
+        producto.cantidad = producto.cantidad-1
+        producto.subtotal = (producto.cantidad*parseFloat(producto.precio)).toFixed(2)
+      }
+
+    },
+    agregarpedido(){
+      // console.log(this.producto)
+      this.misproductos.push({
+        nombre:this.producto.Producto,
+        cod_prod:this.producto.cod_prod,
+        precio:parseFloat(this.producto.Precio),
+        cantidad:1,
+        subtotal:parseFloat(this.producto.Precio)
+      })
+    },
+    clickpedido(){
+      this.modalopciones=false
       this.modalpedido=true
+    },
+    clickopciones(cliente){
+      this.modalopciones=true
       this.cliente=cliente
     },
     ubicacion(e){
       // console.log(e.latlng)
       if (e.latlng!=undefined)
         this.center=[e.latlng.lat,e.latlng.lng]
+    },
+    async getCentro() {
+      this.center = [-17.970371, -67.112303]
+      // check if API is supported
+      // if (navigator.geolocation) {
+      //   // get  geolocation
+      //   navigator.geolocation.getCurrentPosition(pos => {
+      //     // set user location
+      //     this.center = [
+      //       pos.coords.latitude,
+      //       pos.coords.longitude
+      //     ]
+      //   });
+      // }
     },
     async getUserPosition() {
       this.center = [0,0]
@@ -230,6 +349,22 @@ export default {
           ]
         });
       }
+    },
+    filterFn (val, update) {
+      if (val === '') {
+        update(() => {
+          this.productos = this.productos2
+
+          // here you have access to "ref" which
+          // is the Vue reference of the QSelect
+        })
+        return
+      }
+
+      update(() => {
+        const needle = val.toLowerCase()
+        this.productos = this.productos2.filter(v => v.label.toLowerCase().indexOf(needle) > -1)
+      })
     },
     onReady (mapObject) {
       mapObject.locate();
@@ -247,6 +382,21 @@ export default {
         this.iconWidth = Math.floor(this.iconHeight / 2);
       }
     },
+  },
+  computed: {
+    // iconUrl() {
+    //   return `https://placekitten.com/25/40`;
+    // },
+    // iconSize() {
+    //   return [this.iconWidth, this.iconHeight];
+    // },
+    total(){
+      let total=0
+      this.misproductos.forEach(r=>{
+        total+=parseFloat(r.subtotal)
+      })
+      return total.toFixed(2)
+    }
   },
 };
 </script>

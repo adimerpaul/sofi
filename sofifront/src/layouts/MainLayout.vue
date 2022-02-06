@@ -24,6 +24,18 @@
           </q-item-section>
         </q-item>
 
+        <q-item clickable exact to="visita">
+          <q-item-section avatar>
+            <q-icon name="map" />
+          </q-item-section>
+          <q-item-section>
+            <q-item-label>Visita </q-item-label>
+            <q-item-label caption>
+              Visita
+            </q-item-label>
+          </q-item-section>
+        </q-item>
+
         <q-item clickable exact to="asignar">
           <q-item-section avatar>
             <q-icon name="people" />
