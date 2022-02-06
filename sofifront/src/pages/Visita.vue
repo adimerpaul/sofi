@@ -114,11 +114,12 @@
     <q-dialog full-width v-model="modalpedido">
       <q-card >
         <q-card-section>
-          <div class="text-h6">Medium</div>
+          <div class="text-h6">{{cliente.Cod_Aut}} {{cliente.Nombres}}</div>
         </q-card-section>
         <q-card-section class="q-pt-none">
 <!--          <pre>{{cliente}}</pre>-->
           <q-btn label="generar ruta" icon="maps" type="a" target="_blank" :href="'https://www.google.com.bo/maps/place/'+cliente.Latitud+','+cliente.longitud+'/@'+cliente.Latitud+','+cliente.longitud+',17z/data=!3m1!4b1!4m6!3m5!1s0x0:0xeda9371aeb8c1574!7e2!8m2!3d-17.981432!4d-67.1061122?hl=es'"/>
+          
         </q-card-section>
         <q-card-actions align="right" class="bg-white text-teal">
           <q-btn flat label="OK" v-close-popup />
