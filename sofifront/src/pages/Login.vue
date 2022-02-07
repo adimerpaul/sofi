@@ -31,7 +31,7 @@
                     </q-input>
                   </div>
                   <div class="col-12 q-pt-md">
-                    <q-input outlined v-model="pasw" label="password*" :type="isPwd ? 'password' : 'text'" hint="Porfavor ingresar password" :rules="rule">
+                    <q-input outlined v-model="pasw" label="password*" :type="isPwd ? 'password' : 'text'" hint="Porfavor ingresar password" >
                       <template v-slot:prepend>
                         <q-icon name="lock" />
                       </template>
@@ -83,7 +83,7 @@
                     </q-input>
                   </div>
                   <div class="col-12 q-pt-md">
-                    <q-input outlined v-model="user.password" label="password*" :type="isPwd ? 'password' : 'text'" hint="Porfavor ingresar carnet de identidad" :rules="rule">
+                    <q-input outlined v-model="user.password" label="password*" :type="isPwd ? 'password' : 'text'" hint="Porfavor ingresar carnet de identidad" >
                       <template v-slot:prepend>
                         <q-icon name="lock" />
                       </template>
@@ -136,8 +136,8 @@ export default {
       rule:[
         val => (val && val.length > 0) || 'Porfavor ingresar dato'
       ],
-      ci:'1',
-      pasw:'1',
+      ci:'7360035',
+      pasw:'',
       tab:'login',
       user:{},
       isPwd:true,

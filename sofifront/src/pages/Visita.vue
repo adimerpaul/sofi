@@ -21,7 +21,7 @@
 <!--      </l-marker>-->
 
       <l-marker @click="clickopciones(c)" v-for="c in clientes" :key="c.Cod_Aut" :lat-lng="[c.Latitud, c.longitud]"  >
-        <l-icon><q-badge color="info">{{c.Cod_Aut}}</q-badge></l-icon>
+        <l-icon><q-badge class="q-pa-none q-ma-none " color="info" >{{c.Cod_Aut}}</q-badge></l-icon>
       </l-marker>
       <l-marker :lat-lng="center"  >
 <!--        <l-icon><q-badge color="info">{{c.Cod_Aut}}</q-badge></l-icon>-->
@@ -80,12 +80,12 @@
       <div class="col-12">
         <q-table :rows="clientes" hide-header :filter="filter" :columns="columns">
           <template v-slot:body-cell-Cod_Aut="props">
-            <q-td :props="props">
-                <q-badge color="info"> {{ props.row.Cod_Aut}}</q-badge>
+            <q-td @click="clickopciones(props.row)" :props="props">
+                <q-badge  color="info"> {{ props.row.Cod_Aut}}</q-badge>
             </q-td>
           </template>
           <template v-slot:body-cell-Nombres="props">
-            <q-td :props="props">
+            <q-td @click="clickopciones(props.row)" :props="props">
               <div class="text-weight-medium">{{ props.row.Nombres}}</div>
               <div class="text-caption" style="font-size: 8px">{{ props.row.Direccion}}</div>
             </q-td>
@@ -117,21 +117,24 @@
     <q-dialog full-width v-model="modalopciones">
       <q-card >
         <q-card-section>
-          <div class="text-subtitle2">{{cliente.Cod_Aut}} {{cliente.Nombres}}</div>
+          <div class="text-subtitle2">{{cliente.Cod_Aut}} {{cliente.Nombres}} </div>
+          <div class="text-subtitle2">Cel: {{cliente.Telf}}</div>
+          <div class="text-subtitle2">{{cliente.Direccion}}</div>
         </q-card-section>
         <q-card-section class="q-pt-none">
 <!--          <pre>{{cliente}}</pre>-->
-          <q-btn class="q-ma-xs" label="generar ruta" color="primary" size="xs" style="width: 100%;" icon="maps" type="a" target="_blank" :href="'https://www.google.com.bo/maps/place/'+cliente.Latitud+','+cliente.longitud+'/@'+cliente.Latitud+','+cliente.longitud+',17z/data=!3m1!4b1!4m6!3m5!1s0x0:0xeda9371aeb8c1574!7e2!8m2!3d-17.981432!4d-67.1061122?hl=es'"/>
-          <q-btn class="q-ma-xs" @click="clickpedido" label="realizar pedido" color="positive" size="xs" style="width: 100%;" icon="shopping_cart" />
-          <q-btn class="q-ma-xs" label="volver 20 min" color="warning" size="xs" style="width: 100%;" icon="schedule" />
-          <q-btn class="q-ma-xs" label="no pedido" color="teal" size="xs" style="width: 100%;" icon="highlight_off" />
+
+          <q-btn class="q-ma-xs" @click="clickpedido" label="realizar pedido" color="positive" style="width: 100%;" icon="shopping_cart" />
+          <q-btn class="q-ma-xs" label="retornar" color="warning" style="width: 100%;" icon="schedule" />
+          <q-btn class="q-ma-xs" label="no pedido" color="negative" style="width: 100%;" icon="highlight_off" />
+          <q-btn class="q-ma-xs" label="generar ruta" color="accent" style="width: 100%;" icon="maps" type="a" target="_blank" :href="'https://www.google.com.bo/maps/place/'+cliente.Latitud+','+cliente.longitud+'/@'+cliente.Latitud+','+cliente.longitud+',17z/data=!3m1!4b1!4m6!3m5!1s0x0:0xeda9371aeb8c1574!7e2!8m2!3d-17.981432!4d-67.1061122?hl=es'"/>
         </q-card-section>
         <q-card-actions align="right" class="bg-white text-teal">
           <q-btn flat label="OK" v-close-popup />
         </q-card-actions>
       </q-card>
     </q-dialog>
-    <q-dialog full-width v-model="modalpedido">
+    <q-dialog full-width full-height v-model="modalpedido">
       <q-card >
         <q-card-section>
           <div class="text-subtitle2">{{cliente.Cod_Aut}} {{cliente.Nombres}}</div>
@@ -155,8 +158,24 @@
             <div class="col-12">
               <q-table :rows="misproductos"  :filter="filteproducto" :columns="columnsproducto">
                 <template v-slot:body-cell-cantidad="props" >
-                  <q-td :props="props" >
-                    <q-btn flat @click="agregar(props.row)" class="q-ma-none q-pa-none" color="positive" icon="add_circle"/>{{ props.row.cantidad}}<q-btn flat @click="quitar(props.row,props.rowIndex)"  class="q-ma-none q-pa-none" color="negative" icon="remove_circle"/>
+                  <q-td :props="props" auto-width >
+<!--                    <div class="row">-->
+<!--                      <div class="col-4">-->
+                        <q-btn flat @click="agregar(props.row)" class="q-ma-none q-pa-none" color="positive" icon="add_circle"/>
+<!--                      </div>-->
+<!--                      <div class="col-4 flex flex-center">-->
+<!--                        <q-input outlined dense class="q-ma-none q-pa-none" v-model="props.row.cantidad" />-->
+                        <input type="number" @keyup="tecleado(props.row)" v-model="props.row.cantidad" style="width: 2.5em"  >
+<!--                      </div>-->
+<!--                      <div class="col-4">-->
+                        <q-btn flat @click="quitar(props.row,props.rowIndex)"  class="q-ma-none q-pa-none" color="negative" icon="remove_circle"/>
+<!--                      </div>-->
+<!--                    </div>-->
+                  </q-td>
+                </template>
+                <template v-slot:body-cell-precio="props" >
+                  <q-td :props="props" auto-width >
+                    <input type="number" @keyup="tecleado(props.row)" v-model="props.row.precio" style="width: 3em"  >
                   </q-td>
                 </template>
                 <template v-slot:top-right>
@@ -170,8 +189,13 @@
                     </div>
                   </div>
                 </template>
-                <template v-slot:bottom>
-                  <div class="text-subtitle2">Total: {{total}}</div>
+                <template v-slot:bottom-row>
+                  <q-tr>
+                    <q-td colspan="100%">
+                      <div class="text-subtitle2">Total: {{total}} Bs.</div>
+<!--                      <div class="text-subtitle2">Cantidad de pedidos: {{misproductos.length}}</div>-->
+                    </q-td>
+                  </q-tr>
                 </template>
               </q-table>
             </div>
@@ -277,7 +301,8 @@ export default {
       // this.productos=res.data
       res.data.forEach(r=>{
         let d=r
-        d.label=r.cod_prod+' '+r.Producto+' '+ parseFloat(r.Precio).toFixed(2) +'Bs '+ parseFloat(r.cantidad).toFixed(2)
+        // console.log(d)
+        d.label=r.cod_prod+'-'+r.Producto+' '+ parseFloat(r.Precio).toFixed(2) +'Bs '+ parseFloat(r.cantidad).toFixed(2)+r.codUnid
         this.productos.push(d)
       })
       this.productos2=this.productos
@@ -297,16 +322,19 @@ export default {
         producto.cantidad = producto.cantidad-1
         producto.subtotal = (producto.cantidad*parseFloat(producto.precio)).toFixed(2)
       }
-
+    },
+    tecleado(e){
+      // console.log(e)
+      e.subtotal=(e.cantidad*e.precio).toFixed(2)
     },
     agregarpedido(){
       // console.log(this.producto)
       this.misproductos.push({
         nombre:this.producto.Producto,
         cod_prod:this.producto.cod_prod,
-        precio:parseFloat(this.producto.Precio),
+        precio:parseFloat(this.producto.Precio).toFixed(2),
         cantidad:1,
-        subtotal:parseFloat(this.producto.Precio)
+        subtotal:parseFloat(this.producto.Precio).toFixed(2)
       })
     },
     clickpedido(){

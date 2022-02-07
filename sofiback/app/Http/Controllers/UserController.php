@@ -30,7 +30,7 @@ class UserController extends Controller
 //        }
 
 //        $user =User::where('TRIM(ci)',$request->ci)->where('TRIM(pasw)',$request->pasw)->get();
-        $user=DB::select("SELECT * FROM `personal` WHERE TRIM(ci)='".$request->ci."' AND TRIM(pasw)='".$request->ci."'");
+        $user=DB::select("SELECT * FROM `personal` WHERE TRIM(ci)='".$request->ci."' AND TRIM(pasw)='".$request->pasw."'");
 //        return sizeof($user);
         if (sizeof($user)==1){
             $user=User::where('ci',$request->ci)
