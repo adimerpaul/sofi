@@ -14,7 +14,14 @@ class ClienteController extends Controller
      */
     public function index(Request $request)
     {
-        return DB::select("SELECT * FROM tbclientes WHERE TRIM(CiVend)='".$request->user()->ci."'");
+//        return DB::select("SELECT * FROM tbclientes WHERE TRIM(CiVend)='".$request->user()->ci."'");
+        return DB::select("
+        SELECT *,(
+        SELECT estado from misvisitas where cliente_id=Cod_Aut AND fecha='".date('Y-m-d')."' LIMIT 1
+        ) as tipo  FROM tbclientes
+        WHERE TRIM(CiVend)='".$request->user()->ci."'
+        ORDER BY tipo desc
+        ");
     }
 
     /**
