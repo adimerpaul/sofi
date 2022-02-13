@@ -21,7 +21,7 @@
 <!--      </l-marker>-->
 
       <l-marker @click="clickopciones(c)" v-for="c in clientes" :key="c.Cod_Aut" :lat-lng="[c.Latitud, c.longitud]"  >
-        <l-icon><q-badge class="q-pa-none q-ma-none " color="info" >{{c.Cod_Aut}}</q-badge></l-icon>
+        <l-icon><q-badge  :class="c.tipo=='PEDIDO'?'bg-green-5  text-italic':c.tipo=='PARADO'?'bg-yellow-5  text-italic':c.tipo=='NO PEDIDO'?'bg-red-5 text-italic':''"  class="q-pa-none" color="info" >{{c.Cod_Aut}}</q-badge></l-icon>
       </l-marker>
       <l-marker :lat-lng="center"  >
 <!--        <l-icon><q-badge color="info">{{c.Cod_Aut}}</q-badge></l-icon>-->
@@ -80,18 +80,18 @@
       <div class="col-12">
         <q-table :rows="clientes" hide-header :filter="filter" :columns="columns" :rows-per-page-options="[7,10,50,100,0]">
           <template v-slot:body-cell-Cod_Aut="props">
-            <q-td :class="props.row.tipo=='PEDIDO'?'bg-green-6 text-white text-italic':props.row.tipo=='PARADO'?'bg-yellow-9 text-white text-italic':props.row.tipo=='NO PEDIDO'?'bg-red-10 text-white text-italic':''" @click="clickopciones(props.row)" :props="props">
+            <q-td :class="props.row.tipo=='PEDIDO'?'bg-green-3  text-italic':props.row.tipo=='PARADO'?'bg-yellow-3  text-italic':props.row.tipo=='NO PEDIDO'?'bg-red-3 text-italic':''" @click="clickopciones(props.row)" :props="props">
                 <q-badge  color="info"> {{ props.row.Cod_Aut}}</q-badge>
             </q-td>
           </template>
           <template v-slot:body-cell-Nombres="props">
-            <q-td :class="props.row.tipo=='PEDIDO'?'bg-green-6 text-white text-italic':props.row.tipo=='PARADO'?'bg-yellow-9 text-white text-italic':props.row.tipo=='NO PEDIDO'?'bg-red-10 text-white text-italic':''" @click="clickopciones(props.row)" :props="props">
+            <q-td :class="props.row.tipo=='PEDIDO'?'bg-green-3  text-italic':props.row.tipo=='PARADO'?'bg-yellow-3  text-italic':props.row.tipo=='NO PEDIDO'?'bg-red-3 text-italic':''" @click="clickopciones(props.row)" :props="props">
               <div class="text-weight-medium">{{ props.row.Nombres}}</div>
               <div class="text-caption" style="font-size: 8px">{{ props.row.Direccion}}</div>
             </q-td>
           </template>
           <template v-slot:body-cell-opcion="props">
-            <q-td :class="props.row.tipo=='PEDIDO'?'bg-green-6 text-white text-italic':props.row.tipo=='PARADO'?'bg-yellow-9 text-white text-italic':props.row.tipo=='NO PEDIDO'?'bg-red-10 text-white text-italic':''" :props="props">
+            <q-td :class="props.row.tipo=='PEDIDO'?'bg-green-3  text-italic':props.row.tipo=='PARADO'?'bg-yellow-3  text-italic':props.row.tipo=='NO PEDIDO'?'bg-red-3 text-italic':''" :props="props">
               <q-btn @click="clickclientes(props.row)" icon="my_location" size="xs" color="accent"  />
             </q-td>
           </template>
