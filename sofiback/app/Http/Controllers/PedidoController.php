@@ -157,4 +157,17 @@ class PedidoController extends Controller
     {
         //
     }
+
+    public function clientepedido(Request $request){
+        //$cl=DB::SELECT("SELECT * from tbclientes where ci='".$request->user()->CodAut."'")[0];
+        if($request->user()->CodAut==1)
+            DB::SELECT("SELECT * from tbclientes c where c.Cod_Aut in (sELECT idCli FROM `tbpedidos` WHERE date(fecha)>='$request->fecha1' and date(fecha)<='$request->fecha2')");
+        else            
+            DB::SELECT("SELECT * from tbclientes c where c.Cod_Aut in (sELECT idCli FROM `tbpedidos` WHERE date(fecha)>='$request->fecha1' and date(fecha)<='$request->fecha2'
+            and CiVend='".$request->user()->ci."')");
+    }
+
+    public function listpedido(Request $request){
+        return DB::SELECT("SELECT * from tbpedidos where idCli='$request->idcli' and date(fecha)>='$request->fecha1' and date(fecha)<='$request->fecha2'");
+    }
 }

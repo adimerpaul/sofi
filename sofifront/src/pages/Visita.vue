@@ -455,7 +455,7 @@ export default {
           })
           return false
         }
-        this.$q.loading.show()
+        //this.$q.loading.show()
         var lat=0,lng=0
         if (navigator.geolocation) {
           // get  geolocation
@@ -528,8 +528,8 @@ export default {
       })
     },
     insertarpedido(lat,lng){
-      this.$api.post('pedido',{idCli:this.cliente.Cod_Aut,lat:lat,lng:lng,estado:estado}).then(res=>{
-        // console.log(res.data)
+      this.$api.post('pedido',{idCli:this.cliente.Cod_Aut,lat:lat,lng:lng,productos:this.misproductos}).then(res=>{
+         console.log(res.data)
         // return false
         this.modalpedido=false
         this.misclientes()
