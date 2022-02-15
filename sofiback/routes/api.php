@@ -29,6 +29,8 @@ Route::group(['middleware'=>'auth:sanctum'],function (){
     Route::post('/cxcobrar/{ci}',[\App\Http\Controllers\CobrarController::class,'cxcobrar']);
     Route::post('/insertcobro',[\App\Http\Controllers\CobrarController::class,'insertcobro']);
     Route::post('/misasignaciones',[\App\Http\Controllers\AsignarController::class,'misasignaciones']);
+    Route::post('/clientepedido',[\App\Http\Controllers\PedidoController::class,'clientepedido']);
+    Route::post('/listpedido',[\App\Http\Controllers\PedidoController::class,'listpedido']);
     Route::post('/me',[\App\Http\Controllers\UserController::class,'me']);
     Route::post('/logout',[\App\Http\Controllers\UserController::class,'logout']);
 });
