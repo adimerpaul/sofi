@@ -38,18 +38,32 @@
         </q-card-section>
 
         <q-card-section class="q-pt-none">
-        <div class="row"><div class="col-4">CINIT: {{ccliente.Id}}</div><div>Nombre: {{ccliente.Nombres}}</div></div>
+        <div class="row"><div class="col-6">CINIT: {{ccliente.Id}}</div><div>Nombre: {{ccliente.Nombres}}</div></div>
         <div><q-input outlined v-model="monto" type="number" step="0.01" label="Monto" /></div>
         <div>{{totalpago}}</div>
         </q-card-section>
         <q-card-section class="q-pt-none">
+          <q-table>
+            <thead>
+              <tr><th>FECHA</th><th>COMANDA</th><th>SALDO</th><th>MONTO</th><th>BOLETA</th></tr>
+            </thead>
+            <tbody>
+              <tr v-for="(r,index) in cxcobrar" :key="index">
+                <td>{{r.fecha}}</td>
+                <td>{{r.comanda}}</td>
+                <td>{{r.saldo}}</td>
+                <td><input type="number" step="0.01" v-model="r.pago"></td>
+                <td><input type="text" v-model="r.boelta"></td>
+              </tr>
+            </tbody>
+          </table>
           <div class="row" v-for="(r,index) in cxcobrar" :key="index">
           <div class="col-4">Comanda: {{r.comanda}}</div>
           <div class="col-4">Saldo: {{r.saldo}}</div>
-          <div class="col-4"> <q-input dense outlined v-model="r.pago"  type="number" step="0.01"      
+          <div class="col-4"> <q-input dense outlined v-model="r.pago"  type="number" step="0.01"
           :rules="[
            val => ((val<=parseFloat(r.saldo)&&val>=0) || val=='') || 'No debe exceder',
-           
+
         ]"
       lazy-rules/></div>           </div>
         </q-card-section>
@@ -86,9 +100,10 @@ export default {
       monto:0,
       dialog_cc:false,
       columns:[
+        {label:'opciones',name:'opciones',field:'opciones'},
         {label:'CINIT',name:'CINIT',field:'Id'},
         {label:'Nombres',name:'Nombres',field:'Nombres'},
-        {label:'opciones',name:'opciones',field:'opciones'},
+
       ],
       fecha:date.formatDate(Date.now(),'YYYY-MM-DD')
     }
