@@ -40,6 +40,18 @@ class CobrarController extends Controller
         
     }
 
+    public function deudastodo(){
+        return DB::SELECT("
+            SELECT * FROM tbctascobrar c
+            INNER JOIN tbclientes cli ON cli.Id=c.CINIT
+            INNER JOIN tbventas v ON c.comanda=v.Comanda
+            INNER JOIN tbproductos p ON p.cod_prod=v.cod_pro
+            WHERE c.Importe!=c.Acuenta  AND c.Nrocierre=0
+            group by c.comanda
+            ORDER BY c.comanda");
+        
+    }
+
     public function cxcobrar($ci){
         return DB::SELECT("
             SELECT *,(Importe - Acuenta) as saldo FROM tbctascobrar 
@@ -68,7 +80,7 @@ class CobrarController extends Controller
             $saldo=floatval($row->Importe) - floatval($row->Acuenta);
 
             if($monto>0 && $saldo!=0){
-                if ($monto>$saldo){
+                if ($monto>=$saldo){
                     DB::table('tbctascobrar')->where('codAuto',$row->CodAuto)->update(['Acuenta'=>'Importe']); 
                     $monto=$monto-$saldo;
                 }else{

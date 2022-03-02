@@ -43,29 +43,24 @@
         <div>{{totalpago}}</div>
         </q-card-section>
         <q-card-section class="q-pt-none">
-          <q-table>
-            <thead>
-              <tr><th>FECHA</th><th>COMANDA</th><th>SALDO</th><th>MONTO</th><th>BOLETA</th></tr>
-            </thead>
-            <tbody>
-              <tr v-for="(r,index) in cxcobrar" :key="index">
-                <td>{{r.fecha}}</td>
-                <td>{{r.comanda}}</td>
-                <td>{{r.saldo}}</td>
-                <td><input type="number" step="0.01" v-model="r.pago"></td>
-                <td><input type="text" v-model="r.boelta"></td>
-              </tr>
-            </tbody>
-          </table>
-          <div class="row" v-for="(r,index) in cxcobrar" :key="index">
-          <div class="col-4">Comanda: {{r.comanda}}</div>
-          <div class="col-4">Saldo: {{r.saldo}}</div>
-          <div class="col-4"> <q-input dense outlined v-model="r.pago"  type="number" step="0.01"
-          :rules="[
-           val => ((val<=parseFloat(r.saldo)&&val>=0) || val=='') || 'No debe exceder',
+        <q-table dense :rows="cxcobrar" :columns="columns2" row-key="name" >
+      <template v-slot:body-cell-monto="props">
+        <q-tr :props="props">
 
-        ]"
-      lazy-rules/></div>           </div>
+          <q-td key="monto" :props="props" class="col-1">
+            <input type="number" step="0.01" v-model="props.row.pago" :rules="[
+           val => ((val<=parseFloat(props.row.saldo)&&val>=0) || val=='') || 'No debe exceder',]" lazy-rules>
+          </q-td>
+        </q-tr>
+      </template>
+            <template v-slot:body-cell-boleta="props">
+
+          <q-td key="boleta" :props="props" class="col-1">
+            <input type="text" v-model="props.row.boleta" >
+          </q-td>
+      </template>
+        </q-table>
+        
         </q-card-section>
 
         <q-card-actions align="right" class="text-primary">
@@ -103,6 +98,14 @@ export default {
         {label:'opciones',name:'opciones',field:'opciones'},
         {label:'CINIT',name:'CINIT',field:'Id'},
         {label:'Nombres',name:'Nombres',field:'Nombres'},
+
+      ],
+      columns2:[
+        {label:'fecha',name:'fecha',field:'FechaEntreg'},
+        {label:'comanda',name:'comanda',field:'comanda'},
+        {label:'saldo ',name:'saldo',field:'saldo'},
+        {label:'monto',name:'monto',field:'monto'},
+        {label:'boleta',name:'boleta',field:'boleta'},
 
       ],
       fecha:date.formatDate(Date.now(),'YYYY-MM-DD')
