@@ -169,10 +169,9 @@ class PedidoController extends Controller
     public function clientepedido(Request $request){
         //$cl=DB::SELECT("SELECT * from tbclientes where ci='".$request->user()->CodAut."'")[0];
         if($request->user()->CodAut==1)
-            return DB::SELECT("SELECT p.NroPed, c.* FROM tbpedidos p,tbclientes c where c.Cod_Aut=p.idCli and date(p.fecha)>='$request->fecha1' and date(p.fecha)<='$request->fecha2' GROUP by p.NroPed;");
+            return DB::SELECT("SELECT p.NroPed,Cod_Aut,Id,Cod_ciudad,Cod_Nacio,cod_car,Nombres,Telf,Direccion,EstCiv,edad,Empresa,Categoria,Imp_pieza,CiVend,ListBlanck,MotivoListBlack,ListBlack,TipoPaciente,SupraCanal,Canal,subcanal,zona,Latitud,longitud,transporte,territorio,codcli,clinew FROM tbpedidos p inner join tbclientes c on c.Cod_Aut=p.idCli  where date(p.fecha)>='$request->fecha1' and date(p.fecha)<='$request->fecha2' GROUP by  p.NroPed,Cod_Aut,Id,Cod_ciudad,Cod_Nacio,cod_car,Nombres,Telf,Direccion,EstCiv,edad,Empresa,Categoria,Imp_pieza,CiVend,ListBlanck,MotivoListBlack,ListBlack,TipoPaciente,SupraCanal,Canal,subcanal,zona,Latitud,longitud,transporte,territorio,codcli,clinew");
         else            
-            return DB::SELECT("SELECT p.NroPed, c.* FROM tbpedidos p,tbclientes c where c.Cod_Aut=p.idCli and date(p.fecha)>='$request->fecha1' and date(p.fecha)<='$request->fecha2' 
-            and c.CiVend='".$request->user()->ci."' GROUP by p.NroPed");
+            return DB::SELECT("SELECT p.NroPed,Cod_Aut,Id,Cod_ciudad,Cod_Nacio,cod_car,Nombres,Telf,Direccion,EstCiv,edad,Empresa,Categoria,Imp_pieza,CiVend,ListBlanck,MotivoListBlack,ListBlack,TipoPaciente,SupraCanal,Canal,subcanal,zona,Latitud,longitud,transporte,territorio,codcli,clinew FROM tbpedidos p inner join tbclientes c on c.Cod_Aut=p.idCli  where date(p.fecha)>='$request->fecha1' and date(p.fecha)<='$request->fecha2' and c.CiVend='".$request->user()->ci."' GROUP by p.NroPed,Cod_Aut,Id,Cod_ciudad,Cod_Nacio,cod_car,Nombres,Telf,Direccion,EstCiv,edad,Empresa,Categoria,Imp_pieza,CiVend,ListBlanck,MotivoListBlack,ListBlack,TipoPaciente,SupraCanal,Canal,subcanal,zona,Latitud,longitud,transporte,territorio,codcli,clinew");
     }
 
     public function listpedido(Request $request){
