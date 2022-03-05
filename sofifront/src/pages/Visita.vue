@@ -119,14 +119,14 @@
 <!--        {{center}}-->
       </div>
     </div>
-    
+
     <q-dialog full-width v-model="modalopciones">
       <q-card >
         <q-card-section>
           <div class="text-subtitle2">{{cliente.Cod_Aut}} {{cliente.Nombres}} </div>
           <div class="text-subtitle2">Cel: {{cliente.Telf}}</div>
           <div class="text-subtitle2">{{cliente.Direccion}}</div>
-          <div class="text-subtitle2" v-if="cliente.cantdeuda>0">Monto Deuda: {{cliente.totdeuda}} NumPedidos: {{cliente.cantdeuda}}</div>
+          <div class="text-subtitle2" >Monto Deuda: <q-badge color="negative">{{cliente.totdeuda}} Bs </q-badge> NumPedidos: <q-badge color="negative">{{cliente.cantdeuda}}</q-badge></div>
         </q-card-section>
         <q-card-section class="q-pt-none">
 <!--          <pre>{{cliente}}</pre>-->
@@ -175,25 +175,18 @@
               <q-table :rows="misproductos"  :filter="filteproducto" :columns="columnsproducto">
                 <template v-slot:body-cell-subtotal="props" >
                   <q-td :props="props" auto-width >
-                    <q-btn flat @click="seleccionartipo(props.row)" class="q-ma-none q-pa-none" color="accent" icon="tune" v-if="props.row.tipo!='NORMAL'"/>
+                    <q-btn flat @click="seleccionartipo(props.row)" class="q-ma-none q-pa-none" color="accent" icon="tune"/>
                     {{props.row.subtotal}}
                     <q-badge :color="props.row.tipo=='NORMAL'?'primary':props.row.tipo=='POLLO'?'secondary':props.row.tipo=='CERDO'?'info':'positive'" >{{props.row.tipo.substring(0,1)}}</q-badge>
                   </q-td>
                 </template>
                 <template v-slot:body-cell-cantidad="props" >
                   <q-td :props="props" auto-width >
-<!--                    <div class="row">-->
-<!--                      <div class="col-4">-->
-                        <q-btn flat @click="agregar(props.row)" class="q-ma-none q-pa-none" color="positive" icon="add_circle"/>
-<!--                      </div>-->
-<!--                      <div class="col-4 flex flex-center">-->
-<!--                        <q-input outlined dense class="q-ma-none q-pa-none" v-model="props.row.cantidad" />-->
-                        <input type="number" @keyup="tecleado(props.row)" v-model="props.row.cantidad" style="width: 2.5em"  >
-<!--                      </div>-->
-<!--                      <div class="col-4">-->
-                        <q-btn flat @click="quitar(props.row,props.rowIndex)"  class="q-ma-none q-pa-none" color="negative" icon="remove_circle"/>
-<!--                      </div>-->
-<!--                    </div>-->
+                    <template v-if="props.row.tipo=='NORMAL'">
+                      <q-btn flat @click="agregar(props.row)" class="q-ma-none q-pa-none" color="positive" icon="add_circle"/>
+                      <input type="number" @keyup="tecleado(props.row)" v-model="props.row.cantidad" style="width: 2.5em"  >
+                    </template>
+                    <q-btn flat @click="quitar(props.row,props.rowIndex)"  class="q-ma-none q-pa-none" color="negative" icon="remove_circle"/>
                   </q-td>
                 </template>
                 <template v-slot:body-cell-precio="props" >
@@ -460,7 +453,7 @@ export default {
     misclientes(){
       this.$q.loading.show()
       this.$api.get('cliente').then(res=>{
-         console.log(res.data)
+         // console.log(res.data)
         this.clientes=[]
         // this.clientes=res.data
         res.data.forEach(r=>{
@@ -595,46 +588,50 @@ export default {
     },
     seleccionartipo(m){
       this.miproducto=m
-      this.$q.dialog({
-        title: 'Seleccionar tipo',
-        // message: 'Choose an option:',
-        options: {
-          type: 'radio',
-          model: this.miproducto.tipo,
-          // inline: true
-          items: [
-            { label: 'Normal', value: 'NORMAL', color: 'secondary' },
-            { label: 'Pollo', value: 'POLLO', color: 'secondary' },
-            { label: 'Cerdo', value: 'CERDO', color: 'info' },
-            { label: 'Res', value: 'RES', color: 'accent' }
-          ]
-        },
-        cancel: true,
-        // persistent: true
-      }).onOk(data => {
-        // console.log(data)
-        if (data=='NORMAL'){
+        if (this.miproducto.tipo=='NORMAL'){
           this.modalnormal=true
-          this.miproducto.tipo='NORMAL'
-        }else if (data=='POLLO'){
+        }else if (this.miproducto.tipo=='POLLO'){
           this.modalpollo=true
-          this.miproducto.tipo='POLLO'
-        }else if (data=='CERDO'){
+        }else if (this.miproducto.tipo=='CERDO'){
           this.modalcerdo=true
-          this.miproducto.tipo='CERDO'
-        }else if (data=='RES'){
+        }else if (this.miproducto.tipo=='RES'){
           this.modalres=true
-          this.miproducto.tipo='RES'
         }else{
-
         }
-          // console.log('>>>> OK, received', data)
-      })
-      //   .onCancel(() => {
-      //   // console.log('>>>> Cancel')
-      // }).onDismiss(() => {
-      //   // console.log('I am triggered on both OK and Cancel')
+      // this.$q.dialog({
+      //   title: 'Seleccionar tipo',
+      //   // message: 'Choose an option:',
+      //   options: {
+      //     type: 'radio',
+      //     model: this.miproducto.tipo,
+      //     // inline: true
+      //     items: [
+      //       { label: 'Normal', value: 'NORMAL', color: 'secondary' },
+      //       { label: 'Pollo', value: 'POLLO', color: 'secondary' },
+      //       { label: 'Cerdo', value: 'CERDO', color: 'info' },
+      //       { label: 'Res', value: 'RES', color: 'accent' }
+      //     ]
+      //   },
+      //   cancel: true,
+      //   // persistent: true
+      // }).onOk(data => {
+      //   // console.log(data)
+      //   if (data=='NORMAL'){
+      //     this.modalnormal=true
+      //     this.miproducto.tipo='NORMAL'
+      //   }else if (data=='POLLO'){
+      //     this.modalpollo=true
+      //     this.miproducto.tipo='POLLO'
+      //   }else if (data=='CERDO'){
+      //     this.modalcerdo=true
+      //     this.miproducto.tipo='CERDO'
+      //   }else if (data=='RES'){
+      //     this.modalres=true
+      //     this.miproducto.tipo='RES'
+      //   }else{
+      //   }
       // })
+
     },
     agregar(producto){
       producto.cantidad = producto.cantidad+1
@@ -653,6 +650,14 @@ export default {
       e.subtotal=(e.cantidad*e.precio).toFixed(2)
     },
     agregarpedido(){
+      if(this.producto.Producto==undefined){
+        this.$q.notify({
+          message:"No seleccionaste productos",
+          color:"red",
+          icon:"error"
+        })
+        return false
+      }
       // console.log(this.cliente)
       this.misproductos.push({
         trozado:'',
@@ -699,8 +704,7 @@ export default {
         bs:'',
         bs2:'',
         contado:'',
-
-        tipo:'NORMAL',
+        tipo:this.producto.tipo,
         nombre:this.producto.Producto,
         cod_prod:this.producto.cod_prod,
         precio:parseFloat(this.producto.Precio).toFixed(2),
