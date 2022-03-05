@@ -31,41 +31,44 @@
     </q-table>
   </div>
 
-      <q-dialog v-model="dialog_cc" >
-      <q-card style="min-width: 350px">
+      <q-dialog full-width full-height v-model="dialog_cc" >
+      <q-card >
         <q-card-section>
           <div class="text-h6">Cuentas por Cobrar</div>
         </q-card-section>
-
         <q-card-section class="q-pt-none">
-        <div class="row"><div class="col-6">CINIT: {{ccliente.Id}}</div><div>Nombre: {{ccliente.Nombres}}</div></div>
-        <div><q-input outlined v-model="monto" type="number" step="0.01" label="Monto" /></div>
-        <div>{{totalpago}}</div>
+        <div class="row">
+          <div class="col-6"><div class="text-subtitle2">CINIT:</div> {{ccliente.Id}}</div>
+          <div class="col-6"><div class="text-subtitle2">Nombre:</div> {{ccliente.Nombres}}</div>
+        </div>
+<!--        <div><q-input outlined v-model="monto" type="number" step="0.01" label="Monto" /></div>-->
+<!--        <div>{{totalpago}}</div>-->
         </q-card-section>
         <q-card-section class="q-pt-none">
         <q-table dense :rows="cxcobrar" :columns="columns2" row-key="name" >
-      <template v-slot:body-cell-monto="props">
-        <q-tr :props="props">
+        <template v-slot:body-cell-monto="props">
+  <!--        <q-tr :props="props">-->
 
-          <q-td key="monto" :props="props" class="col-1">
-            <input type="number" step="0.01" v-model="props.row.pago" :rules="[
-           val => ((val<=parseFloat(props.row.saldo)&&val>=0) || val=='') || 'No debe exceder',]" lazy-rules>
-          </q-td>
-        </q-tr>
-      </template>
-            <template v-slot:body-cell-boleta="props">
-
-          <q-td key="boleta" :props="props" class="col-1">
-            <input type="text" v-model="props.row.boleta" >
-          </q-td>
-      </template>
+            <q-td key="monto" :props="props" class="col-1">
+              <q-input style="width: 5em" outlined dense type="number" step="0.01" v-model="props.row.pago"
+                       :rules="[val => ((val<=parseFloat(props.row.saldo)&&val>=0) || val=='') || 'No debe exceder',]" lazy-rules/>
+            </q-td>
+  <!--        </q-tr>-->
+        </template>
+        <template v-slot:body-cell-boleta="props">
+            <q-td key="boleta" :props="props" class="col-1">
+              <q-input style="width: 5em" outlined dense type="text" v-model="props.row.boleta"
+                       :rules="[val => (parseFloat(props.row.saldo)>0 )  || 'Tiene que tener boleta',]" lazy-rules/>
+            </q-td>
+        </template>
         </q-table>
-        
+          <q-badge class="text-center full-width text-subtitle2" style="text-align: center">{{totalpago}} Bs.</q-badge>
+
         </q-card-section>
 
         <q-card-actions align="right" class="text-primary">
-          <q-btn flat label="Cancel" v-close-popup />
-          <q-btn flat label="Guardar" @click="registrar"/>
+          <q-btn icon="delete" label="Cancel" color="negative" v-close-popup />
+          <q-btn icon="send" label="Guardar" color="positive" @click="registrar"/>
         </q-card-actions>
       </q-card>
     </q-dialog>
@@ -96,8 +99,9 @@ export default {
       dialog_cc:false,
       columns:[
         {label:'opciones',name:'opciones',field:'opciones'},
-        {label:'CINIT',name:'CINIT',field:'Id'},
-        {label:'Nombres',name:'Nombres',field:'Nombres'},
+        {label:'CINIT',name:'CINIT',field:'Id',align:'left'},
+        {label:'Nombres',name:'Nombres',field:'Nombres',align:'left'},
+        {label:'deuda',name:'deuda',field:'deuda'},
 
       ],
       columns2:[
@@ -134,7 +138,7 @@ export default {
       this.$api.post('insertcobro',{pagos:this.cxcdatos}).then(res=>{
         this.dialog_cc=false;
           console.log(res.data)
-                  this.$q.notify({
+        this.$q.notify({
             message:'Guardado Correctamente',
             color:'green',
             icon:'check'
@@ -145,11 +149,13 @@ export default {
     ccobrar(cliente){
       this.ccliente=cliente;
       this.cxcobrar=[]
+      this.$q.loading.show()
       this.$api.post('cxcobrar/'+cliente.Id).then(res=>{
         console.log(res.data);
         res.data.forEach(element => {
           element.pago=0;
         });
+        this.$q.loading.hide()
         this.cxcobrar=res.data;
         this.dialog_cc=true
       })
@@ -167,9 +173,12 @@ export default {
     },
 
     misclientes(){
-      this.clientes=[]
+
+      // this.clientes=[]
+      this.$q.loading.show()
       this.$api.get('listdeudores').then(res=>{
-        // console.log(res.data)
+        console.log(res.data)
+        this.$q.loading.hide()
           this.clientes=res.data
       })
 

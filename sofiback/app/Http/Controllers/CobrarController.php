@@ -25,8 +25,12 @@ class CobrarController extends Controller
      * @return \Illuminate\Http\Response
      */
     public function listdeudores(){
-        return DB::SELECT("SELECT * from tbclientes where id in(select CINIT from tbctascobrar where Nrocierre=0)");
-        
+        return DB::SELECT("
+        SELECT CINIT Id,
+        (SELECT Nombres FROM tbclientes WHERE id=CINIT LIMIT 1) Nombres ,
+        SUM(Importe)-SUM(Acuenta) deuda
+        FROM tbctascobrar
+        GROUP BY CINIT");
     }
 
     public function deudas($ci){
@@ -37,7 +41,7 @@ class CobrarController extends Controller
             INNER JOIN tbproductos p ON p.cod_prod=v.cod_pro
             WHERE c.CINIT='$ci' AND c.Nrocierre=0
             ORDER BY c.comanda");
-        
+
     }
 
     public function deudastodo(){
@@ -49,15 +53,15 @@ class CobrarController extends Controller
             WHERE c.Nrocierre=0
             group by c.comanda
             ORDER BY c.comanda");
-        
+
     }
 
     public function cxcobrar($ci){
         return DB::SELECT("
-            SELECT *,(Importe - Acuenta) as saldo FROM tbctascobrar 
+            SELECT *,(Importe - Acuenta) as saldo FROM tbctascobrar
             WHERE CINIT='$ci' AND Nrocierre=0
             ORDER BY comanda");
-        
+
     }
 
     public function pagado(Request $request){
@@ -81,7 +85,7 @@ class CobrarController extends Controller
 
             if($monto>0 && $saldo!=0){
                 if ($monto>=$saldo){
-                    DB::table('tbctascobrar')->where('codAuto',$row->CodAuto)->update(['Acuenta'=>'Importe']); 
+                    DB::table('tbctascobrar')->where('codAuto',$row->CodAuto)->update(['Acuenta'=>'Importe']);
                     $monto=$monto-$saldo;
                 }else{
                     DB::table('tbctascobrar')->where('codAuto',$row->CodAuto)->update(['Acuenta'=>Acuenta + $monto]);
@@ -93,18 +97,19 @@ class CobrarController extends Controller
     }
 
     public function insertcobro(Request $request){
-
+//        return $request;
         foreach ($request->pagos as $row){
                 //return $row['pago'];
             DB::table('tbctascow')->insert([
-                         'comanda'=>$row['comanda'],
-                         'pago'=>floatval($row['pago']),
-                        'idCli'=>$row['CINIT'],
-                        'CiFunc'=>$row['CIFunc'],
-                         'fecha'=>date("Y-m-d H:i:s"),
-                         'estado'=>'CREADO',
-                         'procesado'=>0
-                        ]);
+             'comanda'=>$row['comanda'],
+             'pago'=>floatval($row['pago']),
+            'idCli'=>$row['CINIT'],
+            'CiFunc'=>$row['CIFunc'],
+             'fecha'=>date("Y-m-d H:i:s"),
+             'estado'=>'CREADO',
+             'procesado'=>0,
+             'nboleta'=>$row['boleta'],
+            ]);
         }
     }
 

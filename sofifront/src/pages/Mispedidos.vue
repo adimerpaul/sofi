@@ -14,8 +14,7 @@
     <q-table dense title="Clientes " :columns="columns" :rows="clientes" :filter="filter">
       <template v-slot:body-cell-opciones="props">
         <q-td :props="props">
-          <q-btn @click="listpedidos(props.row)" color="primary" label="Pedidos" icon="shop" size="xs"  />
-        </q-td>
+          <q-btn  @click="listpedidos(props.row)" :color="props.row.estado=='CREADO'?'primary':'warning'" :label="props.row.estado=='CREADO'?'MODIFICAR':'ENVIADO'" icon="shop" size="xs"  />        </q-td>
       </template>
       <template v-slot:top-right>
         <q-input outlined dense debounce="300" v-model="filter" placeholder="Buscar">
@@ -25,28 +24,8 @@
         </q-input>
       </template>
     </q-table>
+    <q-btn style="width: 100%" @click="enviarpedidos" color="warning" icon="check" label="Enviar todos los pedidos"> </q-btn>
   </div>
-
-      <q-dialog v-model="dialog_pedido" >
-      <q-card style="min-width: 350px">
-        <q-card-section>
-          <div class="text-h6">Agregar a Lista Pedido {{pedido.Nombres}} </div>
-        </q-card-section>
-
-        <q-card-section class="q-pt-none">
-                <q-radio v-model="pedestado" val="PEDIDO" label="REALIZAR PEDIDO" color="green" />
-                <q-radio v-model="pedestado" val="VOLVER" label="VOLVER EN 20M" color="warning"/>
-                <q-radio v-model="pedestado" val="NOPEDIDO" label=" NO PEDIDO" color="red"/>
-        </q-card-section>
-
-        <q-card-actions align="right" class="text-primary">
-        {{pedestado}}
-          <q-btn flat label="Cancel" v-close-popup />
-          <q-btn flat label="Registrar" @click="agregar" />
-        </q-card-actions>
-      </q-card>
-    </q-dialog>
-
 
     <q-dialog full-width full-height v-model="modalpedido">
       <q-card >
@@ -67,7 +46,7 @@
               </q-select>
             </div>
             <div class="col-2 flex flex-center">
-              <q-btn  class="q-pa-xs q-ma-none" color="primary" icon="add_circle" @click="agregarpedido"/>
+              <q-btn  class="q-pa-xs q-ma-none" color="primary" v-if="cliente.estado=='CREADO'" icon="add_circle" @click="agregarpedido"/>
             </div>
             <div class="col-12">
               <q-table :rows="misproductos"  :filter="filteproducto" :columns="columnsproducto">
@@ -109,7 +88,7 @@
                   </q-tr>
                 </template>
               </q-table>
-              <q-btn  style="width: 100%" label="Realizar pedido" icon="send" color="positive" />
+              <q-btn v-if="cliente.estado=='CREADO'" @click="modificarcomanda"  style="width: 100%" label="modificar pedido" icon="edit" color="warning" />
             </div>
           </div>
         </q-card-section>
@@ -324,7 +303,26 @@ export default {
         this.$q.loading.hide()
       })
   },
+
   methods:{
+    enviarpedidos(){
+      this.$q.loading.show()
+      this.$api.post('enviarpedidos',{clientes:this.clientes}).then(res=>{        // console.log(res.data)
+        this.$q.loading.hide()
+        // this.modalpedido=false
+        this.misclientes()
+      })
+    },
+    modificarcomanda(){
+      // console.log(this.misproductos)
+      // console.log(this.cliente)
+      this.$q.loading.show()
+      this.$api.post('updatecomanda',{comanda:this.cliente.NroPed,idCli:this.cliente.Cod_Aut,productos:this.misproductos}).then(res=>{
+        // console.log(res.data)
+        this.$q.loading.hide()
+        this.modalpedido=false
+      })
+    },
         agregarpedido(){
       // console.log(this.cliente)
       this.misproductos.push({
@@ -411,18 +409,20 @@ export default {
       }
     },
     listpedidos(cliente){
-        this.cliente=cliente
-      this.$api.post('listpedido',{idCli:cliente.Cod_Aut,fecha1:this.fecha1,fecha2:this.fecha2}).then(res=>{
-          console.log(res.data)
+      this.cliente=cliente
+      this.$q.loading.show()
+        this.$api.post('listpedido',{idCli:cliente.Cod_Aut,fecha1:this.fecha1,fecha2:this.fecha2}).then(res=>{
+          // console.log(res.data)
           this.misproductos=res.data[0].pedidos
           this.modalpedido=true
+          this.$q.loading.hide()
       })
     },
 
     misclientes(){
       this.$q.loading.show()
       this.$api.post('clientepedido',{fecha1:this.fecha1,fecha2:this.fecha2}).then(res=>{
-        console.log(res.data)
+        // console.log(res.data)
         this.clientes=res.data
         this.$q.loading.hide()
       })

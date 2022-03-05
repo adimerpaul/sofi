@@ -6,7 +6,8 @@
         <q-toolbar-title>
           Sofia
         </q-toolbar-title>
-        <div>Quasar v{{ $q.version }}</div>
+<!--        <div>Quasar v{{ $q.version }}</div>-->
+        <div><q-btn @click="logout" size="xs" label="salir" icon="logout" color="negative"/></div>
       </q-toolbar>
     </q-header>
     <q-drawer v-model="leftDrawerOpen" show-if-above bordered>
@@ -29,9 +30,9 @@
             <q-icon name="map" />
           </q-item-section>
           <q-item-section>
-            <q-item-label>Visita </q-item-label>
+            <q-item-label>Realizar Visita </q-item-label>
             <q-item-label caption>
-              Visita
+              Realizar Visita
             </q-item-label>
           </q-item-section>
         </q-item>
@@ -41,36 +42,36 @@
             <q-icon name="list" />
           </q-item-section>
           <q-item-section>
-            <q-item-label>Pedidos </q-item-label>
+            <q-item-label>Mis pedidos </q-item-label>
             <q-item-label caption>
-              Listado
+              Mis pedidos
             </q-item-label>
           </q-item-section>
         </q-item>
 
-        <q-item clickable exact to="asignar">
-          <q-item-section avatar>
-            <q-icon name="people" />
-          </q-item-section>
-          <q-item-section>
-            <q-item-label>Repartidor </q-item-label>
-            <q-item-label caption>
-              Repartidor
-            </q-item-label>
-          </q-item-section>
-        </q-item>
+<!--        <q-item clickable exact to="asignar">-->
+<!--          <q-item-section avatar>-->
+<!--            <q-icon name="people" />-->
+<!--          </q-item-section>-->
+<!--          <q-item-section>-->
+<!--            <q-item-label>Repartidor </q-item-label>-->
+<!--            <q-item-label caption>-->
+<!--              Repartidor-->
+<!--            </q-item-label>-->
+<!--          </q-item-section>-->
+<!--        </q-item>-->
 
-        <q-item clickable exact to="misasignaciones">
-          <q-item-section avatar>
-            <q-icon name="shop" />
-          </q-item-section>
-          <q-item-section>
-            <q-item-label>Mis asignaciones </q-item-label>
-            <q-item-label caption>
-              Mis asignaciones
-            </q-item-label>
-          </q-item-section>
-        </q-item>
+<!--        <q-item clickable exact to="misasignaciones">-->
+<!--          <q-item-section avatar>-->
+<!--            <q-icon name="shop" />-->
+<!--          </q-item-section>-->
+<!--          <q-item-section>-->
+<!--            <q-item-label>Mis asignaciones </q-item-label>-->
+<!--            <q-item-label caption>-->
+<!--              Mis asignaciones-->
+<!--            </q-item-label>-->
+<!--          </q-item-section>-->
+<!--        </q-item>-->
 
         <q-item clickable exact to="cobranza">
           <q-item-section avatar>
@@ -80,6 +81,17 @@
             <q-item-label>Cobranzas</q-item-label>
             <q-item-label caption>
               Cobro a cliente
+            </q-item-label>
+          </q-item-section>
+        </q-item>
+        <q-item clickable exact to="miscobranzas">
+          <q-item-section avatar>
+            <q-icon name="money" />
+          </q-item-section>
+          <q-item-section>
+            <q-item-label>Mis Cobros</q-item-label>
+            <q-item-label caption>
+              Mis Cobros
             </q-item-label>
           </q-item-section>
         </q-item>

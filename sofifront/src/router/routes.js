@@ -5,6 +5,7 @@ import Cobranza from "pages/Cobranza";
 import Misasignaciones from "pages/Misasignaciones";
 import Mispedidos from "pages/Mispedidos";
 import Visita from "pages/Visita";
+import Miscobranzas from "pages/Miscobranzas";
 const routes = [
   {
     path: '/',
@@ -16,6 +17,7 @@ const routes = [
       { path: '/mispedidos', component: Mispedidos ,meta: {requiresAuth: true}},
       { path: '/cobranza', component: Cobranza ,meta: {requiresAuth: true}},
       { path: '/visita', component: Visita ,meta: {requiresAuth: true}},
+      { path: '/miscobranzas', component: Miscobranzas ,meta: {requiresAuth: true}},
       { path: '/login', component: Login },
     ]
   },

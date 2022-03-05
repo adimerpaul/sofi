@@ -169,18 +169,89 @@ class PedidoController extends Controller
     public function clientepedido(Request $request){
         //$cl=DB::SELECT("SELECT * from tbclientes where ci='".$request->user()->CodAut."'")[0];
         if($request->user()->CodAut==1)
-            return DB::SELECT("SELECT p.NroPed,Cod_Aut,Id,Cod_ciudad,Cod_Nacio,cod_car,Nombres,Telf,Direccion,EstCiv,edad,Empresa,Categoria,Imp_pieza,CiVend,ListBlanck,MotivoListBlack,ListBlack,TipoPaciente,SupraCanal,Canal,subcanal,zona,Latitud,longitud,transporte,territorio,codcli,clinew FROM tbpedidos p inner join tbclientes c on c.Cod_Aut=p.idCli  where date(p.fecha)>='$request->fecha1' and date(p.fecha)<='$request->fecha2' GROUP by  p.NroPed,Cod_Aut,Id,Cod_ciudad,Cod_Nacio,cod_car,Nombres,Telf,Direccion,EstCiv,edad,Empresa,Categoria,Imp_pieza,CiVend,ListBlanck,MotivoListBlack,ListBlack,TipoPaciente,SupraCanal,Canal,subcanal,zona,Latitud,longitud,transporte,territorio,codcli,clinew");
-        else            
-            return DB::SELECT("SELECT p.NroPed,Cod_Aut,Id,Cod_ciudad,Cod_Nacio,cod_car,Nombres,Telf,Direccion,EstCiv,edad,Empresa,Categoria,Imp_pieza,CiVend,ListBlanck,MotivoListBlack,ListBlack,TipoPaciente,SupraCanal,Canal,subcanal,zona,Latitud,longitud,transporte,territorio,codcli,clinew FROM tbpedidos p inner join tbclientes c on c.Cod_Aut=p.idCli  where date(p.fecha)>='$request->fecha1' and date(p.fecha)<='$request->fecha2' and c.CiVend='".$request->user()->ci."' GROUP by p.NroPed,Cod_Aut,Id,Cod_ciudad,Cod_Nacio,cod_car,Nombres,Telf,Direccion,EstCiv,edad,Empresa,Categoria,Imp_pieza,CiVend,ListBlanck,MotivoListBlack,ListBlack,TipoPaciente,SupraCanal,Canal,subcanal,zona,Latitud,longitud,transporte,territorio,codcli,clinew");
+            return DB::SELECT("SELECT p.NroPed,Cod_Aut,Id,Cod_ciudad,Cod_Nacio,cod_car,Nombres,Telf,Direccion,EstCiv,edad,Empresa,Categoria,Imp_pieza,CiVend,ListBlanck,MotivoListBlack,ListBlack,TipoPaciente,SupraCanal,Canal,subcanal,zona,Latitud,longitud,transporte,territorio,codcli,clinew,p.estado FROM tbpedidos p inner join tbclientes c on c.Cod_Aut=p.idCli  where date(p.fecha)>='$request->fecha1' and date(p.fecha)<='$request->fecha2' GROUP by  p.NroPed,Cod_Aut,Id,Cod_ciudad,Cod_Nacio,cod_car,Nombres,Telf,Direccion,EstCiv,edad,Empresa,Categoria,Imp_pieza,CiVend,ListBlanck,MotivoListBlack,ListBlack,TipoPaciente,SupraCanal,Canal,subcanal,zona,Latitud,longitud,transporte,territorio,codcli,clinew,p.estado");
+        else
+            return DB::SELECT("SELECT p.NroPed,Cod_Aut,Id,Cod_ciudad,Cod_Nacio,cod_car,Nombres,Telf,Direccion,EstCiv,edad,Empresa,Categoria,Imp_pieza,CiVend,ListBlanck,MotivoListBlack,ListBlack,TipoPaciente,SupraCanal,Canal,subcanal,zona,Latitud,longitud,transporte,territorio,codcli,clinew,p.estado FROM tbpedidos p inner join tbclientes c on c.Cod_Aut=p.idCli  where date(p.fecha)>='$request->fecha1' and date(p.fecha)<='$request->fecha2' and c.CiVend='".$request->user()->ci."' GROUP by p.NroPed,Cod_Aut,Id,Cod_ciudad,Cod_Nacio,cod_car,Nombres,Telf,Direccion,EstCiv,edad,Empresa,Categoria,Imp_pieza,CiVend,ListBlanck,MotivoListBlack,ListBlack,TipoPaciente,SupraCanal,Canal,subcanal,zona,Latitud,longitud,transporte,territorio,codcli,clinew,p.estado");
+    }
+    public function enviarpedidos(Request $request)
+    {
+        foreach ($request->clientes as $p){
+            DB::select("UPDATE tbpedidos SET  estado='ENVIADO' WHERE NroPed='".$p['NroPed']."'");
+        }
+    }
+
+    public function updatecomanda(Request $request){
+//        return $request;
+        $numpedido=$request->comanda;
+        DB::select("DELETE FROM tbpedidos where NroPed='$numpedido'");
+        foreach ($request->productos as $p){
+            DB::table('tbpedidos')->insert([
+                'NroPed' => $numpedido,
+                'cod_prod'=>$p['cod_prod'],
+                'CIfunc'=>$request->user()->CodAut,
+                'idCli'=>$request->idCli,
+                'Cant'=>$p['cantidad'],
+                'precio'=>$p['precio'],
+                'fecha'=>date('Y-m-d H:i:s'),
+                'subtotal'=>$p['subtotal'],
+                'cod_prod'=>$p['cod_prod'],
+                "cbrasa5"=>$p['cbrasa5'],
+                "ubrasa5"=>$p['ubrasa5'],
+                "cbrasa6"=>$p['cbrasa6'],
+                "cubrasa6"=>$p['cubrasa6'],
+                "c104"=>$p['c104'],
+                "u104"=>$p['u104'],
+                "c105"=>$p['c105'],
+                "u105"=>$p['u105'],
+                "c106"=>$p['c106'],
+                "u106"=>$p['u106'],
+                "c107"=>$p['c107'],
+                "u107"=>$p['u107'],
+                "c108"=>$p['c108'],
+                "u108"=>$p['u108'],
+                "c109"=>$p['c109'],
+                "u109"=>$p['u109'],
+                "ala"=>$p['ala'],
+                "cadera"=>$p['cadera'],
+                "pecho"=>$p['pecho'],
+                "pie"=>$p['pie'],
+                "filete"=>$p['filete'],
+                "cuello"=>$p['cuello'],
+                "hueso"=>$p['hueso'],
+                "menu"=>$p['menu'],
+                "unidala"=>$p['unidala'],
+                "unidcadera"=>$p['unidcadera'],
+                "unidpecho"=>$p['unidpecho'],
+                "unidpie"=>$p['unidpie'],
+                "unidfilete"=>$p['unidfilete'],
+                "unidcuello"=>$p['unidcuello'],
+                "unidhueso"=>$p['unidhueso'],
+                "unidmenu"=>$p['unidmenu'],
+                "bs"=>$p['bs'],
+                "bs2"=>$p['bs2'],
+                "contado"=>$p['contado'],
+                "tipo"=>$p['tipo'],
+                "total"=>$p['total'],
+                "entero"=>$p['entero'],
+                "desmembre"=>$p['desmembre'],
+                "corte"=>$p['corte'],
+                "kilo"=>$p['kilo'],
+                "trozado"=>$p['trozado'],
+                "pierna"=>$p['pierna'],
+                "brazo"=>$p['brazo'],
+                "hora"=>date('H:i:s'),
+            ]);
+//            var_dump($p);
+        }
     }
 
     public function listpedido(Request $request){
         $pedido= DB::SELECT("SELECT NroPed,CIfunc,idCli,fecha,estado from tbpedidos where idCli='$request->idCli' and date(fecha)>='$request->fecha1' and date(fecha)<='$request->fecha2' group by NroPed,CIfunc,idCli,fecha,estado ");
         foreach ($pedido as $row) {
-            $lisrped=DB::SELECT("SELECT 
+            $lisrped=DB::SELECT("SELECT
             tbpedidos.codAut ,
             NroPed	,
-            tbpedidos.cod_prod,	
+            tbpedidos.cod_prod,
             CIfunc	,
             idCli	,
             Cant	as cantidad,
@@ -193,11 +264,11 @@ class PedidoController extends Controller
             impreso	,
             observaciones	,
             pagado	,
-            subtotal,	
+            subtotal,
             cbrasa5	,
             ubrasa5	,
             cbrasa6	,
-            cubrasa6,	
+            cubrasa6,
             c104	,
             u104	,
             c105	,
@@ -215,7 +286,7 @@ class PedidoController extends Controller
             cadera	,
             unidcadera	,
             pecho	,
-            unidpecho,	
+            unidpecho,
             pie	,
             unidpie	,
             filete	,
@@ -223,16 +294,16 @@ class PedidoController extends Controller
             cuello	,
             unidcuello	,
             hueso	,
-            unidhueso,	
+            unidhueso,
             menu	,
-            unidmenu,	
+            unidmenu,
             bs	,
             bs2	,
             contado	,
             tbpedidos.tipo	,
             total	,
             entero	,
-            desmembre,	
+            desmembre,
             corte	,
             kilo	,
             trozado	,
@@ -241,7 +312,7 @@ class PedidoController extends Controller
             hora	,
             tbproductos.Producto as nombre
             from tbpedidos,tbproductos where tbpedidos.cod_prod=tbproductos.cod_prod and  NroPed = '$row->NroPed'" );
-            
+
             $row->pedidos=$lisrped;
         }
 
