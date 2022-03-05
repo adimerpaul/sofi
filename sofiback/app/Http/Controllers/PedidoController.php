@@ -178,16 +178,16 @@ class PedidoController extends Controller
         $pedido= DB::SELECT("SELECT NroPed,CIfunc,idCli,fecha,estado from tbpedidos where idCli='$request->idCli' and date(fecha)>='$request->fecha1' and date(fecha)<='$request->fecha2' group by NroPed,CIfunc,idCli,fecha,estado ");
         foreach ($pedido as $row) {
             $lisrped=DB::SELECT("SELECT 
-            codAut ,
+            tbpedidos.codAut ,
             NroPed	,
-            cod_prod,	
+            tbpedidos.cod_prod,	
             CIfunc	,
             idCli	,
             Cant	as cantidad,
             Tipo1	,
             Tipo2	,
             Canttxt	,
-            precio	,
+            tbpedidos.precio	,
             fecha	,
             estado	,
             impreso	,
@@ -238,7 +238,10 @@ class PedidoController extends Controller
             trozado	,
             pierna	,
             brazo	,
-            hora	 from tbpedidos where  NroPed = '$row->NroPed'" );
+            hora	,
+            tbproductos.Producto as nombre,
+            from tbpedidos,tbproductos where tbpedidos.cod_prod=tbproductos.cod_prod and  NroPed = '$row->NroPed'" );
+            
             $row->pedidos=$lisrped;
         }
 
