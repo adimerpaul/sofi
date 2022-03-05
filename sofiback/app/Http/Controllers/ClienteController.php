@@ -18,7 +18,9 @@ class ClienteController extends Controller
         return DB::select("
         SELECT *,(
         SELECT estado from misvisitas where cliente_id=Cod_Aut AND fecha='".date('Y-m-d')."' LIMIT 1
-        ) as tipo  FROM tbclientes
+        ) as tipo,(SELECT SUM(Importe - Acuenta) FROM tbctascobrar WHERE CINIT=tbclientes.Id AND Nrocierre=0 ) as totdeuda 
+        ,(SELECT count(*) FROM tbctascobrar WHERE CINIT=tbclientes.Id AND Nrocierre=0 ) as cantdeuda 
+        FROM tbclientes
         WHERE TRIM(CiVend)='".$request->user()->ci."'
         ORDER BY tipo desc
         ");

@@ -25,7 +25,7 @@ class CobrarController extends Controller
      * @return \Illuminate\Http\Response
      */
     public function listdeudores(){
-        return DB::SELECT("SELECT * from tbclientes where id in(select CINIT from tbctascobrar where Importe!=Acuenta and Nrocierre=0)");
+        return DB::SELECT("SELECT * from tbclientes where id in(select CINIT from tbctascobrar where Nrocierre=0)");
         
     }
 
@@ -46,7 +46,7 @@ class CobrarController extends Controller
             INNER JOIN tbclientes cli ON cli.Id=c.CINIT
             INNER JOIN tbventas v ON c.comanda=v.Comanda
             INNER JOIN tbproductos p ON p.cod_prod=v.cod_pro
-            WHERE c.Importe!=c.Acuenta  AND c.Nrocierre=0
+            WHERE c.Nrocierre=0
             group by c.comanda
             ORDER BY c.comanda");
         

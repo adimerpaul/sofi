@@ -96,6 +96,14 @@ class PedidoController extends Controller
                 "cuello"=>$p['cuello'],
                 "hueso"=>$p['hueso'],
                 "menu"=>$p['menu'],
+                "unidala"=>$p['unidala'],
+                "unidcadera"=>$p['unidcadera'],
+                "unidpecho"=>$p['unidpecho'],
+                "unidpie"=>$p['unidpie'],
+                "unidfilete"=>$p['unidfilete'],
+                "unidcuello"=>$p['unidcuello'],
+                "unidhueso"=>$p['unidhueso'],
+                "unidmenu"=>$p['unidmenu'],
                 "bs"=>$p['bs'],
                 "bs2"=>$p['bs2'],
                 "contado"=>$p['contado'],
@@ -161,16 +169,77 @@ class PedidoController extends Controller
     public function clientepedido(Request $request){
         //$cl=DB::SELECT("SELECT * from tbclientes where ci='".$request->user()->CodAut."'")[0];
         if($request->user()->CodAut==1)
-            return DB::SELECT("SELECT * from tbclientes c where c.Cod_Aut in (sELECT idCli FROM `tbpedidos` WHERE date(fecha)>='$request->fecha1' and date(fecha)<='$request->fecha2')");
+            return DB::SELECT("SELECT p.NroPed, c.* FROM tbpedidos p,tbclientes c where c.Cod_Aut=p.idCli and date(p.fecha)>='$request->fecha1' and date(p.fecha)<='$request->fecha2' GROUP by p.NroPed;");
         else            
-            return DB::SELECT("SELECT * from tbclientes c where c.Cod_Aut in (sELECT idCli FROM `tbpedidos` WHERE date(fecha)>='$request->fecha1' and date(fecha)<='$request->fecha2'
-            and CiVend='".$request->user()->ci."')");
+            return DB::SELECT("SELECT p.NroPed, c.* FROM tbpedidos p,tbclientes c where c.Cod_Aut=p.idCli and date(p.fecha)>='$request->fecha1' and date(p.fecha)<='$request->fecha2' 
+            and c.CiVend='".$request->user()->ci."' GROUP by p.NroPed");
     }
 
     public function listpedido(Request $request){
         $pedido= DB::SELECT("SELECT NroPed,CIfunc,idCli,fecha,estado from tbpedidos where idCli='$request->idCli' and date(fecha)>='$request->fecha1' and date(fecha)<='$request->fecha2' group by NroPed,CIfunc,idCli,fecha,estado ");
         foreach ($pedido as $row) {
-            $lisrped=DB::SELECT("SELECT * from tbpedidos where NroPed = '$row->NroPed'" );
+            $lisrped=DB::SELECT("SELECT 
+            codAut ,
+            NroPed	,
+            cod_prod,	
+            CIfunc	,
+            idCli	,
+            Cant	as cantidad,
+            Tipo1	,
+            Tipo2	,
+            Canttxt	,
+            precio	,
+            fecha	,
+            estado	,
+            impreso	,
+            observaciones	,
+            pagado	,
+            subtotal,	
+            cbrasa5	,
+            ubrasa5	,
+            cbrasa6	,
+            cubrasa6,	
+            c104	,
+            u104	,
+            c105	,
+            u105	,
+            c106	,
+            u106	,
+            c107	,
+            u107	,
+            c108	,
+            u108	,
+            c109	,
+            u109	,
+            ala	,
+            unidala	,
+            cadera	,
+            unidcadera	,
+            pecho	,
+            unidpecho,	
+            pie	,
+            unidpie	,
+            filete	,
+            unidfilete	,
+            cuello	,
+            unidcuello	,
+            hueso	,
+            unidhueso,	
+            menu	,
+            unidmenu,	
+            bs	,
+            bs2	,
+            contado	,
+            tipo	,
+            total	,
+            entero	,
+            desmembre,	
+            corte	,
+            kilo	,
+            trozado	,
+            pierna	,
+            brazo	,
+            hora	 from tbpedidos,tbproductos where tbpedidos.cod_prod=tbproductos.cod_prod and  NroPed = '$row->NroPed'" );
             $row->pedidos=$lisrped;
         }
 
