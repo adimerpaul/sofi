@@ -81,7 +81,7 @@
                 <template v-slot:body-cell-cantidad="props" >
                   <q-td :props="props" auto-width >
                         <q-btn flat @click="agregar(props.row)" class="q-ma-none q-pa-none" color="positive" icon="add_circle"/>
-                        <input type="number" @keyup="tecleado(props.row)" v-model="props.row.Cant" style="width: 2.5em"  >
+                        <input type="number" @keyup="tecleado(props.row)" v-model="props.row.cantidad" style="width: 2.5em"  >
                         <q-btn flat @click="quitar(props.row,props.rowIndex)"  class="q-ma-none q-pa-none" color="negative" icon="remove_circle"/>
                   </q-td>
                 </template>

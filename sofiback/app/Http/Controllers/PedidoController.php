@@ -238,7 +238,7 @@ class PedidoController extends Controller
             trozado	,
             pierna	,
             brazo	,
-            hora	 from tbpedidos,tbproductos where tbpedidos.cod_prod=tbproductos.cod_prod and  NroPed = '$row->NroPed'" );
+            hora	 from tbpedidos where  NroPed = '$row->NroPed'" );
             $row->pedidos=$lisrped;
         }
 
