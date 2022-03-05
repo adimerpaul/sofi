@@ -229,7 +229,7 @@ class PedidoController extends Controller
             bs	,
             bs2	,
             contado	,
-            tipo	,
+            tbpedidos.tipo	,
             total	,
             entero	,
             desmembre,	
@@ -239,7 +239,7 @@ class PedidoController extends Controller
             pierna	,
             brazo	,
             hora	,
-            tbproductos.Producto as nombre,
+            tbproductos.Producto as nombre
             from tbpedidos,tbproductos where tbpedidos.cod_prod=tbproductos.cod_prod and  NroPed = '$row->NroPed'" );
             
             $row->pedidos=$lisrped;
