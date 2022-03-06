@@ -121,7 +121,7 @@ export default {
   },
   methods:{
     registrar(){
-      if(parseFloat(this.monto) != parseFloat(this.totalpago) && parseFloat(this.monto)>0)
+      /*if(parseFloat(this.monto) != parseFloat(this.totalpago) && parseFloat(this.monto)>0)
       {
         this.$q.notify({
             message:'Cantidad y Monto de ser igual',
@@ -129,7 +129,7 @@ export default {
             icon:'error'
           })
           return false
-      }
+      }*/
       this.cxcdatos=[]
       this.cxcobrar.forEach(element => {
           if(element.pago>0)

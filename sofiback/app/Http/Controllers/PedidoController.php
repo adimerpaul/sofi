@@ -117,6 +117,7 @@ class PedidoController extends Controller
                 "pierna"=>$p['pierna'],
                 "brazo"=>$p['brazo'],
                 "hora"=>date('H:i:s'),
+                "pago"=>$request->pago
             ]);
 //            var_dump($p);
         }

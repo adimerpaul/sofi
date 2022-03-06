@@ -128,7 +128,7 @@ class CobrarController extends Controller
         foreach ($datos as $r) {
             $total+=$r->pago;
             $cadena.="<tr>
-            <td>$r->fecha</td>
+            <td>$r->fecomanda</td>
             <td>$r->comanda</td>
             <td>$r->Nombres</td>
             <td>$r->pago</td>
@@ -157,6 +157,7 @@ class CobrarController extends Controller
              'estado'=>'CREADO',
              'procesado'=>0,
              'nboleta'=>$row['boleta'],
+             'fecomanda'=>$row['FechaEntreg']
             ]);
         }
     }

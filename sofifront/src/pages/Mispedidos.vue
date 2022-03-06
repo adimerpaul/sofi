@@ -33,6 +33,7 @@
           <div class="text-subtitle2">{{cliente.Cod_Aut}} {{cliente.Nombres}}</div>
         </q-card-section>
         <q-card-section class="q-pt-none">
+
           <div class="row">
             <div class="col-10">
               <q-select label="Productos" dense outlined class="q-ma-xs" use-input input-debounce="0"  @filter="filterFn" :options="productos" v-model="producto">
@@ -424,14 +425,14 @@ export default {
       })
     },
     agregar(producto){
-      producto.cantidad = producto.cantidad+1
+      producto.cantidad = parseFloat(producto.cantidad)+1
       producto.subtotal = (producto.cantidad*parseFloat(producto.precio)).toFixed(2)
     },
     quitar(producto,index){
-      if (producto.cantidad==1){
+      if (parseFloat(producto.cantidad)==1){
         this.misproductos.splice(index, 1);
       }else {
-        producto.cantidad = producto.cantidad-1
+        producto.cantidad = parseFloat(producto.cantidad)-1
         producto.subtotal = (producto.cantidad*parseFloat(producto.precio)).toFixed(2)
       }
     },

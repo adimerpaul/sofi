@@ -153,9 +153,15 @@
     <q-dialog full-width full-height v-model="modalpedido">
       <q-card >
         <q-card-section>
-          <div class="text-subtitle2">{{cliente.Cod_Aut}} {{cliente.Nombres}}</div>
+          <div class="row">
+          <div class="text-subtitle2 col-md-6  col-sm-12">{{cliente.Cod_Aut}} {{cliente.Nombres}}</div>
+                       <div class="q-gutter-sm col-md-6 col-sm-12" >
+                <q-radio  dense v-model="pago" val="CONTADO" label="CONTADO" />
+                <q-radio  dense v-model="pago" val="CREDITO" label="CREDITO" />
+              </div></div>
         </q-card-section>
         <q-card-section class="q-pt-none">
+
           <div class="row">
             <div class="col-10">
               <q-select label="Productos" dense outlined class="q-ma-xs" use-input input-debounce="0"  @filter="filterFn" :options="productos" v-model="producto">
@@ -433,6 +439,7 @@ export default {
       miproducto:{},
       producto:{label:''},
       userLocation:{},
+      pago:'CONTADO',
       columns:[
         {label:'Cod_Aut',name:'Cod_Aut',field:'Cod_Aut'},
         {label:'Nombres',name:'Nombres',field:'Nombres',align:'left'},
@@ -582,7 +589,7 @@ export default {
       })
     },
     insertarpedido(lat,lng){
-      this.$api.post('pedido',{idCli:this.cliente.Cod_Aut,lat:lat,lng:lng,productos:this.misproductos}).then(res=>{
+      this.$api.post('pedido',{idCli:this.cliente.Cod_Aut,lat:lat,lng:lng,productos:this.misproductos,pago:this.pago}).then(res=>{
          console.log(res.data)
         // return false
         this.modalpedido=false
