@@ -8,10 +8,10 @@
       <q-input dense outlined v-model="fecha2" label="Fecha Fin" type="date"/>
     </div>
     <div class="col-4 flex flex-center">
-      <q-btn color="info" icon="search" label="consulta" @click="misclientes" size="xs" />
+      <q-btn color="info" icon="search" label="consulta" @click="mcobros" size="xs" />
     </div>
     <div class="col-12">
-      <q-table dense title="Clientes " :columns="columns" :rows="clientes" :filter="filter">
+      <q-table dense title="Clientes " :columns="columns" :rows="cobros" :filter="filter">
         <template v-slot:body-cell-opciones="props">
           <q-td :props="props">
             <q-btn  @click="listpedidos(props.row)" :color="props.row.estado=='CREADO'?'primary':'warning'" :label="props.row.estado=='CREADO'?'MODIFICAR':'ENVIADO'" icon="shop" size="xs"  />        </q-td>
@@ -25,7 +25,7 @@
         </template>
       </q-table>
       <q-btn style="width: 100%" @click="enviarpedidos" color="accent" icon="check" label="Enviar todos los Cobros"> </q-btn>
-      <q-btn style="width: 100%" @click="enviarpedidos" color="info" icon="print" label="Enviar todos los Cobros"> </q-btn>
+      <q-btn style="width: 100%" @click="imprimir" color="info" icon="print" label="Imprimir todos los Cobros"> </q-btn>
     </div>
   </div>
 </q-page>
@@ -36,10 +36,48 @@ import {date} from "quasar";
 export default {
   data(){
     return{
+      filter:'',
       fecha1:date.formatDate(Date.now(),'YYYY-MM-DD'),
       fecha2:date.formatDate(Date.now(),'YYYY-MM-DD'),
+      cobros:[],
+      columns:[
+        {label:'FECHA',name:'fecha',field:'fecha'},
+        {label:'COMANDA',name:'comanda',field:'comanda'},
+        {label:'NOMBRE',name:'Nombres',field:'Nombres'},
+        {label:'MONTO',name:'pago',field:'pago'},
+        {label:'ESTADO',name:'estado',field:'estado'},
+        {label:'N BOLETA',name:'boleta',field:'nboleta'},
+      ],
     }
-  }
+    },
+    created() {
+      this.mcobros();
+      
+    },
+    methods: {
+      mcobros(){
+      this.$api.post('miscobros',{fecha1:this.fecha1,fecha2:this.fecha2}).then(res=>{
+        //console.log('s')
+        console.log(res.data)
+       // return false
+        this.cobros=res.data;
+      })
+
+      },
+      enviarpedidos(){},
+      imprimir(){
+        this.$api.post('impcobros',{fecha1:this.fecha1,fecha2:this.fecha2}).then(res=>{
+        let myWindow = window.open("", "Imprimir", "width=200,height=200");
+        myWindow.document.write(res.data);
+        myWindow.document.close();
+        myWindow.print();
+        myWindow.close();
+        })
+        
+      }
+      
+    },
+  
 }
 </script>
 

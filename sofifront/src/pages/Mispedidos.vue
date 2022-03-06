@@ -52,15 +52,17 @@
               <q-table :rows="misproductos"  :filter="filteproducto" :columns="columnsproducto">
                 <template v-slot:body-cell-subtotal="props" >
                   <q-td :props="props" auto-width >
-                    <q-btn flat @click="seleccionartipo(props.row)" class="q-ma-none q-pa-none" color="accent" icon="tune" v-if="props.row.tipo!='NORMAL'"/>
+                    <q-btn flat @click="seleccionartipo(props.row)" class="q-ma-none q-pa-none" color="accent" icon="tune" />
                     {{props.row.subtotal}}
                     <q-badge :color="props.row.tipo=='NORMAL'?'primary':props.row.tipo=='POLLO'?'secondary':props.row.tipo=='CERDO'?'info':'positive'" >{{props.row.tipo.substring(0,1)}}</q-badge>
                   </q-td>
                 </template>
                 <template v-slot:body-cell-cantidad="props" >
                   <q-td :props="props" auto-width >
+                    <template v-if="props.row.tipo=='NORMAL'">
                         <q-btn flat @click="agregar(props.row)" class="q-ma-none q-pa-none" color="positive" icon="add_circle"/>
                         <input type="number" @keyup="tecleado(props.row)" v-model="props.row.cantidad" style="width: 2.5em"  >
+                    </template>
                         <q-btn flat @click="quitar(props.row,props.rowIndex)"  class="q-ma-none q-pa-none" color="negative" icon="remove_circle"/>
                   </q-td>
                 </template>
@@ -197,6 +199,23 @@
       </q-card>
     </q-dialog>
 
+
+    <q-dialog v-model="modalnormal" full-width>
+      <q-card>
+        <q-card-section>
+          <div class="text-h6">Pedido Normal</div>
+        </q-card-section>
+        <q-card-section class="q-pt-none">
+          <div class="row">
+            <div class="col-12" ><q-input dense outlined label="observacion" v-model="miproducto.observacion"/></div>
+          </div>
+        </q-card-section>
+        <q-card-actions align="right" class="bg-white text-teal">
+          <q-btn flat label="cerrar"  color="negative" v-close-popup />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
+
     <q-dialog v-model="modalcerdo" full-width>
       <q-card>
         <q-card-section>
@@ -255,6 +274,7 @@ export default {
       modalpedido:false,
       modalcerdo:false,
       modalres:false,
+      modalnormal:false,
       modalpollo:false,
       datocliente:{label:''},
       fecha1:date.formatDate(Date.now(),'YYYY-MM-DD'),
@@ -324,6 +344,14 @@ export default {
       })
     },
         agregarpedido(){
+                if(this.producto.Producto==undefined){
+        this.$q.notify({
+          message:"No seleccionaste productos",
+          color:"red",
+          icon:"error"
+        })
+        return false
+      }
       // console.log(this.cliente)
       this.misproductos.push({
         trozado:'',
@@ -370,8 +398,7 @@ export default {
         bs:'',
         bs2:'',
         contado:'',
-
-        tipo:'NORMAL',
+         tipo:this.producto.tipo,
         nombre:this.producto.Producto,
         cod_prod:this.producto.cod_prod,
         precio:parseFloat(this.producto.Precio).toFixed(2),
@@ -417,6 +444,19 @@ export default {
           this.modalpedido=true
           this.$q.loading.hide()
       })
+    },
+        seleccionartipo(m){
+      this.miproducto=m
+        if (this.miproducto.tipo=='NORMAL'){
+          this.modalnormal=true
+        }else if (this.miproducto.tipo=='POLLO'){
+          this.modalpollo=true
+        }else if (this.miproducto.tipo=='CERDO'){
+          this.modalcerdo=true
+        }else if (this.miproducto.tipo=='RES'){
+          this.modalres=true
+        }else{
+        }
     },
 
     misclientes(){

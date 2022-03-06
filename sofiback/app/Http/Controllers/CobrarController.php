@@ -26,11 +26,9 @@ class CobrarController extends Controller
      */
     public function listdeudores(){
         return DB::SELECT("
-        SELECT CINIT Id,
-        (SELECT Nombres FROM tbclientes WHERE id=CINIT LIMIT 1) Nombres ,
-        SUM(Importe)-SUM(Acuenta) deuda
-        FROM tbctascobrar
-        GROUP BY CINIT");
+        select t1.CINIT Id,(SELECT Nombres from tbclientes c where c.Id=t1.CINIT) as Nombres,sum(t1.Importe - (select sum(Acuenta)
+         from tbctascobrar t2 where t2.comanda=t1.comanda)) deuda from tbctascobrar t1 where Nrocierre=0  
+        group by t1.CINIT");
     }
 
     public function deudas($ci){
@@ -58,8 +56,10 @@ class CobrarController extends Controller
 
     public function cxcobrar($ci){
         return DB::SELECT("
-            SELECT *,(Importe - Acuenta) as saldo FROM tbctascobrar
-            WHERE CINIT='$ci' AND Nrocierre=0
+            SELECT t1.FechaEntreg,t1.comanda,t1.CINIT,t1.CIFunc, sum(t1.Importe - (select sum(Acuenta) from tbctascobrar t2 where t2.comanda=t1.comanda)) saldo
+            FROM tbctascobrar t1
+            WHERE t1.CINIT='$ci'
+            group by t1.comanda	,t1.CINIT,t1.CIFunc,	t1.FechaEntreg
             ORDER BY comanda");
 
     }
@@ -96,6 +96,54 @@ class CobrarController extends Controller
         return true;
     }
 
+    public function miscobros(Request $request ){
+        //return $request;
+        //return "SELECT *,(select Nombres from tbclientes where id=idcli) as Nombres from tbctascow where trim(CIFunc)='".$request->user()->ci."' and date(fecha)>='$request->fecha1' and date(fecha)<='$request->fecha2'";
+        return DB::SELECT("SELECT *,(select Nombres from tbclientes where id=idcli) as Nombres from tbctascow where trim(CIFunc)='".$request->user()->ci."' and date(fecha)>='$request->fecha1' and date(fecha)<='$request->fecha2'");
+    }
+
+    public function impcobros(Request $request ){
+        $datos= DB::SELECT("SELECT *,(select Nombres from tbclientes where id=idcli) as Nombres from tbctascow where trim(CIFunc)='".$request->user()->ci."' and date(fecha)>='$request->fecha1' and date(fecha)<='$request->fecha2'");
+        $total=0;
+        $cadena="
+        <style>
+        table, th, td {
+            border: 1px solid;
+          }
+        table {
+            border-collapse: collapse;
+            width:100%;
+          }
+          </style>
+        <div>NOMBRE:". $request->user()->Nombre1 ." ".$request->user()->Nombre2 ." ".$request->user()->App1 ." ".$request->user()->Apm ."</div>
+        <div>FECHA: $request->fecha1 al $request->fecha2</div>
+        <table>
+        <tr>
+        <th>FECHA</th>
+        <th>No NOTA</th>
+        <th>NOMBRE</th>
+        <th>MONTO</th>
+        <th>N BOLETA</th>
+        </tr>";
+        foreach ($datos as $r) {
+            $total+=$r->pago;
+            $cadena.="<tr>
+            <td>$r->fecha</td>
+            <td>$r->comanda</td>
+            <td>$r->Nombres</td>
+            <td>$r->pago</td>
+            <td>$r->nboleta</td>
+            </tr>";
+        }
+        $cadena.="
+        </table>
+        <div>TOTAL: $total</div>
+        ";
+        return $cadena;
+
+    }
+
+
     public function insertcobro(Request $request){
 //        return $request;
         foreach ($request->pagos as $row){
@@ -104,7 +152,7 @@ class CobrarController extends Controller
              'comanda'=>$row['comanda'],
              'pago'=>floatval($row['pago']),
             'idCli'=>$row['CINIT'],
-            'CiFunc'=>$row['CIFunc'],
+            'CiFunc'=>$request->user()->ci,
              'fecha'=>date("Y-m-d H:i:s"),
              'estado'=>'CREADO',
              'procesado'=>0,

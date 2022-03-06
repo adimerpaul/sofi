@@ -323,6 +323,7 @@
         </q-card-actions>
       </q-card>
     </q-dialog>
+
     <q-dialog v-model="modalnormal" full-width>
       <q-card>
         <q-card-section>
@@ -338,6 +339,7 @@
         </q-card-actions>
       </q-card>
     </q-dialog>
+
     <q-dialog v-model="modalcerdo" full-width>
       <q-card>
         <q-card-section>
@@ -359,6 +361,7 @@
         </q-card-actions>
       </q-card>
     </q-dialog>
+    
     <q-dialog v-model="modalres" full-width>
       <q-card>
         <q-card-section>
