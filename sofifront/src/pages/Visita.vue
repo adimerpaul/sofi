@@ -131,7 +131,7 @@
         <q-card-section class="q-pt-none">
 <!--          <pre>{{cliente}}</pre>-->
           <div class="row">
-            <div class="col-12 col-sm-6">
+            <div class="col-12 col-sm-6" v-if="cliente.venta=='ACTIVO'">
               <q-btn class="q-ma-xs" @click="clickpedido" label="realizar pedido" color="positive" style="width: 100%;" icon="shopping_cart" />
             </div>
             <div class="col-12 col-sm-6">
@@ -259,7 +259,7 @@
               <div class="q-gutter-sm">
                 <q-radio size="xs" dense v-model="miproducto.unidala" val="KG" label="KG" />
                 <q-radio size="xs" dense v-model="miproducto.unidala" val="CJA" label="CJA" />
-                <q-radio size="xs" dense v-model="miproducto.unidala" val="PQT" label="PQT" />
+                <q-radio size="xs" dense v-model="miproducto.unidala" val="U" label="U" />
               </div>
             </div>
             <div class="col-5" ><q-input type="number" dense outlined label="Cadera" v-model="miproducto.cadera"/></div>
@@ -267,7 +267,7 @@
               <div class="q-gutter-sm">
                 <q-radio size="xs" dense v-model="miproducto.unidcadera" val="KG" label="KG" />
                 <q-radio size="xs" dense v-model="miproducto.unidcadera" val="CJA" label="CJA" />
-                <q-radio size="xs" dense v-model="miproducto.unidcadera" val="PQT" label="PQT" />
+                <q-radio size="xs" dense v-model="miproducto.unidcadera" val="U" label="U" />
               </div>
             </div>
             <div class="col-5" ><q-input type="number" dense outlined label="Pecho" v-model="miproducto.pecho"/></div>
@@ -275,7 +275,7 @@
               <div class="q-gutter-sm">
                 <q-radio size="xs" dense v-model="miproducto.unidpecho" val="KG" label="KG" />
                 <q-radio size="xs" dense v-model="miproducto.unidpecho" val="CJA" label="CJA" />
-                <q-radio size="xs" dense v-model="miproducto.unidpecho" val="PQT" label="PQT" />
+                <q-radio size="xs" dense v-model="miproducto.unidpecho" val="U" label="U" />
               </div>
             </div>
             <div class="col-5" ><q-input type="number" dense outlined label="Pi/Mu" v-model="miproducto.pie"/></div>
@@ -283,7 +283,7 @@
               <div class="q-gutter-sm">
                 <q-radio size="xs" dense v-model="miproducto.unidpie" val="KG" label="KG" />
                 <q-radio size="xs" dense v-model="miproducto.unidpie" val="CJA" label="CJA" />
-                <q-radio size="xs" dense v-model="miproducto.unidpie" val="PQT" label="PQT" />
+                <q-radio size="xs" dense v-model="miproducto.unidpie" val="U" label="U" />
               </div>
             </div>
             <div class="col-5" ><q-input type="number" dense outlined label="Filete" v-model="miproducto.filete"/></div>
@@ -291,7 +291,7 @@
               <div class="q-gutter-sm">
                 <q-radio size="xs" dense v-model="miproducto.unidfilete" val="KG" label="KG" />
                 <q-radio size="xs" dense v-model="miproducto.unidfilete" val="CJA" label="CJA" />
-                <q-radio size="xs" dense v-model="miproducto.unidfilete" val="PQT" label="PQT" />
+                <q-radio size="xs" dense v-model="miproducto.unidfilete" val="U" label="U" />
               </div>
             </div>
             <div class="col-5" ><q-input type="number" dense outlined label="Cuello" v-model="miproducto.cuello"/></div>
@@ -299,7 +299,7 @@
               <div class="q-gutter-sm">
                 <q-radio size="xs" dense v-model="miproducto.unidcuello" val="KG" label="KG" />
                 <q-radio size="xs" dense v-model="miproducto.unidcuello" val="CJA" label="CJA" />
-                <q-radio size="xs" dense v-model="miproducto.unidcuello" val="PQT" label="PQT" />
+                <q-radio size="xs" dense v-model="miproducto.unidcuello" val="U" label="U" />
               </div>
             </div>
             <div class="col-5" ><q-input type="number" dense outlined label="Hueso" v-model="miproducto.hueso"/></div>
@@ -307,7 +307,7 @@
               <div class="q-gutter-sm">
                 <q-radio size="xs" dense v-model="miproducto.unidhueso" val="KG" label="KG" />
                 <q-radio size="xs" dense v-model="miproducto.unidhueso" val="CJA" label="CJA" />
-                <q-radio size="xs" dense v-model="miproducto.unidhueso" val="PQT" label="PQT" />
+                <q-radio size="xs" dense v-model="miproducto.unidhueso" val="U" label="U" />
               </div>
             </div>
             <div class="col-5" ><q-input type="number" dense outlined label="Menud" v-model="miproducto.menu"/></div>
@@ -315,7 +315,7 @@
               <div class="q-gutter-sm">
                 <q-radio size="xs" dense v-model="miproducto.unidmenu" val="KG" label="KG" />
                 <q-radio size="xs" dense v-model="miproducto.unidmenu" val="CJA" label="CJA" />
-                <q-radio size="xs" dense v-model="miproducto.unidmenu" val="PQT" label="PQT" />
+                <q-radio size="xs" dense v-model="miproducto.unidmenu" val="U" label="U" />
               </div>
             </div>
             <div class="col-5" ><q-input type="number" dense outlined label="bs" v-model="miproducto.bs"/></div>
