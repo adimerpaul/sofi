@@ -10,6 +10,30 @@
     <div class="col-4 flex flex-center">
       <q-btn color="info" icon="search" label="consulta" @click="mcobros" size="xs" />
     </div>
+                <div class=" table " style="width:100%">
+                <table id="example" style="width:100%">
+                <thead>
+                <tr>
+                <th>FECHA</th>
+                <th>COMANDA</th>
+                <th>NOMBRE</th>
+                <th>MONTO</th>
+                <th>ESTADO</th>
+                <th>N BOLETA</th>
+                </tr>
+                </thead>
+                  <tbody>
+                  <tr v-for="v in cobros" :key="v.id">
+                  <td>{{v.fecha}}</td>
+                  <td>{{v.comanda}}</td>
+                  <td>{{v.Nombres}}</td>
+                  <td>{{v.pago}}</td>
+                  <td>{{v.estado}}</td>
+                  <td>{{v.nboleta}}</td>
+                  </tr>
+                  </tbody>
+                </table>
+            </div>
     <div class="col-12">
       <q-table dense title="Clientes " :columns="columns" :rows="cobros" :filter="filter">
         <template v-slot:body-cell-opciones="props">
@@ -31,6 +55,12 @@
 </q-page>
 </template>
 <script>
+import $ from "jquery";
+import 'datatables.net';
+
+import 'datatables.net-dt/css/jquery.dataTables.css';
+import 'datatables.net-buttons';
+import 'datatables.net-buttons/js/buttons.html5';
 import {date} from "quasar";
 
 export default {
@@ -51,6 +81,12 @@ export default {
     }
     },
     created() {
+              $('#example').DataTable( {
+      dom: 'Blfrtip',
+      buttons: [
+        'copy', 'csv', 'excel', 'pdf', 'print'
+      ]
+    } );
       this.mcobros();
       
     },
@@ -61,6 +97,15 @@ export default {
         console.log(res.data)
        // return false
         this.cobros=res.data;
+                $('#example').DataTable().destroy();
+        this.$nextTick(()=>{
+          $('#example').DataTable( {
+            dom: 'Blfrtip',
+            buttons: [
+              'copy', 'csv', 'excel', 'pdf', 'print'
+            ]
+          } );
+        })
       })
 
       },

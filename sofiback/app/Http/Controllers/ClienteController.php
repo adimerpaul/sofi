@@ -18,9 +18,9 @@ class ClienteController extends Controller
         return DB::select("
         SELECT *,(
         SELECT estado from misvisitas where cliente_id=Cod_Aut AND fecha='".date('Y-m-d')."' LIMIT 1
-        ) as tipo,(SELECT SUM(Importe - Acuenta) FROM tbctascobrar WHERE CINIT=tbclientes.Id AND Nrocierre=0 ) as totdeuda 
+        ) as tipo,(SELECT sum(c.Importe-(SELECT sum(c2.Acuenta) from tbctascobrar c2 where c2.comanda=c.comanda)) FROM tbctascobrar c WHERE c.CINIT=tbclientes.Id and c.Nrocierre=0) as totdeuda 
         ,(SELECT count(*) FROM tbctascobrar WHERE CINIT=tbclientes.Id AND Nrocierre=0 ) as cantdeuda 
-        FROM tbclientes
+        FROM tbclientes 
         WHERE TRIM(CiVend)='".$request->user()->ci."'
         ORDER BY tipo desc
         ");
@@ -35,6 +35,15 @@ class ClienteController extends Controller
     public function store(Request $request)
     {
         //
+    }
+    public function bloquear(){
+        DB::SELECT("UPDATE tbclientes set venta='INACTIVO' 
+        where (SELECT sum(c.Importe-(SELECT sum(c2.Acuenta) from tbctascobrar c2 where c2.comanda=c.comanda)) FROM tbctascobrar c WHERE c.CINIT=tbclientes.Id and c.Nrocierre=0)>7000
+        or (SELECT DATEDIFF( curdate(), (select max(c.FechaEntreg) from tbctascobrar c where c.CINIT =tbclientes.Id and c.Nrocierre=0)))>7 ");
+    }
+
+    public function desbloquear(Request $request){
+        DB::SELECT("UPDATE tbclientes set venta='ACTIVO' where Id=$request->Id");
     }
 
     /**
