@@ -71,7 +71,7 @@ class PedidoController extends Controller
                 'precio'=>$p['precio'],
                 'fecha'=>date('Y-m-d H:i:s'),
                 'subtotal'=>$p['subtotal'],
-                'cod_prod'=>$p['cod_prod'],
+//                'cod_prod'=>$p['cod_prod'],
                 "cbrasa5"=>$p['cbrasa5'],
                 "ubrasa5"=>$p['ubrasa5'],
                 "cbrasa6"=>$p['cbrasa6'],
@@ -117,7 +117,7 @@ class PedidoController extends Controller
                 "pierna"=>$p['pierna'],
                 "brazo"=>$p['brazo'],
                 "hora"=>date('H:i:s'),
-               // "pago"=>$request->pago
+                "pago"=>$request->pago
             ]);
 //            var_dump($p);
         }

@@ -1,5 +1,6 @@
 import { boot } from 'quasar/wrappers'
 import axios from 'axios'
+import store from "src/store";
 
 // Be careful when using SSR for cross-request state pollution
 // due to creating a Singleton instance here;
@@ -9,14 +10,15 @@ import axios from 'axios'
 // for each client)
 const api = axios.create({ baseURL: process.env.API })
 
-export default boot(({ app }) => {
+export default boot(({ app,store }) => {
   // for use inside Vue files (Options API) through this.$axios and this.$api
-
-  app.config.globalProperties.$axios = axios
+  // console.log(store.state.login.url)
+  // app.config.globalProperties.$axios = axios
   // ^ ^ ^ this will allow you to use this.$axios (for Vue Options API form)
   //       so you won't necessarily have to import axios in each vue file
 
   app.config.globalProperties.$api = api
+  app.config.globalProperties.$api.defaults.baseURL=store.state.login.url+'api/'
   const token = localStorage.getItem('tokensofia')
   if (token) {
     app.config.globalProperties.$api.defaults.headers.common['Authorization'] = 'Bearer '+token

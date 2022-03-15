@@ -367,7 +367,7 @@
         </q-card-actions>
       </q-card>
     </q-dialog>
-    
+
     <q-dialog v-model="modalres" full-width>
       <q-card>
         <q-card-section>
@@ -458,6 +458,11 @@ export default {
 
   created() {
     this.misclientes()
+    // this.$q.notify({
+    //   message:'aaaa',
+    //   color:'red',
+    //   icon:'error'
+    // })
   },
   methods: {
     misclientes(){
@@ -484,6 +489,14 @@ export default {
         })
         // console.log(this.clientes)
         this.$q.loading.hide()
+      }).catch(err=>{
+        // console.log(err.response)
+        this.$q.loading.hide()
+        this.$q.notify({
+          message:'Error al conectarse al server',
+          color:'red',
+          icon:'error'
+        })
       })
 
       this.$api.get('producto').then(res=>{
@@ -498,7 +511,15 @@ export default {
         })
         this.productos2=this.productos
         // this.producto=this.productos[0]
+        // this.$q.loading.hide()
+      }).catch(err=>{
+        // console.log(err.response)
         this.$q.loading.hide()
+        this.$q.notify({
+          message:'Error al conectarse al server',
+          color:'red',
+          icon:'error'
+        })
       })
     },
     enviarpedido(){
