@@ -1,7 +1,7 @@
 export default function () {
   return {
     status: '',
-    url: 'https://sofiab.loca.lt/',
+    url: 'http://localhost:8000/',
     token: localStorage.getItem('tokensofia') || '',
     user : {},
     // pedido:[],
