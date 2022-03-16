@@ -55,13 +55,19 @@
 </q-page>
 </template>
 <script>
-import $ from "jquery";
-import 'datatables.net';
-
-import 'datatables.net-dt/css/jquery.dataTables.css';
-import 'datatables.net-buttons';
-import 'datatables.net-buttons/js/buttons.html5';
-import {date} from "quasar";
+var $  = require( 'jquery' );
+require( 'datatables.net-buttons/js/buttons.html5.js' )();
+require( 'datatables.net-buttons/js/buttons.print.js' )();
+require('datatables.net-buttons/js/dataTables.buttons');
+require('datatables.net-dt/css/jquery.dataTables.min.css');
+import print from 'datatables.net-buttons/js/buttons.print';
+import jszip from 'jszip/dist/jszip';
+import pdfMake from 'pdfmake/build/pdfmake';
+import pdfFonts from 'pdfmake/build/vfs_fonts';
+pdfMake.vfs=pdfFonts.pdfMake.vfs;
+window.JSZip=jszip;
+import {date} from 'quasar'
+// import { jsPDF } from "jspdf";
 
 export default {
   data(){
@@ -81,14 +87,14 @@ export default {
     }
     },
     created() {
-              $('#example').DataTable( {
-      dom: 'Blfrtip',
-      buttons: [
-        'copy', 'csv', 'excel', 'pdf', 'print'
-      ]
-    } );
+      $('#example').DataTable( {
+        dom: 'Blfrtip',
+        buttons: [
+          'copy', 'csv', 'excel', 'pdf', 'print'
+        ]
+      });
       this.mcobros();
-      
+
     },
     methods: {
       mcobros(){
@@ -118,11 +124,11 @@ export default {
         myWindow.print();
         myWindow.close();
         })
-        
+
       }
-      
+
     },
-  
+
 }
 </script>
 
