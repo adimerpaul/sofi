@@ -34,7 +34,6 @@ Route::group(['middleware'=>'auth:sanctum'],function (){
     Route::post('/clientepedido',[\App\Http\Controllers\PedidoController::class,'clientepedido']);
     Route::post('/listpedido',[\App\Http\Controllers\PedidoController::class,'listpedido']);
     Route::post('/updatecomanda',[\App\Http\Controllers\PedidoController::class,'updatecomanda']);
-    Route::post('/deletecomanda',[\App\Http\Controllers\PedidoController::class,'deletecomanda']);
     Route::post('/enviarpedidos',[\App\Http\Controllers\PedidoController::class,'enviarpedidos']);
 
     Route::post('/me',[\App\Http\Controllers\UserController::class,'me']);

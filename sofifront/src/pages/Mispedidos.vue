@@ -91,8 +91,7 @@
                   </q-tr>
                 </template>
               </q-table>
-              <q-btn v-if="cliente.estado=='CREADO'" @click="modificarcomanda"  style="width: 100%" label="Modificar pedido" icon="edit" color="warning" />
-              <q-btn v-if="cliente.estado=='CREADO'" @click="eliminarcomanda"  style="width: 100%" label="Eliminar pedido" icon="delete" color="red" />
+              <q-btn v-if="cliente.estado=='CREADO'" @click="modificarcomanda"  style="width: 100%" label="modificar pedido" icon="edit" color="warning" />
             </div>
           </div>
         </q-card-section>
@@ -327,9 +326,6 @@ export default {
   },
 
   methods:{
-        tecleado(e){
-      e.subtotal=(e.cantidad*e.precio).toFixed(2);
-    },
     enviarpedidos(){
       this.$q.loading.show()
       this.$api.post('enviarpedidos',{clientes:this.clientes}).then(res=>{        // console.log(res.data)
@@ -346,13 +342,6 @@ export default {
         // console.log(res.data)
         this.$q.loading.hide()
         this.modalpedido=false
-      })
-    },
-    eliminarcomanda(){
-           this.$api.post('deletecomanda',{comanda:this.cliente.NroPed}).then(res=>{
-        // console.log(res.data)
-        this.modalpedido=false
-        this.misclientes()
       })
     },
         agregarpedido(){

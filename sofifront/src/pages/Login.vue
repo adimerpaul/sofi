@@ -136,7 +136,7 @@ export default {
       rule:[
         val => (val && val.length > 0) || 'Porfavor ingresar dato'
       ],
-      ci:'',
+      ci:'7360035',
       pasw:'',
       tab:'login',
       user:{},
