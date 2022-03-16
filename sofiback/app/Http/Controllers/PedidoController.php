@@ -246,6 +246,14 @@ class PedidoController extends Controller
         }
     }
 
+    public function deletecomanda(Request $request){
+        //        return $request;
+                $numpedido=$request->comanda;
+                DB::select("DELETE FROM tbpedidos where NroPed='$numpedido'");
+    }
+        
+        
+
     public function listpedido(Request $request){
         $pedido= DB::SELECT("SELECT NroPed,CIfunc,idCli,fecha,estado from tbpedidos where idCli='$request->idCli' and date(fecha)>='$request->fecha1' and date(fecha)<='$request->fecha2' group by NroPed,CIfunc,idCli,fecha,estado ");
         foreach ($pedido as $row) {
