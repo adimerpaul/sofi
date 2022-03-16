@@ -35,7 +35,7 @@
                 </table>
             </div>
     <div class="col-12">
-      <q-table dense title="Clientes " :columns="columns" :rows="cobros" :filter="filter">
+     <!-- <q-table dense title="Clientes " :columns="columns" :rows="cobros" :filter="filter">
         <template v-slot:body-cell-opciones="props">
           <q-td :props="props">
             <q-btn  @click="listpedidos(props.row)" :color="props.row.estado=='CREADO'?'primary':'warning'" :label="props.row.estado=='CREADO'?'MODIFICAR':'ENVIADO'" icon="shop" size="xs"  />        </q-td>
@@ -47,7 +47,7 @@
             </template>
           </q-input>
         </template>
-      </q-table>
+      </q-table>-->
       <q-btn style="width: 100%" @click="enviarpedidos" color="accent" icon="check" label="Enviar todos los Cobros"> </q-btn>
       <q-btn style="width: 100%" @click="imprimir" color="info" icon="print" label="Imprimir todos los Cobros"> </q-btn>
     </div>
