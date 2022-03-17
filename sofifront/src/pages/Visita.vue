@@ -78,7 +78,7 @@
 <!--    <button @click="changeIcon">New kitten icon</button>-->
     <div class="row">
       <div class="col-12">
-        <q-table :rows="clientes" hide-header :filter="filter" :columns="columns" :rows-per-page-options="[7,10,50,100,0]">
+        <q-table :rows="clientes" hide-header :filter="filter" :columns="columns" :rows-per-page-options="[0]" class="my-sticky-header-table">
           <template v-slot:body-cell-Cod_Aut="props">
             <q-td :class="props.row.tipo=='PEDIDO'?'bg-green-3  text-italic':props.row.tipo=='PARADO'?'bg-yellow-3  text-italic':props.row.tipo=='NO PEDIDO'?'bg-red-3 text-italic':''" @click="clickopciones(props.row)" :props="props">
                 <q-badge  color="info"> {{ props.row.Cod_Aut}}</q-badge>
@@ -930,3 +930,25 @@ export default {
   },
 };
 </script>
+<style lang="sass">
+.my-sticky-header-table
+  /* height or max-height is important */
+  height: 330px
+
+  .q-table__top,
+  .q-table__bottom,
+  thead tr:first-child th
+    /* bg color is important for th; just specify one */
+    background-color: white
+
+  thead tr th
+    position: sticky
+    z-index: 1
+  thead tr:first-child th
+    top: 0
+
+  /* this is when the loading indicator appears */
+  &.q-table--loading thead tr:last-child th
+    /* height of all previous header rows */
+    top: 48px
+</style>

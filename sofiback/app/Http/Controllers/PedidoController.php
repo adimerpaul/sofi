@@ -38,6 +38,11 @@ class PedidoController extends Controller
 //echo ' '.$km;
         return $km;
     }
+
+    public function rpollo(Request $request){
+        return DB::SELECT("SELECT * from tbpedidos p, tbclientes c where c.Cod_Aut=p.idCli and date(fecha)='$request->fecha' and tipo='POLLO' and p.estado='ENVIADO'");
+    }
+
     public function store(Request $request)
     {
 //        return $request->productos;
