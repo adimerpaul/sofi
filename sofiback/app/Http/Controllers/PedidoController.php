@@ -334,7 +334,7 @@ class PedidoController extends Controller
     }
     public function listpedido(Request $request){
         $pedido= DB::SELECT("SELECT NroPed,CIfunc,idCli,fecha,estado from tbpedidos where NroPed='$request->NroPed' and date(fecha)>='$request->fecha1' and date(fecha)<='$request->fecha2' group by NroPed,CIfunc,idCli,fecha,estado ");
-        return $pedido;
+//        return $pedido;
         foreach ($pedido as $row) {
             $lisrped=DB::SELECT("SELECT
             tbpedidos.codAut ,
