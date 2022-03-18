@@ -59,7 +59,7 @@
                   <q-td :props="props" auto-width >
                     <q-btn flat @click="seleccionartipo(props.row)" class="q-ma-none q-pa-none" color="accent" icon="tune" />
                     {{props.row.subtotal}}
-                    <pre>{{props.row}}</pre>
+<!--                    <pre>{{props.row}}</pre>-->
                     <q-badge :color="props.row.tipo=='NORMAL'?'primary':props.row.tipo=='POLLO'?'secondary':props.row.tipo=='CERDO'?'info':'positive'" >{{props.row.tipo.substring(0,1)}}</q-badge>
                   </q-td>
                 </template>
@@ -114,7 +114,7 @@
         </q-card-section>
         <q-card-section class="q-pt-none">
           <div class="row">
-            <pre>{{miproducto}}</pre>
+<!--            <pre>{{miproducto}}</pre>-->
             <div class="col-3" ><q-input type="number" dense outlined label="Cja b5" v-model="miproducto.cbrasa5"/></div>
             <div class="col-3" ><q-input type="number" dense outlined label="Uni b5" v-model="miproducto.ubrasa5"/></div>
             <div class="col-2" ><q-input type="number" dense outlined label="BS" v-model="miproducto.bsbrasa5"/></div>
@@ -832,8 +832,8 @@ export default {
       console.log(this.cliente)
       this.$q.loading.show()
         this.$api.post('listpedido',{NroPed:cliente.NroPed,fecha1:this.fecha1,fecha2:this.fecha2}).then(res=>{
-          console.log(res.data)
-          return false
+          // console.log(res.data)
+          // return false
           this.misproductos=res.data[0].pedidos
 
           this.modalpedido=true
