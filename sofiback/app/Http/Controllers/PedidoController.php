@@ -433,7 +433,7 @@ class PedidoController extends Controller
             tbproductos.Producto as nombre
             from tbpedidos,tbproductos where tbpedidos.cod_prod=tbproductos.cod_prod and  NroPed = '$row->NroPed'" );
 
-            array_push($total,$lisrped);
+//            array_push($total,$lisrped);
         }
 //        $row->pedidos=$total;
         return $pedido;
