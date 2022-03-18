@@ -8,7 +8,7 @@
         </q-toolbar-title>
 <!--        <div>Quasar v{{ $q.version }}</div>-->
         <div>
-          <q-input dense bg-color="white" v-model="$store.state.login.url" outlined label="url" />
+<!--          <q-input dense bg-color="white" v-model="$store.state.login.url" outlined label="url" />-->
 <!--          <q-btn v-if="$store.getters['login/isLoggedIn']" @click="logout" size="xs" label="salir" icon="logout" color="negative"/>-->
         </div>
       </q-toolbar>
