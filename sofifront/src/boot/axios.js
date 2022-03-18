@@ -18,7 +18,7 @@ export default boot(({ app,store }) => {
   //       so you won't necessarily have to import axios in each vue file
 
   app.config.globalProperties.$api = api
-  app.config.globalProperties.$api.defaults.baseURL=store.state.login.url+'api/'
+  //app.config.globalProperties.$api.defaults.baseURL=store.state.login.url+'api/'
   const token = localStorage.getItem('tokensofia')
   if (token) {
     app.config.globalProperties.$api.defaults.headers.common['Authorization'] = 'Bearer '+token

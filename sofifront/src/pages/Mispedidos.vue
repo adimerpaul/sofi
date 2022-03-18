@@ -11,6 +11,8 @@
     <q-btn color="info" icon="search" label="consulta" @click="misclientes"  />
   </div>
     <q-btn color="green" icon="list" label="Rep Pollo" @click="generarpollo" />
+    <q-btn color="accent" icon="list" label="Rep Res" @click="generarres" />
+    <q-btn color="teal" icon="list" label="Rep Cerdo" @click="generarcerdo" />
 
   <div class="col-12">
     <q-table dense title="Clientes " :columns="columns" :rows="clientes" :filter="filter">
@@ -441,6 +443,8 @@ export default {
       modalnormal:false,
       modalpollo:false,
       pollo:[],
+      res:[],
+      cerdo:[],
       datocliente:{label:''},
       fecha1:date.formatDate(Date.now(),'YYYY-MM-DD'),
       fecha2:date.formatDate(Date.now(),'YYYY-MM-DD'),
@@ -449,6 +453,8 @@ export default {
       cliente:{},
       pedido:{},
       dialog_pollo:false,
+      dialog_res:false,
+      dialog_cerdo:false,
       dialog_pedido:false,
             productos:[],
       productos2:[],
@@ -477,7 +483,14 @@ export default {
             dom: 'Blfrtip',
             buttons: ['copy', 'csv', 'excel', 'pdf', 'print']              
           } );
-
+                $('#example2').DataTable( {
+            dom: 'Blfrtip',
+            buttons: ['copy', 'csv', 'excel', 'pdf', 'print']              
+          } );
+                          $('#example3').DataTable( {
+            dom: 'Blfrtip',
+            buttons: ['copy', 'csv', 'excel', 'pdf', 'print']              
+          } );
     this.misclientes()
           this.$api.get('producto').then(res=>{
         // console.log(res.data)
@@ -621,9 +634,46 @@ export default {
           } );
         })
         this.dialog_pollo=true 
-
-
     },
+
+        generarres(){
+        $('#example2').DataTable().destroy();
+
+      this.$api.post('rres',{fecha1:this.fecha1,fecha2:this.fecha2}).then(res=>{   
+
+        console.log(res.data) 
+        $('#example2').DataTable().destroy();
+        this.res=res.data;
+          $('#example2').DataTable( {
+            dom: 'Blfrtip',
+            buttons: [
+              'copy', 'csv', 'excel', 'pdf', 'print'
+            ],
+             "lengthMenu": [[10, 25, 50, -1], [10, 25, 50, "All"]] 
+          } );
+        })
+        this.dialog_res=true 
+    },
+
+        generarcerdo(){
+        $('#example3').DataTable().destroy();
+
+      this.$api.post('rcerdo',{fecha1:this.fecha1,fecha2:this.fecha2}).then(res=>{   
+
+        console.log(res.data) 
+        $('#example3').DataTable().destroy();
+        this.cerdo=res.data;
+          $('#example3').DataTable( {
+            dom: 'Blfrtip',
+            buttons: [
+              'copy', 'csv', 'excel', 'pdf', 'print'
+            ],
+             "lengthMenu": [[10, 25, 50, -1], [10, 25, 50, "All"]] 
+          } );
+        })
+        this.dialog_cerdo=true 
+    },
+
     tecleado(e){
       e.subtotal=(e.cantidad*e.precio).toFixed(2);
     },
