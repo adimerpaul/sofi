@@ -243,7 +243,7 @@
             <div class="col-2" ><q-input type="number" dense outlined label="BS" v-model="miproducto.bsbrasa5"/></div>
             <div class="col-4" ><q-input type="text" dense outlined label="OBS" v-model="miproducto.obsbrasa5"/></div>
             <div class="col-3" ><q-input type="number" dense outlined label="Cja b6" v-model="miproducto.cbrasa6"/></div>
-            <div class="col-3" ><q-input type="number" dense outlined label="Uni b6" v-model="miproducto.ubrasa6"/></div>
+            <div class="col-3" ><q-input type="number" dense outlined label="Uni b6" v-model="miproducto.cubrasa6"/></div>
             <div class="col-2" ><q-input type="number" dense outlined label="BS" v-model="miproducto.bsbrasa6"/></div>
             <div class="col-4" ><q-input type="text" dense outlined label="OBS" v-model="miproducto.obsbrasa6"/></div>
             <div class="col-3" ><q-input type="number" dense outlined label="Cja-104" v-model="miproducto.c104"/></div>

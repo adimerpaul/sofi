@@ -116,7 +116,7 @@
             <div class="col-2" ><q-input type="number" dense outlined label="BS" v-model="miproducto.bsbrasa5"/></div>
             <div class="col-4" ><q-input type="text" dense outlined label="OBS" v-model="miproducto.obsbrasa5"/></div>
             <div class="col-3" ><q-input type="number" dense outlined label="Cja b6" v-model="miproducto.cbrasa6"/></div>
-            <div class="col-3" ><q-input type="number" dense outlined label="Uni b6" v-model="miproducto.ubrasa6"/></div>
+            <div class="col-3" ><q-input type="number" dense outlined label="Uni b6" v-model="miproducto.cubrasa6"/></div>
             <div class="col-2" ><q-input type="number" dense outlined label="BS" v-model="miproducto.bsbrasa6"/></div>
             <div class="col-4" ><q-input type="text" dense outlined label="OBS" v-model="miproducto.obsbrasa6"/></div>
             <div class="col-3" ><q-input type="number" dense outlined label="Cja-104" v-model="miproducto.c104"/></div>
@@ -268,7 +268,6 @@
         </q-card-section>
 
         <q-card-section class="q-pt-none">
-                                        <div class=" responsive">
                 <table id="example" class="display" style="width:100%">
                   <thead>
                   <tr>
@@ -350,7 +349,7 @@
                     <td>{{v.bsbrasa5}}</td>
                     <td>{{v.obsbrasa5}}</td>
                     <td>{{v.cbrasa6}}</td>
-                    <td>{{v.ubrasa6}}</td>
+                    <td>{{v.cubrasa6}}</td>
                     <td>{{v.bsbrasa6}}</td>
                     <td>{{v.obsbrasa6}}</td>
                     <td>{{v.c104}}</td>
@@ -413,7 +412,6 @@
                   </tr>
                   </tbody>
                 </table>
-                                        </div>
         </q-card-section>
 
         <q-card-actions align="right" class="text-primary">
@@ -509,78 +507,78 @@ export default {
         doc.text(1, 1,  'NOMBRE VENDEDOR'+nom)
         doc.text(12, 1,  'DE '+mc.fecha1+' AL '+mc.fecha2)
 
-        doc.text(1, 1.5, 'No')
-        doc.text(1.5, 1.5, 'CLIENTE')
-        doc.text(4, 1.5, 'C Br5')
-        doc.text(5, 1.5, 'U Br5')
-        doc.text(6, 1.5, 'Bs')
-        doc.text(7, 1.5, 'Obs')
-        doc.text(8, 1.5, 'C Br6')
-        doc.text(9, 1.5, 'U Br6')
-        doc.text(10, 1.5, 'Bs')
-        doc.text(11, 1.5, 'Obs')
-        doc.text(12, 1.5, 'C 104')
-        doc.text(13, 1.5, 'U 104')
-        doc.text(14, 1.5, 'Bs')
-        doc.text(15, 1.5, 'Obs')
-        doc.text(16, 1.5, 'C 105')
-        doc.text(17, 1.5, 'U 105')
-        doc.text(18, 1.5, 'Bs')
-        doc.text(19, 1.5, 'Obs')
-        doc.text(20, 1.5, 'C 106')
-        doc.text(21, 1.5, 'U 106')
-        doc.text(22, 1.5, 'Bs')
-        doc.text(23, 1.5, 'Obs')
-        doc.text(24, 1.5, 'C 107')
-        doc.text(25, 1.5, 'U 107')
-        doc.text(26, 1.5, 'Bs')
-        doc.text(27, 1.5, 'Obs')
-        doc.text(28, 1.5, 'C 108')
-        doc.text(29, 1.5, 'U 108')
-        doc.text(30, 1.5, 'Bs')
-        doc.text(31, 1.5, 'Obs')
-        doc.text(32, 1.5, 'C 109')
-        doc.text(33, 1.5, 'U 109')
-        doc.text(34, 1.5, 'Bs')
-        doc.text(35, 1.5, 'Obs')
-        doc.text(36, 1.5, 'Ala')
-        doc.text(37, 1.5, 'Unid')
-        doc.text(38, 1.5, 'Bs')
-        doc.text(39, 1.5, 'Obs')
-        doc.text(40, 1.5, 'Cadera')
-        doc.text(41, 1.5, 'Unid')
-        doc.text(42, 1.5, 'Bs')
-        doc.text(43, 1.5, 'Obs')
-        doc.text(44, 1.5, 'Pecho')
-        doc.text(45, 1.5, 'Unid')
-        doc.text(46, 1.5, 'Bs')
-        doc.text(47, 1.5, 'Obs')
-        doc.text(48, 1.5, 'Pi/Mu')
-        doc.text(49, 1.5, 'Unid')
-        doc.text(50, 1.5, 'Bs')
-        doc.text(51, 1.5, 'Obs')
-        doc.text(52, 1.5, 'Filete')
-        doc.text(53, 1.5, 'Unid')
-        doc.text(54, 1.5, 'Bs')
-        doc.text(55, 1.5, 'Obs')
-        doc.text(56, 1.5, 'Cuello')
-        doc.text(57, 1.5, 'Unid')
-        doc.text(58, 1.5, 'Bs')
-        doc.text(59, 1.5, 'Obs')
-        doc.text(60, 1.5, 'Hueso')
-        doc.text(61, 1.5, 'Unid')
-        doc.text(62, 1.5, 'Bs')
-        doc.text(63, 1.5, 'Obs')
-        doc.text(64, 1.5, 'Menud')
-        doc.text(65, 1.5, 'Unid')
-        doc.text(66, 1.5, 'Bs')
-        doc.text(67, 1.5, 'Obs')
-        doc.text(68, 1.5, 'Cont')
+        doc.text(1.5,1,  'No')
+        doc.text(1.5,1.5,  'CLIENTE')
+        doc.text(1.5,2,  'C Br5')
+        doc.text(1.5,2.5,  'U Br5')
+        doc.text(1.5,3,  'Bs')
+        doc.text(1.5,3.5,  'Obs')
+        doc.text(1.5,4,  'C Br6')
+        doc.text(1.5,4.5,  'U Br6')
+        doc.text(1.5,5,  'Bs')
+        doc.text(1.5,5.5,  'Obs')
+        doc.text(1.5,6,  'C 104')
+        doc.text(1.5,6.5,  'U 104')
+        doc.text(1.5,7,  'Bs')
+        doc.text(1.5,7.5,  'Obs')
+        doc.text(1.5,8,  'C 105')
+        doc.text(1.5,8.5,  'U 105')
+        doc.text(1.5,9,  'Bs')
+        doc.text(1.5,9.5,  'Obs')
+        doc.text(1.5,10,  'C 106')
+        doc.text(1.5,10.5,  'U 106')
+        doc.text(1.5,11,  'Bs')
+        doc.text(1.5,11.5,  'Obs')
+        doc.text(1.5,12,  'C 107')
+        doc.text(1.5,12.5,  'U 107')
+        doc.text(1.5,13,  'Bs')
+        doc.text(1.5,13.5,  'Obs')
+        doc.text(1.5,14,  'C 108')
+        doc.text(1.5,14.5,  'U 108')
+        doc.text(1.5,15,  'Bs')
+        doc.text(1.5,15.5,  'Obs')
+        doc.text(1.5,16,  'C 109')
+        doc.text(1.5,16.5,  'U 109')
+        doc.text(1.5,17,  'Bs')
+        doc.text(1.5,17.5,  'Obs')
+        doc.text(1.5,18,  'Ala')
+        doc.text(1.5,18.5,  'Unid')
+        doc.text(1.5,19,  'Bs')
+        doc.text(1.5,19.5,  'Obs')
+        doc.text(1.5,20,  'Cadera')
+        doc.text(1.5,20.5,  'Unid')
+        doc.text(1.5,21,  'Bs')
+        doc.text(1.5,21.5,  'Obs')
+        doc.text(1.5,22,  'Pecho')
+        doc.text(1.5,22.5,  'Unid')
+        doc.text(1.5,23,  'Bs')
+        doc.text(1.5,23.5,  'Obs')
+        doc.text(1.5,24,  'Pi/Mu')
+        doc.text(1.5,24.5,  'Unid')
+        doc.text(1.5,25,  'Bs')
+        doc.text(1.5,25.5,  'Obs')
+        doc.text(1.5,26,  'Filete')
+        doc.text(1.5,26.5,  'Unid')
+        doc.text(1.5,27,  'Bs')
+        doc.text(1.5,27.5,  'Obs')
+        doc.text(1.5,28,  'Cuello')
+        doc.text(1.5,28.5,  'Unid')
+        doc.text(1.5,29,  'Bs')
+        doc.text(1.5,29.5,  'Obs')
+        doc.text(1.5,30,  'Hueso')
+        doc.text(1.5,30.5,  'Unid')
+        doc.text(1.5,31,  'Bs')
+        doc.text(1.5,31.5,  'Obs')
+        doc.text(1.5,32,  'Menud')
+        doc.text(1.5,32.5,  'Unid')
+        doc.text(1.5,33,  'Bs')
+        doc.text(1.5,33.5,  'Obs')
+        doc.text(1.5,34,  'Cont')
         doc.setLineWidth(0.1); 
-         doc.line(1, 1.7, 35, 1.7);
+         doc.line(1, 1.2, 35, 1.2);
         doc.setFont(undefined,'normal')
       }
-      var doc = new jsPDF('landscape','cm','legal')
+      var doc = new jsPDF('P','cm','legal')
       // console.log(dat);
       doc.setFont("courier");
       doc.setFontSize(8);
@@ -607,13 +605,13 @@ export default {
     },
 
     generarpollo(){
-                      $('#example').DataTable().destroy();
+        $('#example').DataTable().destroy();
+
       this.$api.post('rpollo',{fecha1:this.fecha1,fecha2:this.fecha2}).then(res=>{   
 
         console.log(res.data) 
+        $('#example').DataTable().destroy();
         this.pollo=res.data;
-                      $('#example').DataTable().destroy();
-        this.$nextTick(()=>{
           $('#example').DataTable( {
             dom: 'Blfrtip',
             buttons: [
@@ -624,7 +622,6 @@ export default {
         })
         this.dialog_pollo=true 
 
-      })
 
     },
     tecleado(e){
@@ -782,7 +779,7 @@ export default {
       this.cliente=cliente
       this.$q.loading.show()
         this.$api.post('listpedido',{idCli:cliente.Cod_Aut,fecha1:this.fecha1,fecha2:this.fecha2}).then(res=>{
-          // console.log(res.data)
+           console.log(res.data)
           this.misproductos=res.data[0].pedidos
           this.modalpedido=true
           this.$q.loading.hide()
