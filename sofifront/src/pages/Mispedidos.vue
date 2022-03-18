@@ -59,6 +59,7 @@
                   <q-td :props="props" auto-width >
                     <q-btn flat @click="seleccionartipo(props.row)" class="q-ma-none q-pa-none" color="accent" icon="tune" />
                     {{props.row.subtotal}}
+                    <pre>{{props.row}}</pre>
                     <q-badge :color="props.row.tipo=='NORMAL'?'primary':props.row.tipo=='POLLO'?'secondary':props.row.tipo=='CERDO'?'info':'positive'" >{{props.row.tipo.substring(0,1)}}</q-badge>
                   </q-td>
                 </template>
@@ -113,6 +114,7 @@
         </q-card-section>
         <q-card-section class="q-pt-none">
           <div class="row">
+            <pre>{{miproducto}}</pre>
             <div class="col-3" ><q-input type="number" dense outlined label="Cja b5" v-model="miproducto.cbrasa5"/></div>
             <div class="col-3" ><q-input type="number" dense outlined label="Uni b5" v-model="miproducto.ubrasa5"/></div>
             <div class="col-2" ><q-input type="number" dense outlined label="BS" v-model="miproducto.bsbrasa5"/></div>
@@ -266,7 +268,7 @@
         <q-card-section>
           <div class="text-h6">PEDIDO POLLO</div>
            <q-btn color="accent" icon="print" label="IMPRIMIR" @click="imprimirpollo" />
-          
+
         </q-card-section>
 
         <q-card-section class="q-pt-none">
@@ -361,7 +363,7 @@
                     <td>{{v.c105}}</td>
                     <td>{{v.u105}}</td>
                     <td>{{v.bs105}}</td>
-                    <td>{{v.obs105}}</td>                    
+                    <td>{{v.obs105}}</td>
                     <td>{{v.c106}}</td>
                     <td>{{v.u106}}</td>
                     <td>{{v.bs106}}</td>
@@ -377,39 +379,39 @@
                     <td>{{v.c109}}</td>
                     <td>{{v.u109}}</td>
                     <td>{{v.bs109}}</td>
-                    <td>{{v.obs109}}</td>  
+                    <td>{{v.obs109}}</td>
                     <td>{{v.ala}}</td>
                     <td>{{v.unidala}}</td>
                     <td>{{v.bsala}}</td>
-                    <td>{{v.obsala}}</td>     
+                    <td>{{v.obsala}}</td>
                     <td>{{v.cadera}}</td>
                     <td>{{v.unidcadera}}</td>
                     <td>{{v.bscadera}}</td>
-                    <td>{{v.obscadera}}</td>  
+                    <td>{{v.obscadera}}</td>
                     <td>{{v.pecho}}</td>
                     <td>{{v.unidpecho}}</td>
                     <td>{{v.bspecho}}</td>
-                    <td>{{v.obspecho}}</td>  
+                    <td>{{v.obspecho}}</td>
                     <td>{{v.pie}}</td>
                     <td>{{v.unidpie}}</td>
                     <td>{{v.bspie}}</td>
-                    <td>{{v.obspie}}</td>  
+                    <td>{{v.obspie}}</td>
                     <td>{{v.filete}}</td>
                     <td>{{v.unidfilete}}</td>
                     <td>{{v.bsfilete}}</td>
-                    <td>{{v.obsfilete}}</td>  
+                    <td>{{v.obsfilete}}</td>
                     <td>{{v.cuello}}</td>
                     <td>{{v.unidcuello}}</td>
                     <td>{{v.bscuello}}</td>
-                    <td>{{v.obscuello}}</td>  
+                    <td>{{v.obscuello}}</td>
                     <td>{{v.hueso}}</td>
                     <td>{{v.unidhueso}}</td>
                     <td>{{v.bshueso}}</td>
-                    <td>{{v.obshueso}}</td>  
+                    <td>{{v.obshueso}}</td>
                     <td>{{v.menu}}</td>
                     <td>{{v.unidmenu}}</td>
                     <td>{{v.bsmenu}}</td>
-                    <td>{{v.obsmenu}}</td>                                                      
+                    <td>{{v.obsmenu}}</td>
                     <td>{{v.pago}}</td>
                   </tr>
                   </tbody>
@@ -481,15 +483,15 @@ export default {
   created() {
                 $('#example').DataTable( {
             dom: 'Blfrtip',
-            buttons: ['copy', 'csv', 'excel', 'pdf', 'print']              
+            buttons: ['copy', 'csv', 'excel', 'pdf', 'print']
           } );
                 $('#example2').DataTable( {
             dom: 'Blfrtip',
-            buttons: ['copy', 'csv', 'excel', 'pdf', 'print']              
+            buttons: ['copy', 'csv', 'excel', 'pdf', 'print']
           } );
                           $('#example3').DataTable( {
             dom: 'Blfrtip',
-            buttons: ['copy', 'csv', 'excel', 'pdf', 'print']              
+            buttons: ['copy', 'csv', 'excel', 'pdf', 'print']
           } );
     this.misclientes()
           this.$api.get('producto').then(res=>{
@@ -587,7 +589,7 @@ export default {
         doc.text(1.5,33,  'Bs')
         doc.text(1.5,33.5,  'Obs')
         doc.text(1.5,34,  'Cont')
-        doc.setLineWidth(0.1); 
+        doc.setLineWidth(0.1);
          doc.line(1, 1.2, 35, 1.2);
         doc.setFont(undefined,'normal')
       }
@@ -620,9 +622,9 @@ export default {
     generarpollo(){
         $('#example').DataTable().destroy();
 
-      this.$api.post('rpollo',{fecha1:this.fecha1,fecha2:this.fecha2}).then(res=>{   
+      this.$api.post('rpollo',{fecha1:this.fecha1,fecha2:this.fecha2}).then(res=>{
 
-        console.log(res.data) 
+        console.log(res.data)
         $('#example').DataTable().destroy();
         this.pollo=res.data;
           $('#example').DataTable( {
@@ -630,18 +632,18 @@ export default {
             buttons: [
               'copy', 'csv', 'excel', 'pdf', 'print'
             ],
-             "lengthMenu": [[10, 25, 50, -1], [10, 25, 50, "All"]] 
+             "lengthMenu": [[10, 25, 50, -1], [10, 25, 50, "All"]]
           } );
         })
-        this.dialog_pollo=true 
+        this.dialog_pollo=true
     },
 
         generarres(){
         $('#example2').DataTable().destroy();
 
-      this.$api.post('rres',{fecha1:this.fecha1,fecha2:this.fecha2}).then(res=>{   
+      this.$api.post('rres',{fecha1:this.fecha1,fecha2:this.fecha2}).then(res=>{
 
-        console.log(res.data) 
+        console.log(res.data)
         $('#example2').DataTable().destroy();
         this.res=res.data;
           $('#example2').DataTable( {
@@ -649,18 +651,18 @@ export default {
             buttons: [
               'copy', 'csv', 'excel', 'pdf', 'print'
             ],
-             "lengthMenu": [[10, 25, 50, -1], [10, 25, 50, "All"]] 
+             "lengthMenu": [[10, 25, 50, -1], [10, 25, 50, "All"]]
           } );
         })
-        this.dialog_res=true 
+        this.dialog_res=true
     },
 
         generarcerdo(){
         $('#example3').DataTable().destroy();
 
-      this.$api.post('rcerdo',{fecha1:this.fecha1,fecha2:this.fecha2}).then(res=>{   
+      this.$api.post('rcerdo',{fecha1:this.fecha1,fecha2:this.fecha2}).then(res=>{
 
-        console.log(res.data) 
+        console.log(res.data)
         $('#example3').DataTable().destroy();
         this.cerdo=res.data;
           $('#example3').DataTable( {
@@ -668,10 +670,10 @@ export default {
             buttons: [
               'copy', 'csv', 'excel', 'pdf', 'print'
             ],
-             "lengthMenu": [[10, 25, 50, -1], [10, 25, 50, "All"]] 
+             "lengthMenu": [[10, 25, 50, -1], [10, 25, 50, "All"]]
           } );
         })
-        this.dialog_cerdo=true 
+        this.dialog_cerdo=true
     },
 
     tecleado(e){
@@ -829,13 +831,15 @@ export default {
       this.cliente=cliente
       this.$q.loading.show()
         this.$api.post('listpedido',{idCli:cliente.Cod_Aut,fecha1:this.fecha1,fecha2:this.fecha2}).then(res=>{
-           console.log(res.data)
+
           this.misproductos=res.data[0].pedidos
+          console.log(this.misproductos)
           this.modalpedido=true
           this.$q.loading.hide()
       })
     },
         seleccionartipo(m){
+      // console.log(m)
       this.miproducto=m
         if (this.miproducto.tipo=='NORMAL'){
           this.modalnormal=true
