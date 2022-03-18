@@ -435,7 +435,7 @@ class PedidoController extends Controller
 
             array_push($total,$lisrped);
         }
-        $row->pedidos=$total;
+//        $row->pedidos=$total;
         return $pedido;
     }
 }
