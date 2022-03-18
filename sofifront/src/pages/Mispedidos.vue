@@ -832,8 +832,10 @@ export default {
       console.log(this.cliente)
       this.$q.loading.show()
         this.$api.post('listpedido',{NroPed:cliente.NroPed,fecha1:this.fecha1,fecha2:this.fecha2}).then(res=>{
+          console.log(res.data)
+          return false
           this.misproductos=res.data[0].pedidos
-          // console.log(this.misproductos)
+
           this.modalpedido=true
           this.$q.loading.hide()
       })
