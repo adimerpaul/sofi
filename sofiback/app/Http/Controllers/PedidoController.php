@@ -334,7 +334,6 @@ class PedidoController extends Controller
     }
     public function listpedido(Request $request){
         $pedido= DB::SELECT("SELECT NroPed,CIfunc,idCli,fecha,estado from tbpedidos where idCli='$request->idCli' and date(fecha)>='$request->fecha1' and date(fecha)<='$request->fecha2' group by NroPed,CIfunc,idCli,fecha,estado ");
-        $total=[];
         foreach ($pedido as $row) {
             $lisrped=DB::SELECT("SELECT
             tbpedidos.codAut ,
@@ -433,9 +432,9 @@ class PedidoController extends Controller
             tbproductos.Producto as nombre
             from tbpedidos,tbproductos where tbpedidos.cod_prod=tbproductos.cod_prod and  NroPed = '$row->NroPed'" );
 
-//            array_push($total,$lisrped);
+            $row->pedidos=$lisrped;
         }
-        $row->pedidos=$total;
+
         return $pedido;
     }
 }
