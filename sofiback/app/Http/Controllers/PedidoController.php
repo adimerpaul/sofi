@@ -44,6 +44,18 @@ class PedidoController extends Controller
         trim(CIfunc)='".$request->user()->CodAut."' and estado='ENVIADO' ");
     }
 
+    public function rres(Request $request){
+        return DB::SELECT("SELECT * from tbpedidos p, tbclientes c where c.Cod_Aut=p.idCli and date(fecha)>='$request->fecha1' and date(fecha)<='$request->fecha2'  and tipo='RES' AND
+        trim(CIfunc)='".$request->user()->CodAut."' and estado='ENVIADO' ");
+    }
+
+    public function rcerdo(Request $request){
+        return DB::SELECT("SELECT * from tbpedidos p, tbclientes c where c.Cod_Aut=p.idCli and date(fecha)>='$request->fecha1' and date(fecha)<='$request->fecha2'  and tipo='CERDO' AND
+        trim(CIfunc)='".$request->user()->CodAut."' and estado='ENVIADO' ");
+    }
+
+    
+
     public function store(Request $request)
     {
 //        return $request->productos;
