@@ -40,7 +40,8 @@ class PedidoController extends Controller
     }
 
     public function rpollo(Request $request){
-        return DB::SELECT("SELECT * from tbpedidos p, tbclientes c where c.Cod_Aut=p.idCli and date(fecha)='$request->fecha' and tipo='POLLO' and p.estado='ENVIADO'");
+        return DB::SELECT("SELECT * from tbpedidos p, tbclientes c where c.Cod_Aut=p.idCli and date(fecha)>='$request->fecha1' and date(fecha)<='$request->fecha2'  and tipo='POLLO' AND
+        trim(CIfunc)='".$request->user()->CodAut."' and estado='ENVIADO' ");
     }
 
     public function store(Request $request)

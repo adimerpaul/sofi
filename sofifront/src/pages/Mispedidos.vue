@@ -8,8 +8,10 @@
     <q-input dense outlined v-model="fecha2" label="Fecha Fin" type="date"/>
   </div>
   <div class="col-4 flex flex-center">
-    <q-btn color="info" icon="search" label="consulta" @click="misclientes" size="xs" />
+    <q-btn color="info" icon="search" label="consulta" @click="misclientes"  />
   </div>
+    <q-btn color="green" icon="list" label="Rep Pollo" @click="generarpollo" />
+
   <div class="col-12">
     <q-table dense title="Clientes " :columns="columns" :rows="clientes" :filter="filter">
       <template v-slot:body-cell-opciones="props">
@@ -109,90 +111,86 @@
         </q-card-section>
         <q-card-section class="q-pt-none">
           <div class="row">
-            <div class="col-6" ><q-input type="number" dense outlined label="Cja-brasa5" v-model="miproducto.cbrasa5"/></div>
-            <div class="col-6" ><q-input type="number" dense outlined label="Unid-brasa5" v-model="miproducto.ubrasa5"/></div>
-            <div class="col-6" ><q-input type="number" dense outlined label="Cja-brasa6" v-model="miproducto.cbrasa6"/></div>
-            <div class="col-6" ><q-input type="number" dense outlined label="Unid-brasa6" v-model="miproducto.cubrasa6"/></div>
-            <div class="col-6" ><q-input type="number" dense outlined label="Cja-104" v-model="miproducto.c104"/></div>
-            <div class="col-6" ><q-input type="number" dense outlined label="Unid-104" v-model="miproducto.u104"/></div>
-            <div class="col-6" ><q-input type="number" dense outlined label="Cja-105" v-model="miproducto.c105"/></div>
-            <div class="col-6" ><q-input type="number" dense outlined label="Unid-105" v-model="miproducto.u105"/></div>
-            <div class="col-6" ><q-input type="number" dense outlined label="Cja-106" v-model="miproducto.c106"/></div>
-            <div class="col-6" ><q-input type="number" dense outlined label="Unid-106" v-model="miproducto.u106"/></div>
-            <div class="col-6" ><q-input type="number" dense outlined label="Cja-107" v-model="miproducto.c107"/></div>
-            <div class="col-6" ><q-input type="number" dense outlined label="Unid-107" v-model="miproducto.u107"/></div>
-            <div class="col-6" ><q-input type="number" dense outlined label="Cja-108" v-model="miproducto.c108"/></div>
-            <div class="col-6" ><q-input type="number" dense outlined label="Unid-108" v-model="miproducto.u108"/></div>
-            <div class="col-6" ><q-input type="number" dense outlined label="Cja-109" v-model="miproducto.c109"/></div>
-            <div class="col-6" ><q-input type="number" dense outlined label="Unid-109" v-model="miproducto.u109"/></div>
-            <div class="col-5" ><q-input type="number" dense outlined label="ala" v-model="miproducto.ala"/></div>
-            <div class="col-7">
-              <div class="q-gutter-sm">
-                <q-radio size="xs" dense v-model="miproducto.unidala" val="KG" label="KG" />
-                <q-radio size="xs" dense v-model="miproducto.unidala" val="CJA" label="CJA" />
-                <q-radio size="xs" dense v-model="miproducto.unidala" val="U" label="U" />
-              </div>
+            <div class="col-3" ><q-input type="number" dense outlined label="Cja b5" v-model="miproducto.cbrasa5"/></div>
+            <div class="col-3" ><q-input type="number" dense outlined label="Uni b5" v-model="miproducto.ubrasa5"/></div>
+            <div class="col-2" ><q-input type="number" dense outlined label="BS" v-model="miproducto.bsbrasa5"/></div>
+            <div class="col-4" ><q-input type="text" dense outlined label="OBS" v-model="miproducto.obsbrasa5"/></div>
+            <div class="col-3" ><q-input type="number" dense outlined label="Cja b6" v-model="miproducto.cbrasa6"/></div>
+            <div class="col-3" ><q-input type="number" dense outlined label="Uni b6" v-model="miproducto.ubrasa6"/></div>
+            <div class="col-2" ><q-input type="number" dense outlined label="BS" v-model="miproducto.bsbrasa6"/></div>
+            <div class="col-4" ><q-input type="text" dense outlined label="OBS" v-model="miproducto.obsbrasa6"/></div>
+            <div class="col-3" ><q-input type="number" dense outlined label="Cja-104" v-model="miproducto.c104"/></div>
+            <div class="col-3" ><q-input type="number" dense outlined label="Unid-104" v-model="miproducto.u104"/></div>
+            <div class="col-2" ><q-input type="number" dense outlined label="BS" v-model="miproducto.bs104"/></div>
+            <div class="col-4" ><q-input type="text" dense outlined label="OBS" v-model="miproducto.obs104"/></div>
+            <div class="col-3" ><q-input type="number" dense outlined label="Cja-105" v-model="miproducto.c105"/></div>
+            <div class="col-3" ><q-input type="number" dense outlined label="Unid-105" v-model="miproducto.u105"/></div>
+            <div class="col-2" ><q-input type="number" dense outlined label="BS" v-model="miproducto.bs105"/></div>
+            <div class="col-4" ><q-input type="text" dense outlined label="OBS" v-model="miproducto.obs105"/></div>
+            <div class="col-3" ><q-input type="number" dense outlined label="Cja-106" v-model="miproducto.c106"/></div>
+            <div class="col-3" ><q-input type="number" dense outlined label="Unid-106" v-model="miproducto.u106"/></div>
+            <div class="col-2" ><q-input type="number" dense outlined label="BS" v-model="miproducto.bs106"/></div>
+            <div class="col-4" ><q-input type="text" dense outlined label="OBS" v-model="miproducto.obs106"/></div>
+            <div class="col-3" ><q-input type="number" dense outlined label="Cja-107" v-model="miproducto.c107"/></div>
+            <div class="col-3" ><q-input type="number" dense outlined label="Unid-107" v-model="miproducto.u107"/></div>
+            <div class="col-2" ><q-input type="number" dense outlined label="BS" v-model="miproducto.bs107"/></div>
+            <div class="col-4" ><q-input type="text" dense outlined label="OBS" v-model="miproducto.obs107"/></div>
+            <div class="col-3" ><q-input type="number" dense outlined label="Cja-108" v-model="miproducto.c108"/></div>
+            <div class="col-3" ><q-input type="number" dense outlined label="Unid-108" v-model="miproducto.u108"/></div>
+            <div class="col-2" ><q-input type="number" dense outlined label="BS" v-model="miproducto.bs108"/></div>
+            <div class="col-4" ><q-input type="text" dense outlined label="OBS" v-model="miproducto.obs108"/></div>
+            <div class="col-3" ><q-input type="number" dense outlined label="Cja-109" v-model="miproducto.c109"/></div>
+            <div class="col-3" ><q-input type="number" dense outlined label="Unid-109" v-model="miproducto.u109"/></div>
+            <div class="col-2" ><q-input type="number" dense outlined label="BS" v-model="miproducto.bs109"/></div>
+            <div class="col-4" ><q-input type="text" dense outlined label="OBS" v-model="miproducto.obs109"/></div>
+            <div class="col-3" ><q-input type="number" dense outlined label="ala" v-model="miproducto.ala"/></div>
+            <div class="col-3">
+              <q-select dense outlined :options="['KG','CJA','U']" v-model="miproducto.unidala" label="Unidad" />
             </div>
-            <div class="col-5" ><q-input type="number" dense outlined label="Cadera" v-model="miproducto.cadera"/></div>
-            <div class="col-7">
-              <div class="q-gutter-sm">
-                <q-radio size="xs" dense v-model="miproducto.unidcadera" val="KG" label="KG" />
-                <q-radio size="xs" dense v-model="miproducto.unidcadera" val="CJA" label="CJA" />
-                <q-radio size="xs" dense v-model="miproducto.unidcadera" val="U" label="U" />
-              </div>
+            <div class="col-2" ><q-input type="number" dense outlined label="BS" v-model="miproducto.bsala"/></div>
+            <div class="col-4" ><q-input type="text" dense outlined label="OBS" v-model="miproducto.obsala"/></div>
+            <div class="col-3" ><q-input type="number" dense outlined label="cadera" v-model="miproducto.cadera"/></div>
+            <div class="col-3">
+              <q-select dense outlined :options="['KG','CJA','U']" v-model="miproducto.unidcadera" label="Unidad" />
             </div>
-            <div class="col-5" ><q-input type="number" dense outlined label="Pecho" v-model="miproducto.pecho"/></div>
-                        <div class="col-7">
-              <div class="q-gutter-sm">
-                <q-radio size="xs" dense v-model="miproducto.unidpecho" val="KG" label="KG" />
-                <q-radio size="xs" dense v-model="miproducto.unidpecho" val="CJA" label="CJA" />
-                <q-radio size="xs" dense v-model="miproducto.unidpecho" val="U" label="U" />
-              </div>
+            <div class="col-2" ><q-input type="number" dense outlined label="BS" v-model="miproducto.bscadera"/></div>
+            <div class="col-4" ><q-input type="text" dense outlined label="OBS" v-model="miproducto.obscadera"/></div>
+            <div class="col-3" ><q-input type="number" dense outlined label="pecho" v-model="miproducto.pecho"/></div>
+            <div class="col-3">
+              <q-select dense outlined :options="['KG','CJA','U']" v-model="miproducto.unidpecho" label="Unidad" />
             </div>
-            <div class="col-5" ><q-input type="number" dense outlined label="Pi/Mu" v-model="miproducto.pie"/></div>
-                        <div class="col-7">
-              <div class="q-gutter-sm">
-                <q-radio size="xs" dense v-model="miproducto.unidpie" val="KG" label="KG" />
-                <q-radio size="xs" dense v-model="miproducto.unidpie" val="CJA" label="CJA" />
-                <q-radio size="xs" dense v-model="miproducto.unidpie" val="U" label="U" />
-              </div>
+            <div class="col-2" ><q-input type="number" dense outlined label="BS" v-model="miproducto.bspecho"/></div>
+            <div class="col-4" ><q-input type="text" dense outlined label="OBS" v-model="miproducto.obspecho"/></div>
+            <div class="col-3" ><q-input type="number" dense outlined label="pie" v-model="miproducto.pie"/></div>
+            <div class="col-3">
+              <q-select dense outlined :options="['KG','CJA','U']" v-model="miproducto.unidpie" label="Unidad" />
             </div>
-            <div class="col-5" ><q-input type="number" dense outlined label="Filete" v-model="miproducto.filete"/></div>
-                        <div class="col-7">
-              <div class="q-gutter-sm">
-                <q-radio size="xs" dense v-model="miproducto.unidfilete" val="KG" label="KG" />
-                <q-radio size="xs" dense v-model="miproducto.unidfilete" val="CJA" label="CJA" />
-                <q-radio size="xs" dense v-model="miproducto.unidfilete" val="U" label="U" />
-              </div>
+            <div class="col-2" ><q-input type="number" dense outlined label="BS" v-model="miproducto.bspie"/></div>
+            <div class="col-4" ><q-input type="text" dense outlined label="OBS" v-model="miproducto.obspie"/></div>
+            <div class="col-3" ><q-input type="number" dense outlined label="filete" v-model="miproducto.filete"/></div>
+            <div class="col-3">
+              <q-select dense outlined :options="['KG','CJA','U']" v-model="miproducto.unidfilete" label="Unidad" />
             </div>
-            <div class="col-5" ><q-input type="number" dense outlined label="Cuello" v-model="miproducto.cuello"/></div>
-                        <div class="col-7">
-              <div class="q-gutter-sm">
-                <q-radio size="xs" dense v-model="miproducto.unidcuello" val="KG" label="KG" />
-                <q-radio size="xs" dense v-model="miproducto.unidcuello" val="CJA" label="CJA" />
-                <q-radio size="xs" dense v-model="miproducto.unidcuello" val="U" label="U" />
-              </div>
+            <div class="col-2" ><q-input type="number" dense outlined label="BS" v-model="miproducto.bsfilete"/></div>
+            <div class="col-4" ><q-input type="text" dense outlined label="OBS" v-model="miproducto.obsfilete"/></div>
+            <div class="col-3" ><q-input type="number" dense outlined label="cuello" v-model="miproducto.cuello"/></div>
+            <div class="col-3">
+              <q-select dense outlined :options="['KG','CJA','U']" v-model="miproducto.unidcuello" label="Unidad" />
             </div>
-            <div class="col-5" ><q-input type="number" dense outlined label="Hueso" v-model="miproducto.hueso"/></div>
-                        <div class="col-7">
-              <div class="q-gutter-sm">
-                <q-radio size="xs" dense v-model="miproducto.unidhueso" val="KG" label="KG" />
-                <q-radio size="xs" dense v-model="miproducto.unidhueso" val="CJA" label="CJA" />
-                <q-radio size="xs" dense v-model="miproducto.unidhueso" val="U" label="U" />
-              </div>
+            <div class="col-2" ><q-input type="number" dense outlined label="BS" v-model="miproducto.bscuello"/></div>
+            <div class="col-4" ><q-input type="text" dense outlined label="OBS" v-model="miproducto.obscuello"/></div>
+            <div class="col-3" ><q-input type="number" dense outlined label="hueso" v-model="miproducto.hueso"/></div>
+            <div class="col-3">
+              <q-select dense outlined :options="['KG','CJA','U']" v-model="miproducto.unidhueso" label="Unidad" />
             </div>
-            <div class="col-5" ><q-input type="number" dense outlined label="Menud" v-model="miproducto.menu"/></div>
-                        <div class="col-7">
-              <div class="q-gutter-sm">
-                <q-radio size="xs" dense v-model="miproducto.unidmenu" val="KG" label="KG" />
-                <q-radio size="xs" dense v-model="miproducto.unidmenu" val="CJA" label="CJA" />
-                <q-radio size="xs" dense v-model="miproducto.unidmenu" val="U" label="U" />
-              </div>
+            <div class="col-2" ><q-input type="number" dense outlined label="BS" v-model="miproducto.bshueso"/></div>
+            <div class="col-4" ><q-input type="text" dense outlined label="OBS" v-model="miproducto.obshueso"/></div>
+            <div class="col-3" ><q-input type="number" dense outlined label="menu" v-model="miproducto.menu"/></div>
+            <div class="col-3">
+              <q-select dense outlined :options="['KG','CJA','U']" v-model="miproducto.unidmenu" label="Unidad" />
             </div>
-            <div class="col-5" ><q-input type="number" dense outlined label="bs" v-model="miproducto.bs"/></div>
-            <div class="col-5" ><q-input type="number" dense outlined label="bs2" v-model="miproducto.bs2"/></div>
-            <div class="col-5" ><q-input type="number" dense outlined label="contado" v-model="miproducto.contado"/></div>
-            <div class="col-12" ><q-input  dense outlined label="observacion" v-model="miproducto.observacion"/></div>
+            <div class="col-2" ><q-input type="number" dense outlined label="BS" v-model="miproducto.bsmenu"/></div>
+            <div class="col-4" ><q-input type="text" dense outlined label="OBS" v-model="miproducto.obsmenu"/></div>
           </div>
         </q-card-section>
         <q-card-actions align="right" class="bg-white text-teal">
@@ -261,12 +259,178 @@
       </q-card>
     </q-dialog>
 
+    <q-dialog v-model="dialog_pollo" full-width>
+      <q-card >
+        <q-card-section>
+          <div class="text-h6">PEDIDO POLLO</div>
+           <q-btn color="accent" icon="print" label="IMPRIMIR" @click="imprimirpollo" />
+          
+        </q-card-section>
+
+        <q-card-section class="q-pt-none">
+                                        <div class=" responsive">
+                <table id="example" class="display" style="width:100%">
+                  <thead>
+                  <tr>
+                    <th>No</th>
+                    <th>CLIENTE</th>
+                    <th>C BRASA5</th>
+                    <th>U BRASA5</th>
+                    <th>BS</th>
+                    <th>OBS</th>
+                    <th>C BRASA6</th>
+                    <th>U BRASA6</th>
+                    <th>BS</th>
+                    <th>OBS</th>
+                    <th>C 104</th>
+                    <th>U 104</th>
+                    <th>BS</th>
+                    <th>OBS</th>
+                    <th>C 105</th>
+                    <th>U 105</th>
+                    <th>BS</th>
+                    <th>OBS</th>
+                    <th>C 106</th>
+                    <th>U 106</th>
+                    <th>BS</th>
+                    <th>OBS</th>
+                    <th>C 107</th>
+                    <th>U 107</th>
+                    <th>BS</th>
+                    <th>OBS</th>
+                    <th>C 108</th>
+                    <th>U 108</th>
+                    <th>BS</th>
+                    <th>OBS</th>
+                    <th>C 109</th>
+                    <th>U 109</th>
+                    <th>BS</th>
+                    <th>OBS</th>
+                    <th>ALA</th>
+                    <th>UNID</th>
+                    <th>BS</th>
+                    <th>OBS</th>
+                    <th>CADERA</th>
+                    <th>UNID</th>
+                    <th>BS</th>
+                    <th>OBS</th>
+                    <th>PECHO</th>
+                    <th>UNID</th>
+                    <th>BS</th>
+                    <th>OBS</th>
+                    <th>PI/MU</th>
+                    <th>UNID</th>
+                    <th>BS</th>
+                    <th>OBS</th>
+                    <th>FILETE</th>
+                    <th>UNID</th>
+                    <th>BS</th>
+                    <th>OBS</th>
+                    <th>PECHO</th>
+                    <th>UNID</th>
+                    <th>BS</th>
+                    <th>OBS</th>
+                    <th>HUESO</th>
+                    <th>UNID</th>
+                    <th>BS</th>
+                    <th>OBS</th>
+                    <th>MENUD</th>
+                    <th>CONT</th>
+                    <th>BS</th>
+                    <th>OBS</th>
+                    <th>CONT</th>
+                  </tr>
+                  </thead>
+                  <tbody>
+                  <tr v-for="(v,index) in pollo" :key="index">
+                    <td>{{index + 1}}</td>
+                    <td>{{v.Nombres}}</td>
+                    <td>{{v.cbrasa5}}</td>
+                    <td>{{v.ubrasa5}}</td>
+                    <td>{{v.bsbrasa5}}</td>
+                    <td>{{v.obsbrasa5}}</td>
+                    <td>{{v.cbrasa6}}</td>
+                    <td>{{v.ubrasa6}}</td>
+                    <td>{{v.bsbrasa6}}</td>
+                    <td>{{v.obsbrasa6}}</td>
+                    <td>{{v.c104}}</td>
+                    <td>{{v.u104}}</td>
+                    <td>{{v.bs104}}</td>
+                    <td>{{v.obs104}}</td>
+                    <td>{{v.c105}}</td>
+                    <td>{{v.u105}}</td>
+                    <td>{{v.bs105}}</td>
+                    <td>{{v.obs105}}</td>                    
+                    <td>{{v.c106}}</td>
+                    <td>{{v.u106}}</td>
+                    <td>{{v.bs106}}</td>
+                    <td>{{v.obs106}}</td>
+                    <td>{{v.c107}}</td>
+                    <td>{{v.u107}}</td>
+                    <td>{{v.bs107}}</td>
+                    <td>{{v.obs107}}</td>
+                    <td>{{v.c108}}</td>
+                    <td>{{v.u108}}</td>
+                    <td>{{v.bs108}}</td>
+                    <td>{{v.obs108}}</td>
+                    <td>{{v.c109}}</td>
+                    <td>{{v.u109}}</td>
+                    <td>{{v.bs109}}</td>
+                    <td>{{v.obs109}}</td>  
+                    <td>{{v.ala}}</td>
+                    <td>{{v.unidala}}</td>
+                    <td>{{v.bsala}}</td>
+                    <td>{{v.obsala}}</td>     
+                    <td>{{v.cadera}}</td>
+                    <td>{{v.unidcadera}}</td>
+                    <td>{{v.bscadera}}</td>
+                    <td>{{v.obscadera}}</td>  
+                    <td>{{v.pecho}}</td>
+                    <td>{{v.unidpecho}}</td>
+                    <td>{{v.bspecho}}</td>
+                    <td>{{v.obspecho}}</td>  
+                    <td>{{v.pie}}</td>
+                    <td>{{v.unidpie}}</td>
+                    <td>{{v.bspie}}</td>
+                    <td>{{v.obspie}}</td>  
+                    <td>{{v.filete}}</td>
+                    <td>{{v.unidfilete}}</td>
+                    <td>{{v.bsfilete}}</td>
+                    <td>{{v.obsfilete}}</td>  
+                    <td>{{v.cuello}}</td>
+                    <td>{{v.unidcuello}}</td>
+                    <td>{{v.bscuello}}</td>
+                    <td>{{v.obscuello}}</td>  
+                    <td>{{v.hueso}}</td>
+                    <td>{{v.unidhueso}}</td>
+                    <td>{{v.bshueso}}</td>
+                    <td>{{v.obshueso}}</td>  
+                    <td>{{v.menu}}</td>
+                    <td>{{v.unidmenu}}</td>
+                    <td>{{v.bsmenu}}</td>
+                    <td>{{v.obsmenu}}</td>                                                      
+                    <td>{{v.pago}}</td>
+                  </tr>
+                  </tbody>
+                </table>
+                                        </div>
+        </q-card-section>
+
+        <q-card-actions align="right" class="text-primary">
+          <q-btn flat label="Cancel" v-close-popup />
+          <q-btn flat label="Add address" v-close-popup />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
 </div>
 </q-page>
 </template>
 
 <script>
 import {date} from "quasar";
+
+import $ from "jquery";
+import { jsPDF } from "jspdf";
 export default {
   data(){
     return{
@@ -278,6 +442,7 @@ export default {
       modalres:false,
       modalnormal:false,
       modalpollo:false,
+      pollo:[],
       datocliente:{label:''},
       fecha1:date.formatDate(Date.now(),'YYYY-MM-DD'),
       fecha2:date.formatDate(Date.now(),'YYYY-MM-DD'),
@@ -285,6 +450,7 @@ export default {
       options:[],
       cliente:{},
       pedido:{},
+      dialog_pollo:false,
       dialog_pedido:false,
             productos:[],
       productos2:[],
@@ -309,6 +475,11 @@ export default {
     }
   },
   created() {
+                $('#example').DataTable( {
+            dom: 'Blfrtip',
+            buttons: ['copy', 'csv', 'excel', 'pdf', 'print']              
+          } );
+
     this.misclientes()
           this.$api.get('producto').then(res=>{
         // console.log(res.data)
@@ -327,6 +498,135 @@ export default {
   },
 
   methods:{
+
+    imprimirpollo(){
+      let mc=this
+      let nom='' ;
+
+      function header(){
+        doc.setFont(undefined,'bold')
+        doc.text(10, 0.5, 'PEDIDOS DE POLLOS ' )
+        doc.text(1, 1,  'NOMBRE VENDEDOR'+nom)
+        doc.text(12, 1,  'DE '+mc.fecha1+' AL '+mc.fecha2)
+
+        doc.text(1, 1.5, 'No')
+        doc.text(1.5, 1.5, 'CLIENTE')
+        doc.text(4, 1.5, 'C Br5')
+        doc.text(5, 1.5, 'U Br5')
+        doc.text(6, 1.5, 'Bs')
+        doc.text(7, 1.5, 'Obs')
+        doc.text(8, 1.5, 'C Br6')
+        doc.text(9, 1.5, 'U Br6')
+        doc.text(10, 1.5, 'Bs')
+        doc.text(11, 1.5, 'Obs')
+        doc.text(12, 1.5, 'C 104')
+        doc.text(13, 1.5, 'U 104')
+        doc.text(14, 1.5, 'Bs')
+        doc.text(15, 1.5, 'Obs')
+        doc.text(16, 1.5, 'C 105')
+        doc.text(17, 1.5, 'U 105')
+        doc.text(18, 1.5, 'Bs')
+        doc.text(19, 1.5, 'Obs')
+        doc.text(20, 1.5, 'C 106')
+        doc.text(21, 1.5, 'U 106')
+        doc.text(22, 1.5, 'Bs')
+        doc.text(23, 1.5, 'Obs')
+        doc.text(24, 1.5, 'C 107')
+        doc.text(25, 1.5, 'U 107')
+        doc.text(26, 1.5, 'Bs')
+        doc.text(27, 1.5, 'Obs')
+        doc.text(28, 1.5, 'C 108')
+        doc.text(29, 1.5, 'U 108')
+        doc.text(30, 1.5, 'Bs')
+        doc.text(31, 1.5, 'Obs')
+        doc.text(32, 1.5, 'C 109')
+        doc.text(33, 1.5, 'U 109')
+        doc.text(34, 1.5, 'Bs')
+        doc.text(35, 1.5, 'Obs')
+        doc.text(36, 1.5, 'Ala')
+        doc.text(37, 1.5, 'Unid')
+        doc.text(38, 1.5, 'Bs')
+        doc.text(39, 1.5, 'Obs')
+        doc.text(40, 1.5, 'Cadera')
+        doc.text(41, 1.5, 'Unid')
+        doc.text(42, 1.5, 'Bs')
+        doc.text(43, 1.5, 'Obs')
+        doc.text(44, 1.5, 'Pecho')
+        doc.text(45, 1.5, 'Unid')
+        doc.text(46, 1.5, 'Bs')
+        doc.text(47, 1.5, 'Obs')
+        doc.text(48, 1.5, 'Pi/Mu')
+        doc.text(49, 1.5, 'Unid')
+        doc.text(50, 1.5, 'Bs')
+        doc.text(51, 1.5, 'Obs')
+        doc.text(52, 1.5, 'Filete')
+        doc.text(53, 1.5, 'Unid')
+        doc.text(54, 1.5, 'Bs')
+        doc.text(55, 1.5, 'Obs')
+        doc.text(56, 1.5, 'Cuello')
+        doc.text(57, 1.5, 'Unid')
+        doc.text(58, 1.5, 'Bs')
+        doc.text(59, 1.5, 'Obs')
+        doc.text(60, 1.5, 'Hueso')
+        doc.text(61, 1.5, 'Unid')
+        doc.text(62, 1.5, 'Bs')
+        doc.text(63, 1.5, 'Obs')
+        doc.text(64, 1.5, 'Menud')
+        doc.text(65, 1.5, 'Unid')
+        doc.text(66, 1.5, 'Bs')
+        doc.text(67, 1.5, 'Obs')
+        doc.text(68, 1.5, 'Cont')
+        doc.setLineWidth(0.1); 
+         doc.line(1, 1.7, 35, 1.7);
+        doc.setFont(undefined,'normal')
+      }
+      var doc = new jsPDF('landscape','cm','legal')
+      // console.log(dat);
+      doc.setFont("courier");
+      doc.setFontSize(8);
+      // var x=0,y=
+      header()
+      // let xx=x
+      // let yy=y
+      let y=0
+      let tsaldo=0
+      let tacuenta=0
+      let total=0
+      let caja=0
+        // xx+=0.5
+        y+=0.5
+        if (y+3>25){
+          doc.addPage();
+          header()
+          y=0
+        }
+
+
+      // doc.save("Pago"+date.formatDate(Date.now(),'DD-MM-YYYY')+".pdf");
+      window.open(doc.output('bloburl'), '_blank');
+    },
+
+    generarpollo(){
+                      $('#example').DataTable().destroy();
+      this.$api.post('rpollo',{fecha1:this.fecha1,fecha2:this.fecha2}).then(res=>{   
+
+        console.log(res.data) 
+        this.pollo=res.data;
+                      $('#example').DataTable().destroy();
+        this.$nextTick(()=>{
+          $('#example').DataTable( {
+            dom: 'Blfrtip',
+            buttons: [
+              'copy', 'csv', 'excel', 'pdf', 'print'
+            ],
+             "lengthMenu": [[10, 25, 50, -1], [10, 25, 50, "All"]] 
+          } );
+        })
+        this.dialog_pollo=true 
+
+      })
+
+    },
     tecleado(e){
       e.subtotal=(e.cantidad*e.precio).toFixed(2);
     },
@@ -376,28 +676,60 @@ export default {
         observacion:'',
         cbrasa5:'',
         ubrasa5:'',
+        bsbrasa5:'',
+        obsbrasa5:'',
         cbrasa6:'',
         cubrasa6:'',
+        bsbrasa6:'',
+        obsbrasa6:'',
         c104:'',
         u104:'',
+        bs104:'',
+        obs104:'',
         c105:'',
         u105:'',
+        bs105:'',
+        obs105:'',
         c106:'',
         u106:'',
+        bs106:'',
+        obs106:'',
         c107:'',
         u107:'',
+        bs107:'',
+        obs107:'',
         c108:'',
         u108:'',
+        bs108:'',
+        obs108:'',
         c109:'',
         u109:'',
+        bs109:'',
+        obs109:'',
         ala:'',
+        bsala:'',
+        obsala:'',
         cadera:'',
+        bscadera:'',
+        obscadera:'',
         pecho:'',
+        bspecho:'',
+        obspecho:'',
         pie:'',
+        bspie:'',
+        obspie:'',
         filete:'',
+        bsfilete:'',
+        obsfilete:'',
         cuello:'',
+        bscuello:'',
+        obscuello:'',
         hueso:'',
+        bshueso:'',
+        obshueso:'',
         menu:'',
+        bsmenu:'',
+        obsmenu:'',
         unidala:'KG',
         unidcadera:'KG',
         unidpecho:'KG',

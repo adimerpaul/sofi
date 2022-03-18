@@ -36,6 +36,8 @@ Route::group(['middleware'=>'auth:sanctum'],function (){
     Route::post('/updatecomanda',[\App\Http\Controllers\PedidoController::class,'updatecomanda']);
     Route::post('/enviarpedidos',[\App\Http\Controllers\PedidoController::class,'enviarpedidos']);
     Route::post('/deletecomanda',[\App\Http\Controllers\PedidoController::class,'deletecomanda']);
+    Route::post('/rpollo',[\App\Http\Controllers\PedidoController::class,'rpollo']);
+
     Route::post('/me',[\App\Http\Controllers\UserController::class,'me']);
     Route::post('/logout',[\App\Http\Controllers\UserController::class,'logout']);
 });
