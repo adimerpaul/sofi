@@ -829,11 +829,11 @@ export default {
     },
     listpedidos(cliente){
       this.cliente=cliente
+      console.log(this.cliente)
       this.$q.loading.show()
-        this.$api.post('listpedido',{idCli:cliente.Cod_Aut,fecha1:this.fecha1,fecha2:this.fecha2}).then(res=>{
-
+        this.$api.post('listpedido',{NroPed:cliente.NroPed,fecha1:this.fecha1,fecha2:this.fecha2}).then(res=>{
           this.misproductos=res.data[0].pedidos
-          console.log(this.misproductos)
+          // console.log(this.misproductos)
           this.modalpedido=true
           this.$q.loading.hide()
       })
