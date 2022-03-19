@@ -18,7 +18,9 @@
     <q-table dense title="Clientes " :columns="columns" :rows="clientes" :filter="filter">
       <template v-slot:body-cell-opciones="props">
         <q-td :props="props">
-          <q-btn  @click="listpedidos(props.row)" :color="props.row.estado=='CREADO'?'primary':'warning'" :label="props.row.estado=='CREADO'?'MODIFICAR':'ENVIADO'" icon="shop" size="xs"  />        </q-td>
+          <q-btn  @click="listpedidos(props.row)" :color="props.row.estado=='CREADO'?'primary':'warning'" :label="props.row.estado=='CREADO'?'MODIFICAR':'ENVIADO'" icon="shop" size="xs"  />        
+          <q-btn  @click="imprimirboleta(props.row)" color="info" icon="print" size="xs"  v-if="props.row.estado=='ENVIADO'"/>        
+        </q-td>
       </template>
       <template v-slot:top-right>
         <q-input outlined dense debounce="300" v-model="filter" placeholder="Buscar">
@@ -424,6 +426,98 @@
         </q-card-actions>
       </q-card>
     </q-dialog>
+
+        <q-dialog v-model="dialog_res" full-width>
+      <q-card >
+        <q-card-section>
+          <div class="text-h6">PEDIDO RES</div>
+           <q-btn color="accent" icon="print" label="IMPRIMIR" @click="imprimirres" />
+        </q-card-section>
+        <q-card-section class="q-pt-none">
+                <table id="example2" class="display" style="width:100%">
+                  <thead>
+                  <tr>
+                    <th>No</th>
+                    <th>CLIENTE</th>
+                    <th>PRECIO</th>
+                    <th>TROZADO</th>
+                    <th>ENT/MED</th>
+                    <th>PIERNA</th>
+                    <th>BRAZO</th>
+                    <th>CONT</th>
+                    <th>OBSERVACION</th>
+                  </tr>
+                  </thead>
+                  <tbody>
+                  <tr v-for="(v,index) in res" :key="index">
+                    <td>{{index + 1}}</td>
+                    <td>{{v.Nombres}}</td>
+                    <td>{{v.precio}}</td>
+                    <td>{{v.trozado}}</td>
+                    <td>{{v.entero}}</td>
+                    <td>{{v.pierna}}</td>
+                    <td>{{v.brazo}}</td>
+                    <td>{{v.pago}}</td>
+                    <td>{{v.observaciones}}</td>
+                  </tr>
+                  </tbody>
+                </table>
+        </q-card-section>
+
+        <q-card-actions align="right" class="text-primary">
+          <q-btn flat label="Cancel" v-close-popup />
+          <q-btn flat label="Add address" v-close-popup />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
+
+
+        <q-dialog v-model="dialog_cerdo" full-width>
+      <q-card >
+        <q-card-section>
+          <div class="text-h6">PEDIDO CERDO</div>
+           <q-btn color="accent" icon="print" label="IMPRIMIR" @click="imprimircerdo" />
+        </q-card-section>
+        <q-card-section class="q-pt-none">
+                <table id="example3" class="display" style="width:100%">
+                  <thead>
+                  <tr>
+                    <th>No</th>
+                    <th>CLIENTE</th>
+                    <th>PRECIO</th>
+                    <th>TOTAL</th>
+                    <th>ENTERO</th>
+                    <th>DESMEMBRADO</th>
+                    <th>CORTE</th>
+                    <th>CORTE/KILO</th>
+                    <th>CONT</th>
+                    <th>OBSERVACION</th>
+                  </tr>
+                  </thead>
+                  <tbody>
+                  <tr v-for="(v,index) in cerdo" :key="index">
+                    <td>{{index + 1}}</td>
+                    <td>{{v.Nombres}}</td>
+                    <td>{{v.precio}}</td>
+                    <td>{{v.total}}</td>
+                    <td>{{v.entero}}</td>
+                    <td>{{v.desmenbre}}</td>
+                    <td>{{v.corte}}</td>
+                    <td>{{v.kilo}}</td>
+                    <td>{{v.pago}}</td>
+                    <td>{{v.observaciones}}</td>
+                  </tr>
+                  </tbody>
+                </table>
+        </q-card-section>
+
+        <q-card-actions align="right" class="text-primary">
+          <q-btn flat label="Cancel" v-close-popup />
+          <q-btn flat label="Add address" v-close-popup />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
+
 </div>
 </q-page>
 </template>
@@ -702,6 +796,31 @@ export default {
         this.modalpedido=false
         this.misclientes()
       })
+    },
+    imprimirboleta(comanda1){
+
+           this.$api.post('rnormal',{comanda:comanda1.NroPed}).then(res=>{
+             console.log(res.data)
+             let tot=0
+            let cadena='<div>COMANDA: '+comanda1.NroPed+'</div>'
+            cadena+='<div>CLIENTE: '+comanda1.Nombres+'</div>'
+            cadena+='<table><tr><th>CODIGO</th><th>PRODUCTO</th><th>CANTIDAD</th><th>PRECIO</th><th>SUBTOTAL</th><th>OBSERVACION</th></tr>'
+            res.data.forEach(r => {
+              tot=tot + parseFloat(r.subtotal)
+              cadena+='<tr><td>'+r.cod_prod+'</td><td>'+r.Producto+'</td><td>'+r.Cant+'</td><td>'+r.precio+'</td><td>'+r.subtotal+'</td><td>'+(r.observaciones==null?'':r.observaciones)+'</td></tr>'
+              
+            });
+              cadena+='<tr><td></td><td></td><td></td><td>TOTAL</td><td>'+tot+'</td><td></td></tr>'
+
+            cadena+='</table>'
+              let myWindow = window.open("", "Imprimir", "width=1000,height=1000");
+              myWindow.document.write(cadena);
+              myWindow.document.close();
+              myWindow.print();
+              myWindow.close();
+           })
+
+
     },
         agregarpedido(){
                 if(this.producto.Producto==undefined){

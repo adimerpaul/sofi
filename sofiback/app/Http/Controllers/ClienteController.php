@@ -42,14 +42,21 @@ class ClienteController extends Controller
         or (SELECT DATEDIFF( curdate(), (select min(c.FechaEntreg) from tbctascobrar c where c.CINIT =tbclientes.Id and c.Nrocierre=0)))>7 ");
     }
 
-    public function desbloq(){
+    public function desbloq2(){
         DB::SELECT("UPDATE tbclientes set venta='ACTIVO' 
         where (SELECT sum(c.Importe-(SELECT sum(c2.Acuenta) from tbctascobrar c2 where c2.comanda=c.comanda)) FROM tbctascobrar c WHERE c.CINIT=tbclientes.Id and c.Nrocierre=0)<7000
+        or (SELECT sum(c.Importe-(SELECT sum(c2.Acuenta) from tbctascobrar c2 where c2.comanda=c.comanda)) FROM tbctascobrar c WHERE c.CINIT=tbclientes.Id and c.Nrocierre=0) is null
          ");
     }
 
     public function desbloquear(Request $request){
-        DB::SELECT("UPDATE tbclientes set venta='ACTIVO' where trim(Id)=$request->Id");
+        if($request->venta=='ACTIVO')
+            $request->venta='INACTIVO';
+        else 
+            $request->venta='ACTIVO';
+        
+        DB::SELECT("UPDATE tbclientes set venta='$request->venta' where Cod_Aut=$request->Cod_Aut");
+        
     }
 
     /**

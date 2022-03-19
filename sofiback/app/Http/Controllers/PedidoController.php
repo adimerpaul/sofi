@@ -54,6 +54,10 @@ class PedidoController extends Controller
         trim(CIfunc)='".$request->user()->CodAut."' and estado='ENVIADO' ");
     }
 
+    public function rnormal(Request $request){
+        return DB::SELECT(" SELECT tbpedidos.*,tbproductos.Producto from tbpedidos,tbproductos where tbpedidos.cod_prod=tbproductos.cod_prod  and tbpedidos.tipo='NORMAL' and NroPed=$request->comanda");
+    }
+
 
 
     public function store(Request $request)

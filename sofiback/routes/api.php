@@ -39,8 +39,12 @@ Route::group(['middleware'=>'auth:sanctum'],function (){
     Route::post('/rpollo',[\App\Http\Controllers\PedidoController::class,'rpollo']);
     Route::post('/rres',[\App\Http\Controllers\PedidoController::class,'rres']);
     Route::post('/rcerdo',[\App\Http\Controllers\PedidoController::class,'rcerdo']);
+    Route::post('/rnormal',[\App\Http\Controllers\PedidoController::class,'rnormal']);
+    Route::post('/bloquear',[\App\Http\Controllers\ClienteController::class,'bloquear']);
+    Route::post('/desbloq2',[\App\Http\Controllers\ClienteController::class,'desbloq2']);
+    Route::post('/desbloquear',[\App\Http\Controllers\ClienteController::class,'desbloquear']);
 
     Route::post('/me',[\App\Http\Controllers\UserController::class,'me']);
-    Route::post('/logout',[\App\Http\Controllers\UserController::class,'logout']);
+    Route::post('/logout',[\App\Http\Controllers\UserController::class,'logout']);  
 });
 

@@ -39,6 +39,18 @@
             </q-item-label>
           </q-item-section>
         </q-item>
+        
+        <q-item clickable exact to="clientes">
+          <q-item-section avatar>
+            <q-icon name="people" />
+          </q-item-section>
+          <q-item-section>
+            <q-item-label>Lista Clientes </q-item-label>
+            <q-item-label caption>
+              Habilitar Cliente
+            </q-item-label>
+          </q-item-section>
+        </q-item>
 
         <q-item clickable exact to="mispedidos">
           <q-item-section avatar>
