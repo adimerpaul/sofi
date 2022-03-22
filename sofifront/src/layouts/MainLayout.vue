@@ -4,7 +4,8 @@
       <q-toolbar>
         <q-btn flat dense round icon="menu" aria-label="Menu" @click="toggleLeftDrawer"/>
         <q-toolbar-title>
-          Sofia
+          <template v-if="$store.getters['login/user'].Nombre1==undefined">Sofia</template>
+          <template v-else>{{ $store.getters['login/user'].Nombre1 }}</template>
         </q-toolbar-title>
 <!--        <div>Quasar v{{ $q.version }}</div>-->
         <div>
@@ -39,7 +40,7 @@
             </q-item-label>
           </q-item-section>
         </q-item>
-        
+
         <q-item clickable exact to="clientes">
           <q-item-section avatar>
             <q-icon name="people" />

@@ -37,6 +37,7 @@ export function   auth_error(state){
 export function salir(state){
   state.status = ''
   state.token = ''
+  state.user = {}
   // state.usuarios=false
   // state.clientes=false
   // state.productos=false
