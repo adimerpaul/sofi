@@ -23,7 +23,6 @@ class User extends Authenticatable
         'password',
         'ci',
         'pasw',
-        'CodAut',
     ];
     protected $table="personal";
     protected $primaryKey="CodAut";

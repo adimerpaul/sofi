@@ -102,7 +102,7 @@ class UserController extends Controller
     public function me(Request $request){
 //        $user=$request->user()->with('unid')->with('permisos')->firstOrFail();
 //        $user=$request->user()
-        $user=User::where('CodAut',$request->user()->id)
+        $user=User::where('CodAut',$request->user()->CodAut)
 //            ->with('unid')
 //            ->with('permisos')
             ->firstOrFail();
