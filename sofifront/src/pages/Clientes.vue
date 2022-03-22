@@ -1,16 +1,22 @@
 <template>
 <q-page class="q-pa-xs">
 <div class="row">
-  <div class="col-4 flex flex-center">
+  <div class="col-6 flex flex-center">
     <q-btn color="teal" icon="check" label="TODOS PENDIENTE" @click="quitar"  />
+  </div>
+  <div class="col-6 flex flex-center">
     <q-btn color="warning" icon="list" label="ACTUALIZAR HAB" @click="agregar"  />
   </div>
-
   <div class="col-12">
-    <q-table dense title="CLIENTES" :columns="columns" :rows="clientes" :filter="filter">
+    <q-table :rows-per-page-options="[20,50,100,0]" dense title="CLIENTES" :columns="columns" :rows="clientes" :filter="filter">
       <template v-slot:body-cell-opciones="props">
         <q-td :props="props">
           <q-btn @click="hablitar(props.row)"  color="primary"  icon="rule" size="xs"  />
+        </q-td>
+      </template>
+      <template v-slot:body-cell-venta="props">
+        <q-td :props="props">
+          <q-badge :color="props.row.venta=='ACTIVO'?'positive':'negative'">{{props.row.venta}}</q-badge>
         </q-td>
       </template>
      <template v-slot:top-right>
@@ -45,11 +51,12 @@ export default {
       listado:[],
       dialog_ag:false,
       columns:[
-        {label:'CI',name:'ci',field:'Id'},
-        {label:'NOMBRES',name:'nombres',field:'Nombres'},
+        {label:'OPCIONES',name:'opciones',field:'opciones'},
         {label:'ESTADO',name:'venta',field:'venta'},
         {label:'DEUDA',name:'totdeuda',field:'totdeuda'},
-        {label:'opciones',name:'opciones',field:'opciones'},
+        {label:'NOMBRES',name:'nombres',field:'Nombres',align:'left'},
+        {label:'CI',name:'ci',field:'Id'},
+
       ],
       fecha:date.formatDate(Date.now(),'YYYY-MM-DD')
     }
@@ -65,16 +72,15 @@ export default {
 
       },
       agregar(){
-                  this.$api.post('desbloq2').then(res=>{
+        this.$api.post('desbloq2').then(res=>{
             this.misclientes()
         })
       },
       hablitar(cliente){
           console.log(cliente)
-                  this.$api.post('desbloquear',cliente).then(res=>{
-                    this.misclientes()
-
-                  })
+          this.$api.post('desbloquear',cliente).then(res=>{
+            this.misclientes()
+          })
 
       },
         filterFn (val, update) {
@@ -95,8 +101,10 @@ export default {
 
     misclientes(){
       this.clientes=[]
+      this.$q.loading.show()
       this.$api.get('cliente').then(res=>{
         // console.log(res.data)
+        this.$q.loading.hide()
         this.clientes=res.data
       })
 

@@ -22,6 +22,17 @@ export default boot(({ app,store }) => {
   const token = localStorage.getItem('tokensofia')
   if (token) {
     app.config.globalProperties.$api.defaults.headers.common['Authorization'] = 'Bearer '+token
+    app.config.globalProperties.$api.post(process.env.API+'me').then(res=>{
+      // console.log(res.data);
+      // return false;
+      // store.state.user=res.data;
+      // store().commit('login/auth_success', {token:token,user:res.data})
+      store.commit('login/auth_success',{token:token,user:res.data})
+    }).catch(err=>{
+      // console.error('aas')
+      store.commit('login/salir')
+      localStorage.removeItem('tokensofia')
+    })
   }
   // ^ ^ ^ this will allow you to use this.$api (for Vue Options API form)
   //       so you can easily perform requests against your app's API

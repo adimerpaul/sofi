@@ -18,8 +18,8 @@
     <q-table dense title="Clientes " :columns="columns" :rows="clientes" :filter="filter">
       <template v-slot:body-cell-opciones="props">
         <q-td :props="props">
-          <q-btn  @click="listpedidos(props.row)" :color="props.row.estado=='CREADO'?'primary':'warning'" :label="props.row.estado=='CREADO'?'MODIFICAR':'ENVIADO'" icon="shop" size="xs"  />        
-          <q-btn  @click="imprimirboleta(props.row)" color="info" icon="print" size="xs"  v-if="props.row.estado=='ENVIADO'"/>        
+          <q-btn  @click="listpedidos(props.row)" :color="props.row.estado=='CREADO'?'primary':'warning'" :label="props.row.estado=='CREADO'?'MODIFICAR':'ENVIADO'" icon="shop" size="xs"  />
+          <q-btn  @click="imprimirboleta(props.row)" color="info" icon="print" size="xs"  v-if="props.row.estado=='ENVIADO'"/>
         </q-td>
       </template>
       <template v-slot:top-right>
@@ -605,18 +605,16 @@ export default {
   },
 
   methods:{
-
     imprimirpollo(){
       let mc=this
       let nom='' ;
-
+      console.log(this.$store.getters["login/user"])
       function header(){
         doc.setFont(undefined,'bold')
         doc.text(10, 0.5, 'PEDIDOS DE POLLOS ' )
-        doc.text(1, 1,  'NOMBRE VENDEDOR'+nom)
+        doc.text(1, 1,  'NOMBRE VENDEDOR '+'')
         doc.text(12, 1,  'DE '+mc.fecha1+' AL '+mc.fecha2)
-
-        doc.text(1.5,1,  'No')
+        doc.text(9,1,  'No')
         doc.text(1.5,1.5,  'CLIENTE')
         doc.text(1.5,2,  'C Br5')
         doc.text(1.5,2.5,  'U Br5')
@@ -684,7 +682,7 @@ export default {
         doc.text(1.5,33.5,  'Obs')
         doc.text(1.5,34,  'Cont')
         doc.setLineWidth(0.1);
-         doc.line(1, 1.2, 35, 1.2);
+        doc.line(1, 1.1, 21, 1.1);
         doc.setFont(undefined,'normal')
       }
       var doc = new jsPDF('P','cm','legal')
@@ -808,7 +806,7 @@ export default {
             res.data.forEach(r => {
               tot=tot + parseFloat(r.subtotal)
               cadena+='<tr><td>'+r.cod_prod+'</td><td>'+r.Producto+'</td><td>'+r.Cant+'</td><td>'+r.precio+'</td><td>'+r.subtotal+'</td><td>'+(r.observaciones==null?'':r.observaciones)+'</td></tr>'
-              
+
             });
               cadena+='<tr><td></td><td></td><td></td><td>TOTAL</td><td>'+tot+'</td><td></td></tr>'
 

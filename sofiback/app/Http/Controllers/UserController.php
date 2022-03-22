@@ -48,7 +48,6 @@ class UserController extends Controller
 //            echo 'Correcto';
 //        else
 //            echo 'No existe';
-
     }
     /**
      * Store a newly created resource in storage.

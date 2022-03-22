@@ -20,11 +20,13 @@ use Illuminate\Support\Facades\Route;
 Route::post('/login',[\App\Http\Controllers\UserController::class,'login']);
 
 Route::group(['middleware'=>'auth:sanctum'],function (){
+    Route::post('/me',[\App\Http\Controllers\UserController::class,'me']);
     Route::resource('/cliente',\App\Http\Controllers\ClienteController::class);
     Route::resource('/user',\App\Http\Controllers\UserController::class);
     Route::resource('/asignar',\App\Http\Controllers\AsignarController::class);
     Route::resource('/producto',\App\Http\Controllers\ProductoController::class);
     Route::resource('/pedido',\App\Http\Controllers\PedidoController::class);
+    Route::resource('/pollo',\App\Http\Controllers\PolloController::class);
     Route::get('/listdeudores',[\App\Http\Controllers\CobrarController::class,'listdeudores']);
     Route::post('/cxcobrar/{ci}',[\App\Http\Controllers\CobrarController::class,'cxcobrar']);
     Route::post('/insertcobro',[\App\Http\Controllers\CobrarController::class,'insertcobro']);
@@ -45,6 +47,6 @@ Route::group(['middleware'=>'auth:sanctum'],function (){
     Route::post('/desbloquear',[\App\Http\Controllers\ClienteController::class,'desbloquear']);
 
     Route::post('/me',[\App\Http\Controllers\UserController::class,'me']);
-    Route::post('/logout',[\App\Http\Controllers\UserController::class,'logout']);  
+    Route::post('/logout',[\App\Http\Controllers\UserController::class,'logout']);
 });
 
