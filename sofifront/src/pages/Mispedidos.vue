@@ -606,109 +606,147 @@ export default {
 
   methods:{
     imprimirpollo(){
+      this.$q.loading.show()
       let mc=this
       let nom='' ;
-      console.log(this.$store.getters["login/user"])
-      function header(){
-        doc.setFont(undefined,'bold')
-        doc.text(10, 0.5, 'PEDIDOS DE POLLOS ' )
-        doc.text(1, 1,  'NOMBRE VENDEDOR '+'')
-        doc.text(12, 1,  'DE '+mc.fecha1+' AL '+mc.fecha2)
-        doc.text(9,1,  'No')
-        doc.text(1.5,1.5,  'CLIENTE')
-        doc.text(1.5,2,  'C Br5')
-        doc.text(1.5,2.5,  'U Br5')
-        doc.text(1.5,3,  'Bs')
-        doc.text(1.5,3.5,  'Obs')
-        doc.text(1.5,4,  'C Br6')
-        doc.text(1.5,4.5,  'U Br6')
-        doc.text(1.5,5,  'Bs')
-        doc.text(1.5,5.5,  'Obs')
-        doc.text(1.5,6,  'C 104')
-        doc.text(1.5,6.5,  'U 104')
-        doc.text(1.5,7,  'Bs')
-        doc.text(1.5,7.5,  'Obs')
-        doc.text(1.5,8,  'C 105')
-        doc.text(1.5,8.5,  'U 105')
-        doc.text(1.5,9,  'Bs')
-        doc.text(1.5,9.5,  'Obs')
-        doc.text(1.5,10,  'C 106')
-        doc.text(1.5,10.5,  'U 106')
-        doc.text(1.5,11,  'Bs')
-        doc.text(1.5,11.5,  'Obs')
-        doc.text(1.5,12,  'C 107')
-        doc.text(1.5,12.5,  'U 107')
-        doc.text(1.5,13,  'Bs')
-        doc.text(1.5,13.5,  'Obs')
-        doc.text(1.5,14,  'C 108')
-        doc.text(1.5,14.5,  'U 108')
-        doc.text(1.5,15,  'Bs')
-        doc.text(1.5,15.5,  'Obs')
-        doc.text(1.5,16,  'C 109')
-        doc.text(1.5,16.5,  'U 109')
-        doc.text(1.5,17,  'Bs')
-        doc.text(1.5,17.5,  'Obs')
-        doc.text(1.5,18,  'Ala')
-        doc.text(1.5,18.5,  'Unid')
-        doc.text(1.5,19,  'Bs')
-        doc.text(1.5,19.5,  'Obs')
-        doc.text(1.5,20,  'Cadera')
-        doc.text(1.5,20.5,  'Unid')
-        doc.text(1.5,21,  'Bs')
-        doc.text(1.5,21.5,  'Obs')
-        doc.text(1.5,22,  'Pecho')
-        doc.text(1.5,22.5,  'Unid')
-        doc.text(1.5,23,  'Bs')
-        doc.text(1.5,23.5,  'Obs')
-        doc.text(1.5,24,  'Pi/Mu')
-        doc.text(1.5,24.5,  'Unid')
-        doc.text(1.5,25,  'Bs')
-        doc.text(1.5,25.5,  'Obs')
-        doc.text(1.5,26,  'Filete')
-        doc.text(1.5,26.5,  'Unid')
-        doc.text(1.5,27,  'Bs')
-        doc.text(1.5,27.5,  'Obs')
-        doc.text(1.5,28,  'Cuello')
-        doc.text(1.5,28.5,  'Unid')
-        doc.text(1.5,29,  'Bs')
-        doc.text(1.5,29.5,  'Obs')
-        doc.text(1.5,30,  'Hueso')
-        doc.text(1.5,30.5,  'Unid')
-        doc.text(1.5,31,  'Bs')
-        doc.text(1.5,31.5,  'Obs')
-        doc.text(1.5,32,  'Menud')
-        doc.text(1.5,32.5,  'Unid')
-        doc.text(1.5,33,  'Bs')
-        doc.text(1.5,33.5,  'Obs')
-        doc.text(1.5,34,  'Cont')
-        doc.setLineWidth(0.1);
-        doc.line(1, 1.1, 21, 1.1);
-        doc.setFont(undefined,'normal')
-      }
-      var doc = new jsPDF('P','cm','legal')
-      // console.log(dat);
-      doc.setFont("courier");
-      doc.setFontSize(8);
-      // var x=0,y=
-      header()
-      // let xx=x
-      // let yy=y
-      let y=0
-      let tsaldo=0
-      let tacuenta=0
-      let total=0
-      let caja=0
-        // xx+=0.5
-        y+=0.5
-        if (y+3>25){
-          doc.addPage();
-          header()
-          y=0
+      this.$api.post('pollo',{fecha1:this.fecha1,fecha2:this.fecha2}).then(res=>{
+        this.$q.loading.hide()
+        console.log(res.data)
+        function header(){
+          doc.setFont(undefined,'bold')
+          doc.text(10, 0.5, 'PEDIDOS DE POLLOS ' )
+          doc.text(1, 1,  'NOMBRE '+mc.$store.getters["login/user"].Nombre1)
+          doc.text(12, 1,  'DE '+mc.fecha1+' AL '+mc.fecha2)
+          doc.text(9,1,  'No')
+          doc.text(1.5,1.5,  'CLIENTE')
+          doc.text(5.5,1.5,  'COMANDA')
+          // doc.text(1.5,2,  'C Br5')
+          // doc.text(1.5,2.5,  'U Br5')
+          // doc.text(1.5,3,  'Bs')
+          // doc.text(1.5,3.5,  'Obs')
+          // doc.text(1.5,4,  'C Br6')
+          // doc.text(1.5,4.5,  'U Br6')
+          // doc.text(1.5,5,  'Bs')
+          // doc.text(1.5,5.5,  'Obs')
+          // doc.text(1.5,6,  'C 104')
+          // doc.text(1.5,6.5,  'U 104')
+          // doc.text(1.5,7,  'Bs')
+          // doc.text(1.5,7.5,  'Obs')
+          // doc.text(1.5,8,  'C 105')
+          // doc.text(1.5,8.5,  'U 105')
+          // doc.text(1.5,9,  'Bs')
+          // doc.text(1.5,9.5,  'Obs')
+          // doc.text(1.5,10,  'C 106')
+          // doc.text(1.5,10.5,  'U 106')
+          // doc.text(1.5,11,  'Bs')
+          // doc.text(1.5,11.5,  'Obs')
+          // doc.text(1.5,12,  'C 107')
+          // doc.text(1.5,12.5,  'U 107')
+          // doc.text(1.5,13,  'Bs')
+          // doc.text(1.5,13.5,  'Obs')
+          // doc.text(1.5,14,  'C 108')
+          // doc.text(1.5,14.5,  'U 108')
+          // doc.text(1.5,15,  'Bs')
+          // doc.text(1.5,15.5,  'Obs')
+          // doc.text(1.5,16,  'C 109')
+          // doc.text(1.5,16.5,  'U 109')
+          // doc.text(1.5,17,  'Bs')
+          // doc.text(1.5,17.5,  'Obs')
+          // doc.text(1.5,18,  'Ala')
+          // doc.text(1.5,18.5,  'Unid')
+          // doc.text(1.5,19,  'Bs')
+          // doc.text(1.5,19.5,  'Obs')
+          // doc.text(1.5,20,  'Cadera')
+          // doc.text(1.5,20.5,  'Unid')
+          // doc.text(1.5,21,  'Bs')
+          // doc.text(1.5,21.5,  'Obs')
+          // doc.text(1.5,22,  'Pecho')
+          // doc.text(1.5,22.5,  'Unid')
+          // doc.text(1.5,23,  'Bs')
+          // doc.text(1.5,23.5,  'Obs')
+          // doc.text(1.5,24,  'Pi/Mu')
+          // doc.text(1.5,24.5,  'Unid')
+          // doc.text(1.5,25,  'Bs')
+          // doc.text(1.5,25.5,  'Obs')
+          // doc.text(1.5,26,  'Filete')
+          // doc.text(1.5,26.5,  'Unid')
+          // doc.text(1.5,27,  'Bs')
+          // doc.text(1.5,27.5,  'Obs')
+          // doc.text(1.5,28,  'Cuello')
+          // doc.text(1.5,28.5,  'Unid')
+          // doc.text(1.5,29,  'Bs')
+          // doc.text(1.5,29.5,  'Obs')
+          // doc.text(1.5,30,  'Hueso')
+          // doc.text(1.5,30.5,  'Unid')
+          // doc.text(1.5,31,  'Bs')
+          // doc.text(1.5,31.5,  'Obs')
+          // doc.text(1.5,32,  'Menud')
+          // doc.text(1.5,32.5,  'Unid')
+          // doc.text(1.5,33,  'Bs')
+          // doc.text(1.5,33.5,  'Obs')
+          // doc.text(1.5,34,  'Cont')
+          doc.setLineWidth(0.1);
+          doc.line(1, 1.1, 21, 1.1);
+          doc.setFont(undefined,'normal')
         }
+        var doc = new jsPDF('l','cm','legal')
+        // console.log(dat);
+        doc.setFont("courier");
+        doc.setFontSize(10);
+        // var x=0,y=
+        header()
+        // let xx=x
+        // let yy=y
+        let y=2
+        let tsaldo=0
+        let tacuenta=0
+        let total=0
+        let caja=0
+        // xx+=0.5
+
+        res.data.forEach(r=>{
+          doc.text(1.5, y, r.Nombres)
+          doc.text(5.5, y, r.NroPed+'')
+          y+=0.3
+          doc.text(0.5, y, 'C Braza5')
+          doc.text(2, y, 'C Braza5')
+          doc.text(3.5, y, 'C Braza5')
+          doc.text(5, y, 'C Braza5')
+          doc.text(6.5, y, 'C Braza5')
+          doc.text(8, y, 'C Braza5')
+          doc.text(9.5, y, 'C Braza5')
+          doc.text(11, y, 'C Braza5')
+          doc.text(12.5, y, 'C Braza5')
+          doc.text(14, y, 'C Braza5')
+          // doc.text(6.5, y, 'C Braza5')
+          // doc.text(7, y, 'C Braza5')
+          // doc.text(7.5, y, 'C Braza5')
+          // doc.text(8, y, 'C Braza5')
+          // doc.text(8.5, y, 'C Braza5')
+          // doc.text(9, y, 'C Braza5')
+          // doc.text(9.5, y, 'C Braza5')
+          // doc.text(10, y, 'C Braza5')
+          // doc.text(10.5, y, 'C Braza5')
+          // doc.text(11, y, 'C Braza5')
+          // doc.text(11.5, y, 'C Braza5')
 
 
-      // doc.save("Pago"+date.formatDate(Date.now(),'DD-MM-YYYY')+".pdf");
-      window.open(doc.output('bloburl'), '_blank');
+
+          if (y+3>25){
+            doc.addPage();
+            header()
+            y=0
+          }
+        })
+
+
+
+        // doc.save("Pago"+date.formatDate(Date.now(),'DD-MM-YYYY')+".pdf");
+        window.open(doc.output('bloburl'), '_blank');
+      })
+
+      // console.log(this.$store.getters["login/user"])
+
     },
 
     generarpollo(){
