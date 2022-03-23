@@ -738,9 +738,113 @@ export default {
             doc.text(15, y+0.4, r.obsbrasa6==null?'':r.obsbrasa6+'')
             y+=0.8
           }
+          if (r.bsala!=null){
+            doc.setFont(undefined,'bold')
+            doc.text(8.5, y, 'ala')
+            doc.text(10.5, y, 'Unid ala')
+            doc.text(12.5, y, 'Bs ala')
+            doc.text(15, y, 'OBS ala')
+            doc.setFont(undefined,'normal')
+            doc.text(8.5, y+0.4, r.ala==null?'':r.ala+'')
+            doc.text(10.5, y+0.4, r.unidala==null?'':r.unidala+'')
+            doc.text(12.5, y+0.4, r.bsala==null?'':r.bsala+'')
+            doc.text(15, y+0.4, r.obsala==null?'':r.obsala+'')
+            y+=0.8
+          }
+          if (r.bscadera!=null){
+            doc.setFont(undefined,'bold')
+            doc.text(8.5, y, 'cadera')
+            doc.text(10.5, y, 'U-cadera')
+            doc.text(12.5, y, 'Bs cadera')
+            doc.text(15, y, 'OBS cadera')
+            doc.setFont(undefined,'normal')
+            doc.text(8.5, y+0.4, r.cadera==null?'':r.cadera+'')
+            doc.text(10.5, y+0.4, r.unidcadera==null?'':r.unidcadera+'')
+            doc.text(12.5, y+0.4, r.bscadera==null?'':r.bscadera+'')
+            doc.text(15, y+0.4, r.obscadera==null?'':r.obscadera+'')
+            y+=0.8
+          }
+          if (r.bspecho!=null){
+            doc.setFont(undefined,'bold')
+            doc.text(8.5, y, ' pecho')
+            doc.text(10.5, y, 'U-pecho')
+            doc.text(12.5, y, 'Bs pecho')
+            doc.text(15, y, 'OBS pecho')
+            doc.setFont(undefined,'normal')
+            doc.text(8.5, y+0.4, r.pecho==null?'':r.pecho+'')
+            doc.text(10.5, y+0.4, r.unidpecho==null?'':r.unidpecho+'')
+            doc.text(12.5, y+0.4, r.bspecho==null?'':r.bspecho+'')
+            doc.text(15, y+0.4, r.obspecho==null?'':r.obspecho+'')
+            y+=0.8
+          }
+          if (r.bspie!=null){
+            doc.setFont(undefined,'bold')
+            doc.text(8.5, y, 'Pi/Mu')
+            doc.text(10.5, y, 'Unid p')
+            doc.text(12.5, y, 'Bs pi')
+            doc.text(15, y, 'OBS pi')
+            doc.setFont(undefined,'normal')
+            doc.text(8.5, y+0.4, r.pie==null?'':r.pie+'')
+            doc.text(10.5, y+0.4, r.unidpie==null?'':r.unidpie+'')
+            doc.text(12.5, y+0.4, r.bspie==null?'':r.bspie+'')
+            doc.text(15, y+0.4, r.obspie==null?'':r.obspie+'')
+            y+=0.8
+          }
+          if (r.bsfilete!=null){
+            doc.setFont(undefined,'bold')
+            doc.text(8.5, y, ' filete')
+            doc.text(10.5, y, 'U-filete')
+            doc.text(12.5, y, 'Bs filete')
+            doc.text(15, y, 'OBS filete')
+            doc.setFont(undefined,'normal')
+            doc.text(8.5, y+0.4, r.filete==null?'':r.filete+'')
+            doc.text(10.5, y+0.4, r.unidfilete==null?'':r.unidfilete+'')
+            doc.text(12.5, y+0.4, r.bsfilete==null?'':r.bsfilete+'')
+            doc.text(15, y+0.4, r.obsfilete==null?'':r.obsfilete+'')
+            y+=0.8
+          }
 
+                    if (r.bscuello!=null){
+            doc.setFont(undefined,'bold')
+            doc.text(8.5, y, ' cuello')
+            doc.text(10.5, y, 'U-cuello')
+            doc.text(12.5, y, 'Bs cuello')
+            doc.text(15, y, 'OBS cuello')
+            doc.setFont(undefined,'normal')
+            doc.text(8.5, y+0.4, r.cuello==null?'':r.cuello+'')
+            doc.text(10.5, y+0.4, r.unidcuello==null?'':r.unidcuello+'')
+            doc.text(12.5, y+0.4, r.bscuello==null?'':r.bscuello+'')
+            doc.text(15, y+0.4, r.obscuello==null?'':r.obscuello+'')
+            y+=0.8
+          }
 
-
+          
+                    if (r.bshueso!=null){
+            doc.setFont(undefined,'bold')
+            doc.text(8.5, y, ' hueso')
+            doc.text(10.5, y, 'U-hueso')
+            doc.text(12.5, y, 'Bs hueso')
+            doc.text(15, y, 'OBS hueso')
+            doc.setFont(undefined,'normal')
+            doc.text(8.5, y+0.4, r.hueso==null?'':r.hueso+'')
+            doc.text(10.5, y+0.4, r.unidhueso==null?'':r.unidhueso+'')
+            doc.text(12.5, y+0.4, r.bshueso==null?'':r.bshueso+'')
+            doc.text(15, y+0.4, r.obshueso==null?'':r.obshueso+'')
+            y+=0.8
+          }
+                    if (r.bsmenu!=null){
+            doc.setFont(undefined,'bold')
+            doc.text(8.5, y, ' menu')
+            doc.text(10.5, y, 'U-menu')
+            doc.text(12.5, y, 'Bs menu')
+            doc.text(15, y, 'OBS menu')
+            doc.setFont(undefined,'normal')
+            doc.text(8.5, y+0.4, r.menu==null?'':r.menu+'')
+            doc.text(10.5, y+0.4, r.unidmenu==null?'':r.unidmenu+'')
+            doc.text(12.5, y+0.4, r.bsmenu==null?'':r.bsmenu+'')
+            doc.text(15, y+0.4, r.obsmenu==null?'':r.obsmenu+'')
+            y+=0.8
+          }
 
           // doc.text(6.5, y, 'C Braza5')
           // doc.text(8, y, 'C Braza5')
