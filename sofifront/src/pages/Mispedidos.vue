@@ -704,6 +704,7 @@ export default {
         // xx+=0.5
 
         res.data.forEach(r=>{
+            doc.text(1, y-0.4, '_______________________________________________________________________________________________')
           doc.setFont(undefined,'bold')
           doc.text(1.5,y,  'CLIENTE')
           doc.text(5.5,y,  'COMANDA')
