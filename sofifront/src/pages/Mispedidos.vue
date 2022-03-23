@@ -618,8 +618,7 @@ export default {
           doc.text(1, 1,  'NOMBRE '+mc.$store.getters["login/user"].Nombre1)
           doc.text(12, 1,  'DE '+mc.fecha1+' AL '+mc.fecha2)
           doc.text(9,1,  'No')
-          doc.text(1.5,1.5,  'CLIENTE')
-          doc.text(5.5,1.5,  'COMANDA')
+
           // doc.text(1.5,2,  'C Br5')
           // doc.text(1.5,2.5,  'U Br5')
           // doc.text(1.5,3,  'Bs')
@@ -689,7 +688,7 @@ export default {
           doc.line(1, 1.1, 21, 1.1);
           doc.setFont(undefined,'normal')
         }
-        var doc = new jsPDF('l','cm','legal')
+        var doc = new jsPDF('p','cm','legal')
         // console.log(dat);
         doc.setFont("courier");
         doc.setFontSize(10);
@@ -697,7 +696,7 @@ export default {
         header()
         // let xx=x
         // let yy=y
-        let y=2
+        let y=1.5
         let tsaldo=0
         let tacuenta=0
         let total=0
@@ -705,19 +704,50 @@ export default {
         // xx+=0.5
 
         res.data.forEach(r=>{
-          doc.text(1.5, y, r.Nombres)
-          doc.text(5.5, y, r.NroPed+'')
-          y+=0.3
-          doc.text(0.5, y, 'C Braza5')
-          doc.text(2, y, 'C Braza5')
-          doc.text(3.5, y, 'C Braza5')
-          doc.text(5, y, 'C Braza5')
-          doc.text(6.5, y, 'C Braza5')
-          doc.text(8, y, 'C Braza5')
-          doc.text(9.5, y, 'C Braza5')
-          doc.text(11, y, 'C Braza5')
-          doc.text(12.5, y, 'C Braza5')
-          doc.text(14, y, 'C Braza5')
+          doc.setFont(undefined,'bold')
+          doc.text(1.5,y,  'CLIENTE')
+          doc.text(5.5,y,  'COMANDA')
+          doc.setFont(undefined,'normal')
+
+          doc.text(1, y+0.4, r.Nombres)
+          doc.text(5.5, y+0.4, r.NroPed+'')
+          // y+=0.3
+          if (r.bsbrasa5!=null){
+            doc.setFont(undefined,'bold')
+            doc.text(8.5, y, 'C Bra5')
+            doc.text(10.5, y, 'U Bra5')
+            doc.text(12.5, y, 'Bs Bra5')
+            doc.text(15, y, 'OBS Bra5')
+            doc.setFont(undefined,'normal')
+            doc.text(8.5, y+0.4, r.cbrasa5==null?'':r.cbrasa5+'')
+            doc.text(10.5, y+0.4, r.ubrasa5==null?'':r.ubrasa5+'')
+            doc.text(12.5, y+0.4, r.bsbrasa5==null?'':r.bsbrasa5+'')
+            doc.text(15, y+0.4, r.obsbrasa5==null?'':r.obsbrasa5+'')
+            y+=0.8
+          }
+          if (r.bsbrasa6!=null){
+            doc.setFont(undefined,'bold')
+            doc.text(8.5, y, 'C Bra6')
+            doc.text(10.5, y, 'U Bra6')
+            doc.text(12.5, y, 'Bs Bra6')
+            doc.text(15, y, 'OBS Bra6')
+            doc.setFont(undefined,'normal')
+            doc.text(8.5, y+0.4, r.cbrasa6==null?'':r.cbrasa6+'')
+            doc.text(10.5, y+0.4, r.cubrasa6==null?'':r.cubrasa6+'')
+            doc.text(12.5, y+0.4, r.bsbrasa6==null?'':r.bsbrasa6+'')
+            doc.text(15, y+0.4, r.obsbrasa6==null?'':r.obsbrasa6+'')
+            y+=0.8
+          }
+
+
+
+
+          // doc.text(6.5, y, 'C Braza5')
+          // doc.text(8, y, 'C Braza5')
+          // doc.text(9.5, y, 'C Braza5')
+          // doc.text(11, y, 'C Braza5')
+          // doc.text(12.5, y, 'C Braza5')
+          // doc.text(14, y, 'C Braza5')
           // doc.text(6.5, y, 'C Braza5')
           // doc.text(7, y, 'C Braza5')
           // doc.text(7.5, y, 'C Braza5')
