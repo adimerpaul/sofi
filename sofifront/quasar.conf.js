@@ -73,7 +73,7 @@ module.exports = configure(function (ctx) {
       },
       env: {
         API: ctx.dev
-          ? 'http://localhost:8000/api/'
+          ? 'https://sofiab.loca.lt/api/'
           : 'http://165.227.143.191:83/api/'
       }
     },
