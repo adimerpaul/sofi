@@ -27,6 +27,8 @@ Route::group(['middleware'=>'auth:sanctum'],function (){
     Route::resource('/producto',\App\Http\Controllers\ProductoController::class);
     Route::resource('/pedido',\App\Http\Controllers\PedidoController::class);
     Route::resource('/pollo',\App\Http\Controllers\PolloController::class);
+    Route::resource('/res',\App\Http\Controllers\ResController::class);
+    Route::resource('/cerdo',\App\Http\Controllers\CerdoController::class);
     Route::get('/listdeudores',[\App\Http\Controllers\CobrarController::class,'listdeudores']);
     Route::post('/cxcobrar/{ci}',[\App\Http\Controllers\CobrarController::class,'cxcobrar']);
     Route::post('/insertcobro',[\App\Http\Controllers\CobrarController::class,'insertcobro']);
@@ -37,6 +39,7 @@ Route::group(['middleware'=>'auth:sanctum'],function (){
     Route::post('/listpedido',[\App\Http\Controllers\PedidoController::class,'listpedido']);
     Route::post('/updatecomanda',[\App\Http\Controllers\PedidoController::class,'updatecomanda']);
     Route::post('/enviarpedidos',[\App\Http\Controllers\PedidoController::class,'enviarpedidos']);
+    Route::post('/envpedido',[\App\Http\Controllers\PedidoController::class,'envpedido']);
     Route::post('/deletecomanda',[\App\Http\Controllers\PedidoController::class,'deletecomanda']);
     Route::post('/rpollo',[\App\Http\Controllers\PedidoController::class,'rpollo']);
     Route::post('/rres',[\App\Http\Controllers\PedidoController::class,'rres']);

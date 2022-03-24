@@ -235,6 +235,11 @@ class PedidoController extends Controller
         }
     }
 
+    public function envpedido(Request $request)
+    {
+            DB::select("UPDATE tbpedidos SET  estado='ENVIADO' WHERE NroPed='".$request->NroPed."'");
+    }
+
     public function updatecomanda(Request $request){
 //        return $request;
         $numpedido=$request->comanda;

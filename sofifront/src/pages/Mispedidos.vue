@@ -99,6 +99,7 @@
                 </template>
               </q-table>
               <q-btn v-if="cliente.estado=='CREADO'" @click="modificarcomanda"  style="width: 100%" label="Modificar pedido" icon="edit" color="warning" />
+              <q-btn v-if="cliente.estado=='CREADO'" @click="enviarcomanda"  style="width: 100%" label="Enviar pedido" icon="send" color="teal" />
               <q-btn v-if="cliente.estado=='CREADO'" @click="eliminarcomanda"  style="width: 100%" label="Eliminar pedido" icon="delete" color="red" />
             </div>
           </div>
@@ -431,7 +432,7 @@
       <q-card >
         <q-card-section>
           <div class="text-h6">PEDIDO RES</div>
-           <q-btn color="accent" icon="print" label="IMPRIMIR" @click="imprimirres" />
+           <q-btn color="accent" icon="print" label="IMPRIMIR" @click="imprimires" />
         </q-card-section>
         <q-card-section class="q-pt-none">
                 <table id="example2" class="display" style="width:100%">
@@ -501,7 +502,7 @@
                     <td>{{v.precio}}</td>
                     <td>{{v.total}}</td>
                     <td>{{v.entero}}</td>
-                    <td>{{v.desmenbre}}</td>
+                    <td>{{v.desmembre}}</td>
                     <td>{{v.corte}}</td>
                     <td>{{v.kilo}}</td>
                     <td>{{v.pago}}</td>
@@ -884,7 +885,143 @@ export default {
 
     },
 
-    generarpollo(){
+    imprimires(){
+      this.$q.loading.show()
+      let mc=this
+      let nom='' ;
+      this.$api.post('res',{fecha1:this.fecha1,fecha2:this.fecha2}).then(res=>{
+        this.$q.loading.hide()
+        console.log(res.data)
+        function header(){
+          doc.setFont(undefined,'bold')
+          doc.text(10, 0.5, 'PEDIDOS DE RES ' )
+          doc.text(1, 1,  'NOMBRE '+mc.$store.getters["login/user"].Nombre1)
+          doc.text(12, 1,  'DE '+mc.fecha1+' AL '+mc.fecha2)
+          doc.text(9,1,  'No')
+
+          doc.setLineWidth(0.1);
+          doc.line(1, 1.1, 21, 1.1);
+
+          doc.text(1,1.5,  'CINIT')
+          doc.text(3.5,1.5,  'CLIENTE')
+          doc.text(8,1.5,  'NPED')
+          doc.text(9.5,1.5,  'PRECIO')
+          doc.text(11.5,1.5,  'TROZA')
+          doc.text(13,1.5,  'EN/MD')
+          doc.text(14.5,1.5,  'PIER')
+          doc.text(16,1.5,  'BRAZO')
+          doc.text(17.5,1.5,  'OBSERVACION')
+          doc.setFont(undefined,'normal')
+        }
+        var doc = new jsPDF('L','cm','legal')
+        // console.log(dat);
+        doc.setFont("courier");
+        doc.setFontSize(9);
+        // var x=0,y=
+        header()
+        // let xx=x
+        // let yy=y
+        let y=1.5
+        // xx+=0.5
+
+        res.data.forEach(r=>{
+            doc.text(1, y+0.4, '_____________________________________________________________________________________________________')
+          doc.setFont(undefined,'bold')
+          //doc.text(1,y,  'CINIT')
+          //doc.text(2.5,y,  'CLIENTE')
+          //doc.text(6.5,y,  'COMANDA')
+          doc.setFont(undefined,'normal')
+
+          doc.text(1, y+0.4, r.Id)
+          doc.text(3.5, y+0.4,  r.Nombres.substring(0,20))
+          doc.text(8, y+0.4, r.NroPed+'')
+          doc.text(9.5, y+0.4, r.precio+'')
+          doc.text(11.5, y+0.4, r.trozado==null?'':r.trozado+'')
+          doc.text(13, y+0.4, r.entero==null?'':r.entero+'')
+          doc.text(14.5, y+0.4, r.pierna==null?'':r.pierna+'')
+          doc.text(16, y+0.4, r.brazo==null?'':r.brazo+'')
+          doc.text(17.5, y+0.4, r.observacion==null?'':r.observacion+'')
+           y+=0.5
+          if (y+3>25){
+            doc.addPage();
+            header()
+            y=0
+          }
+        })
+        window.open(doc.output('bloburl'), '_blank');
+      })
+    },
+
+    imprimircerdo(){
+      this.$q.loading.show()
+      let mc=this
+      let nom='' ;
+      this.$api.post('cerdo',{fecha1:this.fecha1,fecha2:this.fecha2}).then(res=>{
+        this.$q.loading.hide()
+        console.log(res.data)
+        function header(){
+          doc.setFont(undefined,'bold')
+          doc.text(10, 0.5, 'PEDIDOS DE CERDO ' )
+          doc.text(1, 1,  'NOMBRE '+mc.$store.getters["login/user"].Nombre1)
+          doc.text(12, 1,  'DE '+mc.fecha1+' AL '+mc.fecha2)
+          doc.text(9,1,  'No')
+
+          doc.setLineWidth(0.1);
+          doc.line(1, 1.1, 21, 1.1);
+
+          doc.text(1,1.5,  'CINIT')
+          doc.text(3.5,1.5,  'CLIENTE')
+          doc.text(8,1.5,  'NPED')
+          doc.text(9.5,1.5,  'PRECIO')
+          doc.text(11.5,1.5,  'TOTAL')
+          doc.text(13,1.5,  'ENTERO')
+          doc.text(14.5,1.5,  'DESMEM')
+          doc.text(16,1.5,  'CORTE')
+          doc.text(17.5,1.5,  'CKILO')
+          doc.text(19,1.5,  'OBSERVACION')
+          doc.setFont(undefined,'normal')
+        }
+        var doc = new jsPDF('L','cm','legal')
+        // console.log(dat);
+        doc.setFont("courier");
+        doc.setFontSize(9);
+        // var x=0,y=
+        header()
+        // let xx=x
+        // let yy=y
+        let y=1.5
+        // xx+=0.5
+
+        res.data.forEach(r=>{
+            doc.text(1, y+0.4, '_____________________________________________________________________________________________________')
+          doc.setFont(undefined,'bold')
+          //doc.text(1,y,  'CINIT')
+          //doc.text(2.5,y,  'CLIENTE')
+          //doc.text(6.5,y,  'COMANDA')
+          doc.setFont(undefined,'normal')
+
+          doc.text(1, y+0.4, r.Id)
+          doc.text(3.5, y+0.4,  r.Nombres.substring(0,20))
+          doc.text(8, y+0.4, r.NroPed+'')
+          doc.text(9.5, y+0.4, r.precio+'')
+          doc.text(11.5, y+0.4, r.total==null?'':r.total+'')
+          doc.text(13, y+0.4, r.entero==null?'':r.entero+'')
+          doc.text(14.5, y+0.4, r.desmembre==null?'':r.desmembre+'')
+          doc.text(16, y+0.4, r.corte==null?'':r.corte+'')
+          doc.text(17.5, y+0.4, r.kilo==null?'':r.kilo+'')
+          doc.text(19, y+0.4, r.observacion==null?'':r.observacion+'')
+           y+=0.5
+          if (y+3>25){
+            doc.addPage();
+            header()
+            y=0
+          }
+        })
+        window.open(doc.output('bloburl'), '_blank');
+      })
+    },
+
+generarpollo(){
         $('#example').DataTable().destroy();
 
       this.$api.post('rpollo',{fecha1:this.fecha1,fecha2:this.fecha2}).then(res=>{
@@ -951,6 +1088,17 @@ export default {
         // this.modalpedido=false
         this.misclientes()
       })
+    },
+    enviarcomanda(){
+      this.$q.loading.show()
+      this.$api.post('envpedido',{NroPed:this.cliente.NroPed}).then(res=>{
+        this.modalpedido=false
+        this.$q.loading.hide()
+
+        this.misclientes()
+
+      })
+
     },
     modificarcomanda(){
       // console.log(this.misproductos)

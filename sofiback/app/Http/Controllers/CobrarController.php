@@ -132,6 +132,7 @@ class CobrarController extends Controller
             <td>$r->comanda</td>
             <td>$r->Nombres</td>
             <td>$r->pago</td>
+            
             <td>$r->nboleta</td>
             </tr>";
         }
