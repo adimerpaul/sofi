@@ -34,6 +34,7 @@ Route::group(['middleware'=>'auth:sanctum'],function (){
     Route::post('/insertcobro',[\App\Http\Controllers\CobrarController::class,'insertcobro']);
     Route::post('/miscobros',[\App\Http\Controllers\CobrarController::class,'miscobros']);
     Route::post('/impcobros',[\App\Http\Controllers\CobrarController::class,'impcobros']);
+    Route::post('/verificar',[\App\Http\Controllers\CobrarController::class,'verificar']);
     Route::post('/misasignaciones',[\App\Http\Controllers\AsignarController::class,'misasignaciones']);
     Route::post('/clientepedido',[\App\Http\Controllers\PedidoController::class,'clientepedido']);
     Route::post('/listpedido',[\App\Http\Controllers\PedidoController::class,'listpedido']);

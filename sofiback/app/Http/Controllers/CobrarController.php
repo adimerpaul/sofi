@@ -201,4 +201,18 @@ class CobrarController extends Controller
     {
         //
     }
+
+    public function verificar(Request $request){
+        $cont="(SELECT w.comanda,w.pago as Acuenta,0 as Importe,99999 as Nrocierre,idCli as CINIT  FROM tbctascow w WHERE date(w.fecha)>='$request->fecha1' and date(w.fecha)<='$request->fecha2' union
+        select t.comanda,t.Importe,t.Acuenta,Nrocierre,CINIT from tbctascobrar t )";
+
+        DB::SELECT("UPDATE tbclientes set venta='ACTIVO' 
+        where (SELECT sum(c.Importe-(SELECT sum(c2.Acuenta) from $cont c2 where c2.comanda=c.comanda)) FROM $cont c WHERE c.CINIT=tbclientes.Id and c.Nrocierre=0)<7000
+        or (SELECT sum(c.Importe-(SELECT sum(c2.Acuenta) from $cont c2 where c2.comanda=c.comanda)) FROM $cont c WHERE c.CINIT=tbclientes.Id and c.Nrocierre=0) is null
+         ");
+        
+    }
+
+  //  codAut	comanda	 CiFunc idCli                          pago	nboleta		fecha	     estado	    procesado		fecomanda	
+    //CodAuto   comanda	 CIFunc	CINIT	CiCajero	Importe	Acuenta	Nrocierre	FechaCan	Nroficha	FechaEntreg	codcli	
 }

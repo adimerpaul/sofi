@@ -115,7 +115,12 @@ export default {
       })
 
       },
-      enviarpedidos(){},
+      enviarpedidos(){
+        this.$api.post('verificar',{fecha1:this.fecha1,fecha2:this.fecha2}).then(res=>{
+          
+        })
+
+      },
       imprimir(){
         this.$api.post('impcobros',{fecha1:this.fecha1,fecha2:this.fecha2}).then(res=>{
         let myWindow = window.open("", "Imprimir", "width=200,height=200");
