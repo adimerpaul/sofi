@@ -62,7 +62,7 @@ class PedidoController extends Controller
 
     public function store(Request $request)
     {
-        return $request->productos;
+//        return $request->productos;
         $max=DB::select("SELECT max(NroPed) as max FROM tbpedidos");
         $cliente=DB::select("SELECT * FROM tbclientes WHERE Cod_Aut='".$request->idCli."'");
 //        echo ($cliente[0]->Latitud);
