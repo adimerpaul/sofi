@@ -15,7 +15,7 @@
     <q-btn color="teal" icon="list" label="Rep Cerdo" @click="generarcerdo" />
 
   <div class="col-12">
-    <q-table dense title="Clientes " :columns="columns" :rows="clientes" :filter="filter">
+    <q-table :rows-per-page-options="[15,50,100,0]" dense title="Clientes " :columns="columns" :rows="clientes" :filter="filter">
       <template v-slot:body-cell-opciones="props">
         <q-td :props="props">
           <q-btn  @click="listpedidos(props.row)" :color="props.row.estado=='CREADO'?'primary':'warning'" :label="props.row.estado=='CREADO'?'MODIFICAR':'ENVIADO'" icon="shop" size="xs"  />
