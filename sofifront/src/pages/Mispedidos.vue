@@ -559,10 +559,10 @@ export default {
       filteproducto:'',
       producto:{label:''},
       columns:[
-        {label:'Comanda',name:'NroPed',field:'NroPed'},
-        {label:'CI',name:'Id',field:'Id'},
-        {label:'Nombre',name:'Nombres',field:'Nombres'},
         {label:'opciones',name:'opciones',field:'opciones'},
+        {label:'Comanda',name:'NroPed',field:'NroPed'},
+        {label:'Nombre',name:'Nombres',field:'Nombres'},
+        {label:'CI',name:'Id',field:'Id'},
       ],
       columnsproducto:[
         {label:'subtotal',name:'subtotal',field:'subtotal'},
