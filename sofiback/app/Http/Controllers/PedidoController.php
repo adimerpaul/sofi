@@ -66,7 +66,7 @@ class PedidoController extends Controller
         $max=DB::select("SELECT max(NroPed) as max FROM tbpedidos");
         $cliente=DB::select("SELECT * FROM tbclientes WHERE Cod_Aut='".$request->idCli."'");
 //        echo ($cliente[0]->Latitud);
-//        return $request->lat;
+        return $request->lat;
         $distancia=$this->distance( floatval( $request->lat),floatval($request->lng),$cliente[0]->Latitud,$cliente[0]->longitud);
 
         $numpedido=$max[0]->max+1;
