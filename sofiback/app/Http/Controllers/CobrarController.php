@@ -203,6 +203,8 @@ class CobrarController extends Controller
     }
 
     public function verificar(Request $request){
+
+        DB::SELECT("UPDATE tbctascow set estado='ENVIADO' WHERE estado='CREADO' AND TRIM(CiFunc)='".$request->user()->ci."' and date(fecha)>='$request->fecha1' and date(fecha)<='$request->fecha2'");
         $cont="(SELECT w.comanda,w.pago as Acuenta,0 as Importe,99999 as Nrocierre,idCli as CINIT  FROM tbctascow w WHERE date(w.fecha)>='$request->fecha1' and date(w.fecha)<='$request->fecha2' union
         select t.comanda,t.Importe,t.Acuenta,Nrocierre,CINIT from tbctascobrar t )";
 

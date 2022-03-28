@@ -10,6 +10,10 @@
     <div class="col-4 flex flex-center">
       <q-btn color="info" icon="search" label="consulta" @click="mcobros" size="xs" />
     </div>
+    <!--<div class="col-12">
+    <q-table title="Pagos " :rows="cobros" :columns="columns" row-key="name" />
+    
+    </div>
                 <div class=" table " style="width:100%">
                 <table id="example" style="width:100%">
                 <thead>
@@ -33,13 +37,9 @@
                   </tr>
                   </tbody>
                 </table>
-            </div>
+            </div>-->
     <div class="col-12">
-     <!-- <q-table dense title="Clientes " :columns="columns" :rows="cobros" :filter="filter">
-        <template v-slot:body-cell-opciones="props">
-          <q-td :props="props">
-            <q-btn  @click="listpedidos(props.row)" :color="props.row.estado=='CREADO'?'primary':'warning'" :label="props.row.estado=='CREADO'?'MODIFICAR':'ENVIADO'" icon="shop" size="xs"  />        </q-td>
-        </template>
+      <q-table dense title="Clientes " :columns="columns" :rows="cobros" :filter="filter">
         <template v-slot:top-right>
           <q-input outlined dense debounce="300" v-model="filter" placeholder="Buscar">
             <template v-slot:append>
@@ -47,7 +47,7 @@
             </template>
           </q-input>
         </template>
-      </q-table>-->
+      </q-table>
       <q-btn style="width: 100%" @click="enviarpedidos" color="accent" icon="check" label="Enviar todos los Cobros"> </q-btn>
       <q-btn style="width: 100%" @click="imprimir" color="info" icon="print" label="Imprimir todos los Cobros"> </q-btn>
     </div>
@@ -55,19 +55,7 @@
 </q-page>
 </template>
 <script>
-var $  = require( 'jquery' );
-require( 'datatables.net-buttons/js/buttons.html5.js' )();
-require( 'datatables.net-buttons/js/buttons.print.js' )();
-require('datatables.net-buttons/js/dataTables.buttons');
-require('datatables.net-dt/css/jquery.dataTables.min.css');
-import print from 'datatables.net-buttons/js/buttons.print';
-import jszip from 'jszip/dist/jszip';
-import pdfMake from 'pdfmake/build/pdfmake';
-import pdfFonts from 'pdfmake/build/vfs_fonts';
-pdfMake.vfs=pdfFonts.pdfMake.vfs;
-window.JSZip=jszip;
 import {date} from 'quasar'
-// import { jsPDF } from "jspdf";
 
 export default {
   data(){
@@ -87,48 +75,62 @@ export default {
     }
     },
     created() {
-      $('#example').DataTable( {
-        dom: 'Blfrtip',
-        buttons: [
-          'copy', 'csv', 'excel', 'pdf', 'print'
-        ]
-      });
+
       this.mcobros();
 
     },
     methods: {
       mcobros(){
+      this.$q.loading.show()
+
       this.$api.post('miscobros',{fecha1:this.fecha1,fecha2:this.fecha2}).then(res=>{
         //console.log('s')
         console.log(res.data)
        // return false
         this.cobros=res.data;
-                $('#example').DataTable().destroy();
-        this.$nextTick(()=>{
-          $('#example').DataTable( {
-            dom: 'Blfrtip',
-            buttons: [
-              'copy', 'csv', 'excel', 'pdf', 'print'
-            ]
-          } );
+        this.$q.loading.hide()
+
+      }).catch(err=>{
+        // console.log(err.response)
+        this.$q.loading.hide()
+        this.$q.notify({
+          message:'Error al conectarse al server',
+          color:'red',
+          icon:'error'
         })
       })
 
       },
       enviarpedidos(){
         this.$api.post('verificar',{fecha1:this.fecha1,fecha2:this.fecha2}).then(res=>{
-          
+          this.mcobros();
         })
 
       },
       imprimir(){
-        this.$api.post('impcobros',{fecha1:this.fecha1,fecha2:this.fecha2}).then(res=>{
+        let total=0;
+                let cadena="<style> table, th, td { border: 1px solid;}  table {border-collapse: collapse; width:100%;          }</style>";
+        cadena+="<div>NOMBRE:"+ this.$store.getters['login/user'].Nombre1+" "+this.$store.getters['login/user'].Nombre2 +" "+this.$store.getters['login/user'].App1 +" "+this.$store.getters['login/user'].Apm +"</div>";
+        cadena+="<div>FECHA: "+this.fecha1+" al "+this.fecha2+"</div>";
+        cadena+="<table>        <tr>";
+        cadena+="<th>FECHA</th>";
+        cadena+="<th>No NOTA</th>";
+        cadena+="<th>NOMBRE</th>";
+        cadena+="<th>MONTO</th>";
+        cadena+="<th>N BOLETA</th></tr>";
+        this.cobros.forEach(r => {          
+             total  = parseFloat(total)+ parseFloat(r.pago) ;
+            cadena+="<tr><td>"+r.fecomanda+"</td> <td>"+r.comanda+"</td><td>"+r.Nombres+"</td><td>"+r.pago+"</td><td>"+r.nboleta+"</td></tr>";
+                });
+
+        cadena+="</table><div>TOTAL: "+total+" Bs.</div>";
+        //this.$api.post('impcobros',{fecha1:this.fecha1,fecha2:this.fecha2}).then(res=>{
         let myWindow = window.open("", "Imprimir", "width=200,height=200");
-        myWindow.document.write(res.data);
+        myWindow.document.write(cadena);
         myWindow.document.close();
         myWindow.print();
         myWindow.close();
-        })
+      //  })
 
       }
 
