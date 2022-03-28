@@ -35,7 +35,7 @@ class ClienteController extends Controller
         ) as tipo,(SELECT sum(c.Importe-(SELECT sum(c2.Acuenta) from tbctascobrar c2 where c2.comanda=c.comanda)) FROM tbctascobrar c WHERE c.CINIT=tbclientes.Id and c.Nrocierre=0) as totdeuda 
         ,(SELECT count(*) FROM tbctascobrar WHERE CINIT=tbclientes.Id AND Nrocierre=0 ) as cantdeuda 
         FROM tbclientes 
-        WHERE ORDER BY tipo desc
+        ORDER BY tipo desc
         ");
     }
 
