@@ -102,6 +102,7 @@ class PedidoController extends Controller
                 "cubrasa6"=>$p['cubrasa6'],
                 "bsbrasa6"=>$p['bsbrasa6'],
                 "obsbrasa6"=>$p['obsbrasa6'],
+                "Observaciones"=>$p['observacion'],
                 "c104"=>$p['c104'],
                 "u104"=>$p['u104'],
                 "bs104"=>$p['bs104'],
