@@ -102,7 +102,7 @@ export default {
     misclientes(){
       this.clientes=[]
       this.$q.loading.show()
-      this.$api.get('cliente').then(res=>{
+      this.$api.get('todosclientes').then(res=>{
         // console.log(res.data)
         this.$q.loading.hide()
         this.clientes=res.data

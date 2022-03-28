@@ -26,6 +26,19 @@ class ClienteController extends Controller
         ");
     }
 
+    public function todosclientes(Request $request)
+    {
+//        return DB::select("SELECT * FROM tbclientes WHERE TRIM(CiVend)='".$request->user()->ci."'");
+        return DB::select("
+        SELECT *,(
+        SELECT estado from misvisitas where cliente_id=Cod_Aut AND fecha='".date('Y-m-d')."' LIMIT 1
+        ) as tipo,(SELECT sum(c.Importe-(SELECT sum(c2.Acuenta) from tbctascobrar c2 where c2.comanda=c.comanda)) FROM tbctascobrar c WHERE c.CINIT=tbclientes.Id and c.Nrocierre=0) as totdeuda 
+        ,(SELECT count(*) FROM tbctascobrar WHERE CINIT=tbclientes.Id AND Nrocierre=0 ) as cantdeuda 
+        FROM tbclientes 
+        WHERE ORDER BY tipo desc
+        ");
+    }
+
     /**
      * Store a newly created resource in storage.
      *
