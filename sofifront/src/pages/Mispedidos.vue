@@ -940,7 +940,7 @@ export default {
           doc.text(13, y+0.4, r.entero==null?'':r.entero+'')
           doc.text(14.5, y+0.4, r.pierna==null?'':r.pierna+'')
           doc.text(16, y+0.4, r.brazo==null?'':r.brazo+'')
-          doc.text(17.5, y+0.4, r.observacion==null?'':r.observacion+'')
+          doc.text(17.5, y+0.4, r.Observaciones==null?'':r.Observaciones+'')
            y+=0.5
           if (y+3>25){
             doc.addPage();
@@ -1009,7 +1009,7 @@ export default {
           doc.text(14.5, y+0.4, r.desmembre==null?'':r.desmembre+'')
           doc.text(16, y+0.4, r.corte==null?'':r.corte+'')
           doc.text(17.5, y+0.4, r.kilo==null?'':r.kilo+'')
-          doc.text(19, y+0.4, r.observacion==null?'':r.observacion+'')
+          doc.text(19, y+0.4, r.Observaciones==null?'':r.Observaciones+'')
            y+=0.5
           if (y+3>25){
             doc.addPage();
@@ -1129,7 +1129,7 @@ generarpollo(){
             cadena+='<table><tr><th>CODIGO</th><th>PRODUCTO</th><th>CANTIDAD</th><th>PRECIO</th><th>SUBTOTAL</th><th>OBSERVACION</th></tr>'
             res.data.forEach(r => {
               tot=tot + parseFloat(r.subtotal)
-              cadena+='<tr><td>'+r.cod_prod+'</td><td>'+r.Producto+'</td><td>'+r.Cant+'</td><td>'+r.precio+'</td><td>'+r.subtotal+'</td><td>'+(r.observaciones==null?'':r.observaciones)+'</td></tr>'
+              cadena+='<tr><td>'+r.cod_prod+'</td><td>'+r.Producto+'</td><td>'+r.Cant+'</td><td>'+r.precio+'</td><td>'+r.subtotal+'</td><td>'+(r.Observaciones==null?'':r.Observaciones)+'</td></tr>'
 
             });
               cadena+='<tr><td></td><td></td><td></td><td>TOTAL</td><td>'+tot+'</td><td></td></tr>'
