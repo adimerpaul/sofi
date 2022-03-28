@@ -15,15 +15,25 @@ class ClienteController extends Controller
     public function index(Request $request)
     {
 //        return DB::select("SELECT * FROM tbclientes WHERE TRIM(CiVend)='".$request->user()->ci."'");
-        return DB::select("
-        SELECT *,(
-        SELECT estado from misvisitas where cliente_id=Cod_Aut AND fecha='".date('Y-m-d')."' LIMIT 1
-        ) as tipo,(SELECT sum(c.Importe-(SELECT sum(c2.Acuenta) from tbctascobrar c2 where c2.comanda=c.comanda)) FROM tbctascobrar c WHERE c.CINIT=tbclientes.Id and c.Nrocierre=0) as totdeuda 
-        ,(SELECT count(*) FROM tbctascobrar WHERE CINIT=tbclientes.Id AND Nrocierre=0 ) as cantdeuda 
-        FROM tbclientes 
-        WHERE TRIM(CiVend)='".$request->user()->ci."'
-        ORDER BY tipo desc
-        ");
+//        return DB::select("
+//        SELECT *,(
+//        SELECT estado from misvisitas where cliente_id=Cod_Aut AND fecha='".date('Y-m-d')."' LIMIT 1
+//        ) as tipo,(SELECT sum(c.Importe-(SELECT sum(c2.Acuenta) from tbctascobrar c2 where c2.comanda=c.comanda)) FROM tbctascobrar c WHERE c.CINIT=tbclientes.Id and c.Nrocierre=0) as totdeuda
+//        ,(SELECT count(*) FROM tbctascobrar WHERE CINIT=tbclientes.Id AND Nrocierre=0 ) as cantdeuda
+//        FROM tbclientes
+//        WHERE TRIM(CiVend)='".$request->user()->ci."'
+//        ORDER BY tipo desc
+//        ");
+        return DB::select(
+            "SELECT *,
+            (SELECT estado from misvisitas where cliente_id=Cod_Aut AND fecha='".date('Y-m-d')."' LIMIT 1) as tipo,
+            (SELECT sum(c.Importe-(SELECT sum(c2.Acuenta) from tbctascobrar c2 where c2.comanda=c.comanda)) FROM tbctascobrar c WHERE c.CINIT=tbclientes.Id and c.Nrocierre=0) as totdeuda ,
+            (SELECT MIN(c.FechaEntreg) FROM tbctascobrar c WHERE c.CINIT=tbclientes.Id and c.Nrocierre=0) as fechaminima ,
+            (SELECT count(*) FROM tbctascobrar WHERE CINIT=tbclientes.Id AND Nrocierre=0 ) as cantdeuda
+             FROM tbclientes
+             WHERE TRIM(CiVend)='".$request->user()->ci."'
+             ORDER BY tipo desc;"
+        );
     }
 
     public function todosclientes(Request $request)
@@ -32,9 +42,9 @@ class ClienteController extends Controller
         return DB::select("
         SELECT *,(
         SELECT estado from misvisitas where cliente_id=Cod_Aut AND fecha='".date('Y-m-d')."' LIMIT 1
-        ) as tipo,(SELECT sum(c.Importe-(SELECT sum(c2.Acuenta) from tbctascobrar c2 where c2.comanda=c.comanda)) FROM tbctascobrar c WHERE c.CINIT=tbclientes.Id and c.Nrocierre=0) as totdeuda 
-        ,(SELECT count(*) FROM tbctascobrar WHERE CINIT=tbclientes.Id AND Nrocierre=0 ) as cantdeuda 
-        FROM tbclientes 
+        ) as tipo,(SELECT sum(c.Importe-(SELECT sum(c2.Acuenta) from tbctascobrar c2 where c2.comanda=c.comanda)) FROM tbctascobrar c WHERE c.CINIT=tbclientes.Id and c.Nrocierre=0) as totdeuda
+        ,(SELECT count(*) FROM tbctascobrar WHERE CINIT=tbclientes.Id AND Nrocierre=0 ) as cantdeuda
+        FROM tbclientes
         ORDER BY tipo desc
         ");
     }
@@ -50,15 +60,15 @@ class ClienteController extends Controller
         //
     }
     public function bloquear(){
-        DB::SELECT("UPDATE tbclientes set venta='INACTIVO' 
+        DB::SELECT("UPDATE tbclientes set venta='INACTIVO'
         where (
-            SELECT sum(c.Importe-(SELECT sum(c2.Acuenta) from tbctascobrar c2 where c2.comanda=c.comanda) ) 
+            SELECT sum(c.Importe-(SELECT sum(c2.Acuenta) from tbctascobrar c2 where c2.comanda=c.comanda) )
             FROM tbctascobrar c WHERE c.CINIT=tbclientes.Id and c.Nrocierre=0 and (c.Importe-(SELECT sum(c2.Acuenta) from tbctascobrar c2 where c2.comanda=c.comanda))>=5 )>7000
         or (SELECT DATEDIFF( curdate(), (select min(c.FechaEntreg) from tbctascobrar c where c.CINIT =tbclientes.Id and c.Nrocierre=0 and (c.Importe-(SELECT sum(c2.Acuenta) from tbctascobrar c2 where c2.comanda=c.comanda))>=5)))>7 ");
     }
 
     public function desbloq2(){
-        DB::SELECT("UPDATE tbclientes set venta='ACTIVO' 
+        DB::SELECT("UPDATE tbclientes set venta='ACTIVO'
         where (SELECT sum(c.Importe-(SELECT sum(c2.Acuenta) from tbctascobrar c2 where c2.comanda=c.comanda)) FROM tbctascobrar c WHERE c.CINIT=tbclientes.Id and c.Nrocierre=0)<7000
         or (SELECT sum(c.Importe-(SELECT sum(c2.Acuenta) from tbctascobrar c2 where c2.comanda=c.comanda)) FROM tbctascobrar c WHERE c.CINIT=tbclientes.Id and c.Nrocierre=0) is null
          ");
@@ -67,11 +77,11 @@ class ClienteController extends Controller
     public function desbloquear(Request $request){
         if($request->venta=='ACTIVO')
             $request->venta='INACTIVO';
-        else 
+        else
             $request->venta='ACTIVO';
-        
+
         DB::SELECT("UPDATE tbclientes set venta='$request->venta' where Cod_Aut=$request->Cod_Aut");
-        
+
     }
 
     /**
