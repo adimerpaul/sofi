@@ -127,7 +127,7 @@
           <div class="text-subtitle2">Cel: {{cliente.Telf}}</div>
           <div class="text-subtitle2">{{cliente.Direccion}}</div>
           <div class="text-subtitle2" >Monto Deuda: <q-badge color="negative">{{cliente.totdeuda}} Bs </q-badge> NumPedidos: <q-badge color="negative">{{cliente.cantdeuda}}</q-badge></div>
-          <div class="text-subtitle2" >Fecha minima: <q-badge color="negative">{{cliente.fechaminima}} Bs </q-badge> </div>
+          <div class="text-subtitle2" >Fecha minima: <q-badge color="negative">{{cliente.fechaminima}} </q-badge> </div>
         </q-card-section>
         <q-card-section class="q-pt-none">
 <!--          <pre>{{cliente}}</pre>-->
@@ -527,7 +527,7 @@ export default {
     misclientes(){
       this.$q.loading.show()
       this.$api.get('cliente').then(res=>{
-         // console.log(res.data)
+         console.log(res.data)
         this.clientes=[]
         // this.clientes=res.data
         res.data.forEach(r=>{
@@ -842,6 +842,7 @@ export default {
     },
     clickopciones(cliente){
       this.modalopciones=true
+      this.cliente=cliente
     },
     ubicacion(e){
       // console.log(e.latlng)

@@ -576,18 +576,18 @@ export default {
     }
   },
   created() {
-                $('#example').DataTable( {
-            dom: 'Blfrtip',
-            buttons: ['copy', 'csv', 'excel', 'pdf', 'print']
-          } );
-                $('#example2').DataTable( {
-            dom: 'Blfrtip',
-            buttons: ['copy', 'csv', 'excel', 'pdf', 'print']
-          } );
-                          $('#example3').DataTable( {
-            dom: 'Blfrtip',
-            buttons: ['copy', 'csv', 'excel', 'pdf', 'print']
-          } );
+          //       $('#example').DataTable( {
+          //   dom: 'Blfrtip',
+          //   buttons: ['copy', 'csv', 'excel', 'pdf', 'print']
+          // } );
+          //       $('#example2').DataTable( {
+          //   dom: 'Blfrtip',
+          //   buttons: ['copy', 'csv', 'excel', 'pdf', 'print']
+          // } );
+          //                 $('#example3').DataTable( {
+          //   dom: 'Blfrtip',
+          //   buttons: ['copy', 'csv', 'excel', 'pdf', 'print']
+          // } );
     this.misclientes()
           this.$api.get('producto').then(res=>{
         // console.log(res.data)
@@ -820,7 +820,7 @@ export default {
             y+=0.8
           }
 
-          
+
                     if (r.bshueso!=null){
             doc.setFont(undefined,'bold')
             doc.text(8.5, y, ' hueso')
@@ -1022,60 +1022,63 @@ export default {
     },
 
 generarpollo(){
-        $('#example').DataTable().destroy();
-
-      this.$api.post('rpollo',{fecha1:this.fecha1,fecha2:this.fecha2}).then(res=>{
-
-        console.log(res.data)
-        $('#example').DataTable().destroy();
-        this.pollo=res.data;
-          $('#example').DataTable( {
-            dom: 'Blfrtip',
-            buttons: [
-              'copy', 'csv', 'excel', 'pdf', 'print'
-            ],
-             "lengthMenu": [[10, 25, 50, -1], [10, 25, 50, "All"]]
-          } );
-        })
-        this.dialog_pollo=true
+      this.imprimirpollo()
+      //   $('#example').DataTable().destroy();
+      //
+      // this.$api.post('rpollo',{fecha1:this.fecha1,fecha2:this.fecha2}).then(res=>{
+      //
+      //   console.log(res.data)
+      //   $('#example').DataTable().destroy();
+      //   this.pollo=res.data;
+      //     $('#example').DataTable( {
+      //       dom: 'Blfrtip',
+      //       buttons: [
+      //         'copy', 'csv', 'excel', 'pdf', 'print'
+      //       ],
+      //        "lengthMenu": [[10, 25, 50, -1], [10, 25, 50, "All"]]
+      //     } );
+      //   })
+      //   this.dialog_pollo=true
     },
 
         generarres(){
-        $('#example2').DataTable().destroy();
-
-      this.$api.post('rres',{fecha1:this.fecha1,fecha2:this.fecha2}).then(res=>{
-
-        console.log(res.data)
-        $('#example2').DataTable().destroy();
-        this.res=res.data;
-          $('#example2').DataTable( {
-            dom: 'Blfrtip',
-            buttons: [
-              'copy', 'csv', 'excel', 'pdf', 'print'
-            ],
-             "lengthMenu": [[10, 25, 50, -1], [10, 25, 50, "All"]]
-          } );
-        })
-        this.dialog_res=true
+      this.imprimires()
+      //   $('#example2').DataTable().destroy();
+      //
+      // this.$api.post('rres',{fecha1:this.fecha1,fecha2:this.fecha2}).then(res=>{
+      //
+      //   console.log(res.data)
+      //   $('#example2').DataTable().destroy();
+      //   this.res=res.data;
+      //     $('#example2').DataTable( {
+      //       dom: 'Blfrtip',
+      //       buttons: [
+      //         'copy', 'csv', 'excel', 'pdf', 'print'
+      //       ],
+      //        "lengthMenu": [[10, 25, 50, -1], [10, 25, 50, "All"]]
+      //     } );
+      //   })
+      //   this.dialog_res=true
     },
 
         generarcerdo(){
-        $('#example3').DataTable().destroy();
-
-      this.$api.post('rcerdo',{fecha1:this.fecha1,fecha2:this.fecha2}).then(res=>{
-
-        console.log(res.data)
-        $('#example3').DataTable().destroy();
-        this.cerdo=res.data;
-          $('#example3').DataTable( {
-            dom: 'Blfrtip',
-            buttons: [
-              'copy', 'csv', 'excel', 'pdf', 'print'
-            ],
-             "lengthMenu": [[10, 25, 50, -1], [10, 25, 50, "All"]]
-          } );
-        })
-        this.dialog_cerdo=true
+      this.imprimircerdo()
+      //   $('#example3').DataTable().destroy();
+      //
+      // this.$api.post('rcerdo',{fecha1:this.fecha1,fecha2:this.fecha2}).then(res=>{
+      //
+      //   console.log(res.data)
+      //   $('#example3').DataTable().destroy();
+      //   this.cerdo=res.data;
+      //     $('#example3').DataTable( {
+      //       dom: 'Blfrtip',
+      //       buttons: [
+      //         'copy', 'csv', 'excel', 'pdf', 'print'
+      //       ],
+      //        "lengthMenu": [[10, 25, 50, -1], [10, 25, 50, "All"]]
+      //     } );
+      //   })
+      //   this.dialog_cerdo=true
     },
 
     tecleado(e){
