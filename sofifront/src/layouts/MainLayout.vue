@@ -53,7 +53,8 @@
             </q-item-label>
           </q-item-section>
         </q-item>
-        <q-item clickable exact to="clientes">
+
+        <q-item clickable exact to="clientes" v-if="$store.getters['login/user'].ci=='7329536'">
           <q-item-section avatar>
             <q-icon name="people" />
           </q-item-section>

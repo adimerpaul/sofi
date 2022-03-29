@@ -62,6 +62,9 @@ export default {
     }
   },
   created() {
+    if(this.$store.getters['login/user'].ci!='7329536'){
+      this.$router.push('/');
+    }
     this.misclientes()
   },
   methods:{
