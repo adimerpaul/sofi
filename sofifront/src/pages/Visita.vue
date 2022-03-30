@@ -596,7 +596,7 @@ export default {
           })
           return false
         }
-        //this.$q.loading.show()
+        this.$q.loading.show()
         var lat=0,lng=0
         if (navigator.geolocation) {
           // get  geolocation
