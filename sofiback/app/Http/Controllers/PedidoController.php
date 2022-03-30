@@ -470,6 +470,7 @@ class PedidoController extends Controller
                         "Cant"=>$pe->Cant,
                         "precio"=>$pe->precio,
                         "fecha"=>$pe->fecha,
+                        "estado"=>$pe->estado,
                         "subtotal"=>$pe->subtotal,
                         "cbrasa5"=>$pe->cbrasa5,
                         "ubrasa5"=>$pe->ubrasa5,
