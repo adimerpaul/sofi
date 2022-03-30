@@ -1101,7 +1101,9 @@ generarpollo(){
       })
     },
     expedidos(){
-      this.$api.post('export',{fecha1:this.fecha1,fecha2:this.fecha2}).then(res=>{})
+      this.$api.post('export',{fecha1:this.fecha1,fecha2:this.fecha2}).then(res=>{
+        console.log(res.data)
+      })
     },
     enviarcomanda(){
       this.$q.loading.show()
