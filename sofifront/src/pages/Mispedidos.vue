@@ -10,10 +10,15 @@
   <div class="col-4 flex flex-center">
     <q-btn color="info" icon="search" label="consulta" @click="misclientes"  />
   </div>
+  <div class="col-4 flex flex-center">
     <q-btn color="green" icon="list" label="Rep Pollo" @click="generarpollo" />
+  </div>
+  <div class="col-4 flex flex-center">
     <q-btn color="accent" icon="list" label="Rep Res" @click="generarres" />
+  </div>
+  <div class="col-4 flex flex-center">
     <q-btn color="teal" icon="list" label="Rep Cerdo" @click="generarcerdo" />
-
+  </div>
   <div class="col-12">
     <q-table :rows-per-page-options="[15,50,100,0]" dense title="Clientes " :columns="columns" :rows="clientes" :filter="filter">
       <template v-slot:body-cell-opciones="props">
