@@ -458,9 +458,10 @@ class PedidoController extends Controller
             $comanda=DB::connection('aron-9')->table('tbpedidos')->where('NroPed',$p->NroPed)->get()->count();
 //            return  $comanda.'  -   ';
             if($comanda==0){
-                return ("SELECT * from tbpedidos where date(fecha)>='$request->fecha1' and date(fecha)<='$request->fecha2' AND NroPed='".$p->NroPed."' and estado='ENVIADO' ");
+                $pedi=DB::select("SELECT * from tbpedidos where date(fecha)>='$request->fecha1' and date(fecha)<='$request->fecha2' AND NroPed='".$p->NroPed."' and estado='ENVIADO' ");
 //                return $pedi;
                 foreach ($pedi as $pe){
+                    return $pe->NroPed;
                     DB::connection('aron-9')->table('tbpedidos')->insert([
                         "NroPed"=>$pe["NroPed"],
                         "cod_prod"=>$pe["cod_prod"],
