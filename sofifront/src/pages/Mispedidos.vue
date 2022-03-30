@@ -36,6 +36,7 @@
       </template>
     </q-table>
     <q-btn style="width: 100%" @click="enviarpedidos" color="warning" icon="check" label="Enviar todos los pedidos"> </q-btn>
+    <q-btn style="width: 100%" @click="expedidos" color="red" icon="alert" label="export pedidos"> </q-btn>
   </div>
 
     <q-dialog full-width full-height v-model="modalpedido">
@@ -1098,6 +1099,10 @@ generarpollo(){
         // this.modalpedido=false
         this.misclientes()
       })
+    },
+    expedidos(){
+      this.$api.post('export',{fecha1:this.fecha1,fecha2:this.fecha2}).then(res=>{})
+
     },
     enviarcomanda(){
       this.$q.loading.show()

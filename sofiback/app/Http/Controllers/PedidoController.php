@@ -449,4 +449,113 @@ class PedidoController extends Controller
 
         return $pedido;
     }
+
+    public function export(Request $request){
+        $pedido=DB::SELECT("SELECT * from tbpedidos where date(fecha)>='$request->fecha1' and date(fecha)<='$request->fecha2' and estado='ENVIADO'");
+        $conn = mysqli_connect("6.tcp.ngrok.io", "root", "", "sofia","14839");
+        
+                if ($conn->connect_error) {
+                    die("Connection failed: " . $conn->connect_error);
+                }
+                foreach ($pedido as $row) {
+                    # code...
+                $result = $conn->query("SELECT * from tbpedidos where codAut='".$row->codAut."'");
+                if ($result->num_rows == 0) {
+        
+                        $conn->query("INSERT INTO tbpedidos SET
+                                        NroPed = '".$row['NroPed']."',
+                cod_prod='".$row['cod_prod']."',
+                CIfunc='".$row['CIfunc']."',
+                idCli='".$row['idCli']."',
+                Cant='".$row['Cant']."',
+                precio='".$row['precio']."',
+                fecha='".$row['fecha']."',
+                subtotal='".$row['subtotal']."',
+                cbrasa5='".$row['cbrasa5']."',
+                ubrasa5='".$row['ubrasa5']."',
+                bsbrasa5='".$row['bsbrasa5']."',
+                obsbrasa5='".$row['obsbrasa5']."',
+                cbrasa6='".$row['cbrasa6']."',
+                cubrasa6='".$row['cubrasa6']."',
+                bsbrasa6='".$row['bsbrasa6']."',
+                obsbrasa6='".$row['obsbrasa6']."',
+                Observaciones='".$row['Observaciones']."',
+                c104='".$row['c104']."',
+                u104='".$row['u104']."',
+                bs104='".$row['bs104']."',
+                obs104='".$row['obs104']."',
+                c105='".$row['c105']."',
+                u105='".$row['u105']."',
+                bs105='".$row['bs105']."',
+                obs105='".$row['obs105']."',
+                c106='".$row['c106']."',
+                u106='".$row['u106']."',
+                bs106='".$row['bs106']."',
+                obs106='".$row['obs106']."',
+                c107='".$row['c107']."',
+                u107='".$row['u107']."',
+                bs107='".$row['bs107']."',
+                obs107='".$row['obs107']."',
+                c108='".$row['c108']."',
+                u108='".$row['u108']."',
+                bs108='".$row['bs108']."',
+                obs108='".$row['obs108']."',
+                c109='".$row['c109']."',
+                u109='".$row['u109']."',
+                bs109='".$row['bs109']."',
+                obs109='".$row['obs109']."',
+                ala='".$row['ala']."',
+                cadera='".$row['cadera']."',
+                pecho='".$row['pecho']."',
+                pie='".$row['pie']."',
+                filete='".$row['filete']."',
+                cuello='".$row['cuello']."',
+                hueso='".$row['hueso']."',
+                menu='".$row['menu']."',
+                unidala='".$row['unidala']."',
+                bsala='".$row['bsala']."',
+                obsala='".$row['obsala']."',
+                unidcadera='".$row['unidcadera']."',
+                bscadera='".$row['bscadera']."',
+                obscadera='".$row['obscadera']."',
+                unidpecho='".$row['unidpecho']."',
+                bspecho='".$row['bspecho']."',
+                obspecho='".$row['obspecho']."',
+                unidpie='".$row['unidpie']."',
+                bspie='".$row['bspie']."',
+                obspie='".$row['obspie']."',
+                unidfilete='".$row['unidfilete']."',
+                bsfilete='".$row['bsfilete']."',
+                obsfilete='".$row['obsfilete']."',
+                unidcuello='".$row['unidcuello']."',
+                bscuello='".$row['bscuello']."',
+                obscuello='".$row['obscuello']."',
+                unidhueso='".$row['unidhueso']."',
+                bshueso='".$row['bshueso']."',
+                obshueso='".$row['obshueso']."',
+                unidmenu='".$row['unidmenu']."',
+                bsmenu='".$row['bsmenu']."',
+                obsmenu='".$row['obsmenu']."',
+                bs='".$row['bs']."',
+                bs2='".$row['bs2']."',
+                contado='".$row['contado']."',
+                tipo='".$row['tipo']."',
+                total='".$row['total']."',
+                entero='".$row['entero']."',
+                desmembre='".$row['desmembre']."',
+                corte='".$row['corte']."',
+                kilo='".$row['kilo']."',
+                trozado='".$row['trozado']."',
+                pierna='".$row['pierna']."',
+                brazo='".$row['brazo']."',
+                hora='".$row['hora']."',
+                pago='".$row['pago']."'
+                        ");
+        
+                } else {
+        //            echo "0";
+                }
+            }
+                $conn->close();
+    }
 }
