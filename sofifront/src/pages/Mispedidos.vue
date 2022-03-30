@@ -1105,6 +1105,11 @@ generarpollo(){
       this.$api.post('export',{fecha1:this.fecha1,fecha2:this.fecha2}).then(res=>{
         console.log(res.data)
         this.$q.loading.hide()
+        this.$q.notify({
+          color:'green',
+          message:'Enviado correctamente',
+          icon:'send'
+        })
       }).catch(err=>{
         this.$q.loading.hide()
         this.$q.notify({
