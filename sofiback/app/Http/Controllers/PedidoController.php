@@ -451,7 +451,7 @@ class PedidoController extends Controller
     }
 
     public function export(Request $request){
-        $pedidos=DB::SELECT("SELECT NroPed from tbpedidos where date(fecha)>='$request->fecha1' and date(fecha)<='$request->fecha2' and estado='ENVIADO' GROUP BY NroPed");
+        return ("SELECT NroPed from tbpedidos where date(fecha)>='$request->fecha1' and date(fecha)<='$request->fecha2' and estado='ENVIADO' GROUP BY NroPed");
         foreach ($pedidos as $p){
             echo $p['Nroped'].'   -   ';
 //            $comanda=DB::connection('aron-9')->table('tbpedidos')->where('NroPed',$p['NroPed'])->get()->count();
