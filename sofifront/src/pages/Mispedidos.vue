@@ -1101,8 +1101,17 @@ generarpollo(){
       })
     },
     expedidos(){
+      this.$q.loading.show()
       this.$api.post('export',{fecha1:this.fecha1,fecha2:this.fecha2}).then(res=>{
         console.log(res.data)
+        this.$q.loading.hide()
+      }).catch(err=>{
+        this.$q.loading.hide()
+        this.$q.notify({
+          color:'red',
+          message:err.response.data.message,
+          icon:'error'
+        })
       })
     },
     enviarcomanda(){
