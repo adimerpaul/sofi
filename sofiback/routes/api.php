@@ -18,6 +18,7 @@ use Illuminate\Support\Facades\Route;
  //   return $request->user();
 //});
 Route::post('/login',[\App\Http\Controllers\UserController::class,'login']);
+Route::post('/ctacobrar',[\App\Http\Controllers\CobrarController::class,'ctacobrar']);
 
 Route::group(['middleware'=>'auth:sanctum'],function (){
     Route::post('/me',[\App\Http\Controllers\UserController::class,'me']);

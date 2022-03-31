@@ -231,23 +231,38 @@ class CobrarController extends Controller
                 "procesado"=>$comanda->procesado,
                 "nboleta"=>$comanda->nboleta,
                 "fecomanda"=>$comanda->fecomanda]);
-            }               	
-                	
-            
+            }         	
+                            
         }
-
-
     }
 
     public function ctacobrar(){
         $fecha=date("Y-m-d", strtotime(date("Y-m-d").'-1 days'));
         $cobrar=DB::connection('aron-9')->table('tbctascobrar')->whereDate('FechaCan','>=',$fecha)->get();
+        $cobrar2=DB::table('tbctascobrar')->whereDate('FechaCan','>=',$fecha)->get();
+        //return $cobrar->count() > $cobrar2->count();
+        if($cobrar->count() > $cobrar2->count()){
         foreach ($cobrar as $r) {
-            $cta=DB::table('tbctascow')->where('CodAuto',$r->CodAuto)->get()->count();
+            $cta=DB::table('tbctascobrar')->where('codAuto',$r->CodAuto)->get()->count();
             if($cta==0){
-                DB::table('tbctascow')->insert($r);
+                DB::table('tbctascobrar')->insert([
+                    
+                    "CodAuto" =>$r->CodAuto,
+                    "comanda"	=>$r->comanda,
+                    "CIFunc"	=>$r->CIFunc,
+                    "CINIT"	=>$r->CINIT,
+                    "CiCajero"	=>$r->CiCajero,
+                    "Importe"=>$r->Importe,
+                    "Acuenta"	=>$r->Acuenta,
+                    "Nrocierre"	=>$r->Nrocierre,
+                    "FechaCan"	=>$r->FechaCan,
+                    "Nroficha"	=>$r->Nroficha,
+                    "FechaEntreg"	=>$r->FechaEntreg,
+                    "codcli"	=>$r->codcli,
+                ]);
             }
         }
+    }
     }
 
   //  codAut	comanda	 CiFunc idCli                          pago	nboleta		fecha	     estado	    procesado		fecomanda	
