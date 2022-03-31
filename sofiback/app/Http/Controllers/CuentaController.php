@@ -69,4 +69,6 @@ class CuentaController extends Controller
     {
         //
     }
+
+
 }

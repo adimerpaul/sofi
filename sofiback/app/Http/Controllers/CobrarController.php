@@ -215,6 +215,41 @@ class CobrarController extends Controller
         
     }
 
+    public function copiacow(Request $request ){
+        $cc=DB::SELECT("SELECT * from tbctascow where and date(fecha)='$request->fecha1' ");
+
+        foreach ($cc as $r) {
+            $comanda=DB::connection('aron-9')->table('tbctascow')->where('comanda',$p->comanda)->whereDate('fecha',$request->fecha1)->get()->count();
+            if($comanda==0){
+            DB::connection('aron-9')->table('tbctascow')->insert([
+                "comanda"=>$comanda->comanda,
+                "pago"=>$comanda->pago,
+                "idCli"=>$comanda->idCli,
+                "CiFunc"=>$comanda->CiFunc,
+                "fecha"=>$comanda->fecha,
+                "estado"=>$comanda->estado,
+                "procesado"=>$comanda->procesado,
+                "nboleta"=>$comanda->nboleta,
+                "fecomanda"=>$comanda->fecomanda]);
+            }               	
+                	
+            
+        }
+
+
+    }
+
+    public function ctacobrar(){
+        $fecha=date("Y-m-d", strtotime(date("Y-m-d").'-1 days'));
+        $cobrar=DB::connection('aron-9')->table('tbctascobrar')->whereDate('FechaCan','>=',$fecha)->get();
+        foreach ($cobrar as $r) {
+            $cta=DB::table('tbctascow')->where('CodAuto',$r->CodAuto)->get()->count();
+            if($cta==0){
+                DB::table('tbctascow')->insert($r);
+            }
+        }
+    }
+
   //  codAut	comanda	 CiFunc idCli                          pago	nboleta		fecha	     estado	    procesado		fecomanda	
     //CodAuto   comanda	 CIFunc	CINIT	CiCajero	Importe	Acuenta	Nrocierre	FechaCan	Nroficha	FechaEntreg	codcli	
 }
