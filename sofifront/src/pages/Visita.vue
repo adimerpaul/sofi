@@ -430,7 +430,7 @@
     <q-dialog v-model="modalres" full-width>
       <q-card>
         <q-card-section>
-          <div class="text-h6">Pedido Cerdo</div>
+          <div class="text-h6">Pedido Res</div>
         </q-card-section>
         <q-card-section class="q-pt-none">
           <div class="row">
