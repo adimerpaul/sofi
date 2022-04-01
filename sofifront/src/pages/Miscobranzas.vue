@@ -49,6 +49,7 @@
         </template>
       </q-table>
       <q-btn style="width: 100%" @click="enviarpedidos" color="accent" icon="check" label="Enviar todos los Cobros"> </q-btn>
+      <q-btn style="width: 100%" @click="enviarcow" color="teal" icon="send" label="Enviar Cobros"> </q-btn>
       <q-btn style="width: 100%" @click="imprimir" color="info" icon="print" label="Imprimir todos los Cobros"> </q-btn>
     </div>
   </div>
@@ -80,6 +81,26 @@ export default {
 
     },
     methods: {
+      enviarcow(){
+              this.$q.loading.show()
+      this.$api.post('copiacow',{fecha1:this.fecha1,fecha2:this.fecha2}).then(res=>{
+        console.log(res.data)
+        this.$q.loading.hide()
+        this.$q.notify({
+          color:'green',
+          message:'Enviado correctamente',
+          icon:'send'
+        })
+      }).catch(err=>{
+        this.$q.loading.hide()
+        this.$q.notify({
+          color:'red',
+          message:err.response.data.message,
+          icon:'error'
+        })
+      })
+
+      },
       mcobros(){
       this.$q.loading.show()
 

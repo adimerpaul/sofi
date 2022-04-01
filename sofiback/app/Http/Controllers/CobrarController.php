@@ -216,23 +216,23 @@ class CobrarController extends Controller
     }
 
     public function copiacow(Request $request ){
-        $cc=DB::SELECT("SELECT * from tbctascow where and date(fecha)='$request->fecha1' ");
+        $cc=DB::SELECT("SELECT * from tbctascow where estado='ENVIADO' and date(fecha)>='$request->fecha1' and date(fecha)<='$request->fecha2'");
 
         foreach ($cc as $r) {
-            $comanda=DB::connection('aron-9')->table('tbctascow')->where('comanda',$p->comanda)->whereDate('fecha',$request->fecha1)->get()->count();
-            if($comanda==0){
+            $com=DB::connection('aron-9')->table('tbctascow')->where('codAut',$r->codAut)->get()->count();
+            if($com==0){
             DB::connection('aron-9')->table('tbctascow')->insert([
-                "comanda"=>$comanda->comanda,
-                "pago"=>$comanda->pago,
-                "idCli"=>$comanda->idCli,
-                "CiFunc"=>$comanda->CiFunc,
-                "fecha"=>$comanda->fecha,
-                "estado"=>$comanda->estado,
-                "procesado"=>$comanda->procesado,
-                "nboleta"=>$comanda->nboleta,
-                "fecomanda"=>$comanda->fecomanda]);
-            }         	
-                            
+                "codAut"=> $r->codAut,
+                "comanda"=>$r->comanda,
+                "pago"=>$r->pago,
+                "idCli"=>$r->idCli,
+                "CiFunc"=>$r->CiFunc,
+                "fecha"=>$r->fecha,
+                "estado"=>$r->estado,
+                "procesado"=>$r->procesado,
+                "nboleta"=>$r->nboleta,
+                "fecomanda"=>$r->fecomanda]);
+            }         	                            
         }
     }
 

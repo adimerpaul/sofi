@@ -45,6 +45,7 @@ Route::group(['middleware'=>'auth:sanctum'],function (){
     Route::post('/deletecomanda',[\App\Http\Controllers\PedidoController::class,'deletecomanda']);
     Route::post('/rpollo',[\App\Http\Controllers\PedidoController::class,'rpollo']);
     Route::post('/export',[\App\Http\Controllers\PedidoController::class,'export']);
+    Route::post('/copiacow',[\App\Http\Controllers\CobrarController::class,'copiacow']);
     Route::post('/rres',[\App\Http\Controllers\PedidoController::class,'rres']);
     Route::post('/rcerdo',[\App\Http\Controllers\PedidoController::class,'rcerdo']);
     Route::post('/rnormal',[\App\Http\Controllers\PedidoController::class,'rnormal']);
