@@ -212,7 +212,24 @@ class CobrarController extends Controller
         where (SELECT sum(c.Importe-(SELECT sum(c2.Acuenta) from $cont c2 where c2.comanda=c.comanda)) FROM $cont c WHERE c.CINIT=tbclientes.Id and c.Nrocierre=0)<7000
         or (SELECT sum(c.Importe-(SELECT sum(c2.Acuenta) from $cont c2 where c2.comanda=c.comanda)) FROM $cont c WHERE c.CINIT=tbclientes.Id and c.Nrocierre=0) is null
          ");
-        
+                $cc=DB::SELECT("SELECT * from tbctascow where estado='ENVIADO' and date(fecha)>='$request->fecha1' and date(fecha)<='$request->fecha2'");
+
+                foreach ($cc as $r) {
+                    $com=DB::connection('aron-9')->table('tbctascow')->where('codAut',$r->codAut)->get()->count();
+                    if($com==0){
+                    DB::connection('aron-9')->table('tbctascow')->insert([
+                        "codAut"=> $r->codAut,
+                        "comanda"=>$r->comanda,
+                        "pago"=>$r->pago,
+                        "idCli"=>$r->idCli,
+                        "CiFunc"=>$r->CiFunc,
+                        "fecha"=>$r->fecha,
+                        "estado"=>$r->estado,
+                        "procesado"=>$r->procesado,
+                        "nboleta"=>$r->nboleta,
+                        "fecomanda"=>$r->fecomanda]);
+                    }         	                            
+                } 
     }
 
     public function copiacow(Request $request ){
@@ -240,6 +257,7 @@ class CobrarController extends Controller
         $fecha=date("Y-m-d", strtotime(date("Y-m-d").'-1 days'));
         $cobrar=DB::connection('aron-9')->table('tbctascobrar')->whereDate('FechaCan','>=',$fecha)->get();
         $cobrar2=DB::table('tbctascobrar')->whereDate('FechaCan','>=',$fecha)->get();
+        $cobrar3=DB::SELECT("SELECT comanda from tbctascobrar where date(FechaCan) >= $fecha group by comanda");
         //return $cobrar->count() > $cobrar2->count();
         if($cobrar->count() > $cobrar2->count()){
         foreach ($cobrar as $r) {
@@ -261,6 +279,12 @@ class CobrarController extends Controller
                     "codcli"	=>$r->codcli,
                 ]);
             }
+        }
+        foreach ($cobrar3 as $d) {
+            $cr=DB::connection('aron-9')->table('tbctascobrar')->where('comanda',$d->comanda)->get();
+            if($cr->count()==0)
+                DB::SELECT("DELETE FROM tbctascobrar where comanda=$d->comanda");
+        # code...
         }
     }
     }

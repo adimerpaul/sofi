@@ -49,7 +49,6 @@
         </template>
       </q-table>
       <q-btn style="width: 100%" @click="enviarpedidos" color="accent" icon="check" label="Enviar todos los Cobros"> </q-btn>
-      <q-btn style="width: 100%" @click="enviarcow" color="teal" icon="send" label="Enviar Cobros"> </q-btn>
       <q-btn style="width: 100%" @click="imprimir" color="info" icon="print" label="Imprimir todos los Cobros"> </q-btn>
     </div>
   </div>
