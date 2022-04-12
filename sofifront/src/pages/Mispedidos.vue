@@ -1026,6 +1026,7 @@ export default {
             y=0
           }
         })
+        
          doc.save("Cerdo -"+date.formatDate(Date.now(),'DD-MM-YYYY')+".pdf");
         //window.open(doc.output('bloburl'), '_blank');
       })
