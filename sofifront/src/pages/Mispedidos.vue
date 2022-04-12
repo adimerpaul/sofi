@@ -885,8 +885,8 @@ export default {
 
 
 
-        // doc.save("Pago"+date.formatDate(Date.now(),'DD-MM-YYYY')+".pdf");
-        window.open(doc.output('bloburl'), '_blank');
+         doc.save("Pollo -"+date.formatDate(Date.now(),'DD-MM-YYYY')+".pdf");
+        //window.open(doc.output('bloburl'), '_blank');
       })
 
       // console.log(this.$store.getters["login/user"])
@@ -956,7 +956,8 @@ export default {
             y=0
           }
         })
-        window.open(doc.output('bloburl'), '_blank');
+         doc.save("Res -"+date.formatDate(Date.now(),'DD-MM-YYYY')+".pdf");
+        //window.open(doc.output('bloburl'), '_blank');
       })
     },
 
@@ -1025,7 +1026,8 @@ export default {
             y=0
           }
         })
-        window.open(doc.output('bloburl'), '_blank');
+         doc.save("Cerdo -"+date.formatDate(Date.now(),'DD-MM-YYYY')+".pdf");
+        //window.open(doc.output('bloburl'), '_blank');
       })
     },
 
