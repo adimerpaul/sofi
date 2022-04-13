@@ -1140,7 +1140,7 @@ export default {
           doc.text(11.5,1.5,  'PRODUCTO')
           doc.text(17,1.5,  'CANT')
           doc.text(18.5,1.5,  'PRECIO')
-          doc.text(19.5,1.5,  'OBSERVACION')
+          doc.text(21,1.5,  'OBSERVACION')
           doc.setFont(undefined,'normal')
         }
         var doc = new jsPDF('L','cm','legal')
@@ -1177,7 +1177,7 @@ export default {
             y=1.5
           }
         })
-         doc.save("Res -"+date.formatDate(Date.now(),'DD-MM-YYYY')+".pdf");
+         doc.save("COMAD -"+date.formatDate(Date.now(),'DD-MM-YYYY')+".pdf");
         //window.open(doc.output('bloburl'), '_blank');
       })
     },
