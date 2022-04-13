@@ -735,7 +735,7 @@ export default {
             doc.text(20, y+0.4, r.obsbrasa5==null?'':r.obsbrasa5+'')
             y+=0.8
           }
-                    if (y+3>25){
+                    if (y+3>21){
             doc.addPage();
             header()
             y=0
@@ -753,7 +753,7 @@ export default {
             doc.text(20, y+0.4, r.obsbrasa6==null?'':r.obsbrasa6+'')
             y+=0.8
           }
-                    if (y+3>25){
+                    if (y+3>21){
             doc.addPage();
             header()
             y=0
@@ -771,7 +771,7 @@ export default {
             doc.text(20, y+0.4, r.obs104==null?'':r.obs104+'')
             y+=0.8
           }
-                    if (y+3>25){
+                    if (y+3>21){
             doc.addPage();
             header()
             y=0
@@ -789,7 +789,7 @@ export default {
             doc.text(20, y+0.4, r.obs105==null?'':r.obs105+'')
             y+=0.8
           }
-                    if (y+3>25){
+                    if (y+3>21){
             doc.addPage();
             header()
             y=0
@@ -807,7 +807,7 @@ export default {
             doc.text(20, y+0.4, r.obs106==null?'':r.obs106+'')
             y+=0.8
           }
-                    if (y+3>25){
+                    if (y+3>21){
             doc.addPage();
             header()
             y=0
@@ -825,7 +825,7 @@ export default {
             doc.text(20, y+0.4, r.obs107==null?'':r.obs107+'')
             y+=0.8
           }
-                    if (y+3>25){
+                    if (y+3>21){
             doc.addPage();
             header()
             y=0
@@ -843,7 +843,7 @@ export default {
             doc.text(20, y+0.4, r.obs108==null?'':r.obs108+'')
             y+=0.8
           }
-                    if (y+3>25){
+                    if (y+3>21){
             doc.addPage();
             header()
             y=0
@@ -861,7 +861,7 @@ export default {
             doc.text(20, y+0.4, r.obs109==null?'':r.obs109+'')
             y+=0.8
           }
-                    if (y+3>25){
+                    if (y+3>21){
             doc.addPage();
             header()
             y=0
@@ -879,7 +879,7 @@ export default {
             doc.text(20, y+0.4, r.obsala==null?'':r.obsala+'')
             y+=0.8
           }
-                    if (y+3>25){
+                    if (y+3>21){
             doc.addPage();
             header()
             y=0
@@ -897,7 +897,7 @@ export default {
             doc.text(20, y+0.4, r.obscadera==null?'':r.obscadera+'')
             y+=0.8
           }
-                    if (y+3>25){
+                    if (y+3>21){
             doc.addPage();
             header()
             y=0
@@ -915,7 +915,7 @@ export default {
             doc.text(20, y+0.4, r.obspecho==null?'':r.obspecho+'')
             y+=0.8
           }
-                    if (y+3>25){
+                    if (y+3>21){
             doc.addPage();
             header()
             y=0
@@ -933,7 +933,7 @@ export default {
             doc.text(20, y+0.4, r.obspie==null?'':r.obspie+'')
             y+=0.8
           }
-                    if (y+3>25){
+                    if (y+3>21){
             doc.addPage();
             header()
             y=0
@@ -951,7 +951,7 @@ export default {
             doc.text(20, y+0.4, r.obsfilete==null?'':r.obsfilete+'')
             y+=0.8
           }
-          if (y+3>25){
+          if (y+3>21){
             doc.addPage();
             header()
             y=0
@@ -969,7 +969,7 @@ export default {
             doc.text(20, y+0.4, r.obscuello==null?'':r.obscuello+'')
             y+=0.8
           }
-                    if (y+3>25){
+                    if (y+3>21){
             doc.addPage();
             header()
             y=0
@@ -989,7 +989,7 @@ export default {
             doc.text(20, y+0.4, r.obshueso==null?'':r.obshueso+'')
             y+=0.8
           }
-                    if (y+3>25){
+                    if (y+3>21){
             doc.addPage();
             header()
             y=0
@@ -1028,7 +1028,7 @@ export default {
 
 
 
-          if (y+3>25){
+          if (y+3>21){
             doc.addPage();
             header()
             y=0
@@ -1102,7 +1102,7 @@ export default {
           doc.text(16, y+0.4, r.brazo==null?'':r.brazo+'')
           doc.text(17.5, y+0.4, r.Observaciones==null?'':r.Observaciones+'')
            y+=0.5
-          if (y+3>25){
+          if (y+3>21){
             doc.addPage();
             header()
             y=0
@@ -1172,7 +1172,7 @@ export default {
           doc.text(17.5, y+0.4, r.kilo==null?'':r.kilo+'')
           doc.text(19, y+0.4, r.Observaciones==null?'':r.Observaciones+'')
            y+=0.5
-          if (y+3>25){
+          if (y+3>21){
             doc.addPage();
             header()
             y=0
