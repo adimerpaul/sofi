@@ -1168,8 +1168,8 @@ export default {
           doc.text(9.5, y+0.4, r.cod_prod)
           doc.text(11.5, y+0.4, r.Producto.substring(0,25))
           doc.text(17, y+0.4, r.Cant+'')
-          doc.text(18, y+0.4, r.precio+'')
-          doc.text(19, y+0.4, r.Observaciones==null?'':r.Observaciones+'')
+          doc.text(18.5, y+0.4, r.precio+'')
+          doc.text(20, y+0.4, r.Observaciones==null?'':r.Observaciones+'')
            y+=0.5
           if (y+3>21){
             doc.addPage();
