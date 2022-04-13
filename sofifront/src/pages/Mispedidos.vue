@@ -735,6 +735,11 @@ export default {
             doc.text(20, y+0.4, r.obsbrasa5==null?'':r.obsbrasa5+'')
             y+=0.8
           }
+                    if (y+3>25){
+            doc.addPage();
+            header()
+            y=0
+          }
           if (r.bsbrasa6!=null){
             doc.setFont(undefined,'bold')
             doc.text(13.5, y, 'C Bra6')
@@ -747,6 +752,11 @@ export default {
             doc.text(17.5, y+0.4, r.bsbrasa6==null?'':r.bsbrasa6+'')
             doc.text(20, y+0.4, r.obsbrasa6==null?'':r.obsbrasa6+'')
             y+=0.8
+          }
+                    if (y+3>25){
+            doc.addPage();
+            header()
+            y=0
           }
                     if (r.bs104!=null){
             doc.setFont(undefined,'bold')
@@ -761,6 +771,11 @@ export default {
             doc.text(20, y+0.4, r.obs104==null?'':r.obs104+'')
             y+=0.8
           }
+                    if (y+3>25){
+            doc.addPage();
+            header()
+            y=0
+          }
                               if (r.bs105!=null){
             doc.setFont(undefined,'bold')
             doc.text(13.5, y, 'C 105')
@@ -773,6 +788,11 @@ export default {
             doc.text(17.5, y+0.4, r.bs105==null?'':r.bs105+'')
             doc.text(20, y+0.4, r.obs105==null?'':r.obs105+'')
             y+=0.8
+          }
+                    if (y+3>25){
+            doc.addPage();
+            header()
+            y=0
           }
                               if (r.bs106!=null){
             doc.setFont(undefined,'bold')
@@ -787,6 +807,11 @@ export default {
             doc.text(20, y+0.4, r.obs106==null?'':r.obs106+'')
             y+=0.8
           }
+                    if (y+3>25){
+            doc.addPage();
+            header()
+            y=0
+          }
                               if (r.bs107!=null){
             doc.setFont(undefined,'bold')
             doc.text(13.5, y, 'C 107')
@@ -799,6 +824,11 @@ export default {
             doc.text(17.5, y+0.4, r.bs107==null?'':r.bs107+'')
             doc.text(20, y+0.4, r.obs107==null?'':r.obs107+'')
             y+=0.8
+          }
+                    if (y+3>25){
+            doc.addPage();
+            header()
+            y=0
           }
                               if (r.bs108!=null){
             doc.setFont(undefined,'bold')
@@ -813,6 +843,11 @@ export default {
             doc.text(20, y+0.4, r.obs108==null?'':r.obs108+'')
             y+=0.8
           }
+                    if (y+3>25){
+            doc.addPage();
+            header()
+            y=0
+          }
                               if (r.bs109!=null){
             doc.setFont(undefined,'bold')
             doc.text(13.5, y, 'C 109')
@@ -825,6 +860,11 @@ export default {
             doc.text(17.5, y+0.4, r.bs109==null?'':r.bs109+'')
             doc.text(20, y+0.4, r.obs109==null?'':r.obs109+'')
             y+=0.8
+          }
+                    if (y+3>25){
+            doc.addPage();
+            header()
+            y=0
           }
           if (r.bsala!=null){
             doc.setFont(undefined,'bold')
@@ -839,6 +879,11 @@ export default {
             doc.text(20, y+0.4, r.obsala==null?'':r.obsala+'')
             y+=0.8
           }
+                    if (y+3>25){
+            doc.addPage();
+            header()
+            y=0
+          }
           if (r.bscadera!=null){
             doc.setFont(undefined,'bold')
             doc.text(13.5, y, 'cadera')
@@ -851,6 +896,11 @@ export default {
             doc.text(17.5, y+0.4, r.bscadera==null?'':r.bscadera+'')
             doc.text(20, y+0.4, r.obscadera==null?'':r.obscadera+'')
             y+=0.8
+          }
+                    if (y+3>25){
+            doc.addPage();
+            header()
+            y=0
           }
           if (r.bspecho!=null){
             doc.setFont(undefined,'bold')
@@ -865,6 +915,11 @@ export default {
             doc.text(20, y+0.4, r.obspecho==null?'':r.obspecho+'')
             y+=0.8
           }
+                    if (y+3>25){
+            doc.addPage();
+            header()
+            y=0
+          }
           if (r.bspie!=null){
             doc.setFont(undefined,'bold')
             doc.text(13.5, y, 'Pi/Mu')
@@ -877,6 +932,11 @@ export default {
             doc.text(17.5, y+0.4, r.bspie==null?'':r.bspie+'')
             doc.text(20, y+0.4, r.obspie==null?'':r.obspie+'')
             y+=0.8
+          }
+                    if (y+3>25){
+            doc.addPage();
+            header()
+            y=0
           }
           if (r.bsfilete!=null){
             doc.setFont(undefined,'bold')
@@ -891,7 +951,11 @@ export default {
             doc.text(20, y+0.4, r.obsfilete==null?'':r.obsfilete+'')
             y+=0.8
           }
-
+          if (y+3>25){
+            doc.addPage();
+            header()
+            y=0
+          }
                     if (r.bscuello!=null){
             doc.setFont(undefined,'bold')
             doc.text(13.5, y, ' cuello')
@@ -904,6 +968,11 @@ export default {
             doc.text(17.5, y+0.4, r.bscuello==null?'':r.bscuello+'')
             doc.text(20, y+0.4, r.obscuello==null?'':r.obscuello+'')
             y+=0.8
+          }
+                    if (y+3>25){
+            doc.addPage();
+            header()
+            y=0
           }
 
 
@@ -919,6 +988,11 @@ export default {
             doc.text(17.5, y+0.4, r.bshueso==null?'':r.bshueso+'')
             doc.text(20, y+0.4, r.obshueso==null?'':r.obshueso+'')
             y+=0.8
+          }
+                    if (y+3>25){
+            doc.addPage();
+            header()
+            y=0
           }
                     if (r.bsmenu!=null){
             doc.setFont(undefined,'bold')
