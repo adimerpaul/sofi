@@ -748,6 +748,84 @@ export default {
             doc.text(20, y+0.4, r.obsbrasa6==null?'':r.obsbrasa6+'')
             y+=0.8
           }
+                    if (r.bs104!=null){
+            doc.setFont(undefined,'bold')
+            doc.text(13.5, y, 'C 104')
+            doc.text(15.5, y, 'U 104')
+            doc.text(17.5, y, 'Bs 104')
+            doc.text(20, y, 'OBS 104')
+            doc.setFont(undefined,'normal')
+            doc.text(13.5, y+0.4, r.c104==null?'':r.c104+'')
+            doc.text(15.5, y+0.4, r.u104==null?'':r.u104+'')
+            doc.text(17.5, y+0.4, r.bs104==null?'':r.bs104+'')
+            doc.text(20, y+0.4, r.obs104==null?'':r.obs104+'')
+            y+=0.8
+          }
+                              if (r.bs105!=null){
+            doc.setFont(undefined,'bold')
+            doc.text(13.5, y, 'C 105')
+            doc.text(15.5, y, 'U 105')
+            doc.text(17.5, y, 'Bs 105')
+            doc.text(20, y, 'OBS 105')
+            doc.setFont(undefined,'normal')
+            doc.text(13.5, y+0.4, r.c105==null?'':r.c105+'')
+            doc.text(15.5, y+0.4, r.u105==null?'':r.u105+'')
+            doc.text(17.5, y+0.4, r.bs105==null?'':r.bs105+'')
+            doc.text(20, y+0.4, r.obs105==null?'':r.obs105+'')
+            y+=0.8
+          }
+                              if (r.bs106!=null){
+            doc.setFont(undefined,'bold')
+            doc.text(13.5, y, 'C 106')
+            doc.text(15.5, y, 'U 106')
+            doc.text(17.5, y, 'Bs 106')
+            doc.text(20, y, 'OBS 106')
+            doc.setFont(undefined,'normal')
+            doc.text(13.5, y+0.4, r.c106==null?'':r.c106+'')
+            doc.text(15.5, y+0.4, r.u106==null?'':r.u106+'')
+            doc.text(17.5, y+0.4, r.bs106==null?'':r.bs106+'')
+            doc.text(20, y+0.4, r.obs106==null?'':r.obs106+'')
+            y+=0.8
+          }
+                              if (r.bs107!=null){
+            doc.setFont(undefined,'bold')
+            doc.text(13.5, y, 'C 107')
+            doc.text(15.5, y, 'U 107')
+            doc.text(17.5, y, 'Bs 107')
+            doc.text(20, y, 'OBS 107')
+            doc.setFont(undefined,'normal')
+            doc.text(13.5, y+0.4, r.c107==null?'':r.c107+'')
+            doc.text(15.5, y+0.4, r.u107==null?'':r.u107+'')
+            doc.text(17.5, y+0.4, r.bs107==null?'':r.bs107+'')
+            doc.text(20, y+0.4, r.obs107==null?'':r.obs107+'')
+            y+=0.8
+          }
+                              if (r.bs108!=null){
+            doc.setFont(undefined,'bold')
+            doc.text(13.5, y, 'C 108')
+            doc.text(15.5, y, 'U 108')
+            doc.text(17.5, y, 'Bs 108')
+            doc.text(20, y, 'OBS 108')
+            doc.setFont(undefined,'normal')
+            doc.text(13.5, y+0.4, r.c108==null?'':r.c108+'')
+            doc.text(15.5, y+0.4, r.u108==null?'':r.u108+'')
+            doc.text(17.5, y+0.4, r.bs108==null?'':r.bs108+'')
+            doc.text(20, y+0.4, r.obs108==null?'':r.obs108+'')
+            y+=0.8
+          }
+                              if (r.bs109!=null){
+            doc.setFont(undefined,'bold')
+            doc.text(13.5, y, 'C 109')
+            doc.text(15.5, y, 'U 109')
+            doc.text(17.5, y, 'Bs 109')
+            doc.text(20, y, 'OBS 109')
+            doc.setFont(undefined,'normal')
+            doc.text(13.5, y+0.4, r.c109==null?'':r.c109+'')
+            doc.text(15.5, y+0.4, r.u109==null?'':r.u109+'')
+            doc.text(17.5, y+0.4, r.bs109==null?'':r.bs109+'')
+            doc.text(20, y+0.4, r.obs109==null?'':r.obs109+'')
+            y+=0.8
+          }
           if (r.bsala!=null){
             doc.setFont(undefined,'bold')
             doc.text(13.5, y, 'ala')
