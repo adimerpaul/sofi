@@ -721,7 +721,7 @@ export default {
           doc.text(1, y+0.4, r.Id)
           doc.text(3.5, y+0.4, r.Nombres.substring(0,40))
           doc.text(10.5, y+0.4, r.NroPed+'')
-          // y+=0.3
+          y+=0.3
           if (r.bsbrasa5!=null){
             doc.setFont(undefined,'bold')
             doc.text(13.5, y, 'C Bra5')
