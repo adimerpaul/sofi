@@ -738,7 +738,7 @@ export default {
                     if (y+3>21){
             doc.addPage();
             header()
-            y=0
+            
           }
           if (r.bsbrasa6!=null){
             doc.setFont(undefined,'bold')
@@ -756,7 +756,7 @@ export default {
                     if (y+3>21){
             doc.addPage();
             header()
-            y=0
+            
           }
                     if (r.bs104!=null){
             doc.setFont(undefined,'bold')
@@ -774,7 +774,7 @@ export default {
                     if (y+3>21){
             doc.addPage();
             header()
-            y=0
+            
           }
                               if (r.bs105!=null){
             doc.setFont(undefined,'bold')
@@ -792,7 +792,7 @@ export default {
                     if (y+3>21){
             doc.addPage();
             header()
-            y=0
+            
           }
                               if (r.bs106!=null){
             doc.setFont(undefined,'bold')
@@ -810,7 +810,7 @@ export default {
                     if (y+3>21){
             doc.addPage();
             header()
-            y=0
+            
           }
                               if (r.bs107!=null){
             doc.setFont(undefined,'bold')
@@ -828,7 +828,7 @@ export default {
                     if (y+3>21){
             doc.addPage();
             header()
-            y=0
+            
           }
                               if (r.bs108!=null){
             doc.setFont(undefined,'bold')
@@ -846,7 +846,7 @@ export default {
                     if (y+3>21){
             doc.addPage();
             header()
-            y=0
+            
           }
                               if (r.bs109!=null){
             doc.setFont(undefined,'bold')
@@ -864,7 +864,7 @@ export default {
                     if (y+3>21){
             doc.addPage();
             header()
-            y=0
+            
           }
           if (r.bsala!=null){
             doc.setFont(undefined,'bold')
@@ -882,7 +882,7 @@ export default {
                     if (y+3>21){
             doc.addPage();
             header()
-            y=0
+            
           }
           if (r.bscadera!=null){
             doc.setFont(undefined,'bold')
@@ -900,7 +900,7 @@ export default {
                     if (y+3>21){
             doc.addPage();
             header()
-            y=0
+            
           }
           if (r.bspecho!=null){
             doc.setFont(undefined,'bold')
@@ -918,7 +918,7 @@ export default {
                     if (y+3>21){
             doc.addPage();
             header()
-            y=0
+            
           }
           if (r.bspie!=null){
             doc.setFont(undefined,'bold')
@@ -936,7 +936,7 @@ export default {
                     if (y+3>21){
             doc.addPage();
             header()
-            y=0
+            
           }
           if (r.bsfilete!=null){
             doc.setFont(undefined,'bold')
@@ -954,7 +954,7 @@ export default {
           if (y+3>21){
             doc.addPage();
             header()
-            y=0
+            
           }
                     if (r.bscuello!=null){
             doc.setFont(undefined,'bold')
@@ -972,7 +972,7 @@ export default {
                     if (y+3>21){
             doc.addPage();
             header()
-            y=0
+            
           }
 
 
@@ -992,7 +992,7 @@ export default {
                     if (y+3>21){
             doc.addPage();
             header()
-            y=0
+            
           }
                     if (r.bsmenu!=null){
             doc.setFont(undefined,'bold')
@@ -1031,7 +1031,6 @@ export default {
           if (y+3>21){
             doc.addPage();
             header()
-            y=0
           }
         })
 
