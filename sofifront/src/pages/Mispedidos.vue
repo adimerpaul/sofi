@@ -1108,7 +1108,7 @@ export default {
           if (y+3>21){
             doc.addPage();
             header()
-            y=0
+            y=1.5
           }
         })
          doc.save("Res -"+date.formatDate(Date.now(),'DD-MM-YYYY')+".pdf");
@@ -1174,7 +1174,7 @@ export default {
           if (y+3>21){
             doc.addPage();
             header()
-            y=0
+            y=1.5
           }
         })
          doc.save("Res -"+date.formatDate(Date.now(),'DD-MM-YYYY')+".pdf");
@@ -1244,7 +1244,7 @@ export default {
           if (y+3>21){
             doc.addPage();
             header()
-            y=0
+            y=1.5
           }
         })
         
