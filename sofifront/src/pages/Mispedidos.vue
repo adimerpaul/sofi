@@ -19,6 +19,9 @@
   <div class="col-4 flex flex-center">
     <q-btn color="teal" icon="list" label="Rep Cerdo" @click="generarcerdo" />
   </div>
+    <div class="col-4 flex flex-center">
+    <q-btn color="teal" icon="list" label="Rep Comanda" @click="generarcomanda" />
+  </div>
   <div class="col-12">
     <q-table :rows-per-page-options="[15,50,100,0]" dense title="Clientes " :columns="columns" :rows="clientes" :filter="filter">
       <template v-slot:body-cell-opciones="props">
@@ -719,7 +722,7 @@ export default {
           doc.setFont(undefined,'normal')
 
           doc.text(1, y+0.4, r.Id)
-          doc.text(3.5, y+0.4, r.Nombres.substring(0,40))
+          doc.text(3.5, y+0.4, r.Nombres.substring(0,35))
           doc.text(10.5, y+0.4, r.NroPed+'')
           y+=0.5
           if (r.bsbrasa5!=null){
@@ -1112,6 +1115,72 @@ export default {
         //window.open(doc.output('bloburl'), '_blank');
       })
     },
+    
+    imprimircomanda(){
+      this.$q.loading.show()
+      let mc=this
+      let nom='' ;
+      this.$api.post('listcomanda',{fecha1:this.fecha1,fecha2:this.fecha2}).then(res=>{
+        this.$q.loading.hide()
+        console.log(res.data)
+        function header(){
+          doc.setFont(undefined,'bold')
+          doc.text(10, 0.5, 'PEDIDOS  ' )
+          doc.text(1, 1,  'NOMBRE '+mc.$store.getters["login/user"].Nombre1)
+          doc.text(12, 1,  'DE '+mc.fecha1+' AL '+mc.fecha2)
+          doc.text(9,1,  'No')
+
+          doc.setLineWidth(0.1);
+          doc.line(1, 1.1, 21, 1.1);
+
+          doc.text(1,1.5,  'CINIT')
+          doc.text(3.5,1.5,  'CLIENTE')
+          doc.text(8,1.5,  'NPED')
+          doc.text(9.5,1.5,  'CODIGO')
+          doc.text(11.5,1.5,  'PRODUCTO')
+          doc.text(17,1.5,  'CANT')
+          doc.text(18.5,1.5,  'PRECIO')
+          doc.text(19.5,1.5,  'OBSERVACION')
+          doc.setFont(undefined,'normal')
+        }
+        var doc = new jsPDF('L','cm','legal')
+        // console.log(dat);
+        doc.setFont("courier");
+        doc.setFontSize(9);
+        // var x=0,y=
+        header()
+        // let xx=x
+        // let yy=y
+        let y=1.5
+        // xx+=0.5
+
+        res.data.forEach(r=>{
+            doc.text(1, y+0.4, '_____________________________________________________________________________________________________')
+          doc.setFont(undefined,'bold')
+          //doc.text(1,y,  'CINIT')
+          //doc.text(2.5,y,  'CLIENTE')
+          //doc.text(6.5,y,  'COMANDA')
+          doc.setFont(undefined,'normal')
+
+          doc.text(1, y+0.4, r.Id)
+          doc.text(3.5, y+0.4,  r.Nombres.substring(0,20))
+          doc.text(8, y+0.4, r.NroPed+'')
+          doc.text(9.5, y+0.4, r.cod_prod)
+          doc.text(11.5, y+0.4, r.Producto.substring(0,25))
+          doc.text(17, y+0.4, r.Cant+'')
+          doc.text(18, y+0.4, r.precio+'')
+          doc.text(19, y+0.4, r.Observaciones==null?'':r.Observaciones+'')
+           y+=0.5
+          if (y+3>21){
+            doc.addPage();
+            header()
+            y=0
+          }
+        })
+         doc.save("Res -"+date.formatDate(Date.now(),'DD-MM-YYYY')+".pdf");
+        //window.open(doc.output('bloburl'), '_blank');
+      })
+    },
 
     imprimircerdo(){
       this.$q.loading.show()
@@ -1242,6 +1311,10 @@ generarpollo(){
       //     } );
       //   })
       //   this.dialog_cerdo=true
+    },
+    generarcomanda(){
+      this.imprimircomanda()
+
     },
 
     tecleado(e){

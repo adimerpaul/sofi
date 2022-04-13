@@ -222,10 +222,10 @@ class PedidoController extends Controller
         //
     }
 
-    public function pedidos(){
-        return DB::SELECT("SELECT * from tbpedidos p, tbclientes c
-        where c.Cod_Aut=p.idCli and date(fecha)>='$request->fecha1' and date(fecha)<='$request->fecha2'
-        and tipo='NORMAL' AND trim(CIfunc)='".$request->user()->CodAut."' and estado='ENVIADO' ");
+    public function listcomanda(Request $request){
+        return DB::SELECT("SELECT * from tbproductos t, tbpedidos p, tbclientes c
+        where c.Cod_Aut=p.idCli and p.cod_prod=t.cod_prod and date(fecha)>='$request->fecha1' and date(fecha)<='$request->fecha2'
+        and p.tipo='NORMAL' AND trim(CIfunc)='".$request->user()->CodAut."' and estado='ENVIADO' ");
     }
 
     public function clientepedido(Request $request){

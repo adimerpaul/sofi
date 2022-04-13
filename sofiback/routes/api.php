@@ -39,6 +39,7 @@ Route::group(['middleware'=>'auth:sanctum'],function (){
     Route::post('/misasignaciones',[\App\Http\Controllers\AsignarController::class,'misasignaciones']);
     Route::post('/clientepedido',[\App\Http\Controllers\PedidoController::class,'clientepedido']);
     Route::post('/listpedido',[\App\Http\Controllers\PedidoController::class,'listpedido']);
+    Route::post('/listcomanda',[\App\Http\Controllers\PedidoController::class,'listcomanda']);
     Route::post('/updatecomanda',[\App\Http\Controllers\PedidoController::class,'updatecomanda']);
     Route::post('/enviarpedidos',[\App\Http\Controllers\PedidoController::class,'enviarpedidos']);
     Route::post('/envpedido',[\App\Http\Controllers\PedidoController::class,'envpedido']);
