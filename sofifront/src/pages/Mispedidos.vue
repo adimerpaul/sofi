@@ -1182,6 +1182,71 @@ export default {
       })
     },
 
+    imprimircomanda2(){
+      this.$q.loading.show()
+      let mc=this
+      let nom='' ;
+      this.$api.post('listcomanda',{fecha1:this.fecha1,fecha2:this.fecha2}).then(res=>{
+        this.$q.loading.hide()
+        console.log(res.data)
+        function header1(nrop,nombre,direccion,fec){
+          doc.setFont(undefined,'bold')
+          doc.text(100, 5, 'SOLICITUD DE PEDIDO ')
+          doc.text(10, 10,'NroPed '+nrop  )
+          doc.text(10, 15,  'Cliente :'+nombre)
+          doc.text(10, 20,'Direccion: ' +direccion )
+          doc.text(150,10,  'Fec Pedido'+fec)
+        }
+        function header(){
+
+          doc.text(10,y+10,  'COD PROD')
+          doc.text(30,y+10,  'PRODUCTO')
+          doc.text(80,y+10,  'CANT')
+          doc.text(95,y+10,  'PRECIO')
+          doc.text(115,y+10,  'OBSERVACION')
+          doc.setFont(undefined,'normal')
+        }
+        var doc = new jsPDF('l', 'mm', [148, 210])
+        // console.log(dat);
+        doc.setFont("courier");
+        doc.setFontSize(9);
+        let y=15
+        // xx+=0.5
+        let comanda=res.data[0].NroPed
+                    header1(res.data[0].NroPed,res.data[0].Nombres,res.data[0].Direccion,res.data[0].fecha)
+            header()
+         y=25
+
+        res.data.forEach(r=>{
+          if(comanda != r.NroPed){
+            doc.addPage();
+            header1(r.NroPed,r.Nombres,r.Direccion,r.fecha)
+            y=15
+            header()
+            y+=10
+            comanda=r.NroPed
+
+          }
+
+          doc.setFont(undefined,'normal')
+
+          doc.text(10, y+4, r.cod_prod)
+          doc.text(30, y+4,  r.Producto)
+          doc.text(80, y+4, r.Cant+'')
+          doc.text(95, y+4, r.precio+'')
+          doc.text(115, y+4, r.Observaciones==null?'':r.Observaciones+'')
+           y+=5
+          if (y+30>140){
+            doc.addPage();
+            header()
+            y=5
+          }
+        })
+         doc.save("COMAD -"+date.formatDate(Date.now(),'DD-MM-YYYY')+".pdf");
+        //window.open(doc.output('bloburl'), '_blank');
+      })
+    },
+
     imprimircerdo(){
       this.$q.loading.show()
       let mc=this
@@ -1313,7 +1378,7 @@ generarpollo(){
       //   this.dialog_cerdo=true
     },
     generarcomanda(){
-      this.imprimircomanda()
+      this.imprimircomanda2()
 
     },
 
