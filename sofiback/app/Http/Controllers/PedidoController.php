@@ -225,7 +225,7 @@ class PedidoController extends Controller
     public function listcomanda(Request $request){
         return DB::SELECT("SELECT * from tbproductos t, tbpedidos p, tbclientes c
         where c.Cod_Aut=p.idCli and p.cod_prod=t.cod_prod and date(fecha)>='$request->fecha1' and date(fecha)<='$request->fecha2'
-        and p.tipo='NORMAL' AND trim(CIfunc)='".$request->user()->CodAut."' and estado='ENVIADO' ");
+        and p.tipo='NORMAL' AND estado='ENVIADO' ");
     }
 
     public function clientepedido(Request $request){

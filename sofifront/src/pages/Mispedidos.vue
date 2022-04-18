@@ -10,17 +10,17 @@
   <div class="col-4 flex flex-center">
     <q-btn color="info" icon="search" label="consulta" @click="misclientes"  />
   </div>
-  <div class="col-4 flex flex-center">
-    <q-btn color="green" icon="list" label="Rep Pollo" @click="generarpollo" />
+  <div class="col-12 col-sm-3 flex flex-center">
+    <q-btn color="green" icon="list" label="Reporte Pollo" @click="generarpollo" />
   </div>
-  <div class="col-4 flex flex-center">
-    <q-btn color="accent" icon="list" label="Rep Res" @click="generarres" />
+  <div class="col-12 col-sm-3 flex flex-center">
+    <q-btn color="accent" icon="list" label="Reporte Res" @click="generarres" />
   </div>
-  <div class="col-4 flex flex-center">
-    <q-btn color="teal" icon="list" label="Rep Cerdo" @click="generarcerdo" />
+  <div class="col-12 col-sm-3 flex flex-center">
+    <q-btn color="teal" icon="list" label="Reporte Cerdo" @click="generarcerdo" />
   </div>
-    <div class="col-4 flex flex-center">
-    <q-btn color="teal" icon="list" label="Rep Comanda" @click="generarcomanda" />
+  <div class="col-12 col-sm-3 flex flex-center">
+    <q-btn color="teal" icon="list" label="Reporte Comanda" @click="generarcomanda" />
   </div>
   <div class="col-12">
     <q-table :rows-per-page-options="[15,50,100,0]" dense title="Clientes " :columns="columns" :rows="clientes" :filter="filter">
@@ -275,7 +275,7 @@
       </q-card>
     </q-dialog>
 
-    <q-dialog v-model="dialog_pollo" full-width>
+    <q-dialog v-model="dialog_pollo" full-width full-height>
       <q-card >
         <q-card-section>
           <div class="text-h6">PEDIDO POLLO</div>
@@ -534,8 +534,17 @@
 
 <script>
 import {date} from "quasar";
-
-import $ from "jquery";
+var $  = require( 'jquery' );
+require( 'datatables.net-buttons/js/buttons.html5.js' )();
+require( 'datatables.net-buttons/js/buttons.print.js' )();
+require('datatables.net-buttons/js/dataTables.buttons');
+require('datatables.net-dt/css/jquery.dataTables.min.css');
+import print from 'datatables.net-buttons/js/buttons.print';
+import jszip from 'jszip/dist/jszip';
+import pdfMake from 'pdfmake/build/pdfmake';
+import pdfFonts from 'pdfmake/build/vfs_fonts';
+pdfMake.vfs=pdfFonts.pdfMake.vfs;
+window.JSZip=jszip;
 import { jsPDF } from "jspdf";
 export default {
   data(){
@@ -1115,7 +1124,7 @@ export default {
         //window.open(doc.output('bloburl'), '_blank');
       })
     },
-    
+
     imprimircomanda(){
       this.$q.loading.show()
       let mc=this
@@ -1312,30 +1321,29 @@ export default {
             y=1.5
           }
         })
-        
+
          doc.save("Cerdo -"+date.formatDate(Date.now(),'DD-MM-YYYY')+".pdf");
         //window.open(doc.output('bloburl'), '_blank');
       })
     },
 
 generarpollo(){
-      this.imprimirpollo()
-      //   $('#example').DataTable().destroy();
-      //
-      // this.$api.post('rpollo',{fecha1:this.fecha1,fecha2:this.fecha2}).then(res=>{
-      //
-      //   console.log(res.data)
-      //   $('#example').DataTable().destroy();
-      //   this.pollo=res.data;
-      //     $('#example').DataTable( {
-      //       dom: 'Blfrtip',
-      //       buttons: [
-      //         'copy', 'csv', 'excel', 'pdf', 'print'
-      //       ],
-      //        "lengthMenu": [[10, 25, 50, -1], [10, 25, 50, "All"]]
-      //     } );
-      //   })
-      //   this.dialog_pollo=true
+      // this.imprimirpollo()
+        $('#example').DataTable().destroy();
+
+      this.$api.post('rpollo',{fecha1:this.fecha1,fecha2:this.fecha2}).then(res=>{
+        console.log(res.data)
+        $('#example').DataTable().destroy();
+        this.pollo=res.data;
+          $('#example').DataTable( {
+            dom: 'Blfrtip',
+            buttons: [
+              'copy', 'csv', 'excel', 'pdf', 'print'
+            ],
+             "lengthMenu": [[10, 25, 50, -1], [10, 25, 50, "All"]]
+          } );
+        })
+        this.dialog_pollo=true
     },
 
         generarres(){
