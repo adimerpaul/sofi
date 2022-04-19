@@ -20,7 +20,7 @@ use Illuminate\Support\Facades\Route;
 Route::post('/login',[\App\Http\Controllers\UserController::class,'login']);
 Route::post('/ctacobrar',[\App\Http\Controllers\CobrarController::class,'ctacobrar']);
 Route::resource('/excel',\App\Http\Controllers\ExcelController::class);
-Route::get('/excel/{t}/{f1}/{f2}',[\App\Http\Controllers\ExcelController::class,'consulta']);
+Route::get('/excel/{t}/{f1}/{f2}/{CodAut}',[\App\Http\Controllers\ExcelController::class,'consulta']);
 Route::group(['middleware'=>'auth:sanctum'],function (){
     Route::post('/me',[\App\Http\Controllers\UserController::class,'me']);
     Route::resource('/cliente',\App\Http\Controllers\ClienteController::class);

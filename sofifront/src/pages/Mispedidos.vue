@@ -1,27 +1,27 @@
 <template>
 <q-page class="q-pa-xs">
 <div class="row">
-  <div class="col-4">
+  <div class="col-6">
     <q-input dense outlined v-model="fecha1" label="Fecha Ini" type="date"/>
   </div>
-    <div class="col-4">
-    <q-input dense outlined v-model="fecha2" label="Fecha Fin" type="date"/>
-  </div>
-  <div class="col-4 flex flex-center">
+<!--    <div class="col-6">-->
+<!--    <q-input dense outlined v-model="fecha2" label="Fecha Fin" type="date"/>-->
+<!--  </div>-->
+  <div class="col-6 flex flex-center">
     <q-btn color="info" icon="search" label="consulta" @click="misclientes"  />
   </div>
-  <div class="col-12 col-sm-3 flex flex-center">
-    <q-btn color="green" type="a" :href="url+'excel/p/'+fecha1+'/'+fecha2" target="_blank" icon="list" label="Reporte Pollo" @click1="generarpollo" />
+  <div class="col-4 col-sm-4 flex flex-center">
+    <q-btn class="full-width" color="green" type="a" :href="url+'excel/p/'+fecha1+'/'+fecha2+'/'+$store.state.login.user.CodAut" target="_blank" icon="list" label="Reporte Pollo" @click1="generarpollo" />
   </div>
-  <div class="col-12 col-sm-3 flex flex-center">
-    <q-btn color="accent" icon="list" label="Reporte Res" @click="generarres" />
+  <div class="col-4 col-sm-4 flex flex-center">
+    <q-btn class="full-width" color="accent" icon="list" label="Reporte Res" @click="generarres" />
   </div>
-  <div class="col-12 col-sm-3 flex flex-center">
-    <q-btn color="teal" icon="list" label="Reporte Cerdo" @click="generarcerdo" />
+  <div class="col-4 col-sm-4 flex flex-center">
+    <q-btn class="full-width" color="teal" icon="list" label="Reporte Cerdo" @click="generarcerdo" />
   </div>
-  <div class="col-12 col-sm-3 flex flex-center">
-    <q-btn color="teal" icon="list" label="Reporte Comanda" @click="generarcomanda" />
-  </div>
+<!--  <div class="col-6 col-sm-3 flex flex-center">-->
+<!--    <q-btn class="full-width" color="teal" icon="list" label="Reporte Comanda" @click="generarcomanda" />-->
+<!--  </div>-->
   <div class="col-12">
     <q-table :rows-per-page-options="[15,50,100,0]" dense title="Clientes " :columns="columns" :rows="clientes" :filter="filter">
       <template v-slot:body-cell-opciones="props">
@@ -141,7 +141,7 @@
 
             <div class="col-6" ><q-input type="number" dense outlined label="Cja-106" v-model="miproducto.c106"/></div>
             <div class="col-6" ><q-input type="number" dense outlined label="Unid-106" v-model="miproducto.u106"/></div>
-     
+
             <div class="col-6" ><q-input type="number" dense outlined label="Cja-107" v-model="miproducto.c107"/></div>
             <div class="col-6" ><q-input type="number" dense outlined label="Unid-107" v-model="miproducto.u107"/></div>
 
@@ -559,8 +559,8 @@ export default {
       columns:[
         {label:'opciones',name:'opciones',field:'opciones'},
         {label:'Comanda',name:'NroPed',field:'NroPed'},
-        {label:'Nombre',name:'Nombres',field:'Nombres'},
-        {label:'CI',name:'Id',field:'Id'},
+        {label:'Nombre',name:'Nombres',field:'Nombres',align:'left'},
+        {label:'CI',name:'Id',field:'Id',align:'left'},
       ],
       columnsproducto:[
         {label:'subtotal',name:'subtotal',field:'subtotal'},

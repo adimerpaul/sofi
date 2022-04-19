@@ -5,7 +5,7 @@
         <q-btn flat dense round icon="menu" aria-label="Menu" @click="toggleLeftDrawer"/>
         <q-toolbar-title>
           <template v-if="$store.getters['login/user'].Nombre1==undefined">Sofia</template>
-          <template v-else>{{ $store.getters['login/user'].Nombre1 }}</template>
+          <template v-else>{{ $store.getters['login/user'].Nombre1 }} {{ $store.getters['login/user'].App1 }}</template>
         </q-toolbar-title>
 <!--        <div>Quasar v{{ $q.version }}</div>-->
         <div>
@@ -28,8 +28,7 @@
             </q-item-label>
           </q-item-section>
         </q-item>
-
-        <q-item clickable exact to="visita">
+        <q-item clickable exact to="visita" v-if="$store.getters['login/user'].ci=='7360035'||$store.getters['login/user'].ci=='1593578'||$store.getters['login/user'].ci=='12612870'||$store.getters['login/user'].ci=='3520335'">
           <q-item-section avatar>
             <q-icon name="map" />
           </q-item-section>
@@ -40,9 +39,7 @@
             </q-item-label>
           </q-item-section>
         </q-item>
-
-
-        <q-item clickable exact to="mispedidos">
+        <q-item clickable exact to="mispedidos" v-if="$store.getters['login/user'].ci=='7360035'||$store.getters['login/user'].ci=='1593578'||$store.getters['login/user'].ci=='12612870'||$store.getters['login/user'].ci=='3520335'">
           <q-item-section avatar>
             <q-icon name="list" />
           </q-item-section>
@@ -53,7 +50,6 @@
             </q-item-label>
           </q-item-section>
         </q-item>
-
         <q-item clickable exact to="clientes" v-if="$store.getters['login/user'].ci=='7329536'">
           <q-item-section avatar>
             <q-icon name="people" />
@@ -65,7 +61,39 @@
             </q-item-label>
           </q-item-section>
         </q-item>
-
+        <q-item clickable exact to="cobranza" v-if="$store.getters['login/user'].ci=='7360035'||$store.getters['login/user'].ci=='1593578'||$store.getters['login/user'].ci=='12612870'||$store.getters['login/user'].ci=='3520335'">
+          <q-item-section avatar>
+            <q-icon name="receipt" />
+          </q-item-section>
+          <q-item-section>
+            <q-item-label>Cobranzas</q-item-label>
+            <q-item-label caption>
+              Cobro a cliente
+            </q-item-label>
+          </q-item-section>
+        </q-item>
+        <q-item clickable exact to="miscobranzas" v-if="$store.getters['login/user'].ci=='7360035'||$store.getters['login/user'].ci=='1593578'||$store.getters['login/user'].ci=='12612870'||$store.getters['login/user'].ci=='3520335'">
+          <q-item-section avatar>
+            <q-icon name="money" />
+          </q-item-section>
+          <q-item-section>
+            <q-item-label>Mis Cobros</q-item-label>
+            <q-item-label caption>
+              Mis Cobros
+            </q-item-label>
+          </q-item-section>
+        </q-item>
+        <q-item clickable exact to="generar" v-if="$store.getters['login/user'].ci=='0'">
+          <q-item-section avatar>
+            <q-icon name="money" />
+          </q-item-section>
+          <q-item-section>
+            <q-item-label>exportar excel</q-item-label>
+            <q-item-label caption>
+              exportar excel
+            </q-item-label>
+          </q-item-section>
+        </q-item>
 
         <!--        <q-item clickable exact to="asignar">-->
 <!--          <q-item-section avatar>-->
@@ -91,34 +119,12 @@
 <!--          </q-item-section>-->
 <!--        </q-item>-->
 
-        <q-item clickable exact to="cobranza">
-          <q-item-section avatar>
-            <q-icon name="receipt" />
-          </q-item-section>
-          <q-item-section>
-            <q-item-label>Cobranzas</q-item-label>
-            <q-item-label caption>
-              Cobro a cliente
-            </q-item-label>
-          </q-item-section>
-        </q-item>
-        <q-item clickable exact to="miscobranzas">
-          <q-item-section avatar>
-            <q-icon name="money" />
-          </q-item-section>
-          <q-item-section>
-            <q-item-label>Mis Cobros</q-item-label>
-            <q-item-label caption>
-              Mis Cobros
-            </q-item-label>
-          </q-item-section>
-        </q-item>
+
 
         <q-item v-if="$store.getters['login/isLoggedIn']" clickable @click="logout">
           <q-item-section avatar>
             <q-icon name="logout" />
           </q-item-section>
-
           <q-item-section>
             <q-item-label>Salir</q-item-label>
             <q-item-label caption>
