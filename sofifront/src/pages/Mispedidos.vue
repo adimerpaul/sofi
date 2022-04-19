@@ -127,86 +127,65 @@
         <q-card-section class="q-pt-none">
           <div class="row">
 <!--            <pre>{{miproducto}}</pre>-->
-            <div class="col-3" ><q-input type="number" dense outlined label="Cja b5" v-model="miproducto.cbrasa5"/></div>
-            <div class="col-3" ><q-input type="number" dense outlined label="Uni b5" v-model="miproducto.ubrasa5"/></div>
-            <div class="col-2" ><q-input type="number" dense outlined label="BS" v-model="miproducto.bsbrasa5"/></div>
-            <div class="col-4" ><q-input type="text" dense outlined label="OBS" v-model="miproducto.obsbrasa5"/></div>
-            <div class="col-3" ><q-input type="number" dense outlined label="Cja b6" v-model="miproducto.cbrasa6"/></div>
-            <div class="col-3" ><q-input type="number" dense outlined label="Uni b6" v-model="miproducto.cubrasa6"/></div>
-            <div class="col-2" ><q-input type="number" dense outlined label="BS" v-model="miproducto.bsbrasa6"/></div>
-            <div class="col-4" ><q-input type="text" dense outlined label="OBS" v-model="miproducto.obsbrasa6"/></div>
-            <div class="col-3" ><q-input type="number" dense outlined label="Cja-104" v-model="miproducto.c104"/></div>
-            <div class="col-3" ><q-input type="number" dense outlined label="Unid-104" v-model="miproducto.u104"/></div>
-            <div class="col-2" ><q-input type="number" dense outlined label="BS" v-model="miproducto.bs104"/></div>
-            <div class="col-4" ><q-input type="text" dense outlined label="OBS" v-model="miproducto.obs104"/></div>
-            <div class="col-3" ><q-input type="number" dense outlined label="Cja-105" v-model="miproducto.c105"/></div>
-            <div class="col-3" ><q-input type="number" dense outlined label="Unid-105" v-model="miproducto.u105"/></div>
-            <div class="col-2" ><q-input type="number" dense outlined label="BS" v-model="miproducto.bs105"/></div>
-            <div class="col-4" ><q-input type="text" dense outlined label="OBS" v-model="miproducto.obs105"/></div>
-            <div class="col-3" ><q-input type="number" dense outlined label="Cja-106" v-model="miproducto.c106"/></div>
-            <div class="col-3" ><q-input type="number" dense outlined label="Unid-106" v-model="miproducto.u106"/></div>
-            <div class="col-2" ><q-input type="number" dense outlined label="BS" v-model="miproducto.bs106"/></div>
-            <div class="col-4" ><q-input type="text" dense outlined label="OBS" v-model="miproducto.obs106"/></div>
-            <div class="col-3" ><q-input type="number" dense outlined label="Cja-107" v-model="miproducto.c107"/></div>
-            <div class="col-3" ><q-input type="number" dense outlined label="Unid-107" v-model="miproducto.u107"/></div>
-            <div class="col-2" ><q-input type="number" dense outlined label="BS" v-model="miproducto.bs107"/></div>
-            <div class="col-4" ><q-input type="text" dense outlined label="OBS" v-model="miproducto.obs107"/></div>
-            <div class="col-3" ><q-input type="number" dense outlined label="Cja-108" v-model="miproducto.c108"/></div>
-            <div class="col-3" ><q-input type="number" dense outlined label="Unid-108" v-model="miproducto.u108"/></div>
-            <div class="col-2" ><q-input type="number" dense outlined label="BS" v-model="miproducto.bs108"/></div>
-            <div class="col-4" ><q-input type="text" dense outlined label="OBS" v-model="miproducto.obs108"/></div>
-            <div class="col-3" ><q-input type="number" dense outlined label="Cja-109" v-model="miproducto.c109"/></div>
-            <div class="col-3" ><q-input type="number" dense outlined label="Unid-109" v-model="miproducto.u109"/></div>
-            <div class="col-2" ><q-input type="number" dense outlined label="BS" v-model="miproducto.bs109"/></div>
-            <div class="col-4" ><q-input type="text" dense outlined label="OBS" v-model="miproducto.obs109"/></div>
-            <div class="col-3" ><q-input type="number" dense outlined label="ala" v-model="miproducto.ala"/></div>
-            <div class="col-3">
+            <div class="col-6" ><q-input type="number" dense outlined label="Cja b5" v-model="miproducto.cbrasa5"/></div>
+            <div class="col-6" ><q-input type="number" dense outlined label="Uni b5" v-model="miproducto.ubrasa5"/></div>
+
+            <div class="col-6" ><q-input type="number" dense outlined label="Cja b6" v-model="miproducto.cbrasa6"/></div>
+            <div class="col-6" ><q-input type="number" dense outlined label="Uni b6" v-model="miproducto.cubrasa6"/></div>
+
+            <div class="col-6" ><q-input type="number" dense outlined label="Cja-104" v-model="miproducto.c104"/></div>
+            <div class="col-6" ><q-input type="number" dense outlined label="Unid-104" v-model="miproducto.u104"/></div>
+
+            <div class="col-6" ><q-input type="number" dense outlined label="Cja-105" v-model="miproducto.c105"/></div>
+            <div class="col-6" ><q-input type="number" dense outlined label="Unid-105" v-model="miproducto.u105"/></div>
+
+            <div class="col-6" ><q-input type="number" dense outlined label="Cja-106" v-model="miproducto.c106"/></div>
+            <div class="col-6" ><q-input type="number" dense outlined label="Unid-106" v-model="miproducto.u106"/></div>
+     
+            <div class="col-6" ><q-input type="number" dense outlined label="Cja-107" v-model="miproducto.c107"/></div>
+            <div class="col-6" ><q-input type="number" dense outlined label="Unid-107" v-model="miproducto.u107"/></div>
+
+            <div class="col-6" ><q-input type="number" dense outlined label="Cja-108" v-model="miproducto.c108"/></div>
+            <div class="col-6" ><q-input type="number" dense outlined label="Unid-108" v-model="miproducto.u108"/></div>
+
+            <div class="col-6" ><q-input type="number" dense outlined label="Cja-109" v-model="miproducto.c109"/></div>
+            <div class="col-6" ><q-input type="number" dense outlined label="Unid-109" v-model="miproducto.u109"/></div>
+
+            <div class="col-6" ><q-input type="number" dense outlined label="ala" v-model="miproducto.ala"/></div>
+            <div class="col-6">
               <q-select dense outlined :options="['KG','CJA','U']" v-model="miproducto.unidala" label="Unidad" />
             </div>
-            <div class="col-2" ><q-input type="number" dense outlined label="BS" v-model="miproducto.bsala"/></div>
-            <div class="col-4" ><q-input type="text" dense outlined label="OBS" v-model="miproducto.obsala"/></div>
-            <div class="col-3" ><q-input type="number" dense outlined label="cadera" v-model="miproducto.cadera"/></div>
-            <div class="col-3">
+            <div class="col-6" ><q-input type="number" dense outlined label="cadera" v-model="miproducto.cadera"/></div>
+            <div class="col-6">
               <q-select dense outlined :options="['KG','CJA','U']" v-model="miproducto.unidcadera" label="Unidad" />
             </div>
-            <div class="col-2" ><q-input type="number" dense outlined label="BS" v-model="miproducto.bscadera"/></div>
-            <div class="col-4" ><q-input type="text" dense outlined label="OBS" v-model="miproducto.obscadera"/></div>
-            <div class="col-3" ><q-input type="number" dense outlined label="pecho" v-model="miproducto.pecho"/></div>
-            <div class="col-3">
+            <div class="col-6" ><q-input type="number" dense outlined label="pecho" v-model="miproducto.pecho"/></div>
+            <div class="col-6">
               <q-select dense outlined :options="['KG','CJA','U']" v-model="miproducto.unidpecho" label="Unidad" />
             </div>
-            <div class="col-2" ><q-input type="number" dense outlined label="BS" v-model="miproducto.bspecho"/></div>
-            <div class="col-4" ><q-input type="text" dense outlined label="OBS" v-model="miproducto.obspecho"/></div>
-            <div class="col-3" ><q-input type="number" dense outlined label="pie" v-model="miproducto.pie"/></div>
-            <div class="col-3">
+            <div class="col-6" ><q-input type="number" dense outlined label="pie" v-model="miproducto.pie"/></div>
+            <div class="col-6">
               <q-select dense outlined :options="['KG','CJA','U']" v-model="miproducto.unidpie" label="Unidad" />
             </div>
-            <div class="col-2" ><q-input type="number" dense outlined label="BS" v-model="miproducto.bspie"/></div>
-            <div class="col-4" ><q-input type="text" dense outlined label="OBS" v-model="miproducto.obspie"/></div>
-            <div class="col-3" ><q-input type="number" dense outlined label="filete" v-model="miproducto.filete"/></div>
-            <div class="col-3">
+            <div class="col-6" ><q-input type="number" dense outlined label="filete" v-model="miproducto.filete"/></div>
+            <div class="col-6">
               <q-select dense outlined :options="['KG','CJA','U']" v-model="miproducto.unidfilete" label="Unidad" />
             </div>
-            <div class="col-2" ><q-input type="number" dense outlined label="BS" v-model="miproducto.bsfilete"/></div>
-            <div class="col-4" ><q-input type="text" dense outlined label="OBS" v-model="miproducto.obsfilete"/></div>
-            <div class="col-3" ><q-input type="number" dense outlined label="cuello" v-model="miproducto.cuello"/></div>
-            <div class="col-3">
+            <div class="col-6" ><q-input type="number" dense outlined label="cuello" v-model="miproducto.cuello"/></div>
+            <div class="col-6">
               <q-select dense outlined :options="['KG','CJA','U']" v-model="miproducto.unidcuello" label="Unidad" />
             </div>
-            <div class="col-2" ><q-input type="number" dense outlined label="BS" v-model="miproducto.bscuello"/></div>
-            <div class="col-4" ><q-input type="text" dense outlined label="OBS" v-model="miproducto.obscuello"/></div>
-            <div class="col-3" ><q-input type="number" dense outlined label="hueso" v-model="miproducto.hueso"/></div>
-            <div class="col-3">
+            <div class="col-6" ><q-input type="number" dense outlined label="hueso" v-model="miproducto.hueso"/></div>
+            <div class="col-6">
               <q-select dense outlined :options="['KG','CJA','U']" v-model="miproducto.unidhueso" label="Unidad" />
             </div>
-            <div class="col-2" ><q-input type="number" dense outlined label="BS" v-model="miproducto.bshueso"/></div>
-            <div class="col-4" ><q-input type="text" dense outlined label="OBS" v-model="miproducto.obshueso"/></div>
-            <div class="col-3" ><q-input type="number" dense outlined label="menu" v-model="miproducto.menu"/></div>
-            <div class="col-3">
+            <div class="col-6" ><q-input type="number" dense outlined label="menu" v-model="miproducto.menu"/></div>
+            <div class="col-6">
               <q-select dense outlined :options="['KG','CJA','U']" v-model="miproducto.unidmenu" label="Unidad" />
             </div>
-            <div class="col-2" ><q-input type="number" dense outlined label="BS" v-model="miproducto.bsmenu"/></div>
-            <div class="col-4" ><q-input type="text" dense outlined label="OBS" v-model="miproducto.obsmenu"/></div>
+            <div class="col-6" ><q-input type="number" dense outlined label="BS" v-model="miproducto.bs"/></div>
+            <div class="col-6" ><q-input type="text" dense outlined label="BS2" v-model="miproducto.bs2"/></div>
+            <div class="col-12" ><q-input type="text" dense outlined label="OBS" v-model="miproducto.observacion"/></div>
           </div>
         </q-card-section>
         <q-card-actions align="right" class="bg-white text-teal">
@@ -239,7 +218,7 @@
         </q-card-section>
         <q-card-section class="q-pt-none">
           <div class="row">
-            <div class="col-4"><q-input dense outlined label="precio" v-model="miproducto.precio" /></div>
+            <div class="col-4"><q-input dense outlined label="precio" v-model="miproducto.pfrial" /></div>
             <div class="col-4"><q-input dense outlined label="total" v-model="miproducto.total" /></div>
             <div class="col-4"><q-input dense outlined label="entero" v-model="miproducto.entero" /></div>
             <div class="col-4"><q-input dense outlined label="desmembre" v-model="miproducto.desmembre" /></div>
@@ -261,7 +240,7 @@
         </q-card-section>
         <q-card-section class="q-pt-none">
           <div class="row">
-            <div class="col-4"><q-input dense outlined label="precio" v-model="miproducto.precio" /></div>
+            <div class="col-4"><q-input dense outlined label="precio" v-model="miproducto.pfrial" /></div>
             <div class="col-4"><q-input dense outlined label="trozado" v-model="miproducto.trozado" /></div>
             <div class="col-4"><q-input dense outlined label="entero" v-model="miproducto.entero" /></div>
             <div class="col-4"><q-input dense outlined label="pierna" v-model="miproducto.pierna" /></div>
@@ -1563,6 +1542,7 @@ generarpollo(){
         bs:'',
         bs2:'',
         contado:'',
+        pfrial:'',
          tipo:this.producto.tipo,
         nombre:this.producto.Producto,
         cod_prod:this.producto.cod_prod,

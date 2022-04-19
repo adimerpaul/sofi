@@ -171,6 +171,7 @@ class PedidoController extends Controller
                 "trozado"=>$p['trozado'],
                 "pierna"=>$p['pierna'],
                 "brazo"=>$p['brazo'],
+                "pfrial"=>$p['pfrial'],
                 "hora"=>date('H:i:s'),
                 "pago"=>$request->pago
             ]);
@@ -338,6 +339,7 @@ class PedidoController extends Controller
                 "trozado"=>$p['trozado'],
                 "pierna"=>$p['pierna'],
                 "brazo"=>$p['brazo'],
+                "pfrial"=>$p['pfrial'],
                 "hora"=>date('H:i:s'),
                 "pago"=>$request->pago
             ]);
@@ -446,6 +448,7 @@ class PedidoController extends Controller
             trozado	,
             pierna	,
             brazo	,
+            pfrial	,
             hora	,
             tbproductos.Producto as nombre
             from tbpedidos,tbproductos where tbpedidos.cod_prod=tbproductos.cod_prod and  NroPed = '$row->NroPed'" );
@@ -557,6 +560,7 @@ class PedidoController extends Controller
                         "trozado"=>$pe->trozado,
                         "pierna"=>$pe->pierna,
                         "brazo"=>$pe->brazo,
+                        "pfrial"=>$pe->pfrial,
                         "hora"=>$pe->hora,
                         "pago"=>$pe->pago,
                     ]);
