@@ -11,7 +11,7 @@
     <q-btn color="info" icon="search" label="consulta" @click="misclientes"  />
   </div>
   <div class="col-12 col-sm-3 flex flex-center">
-    <q-btn color="green" icon="list" label="Reporte Pollo" @click="generarpollo" />
+    <q-btn color="green" type="a" :href="url+'excel/p/'+fecha1+'/'+fecha2" target="_blank" icon="list" label="Reporte Pollo" @click1="generarpollo" />
   </div>
   <div class="col-12 col-sm-3 flex flex-center">
     <q-btn color="accent" icon="list" label="Reporte Res" @click="generarres" />
@@ -549,6 +549,7 @@ import { jsPDF } from "jspdf";
 export default {
   data(){
     return{
+      url:process.env.API,
       filter:'',
       pedestado:'',
       miproducto:{},
@@ -1328,22 +1329,25 @@ export default {
     },
 
 generarpollo(){
-      // this.imprimirpollo()
-        $('#example').DataTable().destroy();
-
-      this.$api.post('rpollo',{fecha1:this.fecha1,fecha2:this.fecha2}).then(res=>{
-        console.log(res.data)
-        $('#example').DataTable().destroy();
-        this.pollo=res.data;
-          $('#example').DataTable( {
-            dom: 'Blfrtip',
-            buttons: [
-              'copy', 'csv', 'excel', 'pdf', 'print'
-            ],
-             "lengthMenu": [[10, 25, 50, -1], [10, 25, 50, "All"]]
-          } );
-        })
-        this.dialog_pollo=true
+  // this.$api.post('excel',{fecha1:this.fecha1,fecha2:this.fecha2}).then(res=>{
+  //   console.log(res.data)
+  // })
+      this.imprimirpollo()
+      //   $('#example').DataTable().destroy();
+      //
+      // this.$api.post('rpollo',{fecha1:this.fecha1,fecha2:this.fecha2}).then(res=>{
+      //   console.log(res.data)
+      //   $('#example').DataTable().destroy();
+      //   this.pollo=res.data;
+      //     $('#example').DataTable( {
+      //       dom: 'Blfrtip',
+      //       buttons: [
+      //         'copy', 'csv', 'excel', 'pdf', 'print'
+      //       ],
+      //        "lengthMenu": [[10, 25, 50, -1], [10, 25, 50, "All"]]
+      //     } );
+      //   })
+      //   this.dialog_pollo=true
     },
 
         generarres(){
