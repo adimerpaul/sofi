@@ -14,10 +14,10 @@
     <q-btn class="full-width" color="green" type="a" :href="url+'excel/p/'+fecha1+'/'+fecha2+'/'+$store.state.login.user.CodAut" target="_blank" icon="list" label="Reporte Pollo" @click1="generarpollo" />
   </div>
   <div class="col-4 col-sm-4 flex flex-center">
-    <q-btn class="full-width" color="accent" icon="list" label="Reporte Res" @click="generarres" />
+    <q-btn class="full-width" color="accent" type="a" :href="url+'excel/r/'+fecha1+'/'+fecha2+'/'+$store.state.login.user.CodAut" target="_blank" icon="list" label="Reporte Res" @click1="generarres" />
   </div>
   <div class="col-4 col-sm-4 flex flex-center">
-    <q-btn class="full-width" color="teal" icon="list" label="Reporte Cerdo" @click="generarcerdo" />
+    <q-btn class="full-width" color="teal" type="a" :href="url+'excel/c/'+fecha1+'/'+fecha2+'/'+$store.state.login.user.CodAut" target="_blank" icon="list" label="Reporte Cerdo" @click1="generarcerdo" />
   </div>
 <!--  <div class="col-6 col-sm-3 flex flex-center">-->
 <!--    <q-btn class="full-width" color="teal" icon="list" label="Reporte Comanda" @click="generarcomanda" />-->

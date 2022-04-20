@@ -21,14 +21,14 @@
       <template v-slot:body-cell-res="props">
         <q-td auto-width :props="props">
           <template v-if="props.row.res>0">
-            <q-btn  color="green" type="a" :href="url+'excel/r/'+this.fecha+'/1/'+props.row.CodAut" target="_blank" icon="list" size="xs" label="Excel res"  />
+            <q-btn  color="accent" type="a" :href="url+'excel/r/'+this.fecha+'/1/'+props.row.CodAut" target="_blank" icon="list" size="xs" label="Excel res"  />
           </template>
         </q-td>
       </template>
       <template v-slot:body-cell-cerdo="props">
         <q-td auto-width :props="props">
           <template v-if="props.row.cerdo>0">
-            <q-btn  color="green" type="a" :href="url+'excel/c/'+this.fecha+'/1/'+props.row.CodAut" target="_blank" icon="list" size="xs" label="Excel cerdo"  />
+            <q-btn  color="teal" type="a" :href="url+'excel/c/'+this.fecha+'/1/'+props.row.CodAut" target="_blank" icon="list" size="xs" label="Excel cerdo"  />
           </template>
         </q-td>
       </template>

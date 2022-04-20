@@ -177,8 +177,107 @@ class ExcelController extends Controller
 //        return $t;
 
 
-    }
+        if ($t=='r'){
+            $persona=DB::table('personal')->where('CodAut',$codaut)->first();
+            $query= DB::SELECT("SELECT * from tbpedidos p, tbclientes c
+            where c.Cod_Aut=p.idCli and date(fecha)='$f1'
+            and tipo='RES' AND CIfunc='$codaut' AND estado='ENVIADO' ");
+            $t='';
+            $spreadsheet = \PhpOffice\PhpSpreadsheet\IOFactory::load('pres.xlsx');
+            $sheet = $spreadsheet->getActiveSheet();
+            $c=6;
+            $sheet->setCellValue('C3', trim($persona->Nombre1).' '.trim($persona->App1));
+            $sheet->setCellValue('J3', $f1);
+            foreach ($query as $r){
+//                $t.=" ".$r->Nombres;git
+                $sheet->setCellValue('B'.$c, $r->Nombres);
+                $sheet->setCellValue('C'.$c, $r->pfrial);
+                $sheet->setCellValue('D'.$c, $r->trozado);
+                $sheet->setCellValue('E'.$c, $r->entero);
+                $sheet->setCellValue('F'.$c, $r->pierna);
+                $sheet->setCellValue('G'.$c, $r->brazo);
+                $sheet->setCellValue('J'.$c, $r->Observaciones);
+                $c++;
+            }
+//            return $t;
+            //        $spreadsheet = new Spreadsheet();
 
+//            $sheet->setCellValue('A1', 'ID');
+
+
+// Write an .xlsx file
+            $date = date('d-m-y-'.substr((string)microtime(), 1, 8));
+            $date = str_replace(".", "", $date);
+            $filename = trim($persona->Nombre1).'_'.trim($persona->App1)."_res_".$date.".xlsx";
+            $filePath = __DIR__ . DIRECTORY_SEPARATOR . $filename; //make sure you set the right permissions and change this to the path you want
+            try {
+                $writer = new Xlsx($spreadsheet);
+                $writer->save($filename);
+                $content = file_get_contents($filename);
+            } catch(Exception $e) {
+                exit($e->getMessage());
+            }
+
+            header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+            header('Content-Disposition: attachment; filename="' . urlencode($filename) .'"' );
+
+            echo $content;  // this actually send the file content to the browser
+
+            unlink($filename);
+        }
+
+//        return $t;
+        if ($t=='c'){
+            $persona=DB::table('personal')->where('CodAut',$codaut)->first();
+            $query= DB::SELECT("SELECT * from tbpedidos p, tbclientes c
+            where c.Cod_Aut=p.idCli and date(fecha)='$f1'
+            and tipo='CERDO' AND CIfunc='$codaut' AND estado='ENVIADO' ");
+            $t='';
+            $spreadsheet = \PhpOffice\PhpSpreadsheet\IOFactory::load('pcerdo.xlsx');
+            $sheet = $spreadsheet->getActiveSheet();
+            $c=6;
+            $sheet->setCellValue('C3', trim($persona->Nombre1).' '.trim($persona->App1));
+            $sheet->setCellValue('J3', $f1);
+            foreach ($query as $r){
+        //                $t.=" ".$r->Nombres;git
+                $sheet->setCellValue('B'.$c, $r->Nombres);
+                $sheet->setCellValue('C'.$c, $r->pfrial);
+                //$sheet->setCellValue('D'.$c, $r->trozado);
+                $sheet->setCellValue('E'.$c, $r->entero);
+                $sheet->setCellValue('F'.$c, $r->desmembre);
+                $sheet->setCellValue('H'.$c, $r->corte);
+                $sheet->setCellValue('I'.$c, $r->kilo);
+                $sheet->setCellValue('J'.$c, $r->Observaciones);
+                $c++;
+            }
+        //            return $t;
+            //        $spreadsheet = new Spreadsheet();
+
+        //            $sheet->setCellValue('A1', 'ID');
+
+
+        // Write an .xlsx file
+            $date = date('d-m-y-'.substr((string)microtime(), 1, 8));
+            $date = str_replace(".", "", $date);
+            $filename = trim($persona->Nombre1).'_'.trim($persona->App1)."_cerd_".$date.".xlsx";
+            $filePath = __DIR__ . DIRECTORY_SEPARATOR . $filename; //make sure you set the right permissions and change this to the path you want
+            try {
+                $writer = new Xlsx($spreadsheet);
+                $writer->save($filename);
+                $content = file_get_contents($filename);
+            } catch(Exception $e) {
+                exit($e->getMessage());
+            }
+
+            header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+            header('Content-Disposition: attachment; filename="' . urlencode($filename) .'"' );
+
+            echo $content;  // this actually send the file content to the browser
+
+            unlink($filename);
+        }
+
+    }
     /**
      * Show the form for editing the specified resource.
      *
