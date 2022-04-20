@@ -6369,7 +6369,7 @@ runtime_auto_import_default()(Generarvue_type_script_lang_js, 'components', {QPa
 
 const routes = [{
   path: '/',
-  component: () => Promise.all(/* import() */[__webpack_require__.e(736), __webpack_require__.e(713)]).then(__webpack_require__.bind(__webpack_require__, 9713)),
+  component: () => Promise.all(/* import() */[__webpack_require__.e(736), __webpack_require__.e(876)]).then(__webpack_require__.bind(__webpack_require__, 8876)),
   children: [{
     path: '',
     component: Index
@@ -7134,7 +7134,7 @@ module.exports = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5v
 /******/ 		// This function allow to reference async chunks
 /******/ 		__webpack_require__.u = (chunkId) => {
 /******/ 			// return url for filenames based on template
-/******/ 			return "js/" + chunkId + "." + {"193":"42c789fd","713":"bdd16bef"}[chunkId] + ".js";
+/******/ 			return "js/" + chunkId + "." + {"193":"42c789fd","876":"2c378de4"}[chunkId] + ".js";
 /******/ 		};
 /******/ 	})();
 /******/ 	
@@ -7326,4 +7326,4 @@ module.exports = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5v
 /******/ 	
 /******/ })()
 ;
-//# sourceMappingURL=app.998a168a.js.map
+//# sourceMappingURL=app.9a5afdb4.js.map

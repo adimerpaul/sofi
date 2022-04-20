@@ -28,6 +28,17 @@
             </q-item-label>
           </q-item-section>
         </q-item>
+        <q-item v-if="!$store.getters['login/isLoggedIn']" exact to="login">
+          <q-item-section avatar>
+            <q-icon name="login" />
+          </q-item-section>
+          <q-item-section>
+            <q-item-label>Ingresar</q-item-label>
+            <q-item-label caption>
+              Ingresar al sistema
+            </q-item-label>
+          </q-item-section>
+        </q-item>
         <q-item clickable exact to="visita" v-if="$store.getters['login/user'].ci=='7360035'||$store.getters['login/user'].ci=='1593578'||$store.getters['login/user'].ci=='12612870'||$store.getters['login/user'].ci=='3520335'">
           <q-item-section avatar>
             <q-icon name="map" />
