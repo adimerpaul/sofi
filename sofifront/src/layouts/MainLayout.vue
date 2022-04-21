@@ -39,7 +39,7 @@
             </q-item-label>
           </q-item-section>
         </q-item>
-        <q-item clickable exact to="visita" v-if="$store.getters['login/user'].ci=='7360035'||$store.getters['login/user'].ci=='1593578'||$store.getters['login/user'].ci=='12612870'||$store.getters['login/user'].ci=='3520335'">
+        <q-item clickable exact to="visita" v-if="vendores.includes($store.getters['login/user'].ci)">
           <q-item-section avatar>
             <q-icon name="map" />
           </q-item-section>
@@ -50,7 +50,7 @@
             </q-item-label>
           </q-item-section>
         </q-item>
-        <q-item clickable exact to="mispedidos" v-if="$store.getters['login/user'].ci=='7360035'||$store.getters['login/user'].ci=='1593578'||$store.getters['login/user'].ci=='12612870'||$store.getters['login/user'].ci=='3520335'">
+        <q-item clickable exact to="mispedidos"  v-if="vendores.includes($store.getters['login/user'].ci)">
           <q-item-section avatar>
             <q-icon name="list" />
           </q-item-section>
@@ -72,7 +72,7 @@
             </q-item-label>
           </q-item-section>
         </q-item>
-        <q-item clickable exact to="cobranza" v-if="$store.getters['login/user'].ci=='7360035'||$store.getters['login/user'].ci=='1593578'||$store.getters['login/user'].ci=='12612870'||$store.getters['login/user'].ci=='3520335'">
+        <q-item clickable exact to="cobranza"  v-if="vendores.includes($store.getters['login/user'].ci)">
           <q-item-section avatar>
             <q-icon name="receipt" />
           </q-item-section>
@@ -83,7 +83,7 @@
             </q-item-label>
           </q-item-section>
         </q-item>
-        <q-item clickable exact to="miscobranzas" v-if="$store.getters['login/user'].ci=='7360035'||$store.getters['login/user'].ci=='1593578'||$store.getters['login/user'].ci=='12612870'||$store.getters['login/user'].ci=='3520335'">
+        <q-item clickable exact to="miscobranzas"  v-if="vendores.includes($store.getters['login/user'].ci)">
           <q-item-section avatar>
             <q-icon name="money" />
           </q-item-section>
@@ -94,7 +94,7 @@
             </q-item-label>
           </q-item-section>
         </q-item>
-        <q-item clickable exact to="generar" v-if="$store.getters['login/user'].ci=='0'">
+        <q-item clickable exact to="generar" v-if="encargados.includes($store.getters['login/user'].ci)">
           <q-item-section avatar>
             <q-icon name="money" />
           </q-item-section>
@@ -157,10 +157,15 @@
 export default {
   data(){
     return {
-      leftDrawerOpen:false
+      leftDrawerOpen:false,
+      vendores:['12612870','1593578','33555433','3520335','5676554','7422201','9876785','7360035'],
+      encargados:['0' ,'123321' ,'22222222']
     }
   },
   methods:{
+      validar(){
+        return this.vendores.includes();
+      },
       toggleLeftDrawer () {
         this.leftDrawerOpen = !this.leftDrawerOpen
       },
