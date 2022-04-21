@@ -150,9 +150,9 @@ export default {
       this.$router.push('/')
     }
 
-        this.$api.post('ctacobrar').then(res=>{
-          console.log(res.data);
-        })
+        // this.$api.post('ctacobrar').then(res=>{
+        //   console.log(res.data);
+        // })
 
     // this.$q.loading.show()
     // this.$axios.get(process.env.API+'/unit').then(res=>{
