@@ -46,6 +46,15 @@
       </template>
     </q-table>
   </div>
+  <div class="col-4">
+    <q-input dense outlined v-model="fecha1" label="Fecha Ini" type="date"/>
+  </div>
+    <div class="col-4">
+    <q-input dense outlined v-model="fecha2" label="Fecha Fin" type="date"/>
+  </div>
+  <div class="col-4">
+        <q-btn style="width: 100%" @click="expedidos" color="red" icon="download" label="importar pedidos"> </q-btn>
+  </div>
 </div>
 </q-page>
 </template>
@@ -67,6 +76,8 @@ export default {
         {label:'cerdo',name:'cerdo',field:'cerdo',align:'left'},
       ],
       fecha:date.formatDate(new Date(),'YYYY-MM-DD'),
+      fecha1:date.formatDate(new Date(),'YYYY-MM-DD'),
+      fecha2:date.formatDate(new Date(),'YYYY-MM-DD'),
     }
   },
   created() {
@@ -84,7 +95,26 @@ export default {
         })
         this.$q.loading.hide()
       })
-    }
+    },
+    expedidos(){
+      this.$q.loading.show()
+      this.$api.post('export',{fecha1:this.fecha1,fecha2:this.fecha2}).then(res=>{
+        console.log(res.data)
+        this.$q.loading.hide()
+        this.$q.notify({
+          color:'green',
+          message:'Enviado correctamente',
+          icon:'send'
+        })
+      }).catch(err=>{
+        this.$q.loading.hide()
+        this.$q.notify({
+          color:'red',
+          message:err.response.data.message,
+          icon:'error'
+        })
+      })
+    },
   }
 }
 </script>

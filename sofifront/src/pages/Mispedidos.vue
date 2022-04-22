@@ -39,7 +39,7 @@
       </template>
     </q-table>
     <q-btn style="width: 100%" @click="enviarpedidos" color="warning" icon="check" label="Enviar todos los pedidos"> </q-btn>
-    <q-btn style="width: 100%" @click="expedidos" color="red" icon="warning" label="export pedidos"> </q-btn>
+<!--    <q-btn style="width: 100%" @click="expedidos" color="red" icon="warning" label="export pedidos"> </q-btn>-->
   </div>
 
     <q-dialog full-width full-height v-model="modalpedido">
