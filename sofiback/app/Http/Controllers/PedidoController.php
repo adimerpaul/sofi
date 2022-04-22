@@ -471,8 +471,8 @@ class PedidoController extends Controller
 //                return $pedi;
                 foreach ($pedi as $pe){
 //                    return $pe->NroPed;
-                    $validar=DB::connection('aron-9')->table('tbpedidos')->where('NroPed',$pe->NroPed)->get();
-                    if($validar->count()==0){
+//                    $validar=DB::connection('aron-9')->table('tbpedidos')->where('NroPed',$pe->NroPed)->get();
+//                    if($validar->count()==0){
                     DB::connection('aron-9')->table('tbpedidos')->insert([
                         "NroPed"=>$pe->NroPed,
                         "cod_prod"=>$pe->cod_prod,
@@ -564,7 +564,7 @@ class PedidoController extends Controller
                         "hora"=>$pe->hora,
                         "pago"=>$pe->pago,
                     ]);
-                }
+//                }
                 }
             }
 
