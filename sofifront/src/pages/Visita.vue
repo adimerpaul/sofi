@@ -821,6 +821,7 @@ export default {
         cantidad:1,
         subtotal:parseFloat(this.producto.Precio).toFixed(2)
       })
+      this.producto={label:''}
     },
     clickpedido(){
       this.modalopciones=false

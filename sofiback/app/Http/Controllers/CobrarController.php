@@ -254,7 +254,7 @@ class CobrarController extends Controller
     }
 
     public function ctacobrar(){
-        $fecha=date("Y-m-d", strtotime(date("Y-m-d").'-1 days'));
+        $fecha=date("Y-m-d", strtotime(date("Y-m-d").'-7 days'));
         $cobrar=DB::connection('aron-9')->table('tbctascobrar')->whereDate('FechaCan','>=',$fecha)->get();
         $cobrar2=DB::table('tbctascobrar')->whereDate('FechaCan','>=',$fecha)->get();
         $cobrar3=DB::SELECT("SELECT comanda from tbctascobrar where date(FechaCan) >= $fecha group by comanda");

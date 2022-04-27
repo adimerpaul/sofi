@@ -467,7 +467,7 @@ class PedidoController extends Controller
             $comanda=DB::connection('aron-9')->table('tbpedidos')->where('NroPed',$p->NroPed)->get()->count();
 //            return  $comanda.'  -   ';
             if($comanda==0){
-                $pedi=DB::select("SELECT * from tbpedidos where date(fecha)>='$request->fecha1' and date(fecha)<='$request->fecha2' AND NroPed='".$p->NroPed."' and estado='ENVIADO' ");
+                $pedi=DB::select("SELECT * from tbpedidos where tipo='NORMAL' AND date(fecha)>='$request->fecha1' and date(fecha)<='$request->fecha2' AND NroPed='".$p->NroPed."' and estado='ENVIADO' ");
 //                return $pedi;
                 foreach ($pedi as $pe){
 //                    return $pe->NroPed;
@@ -492,6 +492,11 @@ class PedidoController extends Controller
                         "bsbrasa6"=>$pe->bsbrasa6,
                         "obsbrasa6"=>$pe->obsbrasa6,
                         "Observaciones"=>$pe->Observaciones,
+                        "Canttxt"=>$pe->Observaciones!=null?$pe->Observaciones:'',
+                        "impreso"=>0,
+                        "pagado"=>0,
+                        "Tipo1"=>0,
+                        "Tipo2"=>0,
                         "c104"=>$pe->c104,
                         "u104"=>$pe->u104,
                         "bs104"=>$pe->bs104,
