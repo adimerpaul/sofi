@@ -278,7 +278,7 @@
               <q-select dense outlined :options="['KG','CJA','U']" v-model="miproducto.unidpecho" label="Unidad" />
             </div>
 
-            <div class="col-6" ><q-input type="number" dense outlined label="pie" v-model="miproducto.pie"/></div>
+            <div class="col-6" ><q-input type="number" dense outlined label="pi/mu" v-model="miproducto.pie"/></div>
             <div class="col-6">
               <q-select dense outlined :options="['KG','CJA','U']" v-model="miproducto.unidpie" label="Unidad" />
             </div>
@@ -298,7 +298,7 @@
               <q-select dense outlined :options="['KG','CJA','U']" v-model="miproducto.unidhueso" label="Unidad" />
             </div>
 
-            <div class="col-6" ><q-input type="number" dense outlined label="menu" v-model="miproducto.menu"/></div>
+            <div class="col-6" ><q-input type="number" dense outlined label="menudencia" v-model="miproducto.menu"/></div>
             <div class="col-6">
               <q-select dense outlined :options="['KG','CJA','U']" v-model="miproducto.unidmenu" label="Unidad" />
             </div>
