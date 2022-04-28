@@ -49,15 +49,15 @@
         <template v-slot:body-cell-monto="props">
   <!--        <q-tr :props="props">-->
 
-            <q-td key="monto" :props="props" class="col-1">
-              <q-input style="width: 5em" outlined dense type="number" step="0.01" v-model="props.row.pago"
+            <q-td key="monto" :props="props" >
+              <q-input outlined style="width: 5em" label="monto" dense type="number" step="0.01" v-model="props.row.pago"
                        :rules="[val => ((val<=parseFloat(props.row.saldo)&&val>=0) || val=='') || 'No debe exceder',]" lazy-rules/>
             </q-td>
   <!--        </q-tr>-->
         </template>
         <template v-slot:body-cell-boleta="props">
-            <q-td key="boleta" :props="props" class="col-1">
-              <q-input style="width: 5em" outlined dense type="text" v-model="props.row.boleta"
+            <q-td key="boleta" :props="props" >
+              <q-input outlined style="width: 5em" label="boleta" dense type="text" v-model="props.row.boleta"
                        :rules="[val => (parseFloat(props.row.saldo)>0 )  || 'Tiene que tener boleta',]" lazy-rules/>
             </q-td>
         </template>
@@ -107,9 +107,9 @@ export default {
       columns2:[
         {label:'fecha',name:'fecha',field:'FechaEntreg'},
         {label:'comanda',name:'comanda',field:'comanda'},
-        {label:'saldo ',name:'saldo',field:'saldo'},
-        {label:'monto',name:'monto',field:'monto'},
-        {label:'boleta',name:'boleta',field:'boleta'},
+        {label:'saldo ',name:'saldo',field:'saldo',align:'right'},
+        {label:'monto',name:'monto',field:'monto',align:'center'},
+        {label:'boleta',name:'boleta',field:'boleta',align:'center'},
 
       ],
       fecha:date.formatDate(Date.now(),'YYYY-MM-DD')
@@ -130,12 +130,14 @@ export default {
           })
           return false
       }*/
+      this.$q.loading.show()
       this.cxcdatos=[]
       this.cxcobrar.forEach(element => {
           if(element.pago>0)
           this.cxcdatos.push(element);
       });
       this.$api.post('insertcobro',{pagos:this.cxcdatos}).then(res=>{
+        this.$q.loading.hide()
         this.dialog_cc=false;
           console.log(res.data)
         this.$q.notify({

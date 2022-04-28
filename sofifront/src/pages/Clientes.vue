@@ -16,7 +16,7 @@
       </template>
       <template v-slot:body-cell-venta="props">
         <q-td :props="props">
-          <q-badge :color="props.row.venta=='ACTIVO'?'positive':'negative'">{{props.row.venta}}</q-badge>
+          <q-badge @click="hablitar(props.row)" :color="props.row.venta=='ACTIVO'?'positive':'negative'">{{props.row.venta}}</q-badge>
         </q-td>
       </template>
      <template v-slot:top-right>
@@ -51,7 +51,7 @@ export default {
       listado:[],
       dialog_ag:false,
       columns:[
-        {label:'OPCIONES',name:'opciones',field:'opciones'},
+        // {label:'OPCIONES',name:'opciones',field:'opciones'},
         {label:'ESTADO',name:'venta',field:'venta'},
         {label:'DEUDA',name:'totdeuda',field:'totdeuda'},
         {label:'NOMBRES',name:'nombres',field:'Nombres',align:'left'},
@@ -80,10 +80,16 @@ export default {
         })
       },
       hablitar(cliente){
-          console.log(cliente)
+        // console.log(cliente)
+          // console.log(cliente)
           this.$api.post('desbloquear',cliente).then(res=>{
-            this.misclientes()
+            // this.misclientes()
           })
+        if (cliente.venta=='ACTIVO'){
+          cliente.venta='INACTIVO'
+        }else{
+          cliente.venta='ACTIVO'
+        }
 
       },
         filterFn (val, update) {

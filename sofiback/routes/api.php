@@ -31,6 +31,7 @@ Route::group(['middleware'=>'auth:sanctum'],function (){
     Route::resource('/pollo',\App\Http\Controllers\PolloController::class);
     Route::resource('/res',\App\Http\Controllers\ResController::class);
     Route::resource('/cerdo',\App\Http\Controllers\CerdoController::class);
+    Route::resource('/cobrosrealizados',\App\Http\Controllers\CobrosrealizadosController::class);
 
     Route::get('/listdeudores',[\App\Http\Controllers\CobrarController::class,'listdeudores']);
     Route::post('/cxcobrar/{ci}',[\App\Http\Controllers\CobrarController::class,'cxcobrar']);

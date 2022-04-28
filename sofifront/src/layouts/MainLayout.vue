@@ -72,6 +72,17 @@
             </q-item-label>
           </q-item-section>
         </q-item>
+        <q-item clickable exact to="cobrosrealizados" v-if="$store.getters['login/user'].ci=='7329536'">
+          <q-item-section avatar>
+            <q-icon name="monetization_on" />
+          </q-item-section>
+          <q-item-section>
+            <q-item-label>Cobros realizados </q-item-label>
+            <q-item-label caption>
+              Cobros realizados
+            </q-item-label>
+          </q-item-section>
+        </q-item>
         <q-item clickable exact to="cobranza"  v-if="vendores.includes($store.getters['login/user'].ci)">
           <q-item-section avatar>
             <q-icon name="receipt" />

@@ -8,6 +8,7 @@ import Visita from "pages/Visita";
 import Miscobranzas from "pages/Miscobranzas";
 import Clientes from "pages/Clientes";
 import Generar from "pages/Generar";
+import Cobrosrealizados from "pages/Cobrosrealizados";
 const routes = [
   {
     path: '/',
@@ -22,6 +23,7 @@ const routes = [
       { path: '/miscobranzas', component: Miscobranzas ,meta: {requiresAuth: true}},
       { path: '/clientes', component: Clientes ,meta: {requiresAuth: true}},
       { path: '/generar', component: Generar ,meta: {requiresAuth: true}},
+      { path: '/cobrosrealizados', component: Cobrosrealizados ,meta: {requiresAuth: true}},
       { path: '/login', component: Login },
     ]
   },

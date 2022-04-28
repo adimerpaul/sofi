@@ -12,7 +12,7 @@
     </div>
     <!--<div class="col-12">
     <q-table title="Pagos " :rows="cobros" :columns="columns" row-key="name" />
-    
+
     </div>
                 <div class=" table " style="width:100%">
                 <table id="example" style="width:100%">
@@ -47,9 +47,14 @@
             </template>
           </q-input>
         </template>
+        <template v-slot:body-cell-estado="props">
+          <q-td :props="props">
+            <q-badge :label="props.row.estado" :color="props.row.estado=='CREADO'?'negative':'positive'" />
+          </q-td>
+        </template>
       </q-table>
-      <q-btn style="width: 100%" @click="enviarpedidos" color="accent" icon="check" label="Enviar todos los Cobros"> </q-btn>
-      <q-btn style="width: 100%" @click="imprimir" color="info" icon="print" label="Imprimir todos los Cobros"> </q-btn>
+      <q-btn class="full-width" @click="enviarpedidos" color="accent" icon="check" label="Enviar todos los Cobros"> </q-btn>
+      <q-btn class="full-width" @click="imprimir" color="info" icon="print" label="Imprimir todos los Cobros"> </q-btn>
     </div>
   </div>
 </q-page>
@@ -65,11 +70,11 @@ export default {
       fecha2:date.formatDate(Date.now(),'YYYY-MM-DD'),
       cobros:[],
       columns:[
+        {label:'ESTADO',name:'estado',field:'estado'},
         {label:'FECHA',name:'fecha',field:'fecha'},
         {label:'COMANDA',name:'comanda',field:'comanda'},
         {label:'NOMBRE',name:'Nombres',field:'Nombres'},
         {label:'MONTO',name:'pago',field:'pago'},
-        {label:'ESTADO',name:'estado',field:'estado'},
         {label:'N BOLETA',name:'boleta',field:'nboleta'},
       ],
     }
@@ -122,8 +127,21 @@ export default {
 
       },
       enviarpedidos(){
+        if (!confirm('seguro de enviar?')){
+          return false
+        }
+        this.$q.loading.show()
         this.$api.post('verificar',{fecha1:this.fecha1,fecha2:this.fecha2}).then(res=>{
+          this.$q.loading.hide()
           this.mcobros();
+        }).catch(err=>{
+          // console.log(err.response)
+          this.$q.notify({
+            color:'red',
+            message:err.response.data.message,
+            icon:'error'
+          })
+          this.$q.loading.hide()
         })
 
       },
@@ -138,7 +156,7 @@ export default {
         cadena+="<th>NOMBRE</th>";
         cadena+="<th>MONTO</th>";
         cadena+="<th>N BOLETA</th></tr>";
-        this.cobros.forEach(r => {          
+        this.cobros.forEach(r => {
              total  = parseFloat(total)+ parseFloat(r.pago) ;
             cadena+="<tr><td>"+r.fecomanda+"</td> <td>"+r.comanda+"</td><td>"+r.Nombres+"</td><td>"+r.pago+"</td><td>"+r.nboleta+"</td></tr>";
                 });
