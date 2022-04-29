@@ -236,7 +236,7 @@ class PedidoController extends Controller
         else
             return DB::SELECT("SELECT p.NroPed,Cod_Aut,Id,Cod_ciudad,Cod_Nacio,cod_car,Nombres,Telf,Direccion,EstCiv,edad,Empresa,Categoria,Imp_pieza,CiVend,ListBlanck,MotivoListBlack,ListBlack,TipoPaciente,SupraCanal,Canal,subcanal,zona,Latitud,longitud,transporte,territorio,codcli,clinew,p.estado FROM tbpedidos p inner join tbclientes c on c.Cod_Aut=p.idCli  where date(p.fecha)='$request->fecha1' and c.CiVend='".$request->user()->ci."' GROUP by p.NroPed,Cod_Aut,Id,Cod_ciudad,Cod_Nacio,cod_car,Nombres,Telf,Direccion,EstCiv,edad,Empresa,Categoria,Imp_pieza,CiVend,ListBlanck,MotivoListBlack,ListBlack,TipoPaciente,SupraCanal,Canal,subcanal,zona,Latitud,longitud,transporte,territorio,codcli,clinew,p.estado");
     }
-    
+
     public function enviarpedidos(Request $request)
     {
         foreach ($request->clientes as $p){
@@ -465,7 +465,7 @@ class PedidoController extends Controller
 //        return $pedidos;
         foreach ($pedidos as $p){
 //            return  $p->NroPed;
-            $comanda=DB::connection('aron-9')->table('tbpedidos')->where('codAut',$p->codAut)->get()->count();
+            $comanda=DB::connection('aron-9')->table('tbpedidos')->where('codAut',$p->CodAut)->get()->count();
 //            return  $comanda.'  -   ';
             if($comanda==0){
                 //$pedi=DB::select("SELECT * from tbpedidos where tipo='NORMAL' AND date(fecha)>='$request->fecha1' and date(fecha)<='$request->fecha2' AND NroPed='".$p->NroPed."' and estado='ENVIADO' ");
