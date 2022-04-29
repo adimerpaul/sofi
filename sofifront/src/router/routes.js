@@ -9,6 +9,7 @@ import Miscobranzas from "pages/Miscobranzas";
 import Clientes from "pages/Clientes";
 import Generar from "pages/Generar";
 import Cobrosrealizados from "pages/Cobrosrealizados";
+import Modifica from "pages/Modifica";
 const routes = [
   {
     path: '/',
@@ -24,6 +25,7 @@ const routes = [
       { path: '/clientes', component: Clientes ,meta: {requiresAuth: true}},
       { path: '/generar', component: Generar ,meta: {requiresAuth: true}},
       { path: '/cobrosrealizados', component: Cobrosrealizados ,meta: {requiresAuth: true}},
+      { path: '/modifica', component: Modifica ,meta: {requiresAuth: true}},
       { path: '/login', component: Login },
     ]
   },

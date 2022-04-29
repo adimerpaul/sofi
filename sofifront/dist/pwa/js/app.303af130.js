@@ -1,7 +1,7 @@
 /******/ (() => { // webpackBootstrap
 /******/ 	var __webpack_modules__ = ({
 
-/***/ 6071:
+/***/ 2581:
 /***/ ((__unused_webpack_module, __unused_webpack___webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -6701,7 +6701,276 @@ const Cobrosrealizados_exports_ = /*#__PURE__*/(0,exportHelper/* default */.Z)(C
 
 runtime_auto_import_default()(Cobrosrealizadosvue_type_script_lang_js, 'components', {QPage: QPage/* default */.Z,QForm: QForm/* default */.Z,QInput: QInput/* default */.Z,QBtn: QBtn/* default */.Z,QTable: QTable/* default */.Z});
 
+;// CONCATENATED MODULE: ./node_modules/@quasar/app/lib/webpack/loader.js.transform-quasar-imports.js!./node_modules/babel-loader/lib/index.js??clonedRuleSet-2.use[0]!./node_modules/vue-loader/dist/templateLoader.js??ruleSet[1].rules[3]!./node_modules/@quasar/app/lib/webpack/loader.vue.auto-import-quasar.js??ruleSet[0].use[0]!./node_modules/vue-loader/dist/index.js??ruleSet[0].use[1]!./src/pages/Modifica.vue?vue&type=template&id=33a3f623
+
+const Modificavue_type_template_id_33a3f623_hoisted_1 = {
+  class: "row"
+};
+const Modificavue_type_template_id_33a3f623_hoisted_2 = {
+  class: "col-12"
+};
+const Modificavue_type_template_id_33a3f623_hoisted_3 = {
+  class: "text-h6"
+};
+
+const Modificavue_type_template_id_33a3f623_hoisted_4 = /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("div", {
+  class: "text-h6"
+}, "Seleccione Preventista", -1);
+
+function Modificavue_type_template_id_33a3f623_render(_ctx, _cache, $props, $setup, $data, $options) {
+  const _component_q_btn = (0,runtime_core_esm_bundler/* resolveComponent */.up)("q-btn");
+
+  const _component_q_td = (0,runtime_core_esm_bundler/* resolveComponent */.up)("q-td");
+
+  const _component_q_icon = (0,runtime_core_esm_bundler/* resolveComponent */.up)("q-icon");
+
+  const _component_q_input = (0,runtime_core_esm_bundler/* resolveComponent */.up)("q-input");
+
+  const _component_q_table = (0,runtime_core_esm_bundler/* resolveComponent */.up)("q-table");
+
+  const _component_q_card_section = (0,runtime_core_esm_bundler/* resolveComponent */.up)("q-card-section");
+
+  const _component_q_select = (0,runtime_core_esm_bundler/* resolveComponent */.up)("q-select");
+
+  const _component_q_card_actions = (0,runtime_core_esm_bundler/* resolveComponent */.up)("q-card-actions");
+
+  const _component_q_card = (0,runtime_core_esm_bundler/* resolveComponent */.up)("q-card");
+
+  const _component_q_dialog = (0,runtime_core_esm_bundler/* resolveComponent */.up)("q-dialog");
+
+  const _component_q_page = (0,runtime_core_esm_bundler/* resolveComponent */.up)("q-page");
+
+  const _directive_close_popup = (0,runtime_core_esm_bundler/* resolveDirective */.Q2)("close-popup");
+
+  return (0,runtime_core_esm_bundler/* openBlock */.wg)(), (0,runtime_core_esm_bundler/* createBlock */.j4)(_component_q_page, {
+    class: "q-pa-xs"
+  }, {
+    default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Modificavue_type_template_id_33a3f623_hoisted_1, [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Modificavue_type_template_id_33a3f623_hoisted_2, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_table, {
+      "rows-per-page-options": [20, 50, 100, 0],
+      dense: "",
+      title: "CLIENTES",
+      columns: $data.columns,
+      rows: $data.clientes,
+      filter: $data.filter
+    }, {
+      "body-cell-opcion": (0,runtime_core_esm_bundler/* withCtx */.w5)(props => [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_td, {
+        props: props
+      }, {
+        default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_btn, {
+          onClick: $event => $options.cambiar(props.row),
+          color: "teal",
+          icon: "check",
+          size: "xs"
+        }, null, 8, ["onClick"])]),
+        _: 2
+      }, 1032, ["props"])]),
+      "top-right": (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+        outlined: "",
+        dense: "",
+        debounce: "300",
+        modelValue: $data.filter,
+        "onUpdate:modelValue": _cache[0] || (_cache[0] = $event => $data.filter = $event),
+        placeholder: "Buscar"
+      }, {
+        append: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_icon, {
+          name: "search"
+        })]),
+        _: 1
+      }, 8, ["modelValue"])]),
+      _: 1
+    }, 8, ["columns", "rows", "filter"])]), (0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_dialog, {
+      modelValue: $data.dialog_mod,
+      "onUpdate:modelValue": _cache[2] || (_cache[2] = $event => $data.dialog_mod = $event),
+      persistent: ""
+    }, {
+      default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_card, {
+        style: {
+          "min-width": "350px"
+        }
+      }, {
+        default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_card_section, null, {
+          default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Modificavue_type_template_id_33a3f623_hoisted_3, "CLIENTE: " + (0,shared_esm_bundler/* toDisplayString */.zw)($data.cliente.Nombres), 1)]),
+          _: 1
+        }), (0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_card_section, {
+          class: "q-pt-none"
+        }, {
+          default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [Modificavue_type_template_id_33a3f623_hoisted_4, (0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_select, {
+            "aria-label": "Personal",
+            options: $data.usuarios,
+            modelValue: $data.user,
+            "onUpdate:modelValue": _cache[1] || (_cache[1] = $event => $data.user = $event)
+          }, null, 8, ["options", "modelValue"])]),
+          _: 1
+        }), (0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_card_actions, {
+          align: "right",
+          class: "text-primary"
+        }, {
+          default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* withDirectives */.wy)((0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_btn, {
+            flat: "",
+            label: "Cancel"
+          }, null, 512), [[_directive_close_popup]]), (0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_btn, {
+            flat: "",
+            label: "Modificar",
+            onClick: $options.modificar
+          }, null, 8, ["onClick"])]),
+          _: 1
+        })]),
+        _: 1
+      })]),
+      _: 1
+    }, 8, ["modelValue"])])]),
+    _: 1
+  });
+}
+;// CONCATENATED MODULE: ./src/pages/Modifica.vue?vue&type=template&id=33a3f623
+
+;// CONCATENATED MODULE: ./node_modules/@quasar/app/lib/webpack/loader.js.transform-quasar-imports.js!./node_modules/babel-loader/lib/index.js??clonedRuleSet-2.use[0]!./node_modules/@quasar/app/lib/webpack/loader.vue.auto-import-quasar.js??ruleSet[0].use[0]!./node_modules/vue-loader/dist/index.js??ruleSet[0].use[1]!./src/pages/Modifica.vue?vue&type=script&lang=js
+;
+/* harmony default export */ const Modificavue_type_script_lang_js = ({
+  data() {
+    return {
+      filter: '',
+      dialog_mod: false,
+      asignaciones: [],
+      asignar: {},
+      cliente: {},
+      fecha2: date/* default.formatDate */.ZP.formatDate(Date.now(), 'YYYY-MM-DD'),
+      user: {
+        label: ''
+      },
+      clientes: [],
+      usuarios: [],
+      options: [],
+      options2: [],
+      listado: [],
+      dialog_ag: false,
+      columns: [// {label:'OPCIONES',name:'opciones',field:'opciones'},
+      {
+        label: 'CI/NIT',
+        name: 'Id',
+        field: 'Id',
+        align: 'left'
+      }, {
+        label: 'NOMBRES',
+        name: 'nombres',
+        field: 'Nombres',
+        align: 'left'
+      }, {
+        label: 'telefono',
+        name: 'Telf',
+        field: 'Telf',
+        align: 'left'
+      }, {
+        label: 'Direccion',
+        name: 'Direccion',
+        field: 'Direccion',
+        align: 'left'
+      }, {
+        label: 'NOMBRES',
+        name: 'nombres',
+        field: row => row.Nombre1 + ' ' + row.App1,
+        align: 'left'
+      }, {
+        label: 'opcion',
+        name: 'opcion',
+        field: 'opcion'
+      }],
+      fecha: date/* default.formatDate */.ZP.formatDate(Date.now(), 'YYYY-MM-DD')
+    };
+  },
+
+  created() {
+    this.misclientes();
+    this.misuser();
+  },
+
+  methods: {
+    modificar() {
+      this.$q.loading.show();
+      this.$api.post('modprevent', {
+        vendedor: this.user.ci,
+        cliente_id: this.cliente.Cod_Aut
+      }).then(res => {
+        this.dialog_mod = false;
+        this.misclientes();
+      });
+    },
+
+    cambiar(cliente) {
+      this.cliente = cliente;
+      this.dialog_mod = true;
+    },
+
+    misuser() {
+      this.usuarios = [];
+      this.$q.loading.show();
+      this.$api.get('listapersonal').then(res => {
+        console.log(res.data);
+        this.$q.loading.hide();
+        res.data.forEach(r => {
+          r.label = r.Nombre1 + ' ' + r.App1;
+          this.usuarios.push(r);
+        });
+        console.log(this.usuarios);
+        this.user = this.usuarios[0];
+      });
+    },
+
+    filterFn(val, update) {
+      if (val === '') {
+        update(() => {
+          this.options = this.clientes; // with Quasar v1.7.4+
+          // here you have access to "ref" which
+          // is the Vue reference of the QSelect
+        });
+        return;
+      }
+
+      update(() => {
+        const needle = val.toLowerCase();
+        this.options = this.clientes.filter(v => v.label.toLowerCase().indexOf(needle) > -1);
+      });
+    },
+
+    misclientes() {
+      this.clientes = [];
+      this.$q.loading.show();
+      this.$api.get('listaclientes').then(res => {
+        // console.log(res.data)
+        this.$q.loading.hide();
+        this.clientes = res.data;
+      });
+    }
+
+  }
+});
+;// CONCATENATED MODULE: ./src/pages/Modifica.vue?vue&type=script&lang=js
+ 
+;// CONCATENATED MODULE: ./src/pages/Modifica.vue
+
+
+
+
+;
+const Modifica_exports_ = /*#__PURE__*/(0,exportHelper/* default */.Z)(Modificavue_type_script_lang_js, [['render',Modificavue_type_template_id_33a3f623_render]])
+
+/* harmony default export */ const Modifica = (Modifica_exports_);
+;
+
+
+
+
+
+
+
+
+
+
+
+runtime_auto_import_default()(Modificavue_type_script_lang_js, 'components', {QPage: QPage/* default */.Z,QTable: QTable/* default */.Z,QTd: QTd/* default */.Z,QBtn: QBtn/* default */.Z,QInput: QInput/* default */.Z,QIcon: QIcon/* default */.Z,QDialog: QDialog/* default */.Z,QCard: QCard/* default */.Z,QCardSection: QCardSection/* default */.Z,QSelect: QSelect/* default */.Z,QCardActions: QCardActions/* default */.Z});runtime_auto_import_default()(Modificavue_type_script_lang_js, 'directives', {ClosePopup: ClosePopup/* default */.Z});
+
 ;// CONCATENATED MODULE: ./src/router/routes.js
+
 
 
 
@@ -6716,7 +6985,7 @@ runtime_auto_import_default()(Cobrosrealizadosvue_type_script_lang_js, 'componen
 
 const routes = [{
   path: '/',
-  component: () => Promise.all(/* import() */[__webpack_require__.e(736), __webpack_require__.e(358)]).then(__webpack_require__.bind(__webpack_require__, 1358)),
+  component: () => Promise.all(/* import() */[__webpack_require__.e(736), __webpack_require__.e(270)]).then(__webpack_require__.bind(__webpack_require__, 4270)),
   children: [{
     path: '',
     component: Index
@@ -6771,6 +7040,12 @@ const routes = [{
   }, {
     path: '/cobrosrealizados',
     component: Cobrosrealizados,
+    meta: {
+      requiresAuth: true
+    }
+  }, {
+    path: '/modifica',
+    component: Modifica,
     meta: {
       requiresAuth: true
     }
@@ -7487,7 +7762,7 @@ module.exports = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5v
 /******/ 		// This function allow to reference async chunks
 /******/ 		__webpack_require__.u = (chunkId) => {
 /******/ 			// return url for filenames based on template
-/******/ 			return "js/" + chunkId + "." + {"193":"10b407ea","358":"09606ae8"}[chunkId] + ".js";
+/******/ 			return "js/" + chunkId + "." + {"193":"10b407ea","270":"52854777"}[chunkId] + ".js";
 /******/ 		};
 /******/ 	})();
 /******/ 	
@@ -7674,9 +7949,9 @@ module.exports = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5v
 /******/ 	// startup
 /******/ 	// Load entry module and return exports
 /******/ 	// This entry module depends on other loaded chunks and execution need to be delayed
-/******/ 	var __webpack_exports__ = __webpack_require__.O(undefined, [736], () => (__webpack_require__(6071)))
+/******/ 	var __webpack_exports__ = __webpack_require__.O(undefined, [736], () => (__webpack_require__(2581)))
 /******/ 	__webpack_exports__ = __webpack_require__.O(__webpack_exports__);
 /******/ 	
 /******/ })()
 ;
-//# sourceMappingURL=app.13633f00.js.map
+//# sourceMappingURL=app.303af130.js.map

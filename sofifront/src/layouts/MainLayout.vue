@@ -116,6 +116,17 @@
             </q-item-label>
           </q-item-section>
         </q-item>
+                <q-item clickable exact to="modifica" v-if="$store.getters['login/user'].ci=='1234567'">
+          <q-item-section avatar>
+            <q-icon name="people" />
+          </q-item-section>
+          <q-item-section>
+            <q-item-label>Asignar preventista</q-item-label>
+            <q-item-label caption>
+              Modifica al preventista
+            </q-item-label>
+          </q-item-section>
+        </q-item>
 
         <!--        <q-item clickable exact to="asignar">-->
 <!--          <q-item-section avatar>-->

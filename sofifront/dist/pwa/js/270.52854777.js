@@ -1,7 +1,7 @@
 "use strict";
-(self["webpackChunksofi"] = self["webpackChunksofi"] || []).push([[358],{
+(self["webpackChunksofi"] = self["webpackChunksofi"] || []).push([[270],{
 
-/***/ 1358:
+/***/ 4270:
 /***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 // ESM COMPAT FLAG
@@ -16,7 +16,7 @@ __webpack_require__.d(__webpack_exports__, {
 var runtime_core_esm_bundler = __webpack_require__(3673);
 // EXTERNAL MODULE: ./node_modules/@vue/shared/dist/shared.esm-bundler.js
 var shared_esm_bundler = __webpack_require__(2323);
-;// CONCATENATED MODULE: ./node_modules/@quasar/app/lib/webpack/loader.js.transform-quasar-imports.js!./node_modules/babel-loader/lib/index.js??clonedRuleSet-2.use[0]!./node_modules/vue-loader/dist/templateLoader.js??ruleSet[1].rules[3]!./node_modules/@quasar/app/lib/webpack/loader.vue.auto-import-quasar.js??ruleSet[0].use[0]!./node_modules/vue-loader/dist/index.js??ruleSet[0].use[1]!./src/layouts/MainLayout.vue?vue&type=template&id=0e1ae40c
+;// CONCATENATED MODULE: ./node_modules/@quasar/app/lib/webpack/loader.js.transform-quasar-imports.js!./node_modules/babel-loader/lib/index.js??clonedRuleSet-2.use[0]!./node_modules/vue-loader/dist/templateLoader.js??ruleSet[1].rules[3]!./node_modules/@quasar/app/lib/webpack/loader.vue.auto-import-quasar.js??ruleSet[0].use[0]!./node_modules/vue-loader/dist/index.js??ruleSet[0].use[1]!./src/layouts/MainLayout.vue?vue&type=template&id=551ac96a
 
 
 const _hoisted_1 = /*#__PURE__*/(0,runtime_core_esm_bundler/* createTextVNode */.Uk)("Sofia");
@@ -61,9 +61,13 @@ const _hoisted_20 = /*#__PURE__*/(0,runtime_core_esm_bundler/* createTextVNode *
 
 const _hoisted_21 = /*#__PURE__*/(0,runtime_core_esm_bundler/* createTextVNode */.Uk)(" exportar excel ");
 
-const _hoisted_22 = /*#__PURE__*/(0,runtime_core_esm_bundler/* createTextVNode */.Uk)("Salir");
+const _hoisted_22 = /*#__PURE__*/(0,runtime_core_esm_bundler/* createTextVNode */.Uk)("Asignar preventista");
 
-const _hoisted_23 = /*#__PURE__*/(0,runtime_core_esm_bundler/* createTextVNode */.Uk)(" Salir del sistema ");
+const _hoisted_23 = /*#__PURE__*/(0,runtime_core_esm_bundler/* createTextVNode */.Uk)(" Modifica al preventista ");
+
+const _hoisted_24 = /*#__PURE__*/(0,runtime_core_esm_bundler/* createTextVNode */.Uk)("Salir");
+
+const _hoisted_25 = /*#__PURE__*/(0,runtime_core_esm_bundler/* createTextVNode */.Uk)(" Salir del sistema ");
 
 function render(_ctx, _cache, $props, $setup, $data, $options) {
   const _component_q_btn = (0,runtime_core_esm_bundler/* resolveComponent */.up)("q-btn");
@@ -361,8 +365,34 @@ function render(_ctx, _cache, $props, $setup, $data, $options) {
             _: 1
           })]),
           _: 1
-        })) : (0,runtime_core_esm_bundler/* createCommentVNode */.kq)("", true), _ctx.$store.getters['login/isLoggedIn'] ? ((0,runtime_core_esm_bundler/* openBlock */.wg)(), (0,runtime_core_esm_bundler/* createBlock */.j4)(_component_q_item, {
+        })) : (0,runtime_core_esm_bundler/* createCommentVNode */.kq)("", true), _ctx.$store.getters['login/user'].ci == '1234567' ? ((0,runtime_core_esm_bundler/* openBlock */.wg)(), (0,runtime_core_esm_bundler/* createBlock */.j4)(_component_q_item, {
           key: 8,
+          clickable: "",
+          exact: "",
+          to: "modifica"
+        }, {
+          default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_item_section, {
+            avatar: ""
+          }, {
+            default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_icon, {
+              name: "people"
+            })]),
+            _: 1
+          }), (0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_item_section, null, {
+            default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_item_label, null, {
+              default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [_hoisted_22]),
+              _: 1
+            }), (0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_item_label, {
+              caption: ""
+            }, {
+              default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [_hoisted_23]),
+              _: 1
+            })]),
+            _: 1
+          })]),
+          _: 1
+        })) : (0,runtime_core_esm_bundler/* createCommentVNode */.kq)("", true), _ctx.$store.getters['login/isLoggedIn'] ? ((0,runtime_core_esm_bundler/* openBlock */.wg)(), (0,runtime_core_esm_bundler/* createBlock */.j4)(_component_q_item, {
+          key: 9,
           clickable: "",
           onClick: $options.logout
         }, {
@@ -375,12 +405,12 @@ function render(_ctx, _cache, $props, $setup, $data, $options) {
             _: 1
           }), (0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_item_section, null, {
             default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_item_label, null, {
-              default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [_hoisted_22]),
+              default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [_hoisted_24]),
               _: 1
             }), (0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_item_label, {
               caption: ""
             }, {
-              default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [_hoisted_23]),
+              default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [_hoisted_25]),
               _: 1
             })]),
             _: 1
@@ -499,4 +529,4 @@ runtime_auto_import_default()(MainLayoutvue_type_script_lang_js, 'components', {
 /***/ })
 
 }]);
-//# sourceMappingURL=358.09606ae8.js.map
+//# sourceMappingURL=270.52854777.js.map
