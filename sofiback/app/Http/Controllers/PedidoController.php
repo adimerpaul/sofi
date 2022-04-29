@@ -465,7 +465,7 @@ class PedidoController extends Controller
 //        return $pedidos;
         foreach ($pedidos as $p){
 //            return  $p->NroPed;
-            $comanda=DB::connection('aron-9')->table('tbpedidos')->where('codAut',$p->CodAut)->get()->count();
+            $comanda=DB::connection('aron-9')->table('tbpedidos')->where('codAut',$p->codAut)->get()->count();
 //            return  $comanda.'  -   ';
             if($comanda==0){
                 //$pedi=DB::select("SELECT * from tbpedidos where tipo='NORMAL' AND date(fecha)>='$request->fecha1' and date(fecha)<='$request->fecha2' AND NroPed='".$p->NroPed."' and estado='ENVIADO' ");
@@ -475,7 +475,7 @@ class PedidoController extends Controller
 //                    $validar=DB::connection('aron-9')->table('tbpedidos')->where('NroPed',$pe->NroPed)->get();
 //                    if($validar->count()==0){
                     DB::connection('aron-9')->table('tbpedidos')->insert([
-                        "codAut"=>$p->CodAut,
+                        "codAut"=>$p->codAut,
                         "NroPed"=>$p->NroPed,
                         "cod_prod"=>$p->cod_prod,
                         "CIfunc"=>$p->CIfunc,
