@@ -4,29 +4,14 @@
   <div class="col-6">
     <q-input dense outlined v-model="fecha1" label="Fecha Ini" type="date"/>
   </div>
-<!--    <div class="col-6">-->
-<!--    <q-input dense outlined v-model="fecha2" label="Fecha Fin" type="date"/>-->
-<!--  </div>-->
   <div class="col-6 flex flex-center">
-    <q-btn color="info" icon="search" label="consulta" @click="misclientes"  />
+    <q-btn color="info" icon="search" label="consulta" @click="mispendiente"  />
   </div>
-  <div class="col-4 col-sm-4 flex flex-center">
-    <q-btn class="full-width" color="green" type="a" :href="url+'excel/p/'+fecha1+'/'+fecha2+'/'+$store.state.login.user.CodAut" target="_blank" icon="list" label="Reporte Pollo" @click1="generarpollo" />
-  </div>
-  <div class="col-4 col-sm-4 flex flex-center">
-    <q-btn class="full-width" color="accent" type="a" :href="url+'excel/r/'+fecha1+'/'+fecha2+'/'+$store.state.login.user.CodAut" target="_blank" icon="list" label="Reporte Res" @click1="generarres" />
-  </div>
-  <div class="col-4 col-sm-4 flex flex-center">
-    <q-btn class="full-width" color="teal" type="a" :href="url+'excel/c/'+fecha1+'/'+fecha2+'/'+$store.state.login.user.CodAut" target="_blank" icon="list" label="Reporte Cerdo" @click1="generarcerdo" />
-  </div>
-<!--  <div class="col-6 col-sm-3 flex flex-center">-->
-<!--    <q-btn class="full-width" color="teal" icon="list" label="Reporte Comanda" @click="generarcomanda" />-->
-<!--  </div>-->
   <div class="col-12">
     <q-table :rows-per-page-options="[15,50,100,0]" dense title="Clientes " :columns="columns" :rows="clientes" :filter="filter">
       <template v-slot:body-cell-opciones="props">
         <q-td :props="props">
-          <q-btn  @click="listpedidos(props.row)" :color="props.row.estado=='CREADO'?'primary':'warning'" :label="props.row.estado=='CREADO'?'MODIFICAR':'ENVIADO'" icon="shop" size="xs"  />
+          <q-btn  @click="listpedidos(props.row)" :color="props.row.estado=='CREADO'?'info':'warning'" :label="props.row.estado=='CREADO'?'VER':'ENVIADO'" icon="shop" size="xs"  />
           <q-btn  @click="imprimirboleta(props.row)" color="info" icon="print" size="xs"  v-if="props.row.estado=='ENVIADO'"/>
         </q-td>
       </template>
@@ -38,7 +23,6 @@
         </q-input>
       </template>
     </q-table>
-    <q-btn style="width: 100%" @click="enviarpedidos" color="warning" icon="check" label="Enviar todos los pedidos"> </q-btn>
 <!--    <q-btn style="width: 100%" @click="expedidos" color="red" icon="warning" label="export pedidos"> </q-btn>-->
   </div>
 
@@ -107,7 +91,6 @@
                   </q-tr>
                 </template>
               </q-table>
-              <q-btn v-if="cliente.estado=='CREADO'" @click="modificarcomanda"  style="width: 100%" label="Modificar pedido" icon="edit" color="warning" />
               <q-btn v-if="cliente.estado=='CREADO'" @click="enviarcomanda"  style="width: 100%" label="Enviar pedido" icon="send" color="teal" />
               <q-btn v-if="cliente.estado=='CREADO'" @click="eliminarcomanda"  style="width: 100%" label="Eliminar pedido" icon="delete" color="red" />
             </div>
@@ -586,7 +569,7 @@ export default {
           //   dom: 'Blfrtip',
           //   buttons: ['copy', 'csv', 'excel', 'pdf', 'print']
           // } );
-    this.misclientes()
+    this.mispendiente()
           this.$api.get('producto').then(res=>{
         // console.log(res.data)
         this.productos=[]
@@ -1405,7 +1388,7 @@ generarpollo(){
     },
     enviarcomanda(){
       this.$q.loading.show()
-      this.$api.post('envpedido',{NroPed:this.cliente.NroPed}).then(res=>{
+      this.$api.post('envped',{NroPed:this.cliente.NroPed}).then(res=>{
         this.modalpedido=false
         this.$q.loading.hide()
 
@@ -1430,31 +1413,7 @@ generarpollo(){
         this.misclientes()
       })
     },
-    imprimirboleta(comanda1){
 
-           this.$api.post('rnormal',{comanda:comanda1.NroPed}).then(res=>{
-             console.log(res.data)
-             let tot=0
-            let cadena='<div>COMANDA: '+comanda1.NroPed+'</div>'
-            cadena+='<div>CLIENTE: '+comanda1.Nombres+'</div>'
-            cadena+='<table><tr><th>CODIGO</th><th>PRODUCTO</th><th>CANTIDAD</th><th>PRECIO</th><th>SUBTOTAL</th><th>OBSERVACION</th></tr>'
-            res.data.forEach(r => {
-              tot=tot + parseFloat(r.subtotal)
-              cadena+='<tr><td>'+r.cod_prod+'</td><td>'+r.Producto+'</td><td>'+r.Cant+'</td><td>'+r.precio+'</td><td>'+r.subtotal+'</td><td>'+(r.Observaciones==null?'':r.Observaciones)+'</td></tr>'
-
-            });
-              cadena+='<tr><td></td><td></td><td></td><td>TOTAL</td><td>'+tot+'</td><td></td></tr>'
-
-            cadena+='</table>'
-              let myWindow = window.open("", "Imprimir", "width=1000,height=1000");
-              myWindow.document.write(cadena);
-              myWindow.document.close();
-              myWindow.print();
-              myWindow.close();
-           })
-
-
-    },
         agregarpedido(){
                 if(this.producto.Producto==undefined){
         this.$q.notify({
@@ -1608,9 +1567,9 @@ generarpollo(){
         }
     },
 
-    misclientes(){
+    mispendiente(){
       this.$q.loading.show()
-      this.$api.post('clientepedido',{fecha1:this.fecha1,fecha2:this.fecha2}).then(res=>{
+      this.$api.post('pedpendiente',{fecha:this.fecha1}).then(res=>{
         // console.log(res.data)
         this.clientes=res.data
         this.$q.loading.hide()

@@ -232,6 +232,10 @@ class CobrarController extends Controller
                 } 
     }
 
+    public function delcobro(Request $request){
+        DB::SELECT("DELETE FROM tbctascow where codAut=$request->codAut");
+    }
+
     public function copiacow(Request $request ){
         $cc=DB::SELECT("SELECT * from tbctascow where estado='ENVIADO' and date(fecha)>='$request->fecha1' and date(fecha)<='$request->fecha2'");
 
@@ -254,12 +258,13 @@ class CobrarController extends Controller
     }
 
     public function ctacobrar(){
-        $fecha=date("Y-m-d", strtotime(date("Y-m-d").'-7 days'));
-        $cobrar=DB::connection('aron-9')->table('tbctascobrar')->whereDate('FechaCan','>=',$fecha)->get();
-        $cobrar2=DB::table('tbctascobrar')->whereDate('FechaCan','>=',$fecha)->get();
-        $cobrar3=DB::SELECT("SELECT comanda from tbctascobrar where date(FechaCan) >= $fecha group by comanda");
+        //$fecha=date("Y-m-d", strtotime(date("Y-m-d").'-7 days'));
+        $cobrar2=DB::SELECT('SELECT max(CodAuto) as cod  from tbctascobrar');
+        $cobrar=DB::connection('aron-9')->table('tbctascobrar')->where('CodAuto','>=',$cobrar2[0]->cod)->get();
+        $cobrar3=DB::SELECT("SELECT comanda from tbctascobrar group by comanda");
+        //return $cobrar;
         //return $cobrar->count() > $cobrar2->count();
-        if($cobrar->count() > $cobrar2->count()){
+       // if($cobrar->count() > $cobrar2->count()){
         foreach ($cobrar as $r) {
             $cta=DB::table('tbctascobrar')->where('codAuto',$r->CodAuto)->get()->count();
             if($cta==0){
@@ -279,7 +284,7 @@ class CobrarController extends Controller
                     "codcli"	=>$r->codcli,
                 ]);
             }
-        }
+       // }
         foreach ($cobrar3 as $d) {
             $cr=DB::connection('aron-9')->table('tbctascobrar')->where('comanda',$d->comanda)->get();
             if($cr->count()==0)

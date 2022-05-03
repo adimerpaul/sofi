@@ -13,8 +13,14 @@
         </div>
       </q-form>
     </div>
+    <div class="col-4"> <q-btn color="accent" label="CtaCobrar" @click="recuperar"/>    </div>
     <div class="col-12">
       <q-table :filter="filter" dense title="Cobros realizados" :columns="columscobros" :rows="cobros">
+            <template v-slot:body-cell-opcion="props">
+        <q-td :props="props">
+           <q-btn dense color="red"  icon='delete' v-if="props.row.estado=='CREADO'" @click="eliminar(props.row.codAut)"/>
+        </q-td>
+      </template>
         <template v-slot:top-right>
           <q-input placeholder="Buscar" dense outlined v-model="filter" />
         </template>
@@ -47,6 +53,7 @@ export default {
         // {label:"fecomanda",name:"fecomanda",field:"fecomanda"},
         {label:"nboleta",name:"nboleta",field:"nboleta"},
         {label:"estado",name:"estado",field:"estado"},
+        {label:"OPCION",name:"opcion",field:"opcion"},
       ],
     }
   },
@@ -54,6 +61,31 @@ export default {
     this.miscobrosrealizados()
   },
   methods:{
+    recuperar(){
+      this.$q.loading.show()
+      this.$api.post('ctacobrar').then(res=>{
+        console.log(res.data)
+                  this.$q.notify({
+          color:'green',
+          message:'Actualizado cuentas',
+          icon:'check'
+        })
+        this.$q.loading.hide()
+
+      })
+    },
+    eliminar(cod){
+      this.$q.loading.show()
+      this.$api.post('delcobro',{'codAut':cod}).then(res=>{
+          this.$q.notify({
+          color:'green',
+          message:'Eliminado Registro',
+          icon:'delete'
+        })
+        this.miscobrosrealizados()
+      })
+
+    },
     imprimir(){
       let cm=this;
       function header(vendedor){
