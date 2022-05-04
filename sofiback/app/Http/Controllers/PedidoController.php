@@ -79,7 +79,9 @@ class PedidoController extends Controller
             'lat'=>$request->lat,
             'lng'=>$request->lng,
             'distancia'=>$distancia,
-            'cliente_id'=>$request->idCli
+            'cliente_id'=>$request->idCli,
+            'personal_id'=>$request->user()->CodAut
+
         ]);
         foreach ($request->productos as $p){
 //            echo $p['idCli'].'--';
@@ -213,7 +215,8 @@ class PedidoController extends Controller
             'lat'=>$request->lat,
             'lng'=>$request->lng,
             'distancia'=>$distancia,
-            'cliente_id'=>$request->idCli
+            'cliente_id'=>$request->idCli,
+            'personal_id'=>$request->user()->CodAut
         ]);
     }
 
