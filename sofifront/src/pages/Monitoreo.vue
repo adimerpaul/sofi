@@ -5,7 +5,7 @@
       <q-select @update:model-value="consula" dense outlined label="Vendero" :options="usuarios" v-model="user" />
     </div>
     <div class="col-6">
-      <q-input v-model="fecha" label="fecha" dense outlined type="date" />
+      <q-input @change="consula(user)" v-model="fecha" label="fecha" dense outlined type="date" />
     </div>
     <div class="col-3 text-center q-pa-xs">
       <div class="text-subtitle2 text-bold">Totales</div>
