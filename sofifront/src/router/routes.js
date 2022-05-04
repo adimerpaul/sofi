@@ -11,6 +11,7 @@ import Generar from "pages/Generar";
 import Cobrosrealizados from "pages/Cobrosrealizados";
 import Modifica from "pages/Modifica";
 import Pendientes from "pages/Pendientes";
+import Monitoreo from "pages/Monitoreo";
 const routes = [
   {
     path: '/',
@@ -28,6 +29,7 @@ const routes = [
       { path: '/cobrosrealizados', component: Cobrosrealizados ,meta: {requiresAuth: true}},
       { path: '/modifica', component: Modifica ,meta: {requiresAuth: true}},
       { path: '/pendientes', component: Pendientes ,meta: {requiresAuth: true}},
+      { path: '/monitoreo', component: Monitoreo ,meta: {requiresAuth: true}},
       { path: '/login', component: Login },
     ]
   },

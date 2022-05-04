@@ -497,7 +497,7 @@ class PedidoController extends Controller
                 //$pedi=DB::select("SELECT * from tbpedidos where tipo='NORMAL' AND date(fecha)>='$request->fecha1' and date(fecha)<='$request->fecha2' AND NroPed='".$p->NroPed."' and estado='ENVIADO' ");
 //                return $pedi;
                 //foreach ($pedi as $pe){
-//                    return $pe->NroPed;
+//                    return $pe->NroPed;CREADO
 //                    $validar=DB::connection('aron-9')->table('tbpedidos')->where('NroPed',$pe->NroPed)->get();
 //                    if($validar->count()==0){
                     DB::connection('aron-9')->table('tbpedidos')->insert([

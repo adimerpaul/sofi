@@ -32,14 +32,15 @@ Route::group(['middleware'=>'auth:sanctum'],function (){
     Route::resource('/res',\App\Http\Controllers\ResController::class);
     Route::resource('/cerdo',\App\Http\Controllers\CerdoController::class);
     Route::resource('/cobrosrealizados',\App\Http\Controllers\CobrosrealizadosController::class);
+    Route::resource('/misvisitas',\App\Http\Controllers\MisvisitasController::class);
 
     Route::get('/listdeudores',[\App\Http\Controllers\CobrarController::class,'listdeudores']);
     Route::post('/cxcobrar/{ci}',[\App\Http\Controllers\CobrarController::class,'cxcobrar']);
     Route::post('/insertcobro',[\App\Http\Controllers\CobrarController::class,'insertcobro']);
     Route::post('/miscobros',[\App\Http\Controllers\CobrarController::class,'miscobros']);
     Route::post('/impcobros',[\App\Http\Controllers\CobrarController::class,'impcobros']);
-    Route::post('/verificar',[\App\Http\Controllers\CobrarController::class,'verificar']); 
-    Route::post('/delcobro',[\App\Http\Controllers\CobrarController::class,'delcobro']); 
+    Route::post('/verificar',[\App\Http\Controllers\CobrarController::class,'verificar']);
+    Route::post('/delcobro',[\App\Http\Controllers\CobrarController::class,'delcobro']);
     Route::post('/misasignaciones',[\App\Http\Controllers\AsignarController::class,'misasignaciones']);
     Route::post('/clientepedido',[\App\Http\Controllers\PedidoController::class,'clientepedido']);
     Route::post('/pedpendiente',[\App\Http\Controllers\PedidoController::class,'pedpendiente']);
@@ -59,10 +60,10 @@ Route::group(['middleware'=>'auth:sanctum'],function (){
     Route::post('/bloquear',[\App\Http\Controllers\ClienteController::class,'bloquear']);
     Route::post('/desbloq2',[\App\Http\Controllers\ClienteController::class,'desbloq2']);
     Route::post('/todosclientes',[\App\Http\Controllers\ClienteController::class,'todosclientes']);
-    Route::post('/desbloquear',[\App\Http\Controllers\ClienteController::class,'desbloquear']); 
-    Route::get('/listapersonal',[\App\Http\Controllers\ClienteController::class,'listapersonal']); 
-    Route::get('/listaclientes',[\App\Http\Controllers\ClienteController::class,'listaclientes']); 
-    Route::post('/modprevent',[\App\Http\Controllers\ClienteController::class,'modprevent']);    
+    Route::post('/desbloquear',[\App\Http\Controllers\ClienteController::class,'desbloquear']);
+    Route::get('/listapersonal',[\App\Http\Controllers\ClienteController::class,'listapersonal']);
+    Route::get('/listaclientes',[\App\Http\Controllers\ClienteController::class,'listaclientes']);
+    Route::post('/modprevent',[\App\Http\Controllers\ClienteController::class,'modprevent']);
 
     Route::post('/me',[\App\Http\Controllers\UserController::class,'me']);
     Route::post('/logout',[\App\Http\Controllers\UserController::class,'logout']);
