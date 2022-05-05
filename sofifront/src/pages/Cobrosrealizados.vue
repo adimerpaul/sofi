@@ -4,16 +4,19 @@
     <div class="col-12">
       <q-form @submit.prevent="miscobrosrealizados">
         <div class="row">
-          <div class="col-6">
+          <div class="col-4">
             <q-input label="fecha" v-model="fecha" outlined dense type="date" />
           </div>
-          <div class="col-6">
+          <div class="col-4">
             <q-btn type="submit" color="positive" icon="check" label="consultar" class="full-width full-height"/>
+          </div>
+          <div class="col-4">
+            <q-btn color="accent" label="CtaCobrar" icon="import" type="button" @click="recuperar"/>
           </div>
         </div>
       </q-form>
     </div>
-    <div class="col-4"> <q-btn color="accent" label="CtaCobrar" @click="recuperar"/>    </div>
+<!--    <div class="col-4"> <q-btn color="accent" label="CtaCobrar" @click="recuperar"/>    </div>-->
     <div class="col-12">
       <q-table :filter="filter" dense title="Cobros realizados" :columns="columscobros" :rows="cobros">
             <template v-slot:body-cell-opcion="props">
