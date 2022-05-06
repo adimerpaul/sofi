@@ -46,15 +46,15 @@
       </template>
     </q-table>
   </div>
-  <div class="col-4">
-    <q-input dense outlined v-model="fecha1" label="Fecha Ini" type="date"/>
-  </div>
-    <div class="col-4">
-    <q-input dense outlined v-model="fecha2" label="Fecha Fin" type="date"/>
-  </div>
-  <div class="col-4">
-        <q-btn style="width: 100%" @click="expedidos" color="red" icon="download" label="importar pedidos"> </q-btn>
-  </div>
+<!--  <div class="col-4">-->
+<!--    <q-input dense outlined v-model="fecha1" label="Fecha Ini" type="date"/>-->
+<!--  </div>-->
+<!--    <div class="col-4">-->
+<!--    <q-input dense outlined v-model="fecha2" label="Fecha Fin" type="date"/>-->
+<!--  </div>-->
+<!--  <div class="col-4">-->
+<!--        <q-btn style="width: 100%" @click="expedidos" color="red" icon="download" label="importar pedidos"> </q-btn>-->
+<!--  </div>-->
 </div>
 </q-page>
 </template>

@@ -12,6 +12,7 @@ import Cobrosrealizados from "pages/Cobrosrealizados";
 import Modifica from "pages/Modifica";
 import Pendientes from "pages/Pendientes";
 import Monitoreo from "pages/Monitoreo";
+import Ruta from "pages/Ruta";
 const routes = [
   {
     path: '/',
@@ -30,6 +31,7 @@ const routes = [
       { path: '/modifica', component: Modifica ,meta: {requiresAuth: true}},
       { path: '/pendientes', component: Pendientes ,meta: {requiresAuth: true}},
       { path: '/monitoreo', component: Monitoreo ,meta: {requiresAuth: true}},
+      { path: '/ruta', component: Ruta ,meta: {requiresAuth: true}},
       { path: '/login', component: Login },
     ]
   },

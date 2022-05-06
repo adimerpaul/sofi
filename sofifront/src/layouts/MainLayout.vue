@@ -110,9 +110,20 @@
             <q-icon name="money" />
           </q-item-section>
           <q-item-section>
-            <q-item-label>exportar excel</q-item-label>
+            <q-item-label>Exportar excel</q-item-label>
             <q-item-label caption>
-              exportar excel
+              Exportar excel
+            </q-item-label>
+          </q-item-section>
+        </q-item>
+        <q-item clickable exact to="ruta" v-if="encargados.includes($store.getters['login/user'].ci)">
+          <q-item-section avatar>
+            <q-icon name="map" />
+          </q-item-section>
+          <q-item-section>
+            <q-item-label>Ruta de pedidos</q-item-label>
+            <q-item-label caption>
+              Ruta de pedidos
             </q-item-label>
           </q-item-section>
         </q-item>

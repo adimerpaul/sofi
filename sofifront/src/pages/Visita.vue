@@ -247,7 +247,7 @@
 
             <div class="col-6" ><q-input type="number" dense outlined label="Cja-104" v-model="miproducto.c104"/></div>
             <div class="col-6" ><q-input type="number" dense outlined label="Unid-104" v-model="miproducto.u104"/></div>
-   
+
             <div class="col-6" ><q-input type="number" dense outlined label="Cja-105" v-model="miproducto.c105"/></div>
             <div class="col-6" ><q-input type="number" dense outlined label="Unid-105" v-model="miproducto.u105"/></div>
 
@@ -503,6 +503,7 @@ export default {
 
   created() {
     this.misclientes()
+    this.consultamisproductos()
     // this.$q.notify({
     //   message:'aaaa',
     //   color:'red',
@@ -543,7 +544,8 @@ export default {
           icon:'error'
         })
       })
-
+    },
+    consultamisproductos(){
       this.$api.get('producto').then(res=>{
         // console.log(res.data)
         this.productos=[]
