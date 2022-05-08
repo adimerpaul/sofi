@@ -5,7 +5,7 @@
       <q-form @submit.prevent="misclientes">
         <div class="row">
           <div class="col-6">
-            <q-input label="fecha" dense outlined v-model="fecha" />
+            <q-input label="fecha" dense outlined v-model="fecha" type="date" />
           </div>
           <div class="col-6 flex flex-center">
             <q-btn class="full-width" type="submit" icon="search" label="buscar" color="primary" />
@@ -28,7 +28,7 @@
     ></l-tile-layer>
 <!--    @click="clickopciones(c)"-->
     <l-marker v-for="(c,i) in clientes" :key="c.Cod_Aut" :lat-lng="[c.Latitud, c.longitud]"  >
-      <l-icon><q-badge  :class="c.estados=='VAYA'?'bg-red text-italic':'bg-green text-italic'"  class="q-pa-none" color="info" >{{i+1}}</q-badge></l-icon>
+      <l-icon><q-badge  :class="c.estados=='ENTREGADO'?'bg-green text-italic':c.estados=='NO ENTREGADO'?'bg-red text-italic':''"  class="q-pa-none" color="info" >{{i+1}}</q-badge></l-icon>
     </l-marker>
     <l-marker :lat-lng="center"  >
     </l-marker>
@@ -43,13 +43,13 @@
 <!--          </q-td>-->
 <!--        </template>-->
         <template v-slot:body-cell-Nombres="props">
-          <q-td :class="props.row.estados=='ENTREGADO'?'bg-green-3  text-italic':''" @click="clickopciones(props.row)" :props="props">
+          <q-td :class="props.row.estados=='ENTREGADO'?'bg-green text-italic':props.row.estados=='NO ENTREGADO'?'bg-red text-italic':''" @click="clickopciones(props.row)" :props="props">
             <div class="text-weight-medium"> {{ props.pageIndex+1 }} {{ props.row.Nombres}}</div>
             <div class="text-caption" style="font-size: 8px">{{ props.row.Direccion}}</div>
           </q-td>
         </template>
         <template v-slot:body-cell-opcion="props">
-          <q-td :class="props.row.estados=='ENTREGADO'?'bg-green-3  text-italic':''">
+          <q-td :class="props.row.estados=='ENTREGADO'?'bg-green text-italic':props.row.estados=='NO ENTREGADO'?'bg-red text-italic':''">
             <q-btn @click="clickclientes(props.row)" icon="my_location" size="xs" :color="props.row.estados=='ENTREGADO'?'positive':'negative'"  />
           </q-td>
         </template>
@@ -221,6 +221,8 @@ export default {
       })
     },
     clickopciones(c){
+      if(c.estados!='VAYA')
+       return false
       this.estado=''
       this.observacion=''
       this.cliente=c
@@ -272,7 +274,7 @@ export default {
     misclientes(){
       this.$q.loading.show()
       this.$api.get('ruta/'+this.fecha).then(res=>{
-        // console.log(res.data)
+         console.log(res.data)
         this.$q.loading.hide()
         // return false
         this.clientes=[]

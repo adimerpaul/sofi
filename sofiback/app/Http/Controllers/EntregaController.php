@@ -36,14 +36,13 @@ class EntregaController extends Controller
     public function store(Request $request)
     {
 //        return $request;
-        if ($request->estado=='ENTREGADO'){
          DB::table('tbpedidos')
              ->where('idCli',$request->cliente_id)
              ->whereDate('fecha',$request->fecha)
              ->update([
-                "estados"=>"ENTREGADO"
+                "estados"=>$request->estado
              ]);
-        }
+
         $cliente=DB::select("SELECT * FROM tbclientes WHERE Cod_Aut='".$request->cliente_id."'");
 
         $distancia=$this->distance( floatval( $request->lat),floatval($request->lng),floatval($cliente[0]->Latitud),floatval($cliente[0]->longitud));
@@ -81,9 +80,10 @@ class EntregaController extends Controller
      * @param  int  $id
      * @return \Illuminate\Http\Response
      */
-    public function show($id)
+    public function show($fecha)
     {
         //
+        return DB::SELECT("SELECT * from tbclientes c inner join entregas e on c.Cod_Aut=e.cliente_id where e.fecha='$fecha'");
     }
 
     /**

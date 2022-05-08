@@ -127,6 +127,17 @@
             </q-item-label>
           </q-item-section>
         </q-item>
+                <q-item clickable exact to="reporte" v-if="encargados.includes($store.getters['login/user'].ci)">
+          <q-item-section avatar>
+            <q-icon name="list" />
+          </q-item-section>
+          <q-item-section>
+            <q-item-label>Reporte entrega</q-item-label>
+            <q-item-label caption>
+              Clientes entregas
+            </q-item-label>
+          </q-item-section>
+        </q-item>
         <q-item clickable exact to="modifica" v-if="$store.getters['login/user'].ci=='1234567'">
           <q-item-section avatar>
             <q-icon name="people" />
