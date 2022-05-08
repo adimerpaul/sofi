@@ -99,11 +99,11 @@ class CobrarController extends Controller
     public function miscobros(Request $request ){
         //return $request;
         //return "SELECT *,(select Nombres from tbclientes where id=idcli) as Nombres from tbctascow where trim(CIFunc)='".$request->user()->ci."' and date(fecha)>='$request->fecha1' and date(fecha)<='$request->fecha2'";
-        return DB::SELECT("SELECT *,(select Nombres from tbclientes where id=idcli) as Nombres from tbctascow where trim(CIFunc)='".$request->user()->ci."' and date(fecha)>='$request->fecha1' and date(fecha)<='$request->fecha2'");
+        return DB::SELECT("SELECT *,(select Nombres from tbclientes where id=idcli) as Nombres from tbctascow where trim(CIFunc)='".$request->user()->ci."' and date(fecha)='$request->fecha1' ");
     }
 
     public function impcobros(Request $request ){
-        $datos= DB::SELECT("SELECT *,(select Nombres from tbclientes where id=idcli) as Nombres from tbctascow where trim(CIFunc)='".$request->user()->ci."' and date(fecha)>='$request->fecha1' and date(fecha)<='$request->fecha2'");
+        $datos= DB::SELECT("SELECT *,(select Nombres from tbclientes where id=idcli) as Nombres from tbctascow where trim(CIFunc)='".$request->user()->ci."' and date(fecha)='$request->fecha1'  ");
         $total=0;
         $cadena="
         <style>
@@ -116,7 +116,7 @@ class CobrarController extends Controller
           }
           </style>
         <div>NOMBRE:". $request->user()->Nombre1 ." ".$request->user()->Nombre2 ." ".$request->user()->App1 ." ".$request->user()->Apm ."</div>
-        <div>FECHA: $request->fecha1 al $request->fecha2</div>
+        <div>FECHA: $request->fecha1 </div>
         <table>
         <tr>
         <th>FECHA</th>
@@ -204,17 +204,17 @@ class CobrarController extends Controller
 
     public function verificar(Request $request){
 
-        DB::SELECT("UPDATE tbctascow set estado='ENVIADO' WHERE estado='CREADO' AND TRIM(CiFunc)='".$request->user()->ci."' and date(fecha)>='$request->fecha1' and date(fecha)<='$request->fecha2'");
-        $cont="(SELECT w.comanda,w.pago as Acuenta,0 as Importe,99999 as Nrocierre,idCli as CINIT  FROM tbctascow w WHERE date(w.fecha)>='$request->fecha1' and date(w.fecha)<='$request->fecha2' union
+        DB::SELECT("UPDATE tbctascow set estado='ENVIADO' WHERE estado='CREADO' AND TRIM(CiFunc)='".$request->user()->ci."' and date(fecha)='$request->fecha1' ");
+        $cont="(SELECT w.comanda,w.pago as Acuenta,0 as Importe,99999 as Nrocierre,idCli as CINIT  FROM tbctascow w WHERE date(w.fecha)='$request->fecha1' union
         select t.comanda,t.Importe,t.Acuenta,Nrocierre,CINIT from tbctascobrar t )";
 
         DB::SELECT("UPDATE tbclientes set venta='ACTIVO' 
         where (SELECT sum(c.Importe-(SELECT sum(c2.Acuenta) from $cont c2 where c2.comanda=c.comanda)) FROM $cont c WHERE c.CINIT=tbclientes.Id and c.Nrocierre=0)<7000
         or (SELECT sum(c.Importe-(SELECT sum(c2.Acuenta) from $cont c2 where c2.comanda=c.comanda)) FROM $cont c WHERE c.CINIT=tbclientes.Id and c.Nrocierre=0) is null
          ");
-                $cc=DB::SELECT("SELECT * from tbctascow where estado='ENVIADO' and date(fecha)>='$request->fecha1' and date(fecha)<='$request->fecha2'");
+                $cc=DB::SELECT("SELECT * from tbctascow where estado='ENVIADO' and date(fecha)='$request->fecha1' ");
 
-                foreach ($cc as $r) {
+               /* foreach ($cc as $r) {
                     $com=DB::connection('aron-9')->table('tbctascow')->where('codAut',$r->codAut)->get()->count();
                     if($com==0){
                     DB::connection('aron-9')->table('tbctascow')->insert([
@@ -229,7 +229,7 @@ class CobrarController extends Controller
                         "nboleta"=>$r->nboleta,
                         "fecomanda"=>$r->fecomanda]);
                     }         	                            
-                } 
+                } */
     }
 
     public function delcobro(Request $request){

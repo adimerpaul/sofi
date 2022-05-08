@@ -4,9 +4,7 @@
     <div class="col-4">
       <q-input dense outlined v-model="fecha1" label="Fecha Ini" type="date"/>
     </div>
-    <div class="col-4">
-      <q-input dense outlined v-model="fecha2" label="Fecha Fin" type="date"/>
-    </div>
+
     <div class="col-4 flex flex-center">
       <q-btn color="info" icon="search" label="consulta" @click="mcobros" size="xs" />
     </div>
@@ -67,7 +65,6 @@ export default {
     return{
       filter:'',
       fecha1:date.formatDate(Date.now(),'YYYY-MM-DD'),
-      fecha2:date.formatDate(Date.now(),'YYYY-MM-DD'),
       cobros:[],
       columns:[
         {label:'ESTADO',name:'estado',field:'estado'},
@@ -87,7 +84,7 @@ export default {
     methods: {
       enviarcow(){
               this.$q.loading.show()
-      this.$api.post('copiacow',{fecha1:this.fecha1,fecha2:this.fecha2}).then(res=>{
+      this.$api.post('copiacow',{fecha1:this.fecha1}).then(res=>{
         console.log(res.data)
         this.$q.loading.hide()
         this.$q.notify({
@@ -108,7 +105,7 @@ export default {
       mcobros(){
       this.$q.loading.show()
 
-      this.$api.post('miscobros',{fecha1:this.fecha1,fecha2:this.fecha2}).then(res=>{
+      this.$api.post('miscobros',{fecha1:this.fecha1}).then(res=>{
         //console.log('s')
         console.log(res.data)
        // return false
@@ -131,7 +128,7 @@ export default {
           return false
         }
         this.$q.loading.show()
-        this.$api.post('verificar',{fecha1:this.fecha1,fecha2:this.fecha2}).then(res=>{
+        this.$api.post('verificar',{fecha1:this.fecha1}).then(res=>{
           this.$q.loading.hide()
           this.mcobros();
         }).catch(err=>{
