@@ -72,6 +72,17 @@
             </q-item-label>
           </q-item-section>
         </q-item>
+                <q-item clickable exact to="pendientes" v-if="$store.getters['login/user'].ci=='7329536'">
+          <q-item-section avatar>
+            <q-icon name="local_grocery_store" />
+          </q-item-section>
+          <q-item-section>
+            <q-item-label>Pedidos Pendientes </q-item-label>
+            <q-item-label caption>
+              Faltantes
+            </q-item-label>
+          </q-item-section>
+        </q-item>
         <q-item clickable exact to="cobrosrealizados" v-if="$store.getters['login/user'].ci=='7329536'">
           <q-item-section avatar>
             <q-icon name="monetization_on" />
