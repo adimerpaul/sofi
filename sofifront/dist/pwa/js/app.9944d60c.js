@@ -10212,7 +10212,7 @@ runtime_auto_import_default()(Reportevue_type_script_lang_js, 'components', {QPa
 
 const routes = [{
   path: '/',
-  component: () => Promise.all(/* import() */[__webpack_require__.e(736), __webpack_require__.e(628)]).then(__webpack_require__.bind(__webpack_require__, 9075)),
+  component: () => Promise.all(/* import() */[__webpack_require__.e(736), __webpack_require__.e(814)]).then(__webpack_require__.bind(__webpack_require__, 4814)),
   children: [{
     path: '',
     component: Index
@@ -11013,7 +11013,7 @@ module.exports = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5v
 /******/ 		// This function allow to reference async chunks
 /******/ 		__webpack_require__.u = (chunkId) => {
 /******/ 			// return url for filenames based on template
-/******/ 			return "js/" + chunkId + "." + {"193":"10b407ea","628":"6235efb1"}[chunkId] + ".js";
+/******/ 			return "js/" + chunkId + "." + {"193":"10b407ea","814":"af5542f2"}[chunkId] + ".js";
 /******/ 		};
 /******/ 	})();
 /******/ 	
@@ -11205,4 +11205,4 @@ module.exports = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5v
 /******/ 	
 /******/ })()
 ;
-//# sourceMappingURL=app.5d11a23e.js.map
+//# sourceMappingURL=app.9944d60c.js.map
