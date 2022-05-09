@@ -37,7 +37,7 @@ class CobrarController extends Controller
             INNER JOIN tbclientes cli ON cli.Id=c.CINIT
             INNER JOIN tbventas v ON c.comanda=v.Comanda
             INNER JOIN tbproductos p ON p.cod_prod=v.cod_pro
-            WHERE c.CINIT='$ci' AND c.Nrocierre=0
+            WHERE c.CINIT='$ci' AND c.Nrocierre=0 and Acuenta=0
             ORDER BY c.comanda");
 
     }
@@ -48,7 +48,7 @@ class CobrarController extends Controller
             INNER JOIN tbclientes cli ON cli.Id=c.CINIT
             INNER JOIN tbventas v ON c.comanda=v.Comanda
             INNER JOIN tbproductos p ON p.cod_prod=v.cod_pro
-            WHERE c.Nrocierre=0
+            WHERE c.Nrocierre=0 and Acuenta=0
             group by c.comanda
             ORDER BY c.comanda");
 
@@ -77,7 +77,7 @@ class CobrarController extends Controller
 
         $query=DB::SELECT(" SELECT * FROM tbctascobrar c
         INNER JOIN tbclientes cli ON cli.Id=c.CINIT
-        WHERE c.CINIT='$request->ci' AND  c.Nrocierre=0
+        WHERE c.CINIT='$request->ci' AND  c.Nrocierre=0 and Acuenta=0
         ORDER BY c.comanda");
 
         foreach ($query as $row){
@@ -209,8 +209,8 @@ class CobrarController extends Controller
         select t.comanda,t.Importe,t.Acuenta,Nrocierre,CINIT from tbctascobrar t )";
 
         DB::SELECT("UPDATE tbclientes set venta='ACTIVO' 
-        where (SELECT sum(c.Importe-(SELECT sum(c2.Acuenta) from $cont c2 where c2.comanda=c.comanda)) FROM $cont c WHERE c.CINIT=tbclientes.Id and c.Nrocierre=0)<7000
-        or (SELECT sum(c.Importe-(SELECT sum(c2.Acuenta) from $cont c2 where c2.comanda=c.comanda)) FROM $cont c WHERE c.CINIT=tbclientes.Id and c.Nrocierre=0) is null
+        where (SELECT sum(c.Importe-(SELECT sum(c2.Acuenta) from $cont c2 where c2.comanda=c.comanda)) FROM $cont c WHERE c.CINIT=tbclientes.Id and c.Nrocierre=0 and Acuenta=0)<7000
+        or (SELECT sum(c.Importe-(SELECT sum(c2.Acuenta) from $cont c2 where c2.comanda=c.comanda)) FROM $cont c WHERE c.CINIT=tbclientes.Id and c.Nrocierre=0 and Acuenta=0) is null
          ");
                 $cc=DB::SELECT("SELECT * from tbctascow where estado='ENVIADO' and date(fecha)='$request->fecha1' ");
 
