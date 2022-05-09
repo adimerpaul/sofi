@@ -60,6 +60,7 @@ export default {
         id:user.CodAut,
         fecha:this.fecha
       }).then(res=>{
+        console.log(res.data)
         if (res.data.length>0){
           res.data.forEach(r=>{
             if (r.estado=='PEDIDO'){

@@ -18,6 +18,7 @@
                     <th>CLIENTE</th>
                     <th>ESTADO</th>
                     <th>DESPACHADOR</th>
+                    <th>DISTANCIA</th>
                     <th>OBSERVACION</th>
                   </tr>
                   </thead>
@@ -29,6 +30,7 @@
                     <td>{{v.Nombres}}</td>
                     <td>{{v.estado}}</td>
                     <td>{{v.despachador}}</td>
+                    <td>{{v.distancia}}</td>
                     <td>{{v.observacion}}</td>
                   </tr>
                   </tbody>
