@@ -27,7 +27,7 @@ class CobrarController extends Controller
     public function listdeudores(){
         return DB::SELECT("
         select t1.CINIT Id,(SELECT Nombres from tbclientes c where c.Id=t1.CINIT) as Nombres,sum(t1.Importe - (select sum(Acuenta)
-         from tbctascobrar t2 where t2.comanda=t1.comanda)) deuda from tbctascobrar t1 where Nrocierre=0  
+         from tbctascobrar t2 where t2.comanda=t1.comanda)) deuda from tbctascobrar t1 where Nrocierre=0 and Acuenta=0 
         group by t1.CINIT");
     }
 
