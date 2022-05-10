@@ -127,7 +127,7 @@
             </q-item-label>
           </q-item-section>
         </q-item>
-        <q-item clickable exact to="ruta" v-if="encargados.includes($store.getters['login/user'].ci)">
+        <q-item clickable exact to="ruta" v-if="despachador.includes($store.getters['login/user'].ci)">
           <q-item-section avatar>
             <q-icon name="map" />
           </q-item-section>
@@ -225,7 +225,8 @@ export default {
     return {
       leftDrawerOpen:false,
       vendores:['12612870','1593578','33555433','3520335','5676554','7422201','9876785','7360035'],
-      encargados:['0' ,'123321' ,'22222222']
+      encargados:['0' ,'123321' ,'22222222','2754612'],
+      despachador:['7386961','9688418','2754612']
     }
   },
   methods:{
