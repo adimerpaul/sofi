@@ -540,10 +540,12 @@ export default {
       filteproducto:'',
       producto:{label:''},
       columns:[
-        {label:'opciones',name:'opciones',field:'opciones'},
-        {label:'Comanda',name:'NroPed',field:'NroPed'},
-        {label:'Nombre',name:'Nombres',field:'Nombres',align:'left'},
+        {label:'OPCION',name:'opciones',field:'opciones'},
+        {label:'COMANDA',name:'NroPed',field:'NroPed'},
+        {label:'NOMBRE',name:'Nombres',field:'Nombres',align:'left'},
         {label:'CI',name:'Id',field:'Id',align:'left'},
+        {label:'DEUDA',name:'totdeuda',field:'totdeuda',align:'left'},
+        {label:'FECHA ANTIGUA',name:'fechaminima',field:'fechaminima',align:'left'},
       ],
       columnsproducto:[
         {label:'subtotal',name:'subtotal',field:'subtotal'},
@@ -1570,7 +1572,7 @@ generarpollo(){
     mispendiente(){
       this.$q.loading.show()
       this.$api.post('pedpendiente',{fecha:this.fecha1}).then(res=>{
-        // console.log(res.data)
+        console.log(res.data)
         this.clientes=res.data
         this.$q.loading.hide()
       })
