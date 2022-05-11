@@ -1,7 +1,7 @@
 /******/ (() => { // webpackBootstrap
 /******/ 	var __webpack_modules__ = ({
 
-/***/ 7572:
+/***/ 5690:
 /***/ ((__unused_webpack_module, __unused_webpack___webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -4013,266 +4013,266 @@ const Mispedidos_exports_ = /*#__PURE__*/(0,exportHelper/* default */.Z)(Mispedi
 
 runtime_auto_import_default()(Mispedidosvue_type_script_lang_js, 'components', {QPage: QPage/* default */.Z,QInput: QInput/* default */.Z,QBtn: QBtn/* default */.Z,QTable: QTable/* default */.Z,QTd: QTd/* default */.Z,QIcon: QIcon/* default */.Z,QDialog: QDialog/* default */.Z,QCard: QCard/* default */.Z,QCardSection: QCardSection/* default */.Z,QSelect: QSelect/* default */.Z,QItem: QItem/* default */.Z,QItemSection: QItemSection/* default */.Z,QBadge: QBadge/* default */.Z,QTr: QTr/* default */.Z,QCardActions: QCardActions/* default */.Z});runtime_auto_import_default()(Mispedidosvue_type_script_lang_js, 'directives', {ClosePopup: ClosePopup/* default */.Z});
 
-;// CONCATENATED MODULE: ./node_modules/@quasar/app/lib/webpack/loader.js.transform-quasar-imports.js!./node_modules/babel-loader/lib/index.js??clonedRuleSet-2.use[0]!./node_modules/vue-loader/dist/templateLoader.js??ruleSet[1].rules[3]!./node_modules/@quasar/app/lib/webpack/loader.vue.auto-import-quasar.js??ruleSet[0].use[0]!./node_modules/vue-loader/dist/index.js??ruleSet[0].use[1]!./src/pages/Visita.vue?vue&type=template&id=00eebf1a
+;// CONCATENATED MODULE: ./node_modules/@quasar/app/lib/webpack/loader.js.transform-quasar-imports.js!./node_modules/babel-loader/lib/index.js??clonedRuleSet-2.use[0]!./node_modules/vue-loader/dist/templateLoader.js??ruleSet[1].rules[3]!./node_modules/@quasar/app/lib/webpack/loader.vue.auto-import-quasar.js??ruleSet[0].use[0]!./node_modules/vue-loader/dist/index.js??ruleSet[0].use[1]!./src/pages/Visita.vue?vue&type=template&id=ffa8a5a8
 
 
-const Visitavue_type_template_id_00eebf1a_hoisted_1 = {
+const Visitavue_type_template_id_ffa8a5a8_hoisted_1 = {
   style: {
     "height": "350px",
     "width": "100%"
   }
 };
-const Visitavue_type_template_id_00eebf1a_hoisted_2 = {
+const Visitavue_type_template_id_ffa8a5a8_hoisted_2 = {
   class: "row"
 };
-const Visitavue_type_template_id_00eebf1a_hoisted_3 = {
+const Visitavue_type_template_id_ffa8a5a8_hoisted_3 = {
   class: "col-12"
 };
-const Visitavue_type_template_id_00eebf1a_hoisted_4 = {
+const Visitavue_type_template_id_ffa8a5a8_hoisted_4 = {
   class: "text-weight-medium"
 };
-const Visitavue_type_template_id_00eebf1a_hoisted_5 = {
+const Visitavue_type_template_id_ffa8a5a8_hoisted_5 = {
   class: "text-caption",
   style: {
     "font-size": "8px"
   }
 };
-const Visitavue_type_template_id_00eebf1a_hoisted_6 = {
+const Visitavue_type_template_id_ffa8a5a8_hoisted_6 = {
   class: "row"
 };
-const Visitavue_type_template_id_00eebf1a_hoisted_7 = {
+const Visitavue_type_template_id_ffa8a5a8_hoisted_7 = {
   class: "col-8"
 };
-const Visitavue_type_template_id_00eebf1a_hoisted_8 = {
+const Visitavue_type_template_id_ffa8a5a8_hoisted_8 = {
   class: "text-subtitle2"
 };
-const Visitavue_type_template_id_00eebf1a_hoisted_9 = {
+const Visitavue_type_template_id_ffa8a5a8_hoisted_9 = {
   class: "text-subtitle2"
 };
-const Visitavue_type_template_id_00eebf1a_hoisted_10 = {
+const Visitavue_type_template_id_ffa8a5a8_hoisted_10 = {
   class: "text-subtitle2"
 };
-const Visitavue_type_template_id_00eebf1a_hoisted_11 = {
+const Visitavue_type_template_id_ffa8a5a8_hoisted_11 = {
   class: "text-subtitle2"
 };
-const Visitavue_type_template_id_00eebf1a_hoisted_12 = {
-  class: "text-subtitle2"
-};
-
-const Visitavue_type_template_id_00eebf1a_hoisted_13 = /*#__PURE__*/(0,runtime_core_esm_bundler/* createTextVNode */.Uk)("Monto Deuda: ");
-
-const Visitavue_type_template_id_00eebf1a_hoisted_14 = /*#__PURE__*/(0,runtime_core_esm_bundler/* createTextVNode */.Uk)(" NumPedidos: ");
-
-const Visitavue_type_template_id_00eebf1a_hoisted_15 = {
+const Visitavue_type_template_id_ffa8a5a8_hoisted_12 = {
   class: "text-subtitle2"
 };
 
-const Visitavue_type_template_id_00eebf1a_hoisted_16 = /*#__PURE__*/(0,runtime_core_esm_bundler/* createTextVNode */.Uk)("Fecha minima: ");
+const Visitavue_type_template_id_ffa8a5a8_hoisted_13 = /*#__PURE__*/(0,runtime_core_esm_bundler/* createTextVNode */.Uk)("Monto Deuda: ");
 
-const Visitavue_type_template_id_00eebf1a_hoisted_17 = {
+const Visitavue_type_template_id_ffa8a5a8_hoisted_14 = /*#__PURE__*/(0,runtime_core_esm_bundler/* createTextVNode */.Uk)(" NumPedidos: ");
+
+const Visitavue_type_template_id_ffa8a5a8_hoisted_15 = {
   class: "text-subtitle2"
 };
 
-const Visitavue_type_template_id_00eebf1a_hoisted_18 = /*#__PURE__*/(0,runtime_core_esm_bundler/* createTextVNode */.Uk)("Estado para pedidos: ");
+const Visitavue_type_template_id_ffa8a5a8_hoisted_16 = /*#__PURE__*/(0,runtime_core_esm_bundler/* createTextVNode */.Uk)("Fecha minima: ");
 
-const Visitavue_type_template_id_00eebf1a_hoisted_19 = {
+const Visitavue_type_template_id_ffa8a5a8_hoisted_17 = {
+  class: "text-subtitle2"
+};
+
+const Visitavue_type_template_id_ffa8a5a8_hoisted_18 = /*#__PURE__*/(0,runtime_core_esm_bundler/* createTextVNode */.Uk)("Estado para pedidos: ");
+
+const Visitavue_type_template_id_ffa8a5a8_hoisted_19 = {
   class: "row"
 };
-const Visitavue_type_template_id_00eebf1a_hoisted_20 = {
+const Visitavue_type_template_id_ffa8a5a8_hoisted_20 = {
   class: "col-12 col-sm-6"
 };
-const Visitavue_type_template_id_00eebf1a_hoisted_21 = {
+const Visitavue_type_template_id_ffa8a5a8_hoisted_21 = {
   class: "col-12 col-sm-6"
 };
-const Visitavue_type_template_id_00eebf1a_hoisted_22 = {
+const Visitavue_type_template_id_ffa8a5a8_hoisted_22 = {
   class: "col-12 col-sm-6"
 };
-const Visitavue_type_template_id_00eebf1a_hoisted_23 = {
+const Visitavue_type_template_id_ffa8a5a8_hoisted_23 = {
   class: "col-12 col-sm-6"
 };
-const Visitavue_type_template_id_00eebf1a_hoisted_24 = {
+const Visitavue_type_template_id_ffa8a5a8_hoisted_24 = {
   class: "row"
 };
-const Visitavue_type_template_id_00eebf1a_hoisted_25 = {
+const Visitavue_type_template_id_ffa8a5a8_hoisted_25 = {
   class: "text-subtitle2 col-md-6 col-sm-12"
 };
-const Visitavue_type_template_id_00eebf1a_hoisted_26 = {
+const Visitavue_type_template_id_ffa8a5a8_hoisted_26 = {
   class: "q-gutter-sm col-md-6 col-sm-12"
 };
-const Visitavue_type_template_id_00eebf1a_hoisted_27 = {
+const Visitavue_type_template_id_ffa8a5a8_hoisted_27 = {
   class: "row"
 };
-const Visitavue_type_template_id_00eebf1a_hoisted_28 = {
+const Visitavue_type_template_id_ffa8a5a8_hoisted_28 = {
   class: "col-10"
 };
 
-const Visitavue_type_template_id_00eebf1a_hoisted_29 = /*#__PURE__*/(0,runtime_core_esm_bundler/* createTextVNode */.Uk)(" No results ");
+const Visitavue_type_template_id_ffa8a5a8_hoisted_29 = /*#__PURE__*/(0,runtime_core_esm_bundler/* createTextVNode */.Uk)(" No results ");
 
-const Visitavue_type_template_id_00eebf1a_hoisted_30 = {
+const Visitavue_type_template_id_ffa8a5a8_hoisted_30 = {
   class: "col-2 flex flex-center"
 };
-const Visitavue_type_template_id_00eebf1a_hoisted_31 = {
+const Visitavue_type_template_id_ffa8a5a8_hoisted_31 = {
   class: "col-12"
 };
-const Visitavue_type_template_id_00eebf1a_hoisted_32 = ["onKeyup", "onUpdate:modelValue"];
-const Visitavue_type_template_id_00eebf1a_hoisted_33 = ["onKeyup", "onUpdate:modelValue"];
-const Visitavue_type_template_id_00eebf1a_hoisted_34 = {
+const Visitavue_type_template_id_ffa8a5a8_hoisted_32 = ["onKeyup", "onUpdate:modelValue"];
+const Visitavue_type_template_id_ffa8a5a8_hoisted_33 = ["onKeyup", "onUpdate:modelValue"];
+const Visitavue_type_template_id_ffa8a5a8_hoisted_34 = {
   class: "row"
 };
-const Visitavue_type_template_id_00eebf1a_hoisted_35 = {
+const Visitavue_type_template_id_ffa8a5a8_hoisted_35 = {
   class: "col-12"
 };
-const Visitavue_type_template_id_00eebf1a_hoisted_36 = {
+const Visitavue_type_template_id_ffa8a5a8_hoisted_36 = {
   class: "text-subtitle2"
 };
 
-const Visitavue_type_template_id_00eebf1a_hoisted_37 = /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("div", {
+const Visitavue_type_template_id_ffa8a5a8_hoisted_37 = /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("div", {
   class: "text-h6"
 }, "Pedido Pollo", -1);
 
-const Visitavue_type_template_id_00eebf1a_hoisted_38 = {
+const Visitavue_type_template_id_ffa8a5a8_hoisted_38 = {
   class: "row"
 };
-const Visitavue_type_template_id_00eebf1a_hoisted_39 = {
+const Visitavue_type_template_id_ffa8a5a8_hoisted_39 = {
   class: "col-6"
 };
-const Visitavue_type_template_id_00eebf1a_hoisted_40 = {
+const Visitavue_type_template_id_ffa8a5a8_hoisted_40 = {
   class: "col-6"
 };
-const Visitavue_type_template_id_00eebf1a_hoisted_41 = {
+const Visitavue_type_template_id_ffa8a5a8_hoisted_41 = {
   class: "col-6"
 };
-const Visitavue_type_template_id_00eebf1a_hoisted_42 = {
+const Visitavue_type_template_id_ffa8a5a8_hoisted_42 = {
   class: "col-6"
 };
-const Visitavue_type_template_id_00eebf1a_hoisted_43 = {
+const Visitavue_type_template_id_ffa8a5a8_hoisted_43 = {
   class: "col-6"
 };
-const Visitavue_type_template_id_00eebf1a_hoisted_44 = {
+const Visitavue_type_template_id_ffa8a5a8_hoisted_44 = {
   class: "col-6"
 };
-const Visitavue_type_template_id_00eebf1a_hoisted_45 = {
+const Visitavue_type_template_id_ffa8a5a8_hoisted_45 = {
   class: "col-6"
 };
-const Visitavue_type_template_id_00eebf1a_hoisted_46 = {
+const Visitavue_type_template_id_ffa8a5a8_hoisted_46 = {
   class: "col-6"
 };
-const Visitavue_type_template_id_00eebf1a_hoisted_47 = {
+const Visitavue_type_template_id_ffa8a5a8_hoisted_47 = {
   class: "col-6"
 };
-const Visitavue_type_template_id_00eebf1a_hoisted_48 = {
+const Visitavue_type_template_id_ffa8a5a8_hoisted_48 = {
   class: "col-6"
 };
-const Visitavue_type_template_id_00eebf1a_hoisted_49 = {
+const Visitavue_type_template_id_ffa8a5a8_hoisted_49 = {
   class: "col-6"
 };
-const Visitavue_type_template_id_00eebf1a_hoisted_50 = {
+const Visitavue_type_template_id_ffa8a5a8_hoisted_50 = {
   class: "col-6"
 };
-const Visitavue_type_template_id_00eebf1a_hoisted_51 = {
+const Visitavue_type_template_id_ffa8a5a8_hoisted_51 = {
   class: "col-6"
 };
-const Visitavue_type_template_id_00eebf1a_hoisted_52 = {
+const Visitavue_type_template_id_ffa8a5a8_hoisted_52 = {
   class: "col-6"
 };
-const Visitavue_type_template_id_00eebf1a_hoisted_53 = {
+const Visitavue_type_template_id_ffa8a5a8_hoisted_53 = {
   class: "col-6"
 };
-const Visitavue_type_template_id_00eebf1a_hoisted_54 = {
+const Visitavue_type_template_id_ffa8a5a8_hoisted_54 = {
   class: "col-6"
 };
-const Visitavue_type_template_id_00eebf1a_hoisted_55 = {
+const Visitavue_type_template_id_ffa8a5a8_hoisted_55 = {
   class: "col-6"
 };
-const Visitavue_type_template_id_00eebf1a_hoisted_56 = {
+const Visitavue_type_template_id_ffa8a5a8_hoisted_56 = {
   class: "col-6"
 };
-const Visitavue_type_template_id_00eebf1a_hoisted_57 = {
+const Visitavue_type_template_id_ffa8a5a8_hoisted_57 = {
   class: "col-6"
 };
-const Visitavue_type_template_id_00eebf1a_hoisted_58 = {
+const Visitavue_type_template_id_ffa8a5a8_hoisted_58 = {
   class: "col-6"
 };
-const Visitavue_type_template_id_00eebf1a_hoisted_59 = {
+const Visitavue_type_template_id_ffa8a5a8_hoisted_59 = {
   class: "col-6"
 };
-const Visitavue_type_template_id_00eebf1a_hoisted_60 = {
+const Visitavue_type_template_id_ffa8a5a8_hoisted_60 = {
   class: "col-6"
 };
-const Visitavue_type_template_id_00eebf1a_hoisted_61 = {
+const Visitavue_type_template_id_ffa8a5a8_hoisted_61 = {
   class: "col-6"
 };
-const Visitavue_type_template_id_00eebf1a_hoisted_62 = {
+const Visitavue_type_template_id_ffa8a5a8_hoisted_62 = {
   class: "col-6"
 };
-const Visitavue_type_template_id_00eebf1a_hoisted_63 = {
+const Visitavue_type_template_id_ffa8a5a8_hoisted_63 = {
   class: "col-6"
 };
-const Visitavue_type_template_id_00eebf1a_hoisted_64 = {
+const Visitavue_type_template_id_ffa8a5a8_hoisted_64 = {
   class: "col-6"
 };
-const Visitavue_type_template_id_00eebf1a_hoisted_65 = {
+const Visitavue_type_template_id_ffa8a5a8_hoisted_65 = {
   class: "col-6"
 };
-const Visitavue_type_template_id_00eebf1a_hoisted_66 = {
+const Visitavue_type_template_id_ffa8a5a8_hoisted_66 = {
   class: "col-6"
 };
-const Visitavue_type_template_id_00eebf1a_hoisted_67 = {
+const Visitavue_type_template_id_ffa8a5a8_hoisted_67 = {
   class: "col-6"
 };
-const Visitavue_type_template_id_00eebf1a_hoisted_68 = {
+const Visitavue_type_template_id_ffa8a5a8_hoisted_68 = {
   class: "col-6"
 };
-const Visitavue_type_template_id_00eebf1a_hoisted_69 = {
+const Visitavue_type_template_id_ffa8a5a8_hoisted_69 = {
   class: "col-6"
 };
-const Visitavue_type_template_id_00eebf1a_hoisted_70 = {
+const Visitavue_type_template_id_ffa8a5a8_hoisted_70 = {
   class: "col-6"
 };
-const Visitavue_type_template_id_00eebf1a_hoisted_71 = {
+const Visitavue_type_template_id_ffa8a5a8_hoisted_71 = {
   class: "col-6"
 };
-const Visitavue_type_template_id_00eebf1a_hoisted_72 = {
+const Visitavue_type_template_id_ffa8a5a8_hoisted_72 = {
   class: "col-6"
 };
-const Visitavue_type_template_id_00eebf1a_hoisted_73 = {
+const Visitavue_type_template_id_ffa8a5a8_hoisted_73 = {
   class: "col-12"
 };
 
-const Visitavue_type_template_id_00eebf1a_hoisted_74 = /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("div", {
+const Visitavue_type_template_id_ffa8a5a8_hoisted_74 = /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("div", {
   class: "text-h6"
 }, "Pedido Normal", -1);
 
-const Visitavue_type_template_id_00eebf1a_hoisted_75 = {
+const Visitavue_type_template_id_ffa8a5a8_hoisted_75 = {
   class: "row"
 };
-const Visitavue_type_template_id_00eebf1a_hoisted_76 = {
+const Visitavue_type_template_id_ffa8a5a8_hoisted_76 = {
   class: "col-12"
 };
 
-const Visitavue_type_template_id_00eebf1a_hoisted_77 = /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("div", {
+const Visitavue_type_template_id_ffa8a5a8_hoisted_77 = /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("div", {
   class: "text-h6"
 }, "Pedido Cerdo", -1);
 
-const Visitavue_type_template_id_00eebf1a_hoisted_78 = {
+const Visitavue_type_template_id_ffa8a5a8_hoisted_78 = {
   class: "row"
 };
-const Visitavue_type_template_id_00eebf1a_hoisted_79 = {
+const Visitavue_type_template_id_ffa8a5a8_hoisted_79 = {
   class: "col-4"
 };
-const Visitavue_type_template_id_00eebf1a_hoisted_80 = {
+const Visitavue_type_template_id_ffa8a5a8_hoisted_80 = {
   class: "col-4"
 };
-const Visitavue_type_template_id_00eebf1a_hoisted_81 = {
+const Visitavue_type_template_id_ffa8a5a8_hoisted_81 = {
   class: "col-4"
 };
-const Visitavue_type_template_id_00eebf1a_hoisted_82 = {
+const Visitavue_type_template_id_ffa8a5a8_hoisted_82 = {
   class: "col-4"
 };
-const Visitavue_type_template_id_00eebf1a_hoisted_83 = {
+const Visitavue_type_template_id_ffa8a5a8_hoisted_83 = {
   class: "col-4"
 };
-const Visitavue_type_template_id_00eebf1a_hoisted_84 = {
+const Visitavue_type_template_id_ffa8a5a8_hoisted_84 = {
   class: "col-4"
 };
 const _hoisted_85 = {
@@ -4304,7 +4304,7 @@ const _hoisted_92 = {
 const _hoisted_93 = {
   class: "col-12"
 };
-function Visitavue_type_template_id_00eebf1a_render(_ctx, _cache, $props, $setup, $data, $options) {
+function Visitavue_type_template_id_ffa8a5a8_render(_ctx, _cache, $props, $setup, $data, $options) {
   const _component_l_tile_layer = (0,runtime_core_esm_bundler/* resolveComponent */.up)("l-tile-layer");
 
   const _component_q_badge = (0,runtime_core_esm_bundler/* resolveComponent */.up)("q-badge");
@@ -4345,7 +4345,7 @@ function Visitavue_type_template_id_00eebf1a_render(_ctx, _cache, $props, $setup
 
   const _directive_close_popup = (0,runtime_core_esm_bundler/* resolveDirective */.Q2)("close-popup");
 
-  return (0,runtime_core_esm_bundler/* openBlock */.wg)(), (0,runtime_core_esm_bundler/* createElementBlock */.iD)("div", Visitavue_type_template_id_00eebf1a_hoisted_1, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_l_map, {
+  return (0,runtime_core_esm_bundler/* openBlock */.wg)(), (0,runtime_core_esm_bundler/* createElementBlock */.iD)("div", Visitavue_type_template_id_ffa8a5a8_hoisted_1, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_l_map, {
     onReady: $options.onReady,
     onLocationfound: $options.onLocationFound,
     modelValue: $data.zoom,
@@ -4378,7 +4378,7 @@ function Visitavue_type_template_id_00eebf1a_render(_ctx, _cache, $props, $setup
       "lat-lng": $data.center
     }, null, 8, ["lat-lng"])]),
     _: 1
-  }, 8, ["onReady", "onLocationfound", "modelValue", "zoom", "center"]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_00eebf1a_hoisted_2, [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_00eebf1a_hoisted_3, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_table, {
+  }, 8, ["onReady", "onLocationfound", "modelValue", "zoom", "center"]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_ffa8a5a8_hoisted_2, [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_ffa8a5a8_hoisted_3, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_table, {
     rows: $data.clientes,
     "hide-header": "",
     filter: $data.filter,
@@ -4404,7 +4404,7 @@ function Visitavue_type_template_id_00eebf1a_render(_ctx, _cache, $props, $setup
       onClick: $event => $options.clickopciones(props.row),
       props: props
     }, {
-      default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_00eebf1a_hoisted_4, (0,shared_esm_bundler/* toDisplayString */.zw)(props.row.Nombres), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_00eebf1a_hoisted_5, (0,shared_esm_bundler/* toDisplayString */.zw)(props.row.Direccion), 1)]),
+      default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_ffa8a5a8_hoisted_4, (0,shared_esm_bundler/* toDisplayString */.zw)(props.row.Nombres), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_ffa8a5a8_hoisted_5, (0,shared_esm_bundler/* toDisplayString */.zw)(props.row.Direccion), 1)]),
       _: 2
     }, 1032, ["class", "onClick", "props"])]),
     "body-cell-opcion": (0,runtime_core_esm_bundler/* withCtx */.w5)(props => [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_td, {
@@ -4419,7 +4419,7 @@ function Visitavue_type_template_id_00eebf1a_render(_ctx, _cache, $props, $setup
       }, null, 8, ["onClick"])]),
       _: 2
     }, 1032, ["class", "props"])]),
-    "top-right": (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_00eebf1a_hoisted_6, [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", {
+    "top-right": (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_ffa8a5a8_hoisted_6, [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", {
       class: "col-2 flex flex-center",
       onClick: _cache[2] || (_cache[2] = (...args) => $options.getUserPosition && $options.getUserPosition(...args))
     }, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_btn, {
@@ -4433,7 +4433,7 @@ function Visitavue_type_template_id_00eebf1a_render(_ctx, _cache, $props, $setup
       icon: "my_location",
       size: "xs",
       color: "secondary"
-    })]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_00eebf1a_hoisted_7, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+    })]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_ffa8a5a8_hoisted_7, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
       filled: "",
       dense: "",
       modelValue: $data.filter,
@@ -4453,22 +4453,22 @@ function Visitavue_type_template_id_00eebf1a_render(_ctx, _cache, $props, $setup
   }, {
     default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_card, null, {
       default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_card_section, null, {
-        default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_00eebf1a_hoisted_8, (0,shared_esm_bundler/* toDisplayString */.zw)($data.cliente.Cod_Aut) + " " + (0,shared_esm_bundler/* toDisplayString */.zw)($data.cliente.Nombres), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_00eebf1a_hoisted_9, "Cel: " + (0,shared_esm_bundler/* toDisplayString */.zw)($data.cliente.Telf), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_00eebf1a_hoisted_10, (0,shared_esm_bundler/* toDisplayString */.zw)($data.cliente.Direccion), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_00eebf1a_hoisted_11, (0,shared_esm_bundler/* toDisplayString */.zw)($data.cliente.Canal), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_00eebf1a_hoisted_12, [Visitavue_type_template_id_00eebf1a_hoisted_13, (0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_badge, {
+        default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_ffa8a5a8_hoisted_8, (0,shared_esm_bundler/* toDisplayString */.zw)($data.cliente.Cod_Aut) + " " + (0,shared_esm_bundler/* toDisplayString */.zw)($data.cliente.Nombres), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_ffa8a5a8_hoisted_9, "Cel: " + (0,shared_esm_bundler/* toDisplayString */.zw)($data.cliente.Telf), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_ffa8a5a8_hoisted_10, (0,shared_esm_bundler/* toDisplayString */.zw)($data.cliente.Direccion), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_ffa8a5a8_hoisted_11, (0,shared_esm_bundler/* toDisplayString */.zw)($data.cliente.Canal), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_ffa8a5a8_hoisted_12, [Visitavue_type_template_id_ffa8a5a8_hoisted_13, (0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_badge, {
           color: "negative"
         }, {
           default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createTextVNode */.Uk)((0,shared_esm_bundler/* toDisplayString */.zw)($data.cliente.totdeuda) + " Bs ", 1)]),
           _: 1
-        }), Visitavue_type_template_id_00eebf1a_hoisted_14, (0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_badge, {
+        }), Visitavue_type_template_id_ffa8a5a8_hoisted_14, (0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_badge, {
           color: "negative"
         }, {
           default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createTextVNode */.Uk)((0,shared_esm_bundler/* toDisplayString */.zw)($data.cliente.cantdeuda), 1)]),
           _: 1
-        })]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_00eebf1a_hoisted_15, [Visitavue_type_template_id_00eebf1a_hoisted_16, (0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_badge, {
+        })]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_ffa8a5a8_hoisted_15, [Visitavue_type_template_id_ffa8a5a8_hoisted_16, (0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_badge, {
           color: "negative"
         }, {
           default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createTextVNode */.Uk)((0,shared_esm_bundler/* toDisplayString */.zw)($data.cliente.fechaminima), 1)]),
           _: 1
-        })]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_00eebf1a_hoisted_17, [Visitavue_type_template_id_00eebf1a_hoisted_18, (0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_badge, {
+        })]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_ffa8a5a8_hoisted_17, [Visitavue_type_template_id_ffa8a5a8_hoisted_18, (0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_badge, {
           color: $data.cliente.venta == 'ACTIVO' ? 'green' : 'negative'
         }, {
           default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createTextVNode */.Uk)((0,shared_esm_bundler/* toDisplayString */.zw)($data.cliente.venta), 1)]),
@@ -4478,7 +4478,7 @@ function Visitavue_type_template_id_00eebf1a_render(_ctx, _cache, $props, $setup
       }), (0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_card_section, {
         class: "q-pt-none"
       }, {
-        default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_00eebf1a_hoisted_19, [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_00eebf1a_hoisted_20, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_btn, {
+        default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_ffa8a5a8_hoisted_19, [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_ffa8a5a8_hoisted_20, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_btn, {
           class: "q-ma-xs",
           onClick: $options.clickpedido,
           label: "realizar pedido",
@@ -4487,7 +4487,7 @@ function Visitavue_type_template_id_00eebf1a_render(_ctx, _cache, $props, $setup
             "width": "100%"
           },
           icon: "shopping_cart"
-        }, null, 8, ["onClick"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_00eebf1a_hoisted_21, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_btn, {
+        }, null, 8, ["onClick"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_ffa8a5a8_hoisted_21, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_btn, {
           class: "q-ma-xs",
           onClick: $options.clickretornar,
           label: "retornar",
@@ -4496,7 +4496,7 @@ function Visitavue_type_template_id_00eebf1a_render(_ctx, _cache, $props, $setup
             "width": "100%"
           },
           icon: "schedule"
-        }, null, 8, ["onClick"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_00eebf1a_hoisted_22, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_btn, {
+        }, null, 8, ["onClick"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_ffa8a5a8_hoisted_22, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_btn, {
           class: "q-ma-xs",
           onClick: $options.clicknopedido,
           label: "no pedido",
@@ -4505,7 +4505,7 @@ function Visitavue_type_template_id_00eebf1a_render(_ctx, _cache, $props, $setup
             "width": "100%"
           },
           icon: "highlight_off"
-        }, null, 8, ["onClick"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_00eebf1a_hoisted_23, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_btn, {
+        }, null, 8, ["onClick"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_ffa8a5a8_hoisted_23, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_btn, {
           class: "q-ma-xs",
           label: "generar ruta",
           color: "accent",
@@ -4539,7 +4539,7 @@ function Visitavue_type_template_id_00eebf1a_render(_ctx, _cache, $props, $setup
   }, {
     default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_card, null, {
       default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_card_section, null, {
-        default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_00eebf1a_hoisted_24, [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_00eebf1a_hoisted_25, (0,shared_esm_bundler/* toDisplayString */.zw)($data.cliente.Cod_Aut) + " " + (0,shared_esm_bundler/* toDisplayString */.zw)($data.cliente.Nombres), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_00eebf1a_hoisted_26, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_radio, {
+        default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_ffa8a5a8_hoisted_24, [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_ffa8a5a8_hoisted_25, (0,shared_esm_bundler/* toDisplayString */.zw)($data.cliente.Cod_Aut) + " " + (0,shared_esm_bundler/* toDisplayString */.zw)($data.cliente.Nombres), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_ffa8a5a8_hoisted_26, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_radio, {
           dense: "",
           modelValue: $data.pago,
           "onUpdate:modelValue": _cache[6] || (_cache[6] = $event => $data.pago = $event),
@@ -4556,7 +4556,7 @@ function Visitavue_type_template_id_00eebf1a_render(_ctx, _cache, $props, $setup
       }), (0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_card_section, {
         class: "q-pt-none"
       }, {
-        default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_00eebf1a_hoisted_27, [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_00eebf1a_hoisted_28, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_select, {
+        default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_ffa8a5a8_hoisted_27, [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_ffa8a5a8_hoisted_28, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_select, {
           label: "Productos",
           dense: "",
           outlined: "",
@@ -4572,18 +4572,18 @@ function Visitavue_type_template_id_00eebf1a_render(_ctx, _cache, $props, $setup
             default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_item_section, {
               class: "text-grey"
             }, {
-              default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [Visitavue_type_template_id_00eebf1a_hoisted_29]),
+              default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [Visitavue_type_template_id_ffa8a5a8_hoisted_29]),
               _: 1
             })]),
             _: 1
           })]),
           _: 1
-        }, 8, ["onFilter", "options", "modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_00eebf1a_hoisted_30, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_btn, {
+        }, 8, ["onFilter", "options", "modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_ffa8a5a8_hoisted_30, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_btn, {
           class: "q-pa-xs q-ma-none",
           color: "primary",
           icon: "add_circle",
           onClick: $options.agregarpedido
-        }, null, 8, ["onClick"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_00eebf1a_hoisted_31, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_table, {
+        }, null, 8, ["onClick"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_ffa8a5a8_hoisted_31, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_table, {
           rows: $data.misproductos,
           filter: $data.filteproducto,
           columns: $data.columnsproducto
@@ -4625,7 +4625,7 @@ function Visitavue_type_template_id_00eebf1a_render(_ctx, _cache, $props, $setup
               style: {
                 "width": "2.5em"
               }
-            }, null, 40, Visitavue_type_template_id_00eebf1a_hoisted_32), [[runtime_dom_esm_bundler/* vModelText */.nr, props.row.cantidad]])], 64)) : (0,runtime_core_esm_bundler/* createCommentVNode */.kq)("", true), (0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_btn, {
+            }, null, 40, Visitavue_type_template_id_ffa8a5a8_hoisted_32), [[runtime_dom_esm_bundler/* vModelText */.nr, props.row.cantidad]])], 64)) : (0,runtime_core_esm_bundler/* createCommentVNode */.kq)("", true), (0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_btn, {
               flat: "",
               onClick: $event => $options.quitar(props.row, props.rowIndex),
               class: "q-ma-none q-pa-none",
@@ -4645,10 +4645,10 @@ function Visitavue_type_template_id_00eebf1a_render(_ctx, _cache, $props, $setup
               style: {
                 "width": "3em"
               }
-            }, null, 40, Visitavue_type_template_id_00eebf1a_hoisted_33), [[runtime_dom_esm_bundler/* vModelText */.nr, props.row.precio]])]),
+            }, null, 40, Visitavue_type_template_id_ffa8a5a8_hoisted_33), [[runtime_dom_esm_bundler/* vModelText */.nr, props.row.precio]])]),
             _: 2
           }, 1032, ["props"])]),
-          "top-right": (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_00eebf1a_hoisted_34, [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_00eebf1a_hoisted_35, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+          "top-right": (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_ffa8a5a8_hoisted_34, [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_ffa8a5a8_hoisted_35, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
             outlined: "",
             dense: "",
             modelValue: $data.filteproducto,
@@ -4664,7 +4664,7 @@ function Visitavue_type_template_id_00eebf1a_render(_ctx, _cache, $props, $setup
             default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_td, {
               colspan: "100%"
             }, {
-              default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_00eebf1a_hoisted_36, "Total: " + (0,shared_esm_bundler/* toDisplayString */.zw)($options.total) + " Bs.", 1)]),
+              default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_ffa8a5a8_hoisted_36, "Total: " + (0,shared_esm_bundler/* toDisplayString */.zw)($options.total) + " Bs.", 1)]),
               _: 1
             })]),
             _: 1
@@ -4701,250 +4701,250 @@ function Visitavue_type_template_id_00eebf1a_render(_ctx, _cache, $props, $setup
   }, {
     default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_card, null, {
       default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_card_section, null, {
-        default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [Visitavue_type_template_id_00eebf1a_hoisted_37]),
+        default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [Visitavue_type_template_id_ffa8a5a8_hoisted_37]),
         _: 1
       }), (0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_card_section, {
         class: "q-pt-none"
       }, {
-        default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_00eebf1a_hoisted_38, [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_00eebf1a_hoisted_39, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+        default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_ffa8a5a8_hoisted_38, [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_ffa8a5a8_hoisted_39, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
           type: "number",
           dense: "",
           outlined: "",
           label: "Cja b5",
           modelValue: $data.miproducto.cbrasa5,
           "onUpdate:modelValue": _cache[11] || (_cache[11] = $event => $data.miproducto.cbrasa5 = $event)
-        }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_00eebf1a_hoisted_40, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+        }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_ffa8a5a8_hoisted_40, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
           type: "number",
           dense: "",
           outlined: "",
           label: "Uni b5",
           modelValue: $data.miproducto.ubrasa5,
           "onUpdate:modelValue": _cache[12] || (_cache[12] = $event => $data.miproducto.ubrasa5 = $event)
-        }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_00eebf1a_hoisted_41, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+        }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_ffa8a5a8_hoisted_41, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
           type: "number",
           dense: "",
           outlined: "",
           label: "Cja b6",
           modelValue: $data.miproducto.cbrasa6,
           "onUpdate:modelValue": _cache[13] || (_cache[13] = $event => $data.miproducto.cbrasa6 = $event)
-        }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_00eebf1a_hoisted_42, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+        }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_ffa8a5a8_hoisted_42, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
           type: "number",
           dense: "",
           outlined: "",
           label: "Uni b6",
           modelValue: $data.miproducto.cubrasa6,
           "onUpdate:modelValue": _cache[14] || (_cache[14] = $event => $data.miproducto.cubrasa6 = $event)
-        }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_00eebf1a_hoisted_43, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+        }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_ffa8a5a8_hoisted_43, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
           type: "number",
           dense: "",
           outlined: "",
           label: "Cja-104",
           modelValue: $data.miproducto.c104,
           "onUpdate:modelValue": _cache[15] || (_cache[15] = $event => $data.miproducto.c104 = $event)
-        }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_00eebf1a_hoisted_44, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+        }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_ffa8a5a8_hoisted_44, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
           type: "number",
           dense: "",
           outlined: "",
           label: "Unid-104",
           modelValue: $data.miproducto.u104,
           "onUpdate:modelValue": _cache[16] || (_cache[16] = $event => $data.miproducto.u104 = $event)
-        }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_00eebf1a_hoisted_45, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+        }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_ffa8a5a8_hoisted_45, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
           type: "number",
           dense: "",
           outlined: "",
           label: "Cja-105",
           modelValue: $data.miproducto.c105,
           "onUpdate:modelValue": _cache[17] || (_cache[17] = $event => $data.miproducto.c105 = $event)
-        }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_00eebf1a_hoisted_46, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+        }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_ffa8a5a8_hoisted_46, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
           type: "number",
           dense: "",
           outlined: "",
           label: "Unid-105",
           modelValue: $data.miproducto.u105,
           "onUpdate:modelValue": _cache[18] || (_cache[18] = $event => $data.miproducto.u105 = $event)
-        }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_00eebf1a_hoisted_47, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+        }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_ffa8a5a8_hoisted_47, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
           type: "number",
           dense: "",
           outlined: "",
           label: "Cja-106",
           modelValue: $data.miproducto.c106,
           "onUpdate:modelValue": _cache[19] || (_cache[19] = $event => $data.miproducto.c106 = $event)
-        }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_00eebf1a_hoisted_48, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+        }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_ffa8a5a8_hoisted_48, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
           type: "number",
           dense: "",
           outlined: "",
           label: "Unid-106",
           modelValue: $data.miproducto.u106,
           "onUpdate:modelValue": _cache[20] || (_cache[20] = $event => $data.miproducto.u106 = $event)
-        }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_00eebf1a_hoisted_49, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+        }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_ffa8a5a8_hoisted_49, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
           type: "number",
           dense: "",
           outlined: "",
           label: "Cja-107",
           modelValue: $data.miproducto.c107,
           "onUpdate:modelValue": _cache[21] || (_cache[21] = $event => $data.miproducto.c107 = $event)
-        }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_00eebf1a_hoisted_50, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+        }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_ffa8a5a8_hoisted_50, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
           type: "number",
           dense: "",
           outlined: "",
           label: "Unid-107",
           modelValue: $data.miproducto.u107,
           "onUpdate:modelValue": _cache[22] || (_cache[22] = $event => $data.miproducto.u107 = $event)
-        }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_00eebf1a_hoisted_51, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+        }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_ffa8a5a8_hoisted_51, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
           type: "number",
           dense: "",
           outlined: "",
           label: "Cja-108",
           modelValue: $data.miproducto.c108,
           "onUpdate:modelValue": _cache[23] || (_cache[23] = $event => $data.miproducto.c108 = $event)
-        }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_00eebf1a_hoisted_52, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+        }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_ffa8a5a8_hoisted_52, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
           type: "number",
           dense: "",
           outlined: "",
           label: "Unid-108",
           modelValue: $data.miproducto.u108,
           "onUpdate:modelValue": _cache[24] || (_cache[24] = $event => $data.miproducto.u108 = $event)
-        }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_00eebf1a_hoisted_53, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+        }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_ffa8a5a8_hoisted_53, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
           type: "number",
           dense: "",
           outlined: "",
           label: "Cja-109",
           modelValue: $data.miproducto.c109,
           "onUpdate:modelValue": _cache[25] || (_cache[25] = $event => $data.miproducto.c109 = $event)
-        }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_00eebf1a_hoisted_54, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+        }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_ffa8a5a8_hoisted_54, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
           type: "number",
           dense: "",
           outlined: "",
           label: "Unid-109",
           modelValue: $data.miproducto.u109,
           "onUpdate:modelValue": _cache[26] || (_cache[26] = $event => $data.miproducto.u109 = $event)
-        }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_00eebf1a_hoisted_55, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+        }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_ffa8a5a8_hoisted_55, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
           type: "number",
           dense: "",
           outlined: "",
           label: "ala",
           modelValue: $data.miproducto.ala,
           "onUpdate:modelValue": _cache[27] || (_cache[27] = $event => $data.miproducto.ala = $event)
-        }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_00eebf1a_hoisted_56, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_select, {
+        }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_ffa8a5a8_hoisted_56, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_select, {
           dense: "",
           outlined: "",
           options: ['KG', 'CJA', 'U'],
           modelValue: $data.miproducto.unidala,
           "onUpdate:modelValue": _cache[28] || (_cache[28] = $event => $data.miproducto.unidala = $event),
           label: "Unidad"
-        }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_00eebf1a_hoisted_57, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+        }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_ffa8a5a8_hoisted_57, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
           type: "number",
           dense: "",
           outlined: "",
           label: "cadera",
           modelValue: $data.miproducto.cadera,
           "onUpdate:modelValue": _cache[29] || (_cache[29] = $event => $data.miproducto.cadera = $event)
-        }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_00eebf1a_hoisted_58, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_select, {
+        }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_ffa8a5a8_hoisted_58, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_select, {
           dense: "",
           outlined: "",
           options: ['KG', 'CJA', 'U'],
           modelValue: $data.miproducto.unidcadera,
           "onUpdate:modelValue": _cache[30] || (_cache[30] = $event => $data.miproducto.unidcadera = $event),
           label: "Unidad"
-        }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_00eebf1a_hoisted_59, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+        }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_ffa8a5a8_hoisted_59, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
           type: "number",
           dense: "",
           outlined: "",
           label: "pecho",
           modelValue: $data.miproducto.pecho,
           "onUpdate:modelValue": _cache[31] || (_cache[31] = $event => $data.miproducto.pecho = $event)
-        }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_00eebf1a_hoisted_60, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_select, {
+        }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_ffa8a5a8_hoisted_60, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_select, {
           dense: "",
           outlined: "",
           options: ['KG', 'CJA', 'U'],
           modelValue: $data.miproducto.unidpecho,
           "onUpdate:modelValue": _cache[32] || (_cache[32] = $event => $data.miproducto.unidpecho = $event),
           label: "Unidad"
-        }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_00eebf1a_hoisted_61, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+        }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_ffa8a5a8_hoisted_61, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
           type: "number",
           dense: "",
           outlined: "",
           label: "pi/mu",
           modelValue: $data.miproducto.pie,
           "onUpdate:modelValue": _cache[33] || (_cache[33] = $event => $data.miproducto.pie = $event)
-        }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_00eebf1a_hoisted_62, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_select, {
+        }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_ffa8a5a8_hoisted_62, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_select, {
           dense: "",
           outlined: "",
           options: ['KG', 'CJA', 'U'],
           modelValue: $data.miproducto.unidpie,
           "onUpdate:modelValue": _cache[34] || (_cache[34] = $event => $data.miproducto.unidpie = $event),
           label: "Unidad"
-        }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_00eebf1a_hoisted_63, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+        }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_ffa8a5a8_hoisted_63, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
           type: "number",
           dense: "",
           outlined: "",
           label: "filete",
           modelValue: $data.miproducto.filete,
           "onUpdate:modelValue": _cache[35] || (_cache[35] = $event => $data.miproducto.filete = $event)
-        }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_00eebf1a_hoisted_64, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_select, {
+        }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_ffa8a5a8_hoisted_64, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_select, {
           dense: "",
           outlined: "",
           options: ['KG', 'CJA', 'U'],
           modelValue: $data.miproducto.unidfilete,
           "onUpdate:modelValue": _cache[36] || (_cache[36] = $event => $data.miproducto.unidfilete = $event),
           label: "Unidad"
-        }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_00eebf1a_hoisted_65, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+        }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_ffa8a5a8_hoisted_65, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
           type: "number",
           dense: "",
           outlined: "",
           label: "cuello",
           modelValue: $data.miproducto.cuello,
           "onUpdate:modelValue": _cache[37] || (_cache[37] = $event => $data.miproducto.cuello = $event)
-        }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_00eebf1a_hoisted_66, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_select, {
+        }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_ffa8a5a8_hoisted_66, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_select, {
           dense: "",
           outlined: "",
           options: ['KG', 'CJA', 'U'],
           modelValue: $data.miproducto.unidcuello,
           "onUpdate:modelValue": _cache[38] || (_cache[38] = $event => $data.miproducto.unidcuello = $event),
           label: "Unidad"
-        }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_00eebf1a_hoisted_67, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+        }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_ffa8a5a8_hoisted_67, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
           type: "number",
           dense: "",
           outlined: "",
           label: "hueso",
           modelValue: $data.miproducto.hueso,
           "onUpdate:modelValue": _cache[39] || (_cache[39] = $event => $data.miproducto.hueso = $event)
-        }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_00eebf1a_hoisted_68, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_select, {
+        }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_ffa8a5a8_hoisted_68, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_select, {
           dense: "",
           outlined: "",
           options: ['KG', 'CJA', 'U'],
           modelValue: $data.miproducto.unidhueso,
           "onUpdate:modelValue": _cache[40] || (_cache[40] = $event => $data.miproducto.unidhueso = $event),
           label: "Unidad"
-        }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_00eebf1a_hoisted_69, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+        }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_ffa8a5a8_hoisted_69, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
           type: "number",
           dense: "",
           outlined: "",
           label: "menudencia",
           modelValue: $data.miproducto.menu,
           "onUpdate:modelValue": _cache[41] || (_cache[41] = $event => $data.miproducto.menu = $event)
-        }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_00eebf1a_hoisted_70, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_select, {
+        }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_ffa8a5a8_hoisted_70, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_select, {
           dense: "",
           outlined: "",
           options: ['KG', 'CJA', 'U'],
           modelValue: $data.miproducto.unidmenu,
           "onUpdate:modelValue": _cache[42] || (_cache[42] = $event => $data.miproducto.unidmenu = $event),
           label: "Unidad"
-        }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_00eebf1a_hoisted_71, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+        }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_ffa8a5a8_hoisted_71, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
           type: "number",
           dense: "",
           outlined: "",
           label: "BS",
           modelValue: $data.miproducto.bs,
           "onUpdate:modelValue": _cache[43] || (_cache[43] = $event => $data.miproducto.bs = $event)
-        }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_00eebf1a_hoisted_72, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+        }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_ffa8a5a8_hoisted_72, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
           type: "number",
           dense: "",
           outlined: "",
           label: "BS2",
           modelValue: $data.miproducto.bs2,
           "onUpdate:modelValue": _cache[44] || (_cache[44] = $event => $data.miproducto.bs2 = $event)
-        }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_00eebf1a_hoisted_73, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+        }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_ffa8a5a8_hoisted_73, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
           type: "text",
           dense: "",
           outlined: "",
@@ -4974,12 +4974,12 @@ function Visitavue_type_template_id_00eebf1a_render(_ctx, _cache, $props, $setup
   }, {
     default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_card, null, {
       default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_card_section, null, {
-        default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [Visitavue_type_template_id_00eebf1a_hoisted_74]),
+        default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [Visitavue_type_template_id_ffa8a5a8_hoisted_74]),
         _: 1
       }), (0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_card_section, {
         class: "q-pt-none"
       }, {
-        default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_00eebf1a_hoisted_75, [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_00eebf1a_hoisted_76, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+        default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_ffa8a5a8_hoisted_75, [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_ffa8a5a8_hoisted_76, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
           dense: "",
           outlined: "",
           label: "observacion",
@@ -5008,42 +5008,42 @@ function Visitavue_type_template_id_00eebf1a_render(_ctx, _cache, $props, $setup
   }, {
     default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_card, null, {
       default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_card_section, null, {
-        default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [Visitavue_type_template_id_00eebf1a_hoisted_77]),
+        default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [Visitavue_type_template_id_ffa8a5a8_hoisted_77]),
         _: 1
       }), (0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_card_section, {
         class: "q-pt-none"
       }, {
-        default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_00eebf1a_hoisted_78, [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_00eebf1a_hoisted_79, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+        default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_ffa8a5a8_hoisted_78, [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_ffa8a5a8_hoisted_79, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
           dense: "",
           outlined: "",
           label: "precio",
           modelValue: $data.miproducto.pfrial,
           "onUpdate:modelValue": _cache[49] || (_cache[49] = $event => $data.miproducto.pfrial = $event)
-        }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_00eebf1a_hoisted_80, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+        }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_ffa8a5a8_hoisted_80, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
           dense: "",
           outlined: "",
           label: "total",
           modelValue: $data.miproducto.total,
           "onUpdate:modelValue": _cache[50] || (_cache[50] = $event => $data.miproducto.total = $event)
-        }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_00eebf1a_hoisted_81, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+        }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_ffa8a5a8_hoisted_81, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
           dense: "",
           outlined: "",
           label: "entero",
           modelValue: $data.miproducto.entero,
           "onUpdate:modelValue": _cache[51] || (_cache[51] = $event => $data.miproducto.entero = $event)
-        }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_00eebf1a_hoisted_82, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+        }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_ffa8a5a8_hoisted_82, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
           dense: "",
           outlined: "",
           label: "desmembre",
           modelValue: $data.miproducto.desmembre,
           "onUpdate:modelValue": _cache[52] || (_cache[52] = $event => $data.miproducto.desmembre = $event)
-        }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_00eebf1a_hoisted_83, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+        }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_ffa8a5a8_hoisted_83, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
           dense: "",
           outlined: "",
           label: "corte",
           modelValue: $data.miproducto.corte,
           "onUpdate:modelValue": _cache[53] || (_cache[53] = $event => $data.miproducto.corte = $event)
-        }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_00eebf1a_hoisted_84, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+        }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_ffa8a5a8_hoisted_84, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
           dense: "",
           outlined: "",
           label: "kilo",
@@ -5137,7 +5137,7 @@ function Visitavue_type_template_id_00eebf1a_render(_ctx, _cache, $props, $setup
     _: 1
   }, 8, ["modelValue"])]);
 }
-;// CONCATENATED MODULE: ./src/pages/Visita.vue?vue&type=template&id=00eebf1a
+;// CONCATENATED MODULE: ./src/pages/Visita.vue?vue&type=template&id=ffa8a5a8
 
 // EXTERNAL MODULE: ./node_modules/@vue-leaflet/vue-leaflet/dist/vue-leaflet.esm.js
 var vue_leaflet_esm = __webpack_require__(8892);
@@ -5267,7 +5267,7 @@ var vue_leaflet_esm = __webpack_require__(8892);
         // console.log(err.response)
         this.$q.loading.hide();
         this.$q.notify({
-          message: 'Error al conectarse al server',
+          message: err.response.data.message,
           color: 'red',
           icon: 'error'
         });
@@ -5291,7 +5291,7 @@ var vue_leaflet_esm = __webpack_require__(8892);
         // console.log(err.response)
         this.$q.loading.hide();
         this.$q.notify({
-          message: 'Error al conectarse al server',
+          message: err.response.data.message,
           color: 'red',
           icon: 'error'
         });
@@ -5397,6 +5397,14 @@ var vue_leaflet_esm = __webpack_require__(8892);
         // return false
         this.modalopciones = false;
         this.misclientes();
+      }).catch(err => {
+        // console.log(err.response)
+        this.$q.loading.hide();
+        this.$q.notify({
+          message: err.response.data.message,
+          color: 'red',
+          icon: 'error'
+        });
       });
     },
 
@@ -5412,6 +5420,14 @@ var vue_leaflet_esm = __webpack_require__(8892);
 
         this.modalpedido = false;
         this.misclientes();
+      }).catch(err => {
+        // console.log(err.response)
+        this.$q.loading.hide();
+        this.$q.notify({
+          message: err.response.data.message,
+          color: 'red',
+          icon: 'error'
+        });
       });
     },
 
@@ -5694,7 +5710,7 @@ var vue_leaflet_esm = __webpack_require__(8892);
 ;
 
 
-const Visita_exports_ = /*#__PURE__*/(0,exportHelper/* default */.Z)(Visitavue_type_script_lang_js, [['render',Visitavue_type_template_id_00eebf1a_render]])
+const Visita_exports_ = /*#__PURE__*/(0,exportHelper/* default */.Z)(Visitavue_type_script_lang_js, [['render',Visitavue_type_template_id_ffa8a5a8_render]])
 
 /* harmony default export */ const Visita = (Visita_exports_);
 ;
@@ -5715,21 +5731,21 @@ const Visita_exports_ = /*#__PURE__*/(0,exportHelper/* default */.Z)(Visitavue_t
 
 runtime_auto_import_default()(Visitavue_type_script_lang_js, 'components', {QBadge: QBadge/* default */.Z,QTable: QTable/* default */.Z,QTd: QTd/* default */.Z,QBtn: QBtn/* default */.Z,QInput: QInput/* default */.Z,QIcon: QIcon/* default */.Z,QDialog: QDialog/* default */.Z,QCard: QCard/* default */.Z,QCardSection: QCardSection/* default */.Z,QCardActions: QCardActions/* default */.Z,QRadio: QRadio/* default */.Z,QSelect: QSelect/* default */.Z,QItem: QItem/* default */.Z,QItemSection: QItemSection/* default */.Z,QTr: QTr/* default */.Z});runtime_auto_import_default()(Visitavue_type_script_lang_js, 'directives', {ClosePopup: ClosePopup/* default */.Z});
 
-;// CONCATENATED MODULE: ./node_modules/@quasar/app/lib/webpack/loader.js.transform-quasar-imports.js!./node_modules/babel-loader/lib/index.js??clonedRuleSet-2.use[0]!./node_modules/vue-loader/dist/templateLoader.js??ruleSet[1].rules[3]!./node_modules/@quasar/app/lib/webpack/loader.vue.auto-import-quasar.js??ruleSet[0].use[0]!./node_modules/vue-loader/dist/index.js??ruleSet[0].use[1]!./src/pages/Miscobranzas.vue?vue&type=template&id=68be004b
+;// CONCATENATED MODULE: ./node_modules/@quasar/app/lib/webpack/loader.js.transform-quasar-imports.js!./node_modules/babel-loader/lib/index.js??clonedRuleSet-2.use[0]!./node_modules/vue-loader/dist/templateLoader.js??ruleSet[1].rules[3]!./node_modules/@quasar/app/lib/webpack/loader.vue.auto-import-quasar.js??ruleSet[0].use[0]!./node_modules/vue-loader/dist/index.js??ruleSet[0].use[1]!./src/pages/Miscobranzas.vue?vue&type=template&id=63c3ecf4
 
-const Miscobranzasvue_type_template_id_68be004b_hoisted_1 = {
+const Miscobranzasvue_type_template_id_63c3ecf4_hoisted_1 = {
   class: "row"
 };
-const Miscobranzasvue_type_template_id_68be004b_hoisted_2 = {
+const Miscobranzasvue_type_template_id_63c3ecf4_hoisted_2 = {
   class: "col-4"
 };
-const Miscobranzasvue_type_template_id_68be004b_hoisted_3 = {
+const Miscobranzasvue_type_template_id_63c3ecf4_hoisted_3 = {
   class: "col-4 flex flex-center"
 };
-const Miscobranzasvue_type_template_id_68be004b_hoisted_4 = {
+const Miscobranzasvue_type_template_id_63c3ecf4_hoisted_4 = {
   class: "col-12"
 };
-function Miscobranzasvue_type_template_id_68be004b_render(_ctx, _cache, $props, $setup, $data, $options) {
+function Miscobranzasvue_type_template_id_63c3ecf4_render(_ctx, _cache, $props, $setup, $data, $options) {
   const _component_q_input = (0,runtime_core_esm_bundler/* resolveComponent */.up)("q-input");
 
   const _component_q_btn = (0,runtime_core_esm_bundler/* resolveComponent */.up)("q-btn");
@@ -5747,20 +5763,20 @@ function Miscobranzasvue_type_template_id_68be004b_render(_ctx, _cache, $props, 
   return (0,runtime_core_esm_bundler/* openBlock */.wg)(), (0,runtime_core_esm_bundler/* createBlock */.j4)(_component_q_page, {
     class: "q-pa-xs"
   }, {
-    default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Miscobranzasvue_type_template_id_68be004b_hoisted_1, [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Miscobranzasvue_type_template_id_68be004b_hoisted_2, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+    default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Miscobranzasvue_type_template_id_63c3ecf4_hoisted_1, [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Miscobranzasvue_type_template_id_63c3ecf4_hoisted_2, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
       dense: "",
       outlined: "",
       modelValue: $data.fecha1,
       "onUpdate:modelValue": _cache[0] || (_cache[0] = $event => $data.fecha1 = $event),
       label: "Fecha Ini",
       type: "date"
-    }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Miscobranzasvue_type_template_id_68be004b_hoisted_3, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_btn, {
+    }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Miscobranzasvue_type_template_id_63c3ecf4_hoisted_3, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_btn, {
       color: "info",
       icon: "search",
       label: "consulta",
       onClick: $options.mcobros,
       size: "xs"
-    }, null, 8, ["onClick"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Miscobranzasvue_type_template_id_68be004b_hoisted_4, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_table, {
+    }, null, 8, ["onClick"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Miscobranzasvue_type_template_id_63c3ecf4_hoisted_4, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_table, {
       dense: "",
       title: "Clientes ",
       columns: $data.columns,
@@ -5806,7 +5822,7 @@ function Miscobranzasvue_type_template_id_68be004b_render(_ctx, _cache, $props, 
     _: 1
   });
 }
-;// CONCATENATED MODULE: ./src/pages/Miscobranzas.vue?vue&type=template&id=68be004b
+;// CONCATENATED MODULE: ./src/pages/Miscobranzas.vue?vue&type=template&id=63c3ecf4
 
 ;// CONCATENATED MODULE: ./node_modules/@quasar/app/lib/webpack/loader.js.transform-quasar-imports.js!./node_modules/babel-loader/lib/index.js??clonedRuleSet-2.use[0]!./node_modules/@quasar/app/lib/webpack/loader.vue.auto-import-quasar.js??ruleSet[0].use[0]!./node_modules/vue-loader/dist/index.js??ruleSet[0].use[1]!./src/pages/Miscobranzas.vue?vue&type=script&lang=js
 ;
@@ -5885,7 +5901,7 @@ function Miscobranzasvue_type_template_id_68be004b_render(_ctx, _cache, $props, 
         // console.log(err.response)
         this.$q.loading.hide();
         this.$q.notify({
-          message: 'Error al conectarse al server',
+          message: err.response.data.message,
           color: 'red',
           icon: 'error'
         });
@@ -5948,7 +5964,7 @@ function Miscobranzasvue_type_template_id_68be004b_render(_ctx, _cache, $props, 
 
 
 ;
-const Miscobranzas_exports_ = /*#__PURE__*/(0,exportHelper/* default */.Z)(Miscobranzasvue_type_script_lang_js, [['render',Miscobranzasvue_type_template_id_68be004b_render]])
+const Miscobranzas_exports_ = /*#__PURE__*/(0,exportHelper/* default */.Z)(Miscobranzasvue_type_script_lang_js, [['render',Miscobranzasvue_type_template_id_63c3ecf4_render]])
 
 /* harmony default export */ const Miscobranzas = (Miscobranzas_exports_);
 ;
@@ -7022,234 +7038,234 @@ const Modifica_exports_ = /*#__PURE__*/(0,exportHelper/* default */.Z)(Modificav
 
 runtime_auto_import_default()(Modificavue_type_script_lang_js, 'components', {QPage: QPage/* default */.Z,QTable: QTable/* default */.Z,QTd: QTd/* default */.Z,QBtn: QBtn/* default */.Z,QSelect: QSelect/* default */.Z,QInput: QInput/* default */.Z,QIcon: QIcon/* default */.Z,QDialog: QDialog/* default */.Z,QCard: QCard/* default */.Z,QCardSection: QCardSection/* default */.Z,QCardActions: QCardActions/* default */.Z});runtime_auto_import_default()(Modificavue_type_script_lang_js, 'directives', {ClosePopup: ClosePopup/* default */.Z});
 
-;// CONCATENATED MODULE: ./node_modules/@quasar/app/lib/webpack/loader.js.transform-quasar-imports.js!./node_modules/babel-loader/lib/index.js??clonedRuleSet-2.use[0]!./node_modules/vue-loader/dist/templateLoader.js??ruleSet[1].rules[3]!./node_modules/@quasar/app/lib/webpack/loader.vue.auto-import-quasar.js??ruleSet[0].use[0]!./node_modules/vue-loader/dist/index.js??ruleSet[0].use[1]!./src/pages/Pendientes.vue?vue&type=template&id=42a8b47a
+;// CONCATENATED MODULE: ./node_modules/@quasar/app/lib/webpack/loader.js.transform-quasar-imports.js!./node_modules/babel-loader/lib/index.js??clonedRuleSet-2.use[0]!./node_modules/vue-loader/dist/templateLoader.js??ruleSet[1].rules[3]!./node_modules/@quasar/app/lib/webpack/loader.vue.auto-import-quasar.js??ruleSet[0].use[0]!./node_modules/vue-loader/dist/index.js??ruleSet[0].use[1]!./src/pages/Pendientes.vue?vue&type=template&id=0038db76
 
-const Pendientesvue_type_template_id_42a8b47a_hoisted_1 = {
+const Pendientesvue_type_template_id_0038db76_hoisted_1 = {
   class: "row"
 };
-const Pendientesvue_type_template_id_42a8b47a_hoisted_2 = {
+const Pendientesvue_type_template_id_0038db76_hoisted_2 = {
   class: "col-6"
 };
-const Pendientesvue_type_template_id_42a8b47a_hoisted_3 = {
+const Pendientesvue_type_template_id_0038db76_hoisted_3 = {
   class: "col-6 flex flex-center"
 };
-const Pendientesvue_type_template_id_42a8b47a_hoisted_4 = {
+const Pendientesvue_type_template_id_0038db76_hoisted_4 = {
   class: "col-12"
 };
-const Pendientesvue_type_template_id_42a8b47a_hoisted_5 = {
+const Pendientesvue_type_template_id_0038db76_hoisted_5 = {
   class: "text-subtitle2"
 };
-const Pendientesvue_type_template_id_42a8b47a_hoisted_6 = {
+const Pendientesvue_type_template_id_0038db76_hoisted_6 = {
   class: "row"
 };
-const Pendientesvue_type_template_id_42a8b47a_hoisted_7 = {
+const Pendientesvue_type_template_id_0038db76_hoisted_7 = {
   class: "col-10"
 };
 
-const Pendientesvue_type_template_id_42a8b47a_hoisted_8 = /*#__PURE__*/(0,runtime_core_esm_bundler/* createTextVNode */.Uk)(" No results ");
+const Pendientesvue_type_template_id_0038db76_hoisted_8 = /*#__PURE__*/(0,runtime_core_esm_bundler/* createTextVNode */.Uk)(" No results ");
 
-const Pendientesvue_type_template_id_42a8b47a_hoisted_9 = {
+const Pendientesvue_type_template_id_0038db76_hoisted_9 = {
   class: "col-2 flex flex-center"
 };
-const Pendientesvue_type_template_id_42a8b47a_hoisted_10 = {
+const Pendientesvue_type_template_id_0038db76_hoisted_10 = {
   class: "col-12"
 };
-const Pendientesvue_type_template_id_42a8b47a_hoisted_11 = ["onKeyup", "onUpdate:modelValue"];
-const Pendientesvue_type_template_id_42a8b47a_hoisted_12 = ["onKeyup", "onUpdate:modelValue"];
-const Pendientesvue_type_template_id_42a8b47a_hoisted_13 = {
+const Pendientesvue_type_template_id_0038db76_hoisted_11 = ["onKeyup", "onUpdate:modelValue"];
+const Pendientesvue_type_template_id_0038db76_hoisted_12 = ["onKeyup", "onUpdate:modelValue"];
+const Pendientesvue_type_template_id_0038db76_hoisted_13 = {
   class: "row"
 };
-const Pendientesvue_type_template_id_42a8b47a_hoisted_14 = {
+const Pendientesvue_type_template_id_0038db76_hoisted_14 = {
   class: "col-12"
 };
-const Pendientesvue_type_template_id_42a8b47a_hoisted_15 = {
+const Pendientesvue_type_template_id_0038db76_hoisted_15 = {
   class: "text-subtitle2"
 };
 
-const Pendientesvue_type_template_id_42a8b47a_hoisted_16 = /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("div", {
+const Pendientesvue_type_template_id_0038db76_hoisted_16 = /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("div", {
   class: "text-h6"
 }, "Pedido Pollo", -1);
 
-const Pendientesvue_type_template_id_42a8b47a_hoisted_17 = {
+const Pendientesvue_type_template_id_0038db76_hoisted_17 = {
   class: "row"
 };
-const Pendientesvue_type_template_id_42a8b47a_hoisted_18 = {
+const Pendientesvue_type_template_id_0038db76_hoisted_18 = {
   class: "col-6"
 };
-const Pendientesvue_type_template_id_42a8b47a_hoisted_19 = {
+const Pendientesvue_type_template_id_0038db76_hoisted_19 = {
   class: "col-6"
 };
-const Pendientesvue_type_template_id_42a8b47a_hoisted_20 = {
+const Pendientesvue_type_template_id_0038db76_hoisted_20 = {
   class: "col-6"
 };
-const Pendientesvue_type_template_id_42a8b47a_hoisted_21 = {
+const Pendientesvue_type_template_id_0038db76_hoisted_21 = {
   class: "col-6"
 };
-const Pendientesvue_type_template_id_42a8b47a_hoisted_22 = {
+const Pendientesvue_type_template_id_0038db76_hoisted_22 = {
   class: "col-6"
 };
-const Pendientesvue_type_template_id_42a8b47a_hoisted_23 = {
+const Pendientesvue_type_template_id_0038db76_hoisted_23 = {
   class: "col-6"
 };
-const Pendientesvue_type_template_id_42a8b47a_hoisted_24 = {
+const Pendientesvue_type_template_id_0038db76_hoisted_24 = {
   class: "col-6"
 };
-const Pendientesvue_type_template_id_42a8b47a_hoisted_25 = {
+const Pendientesvue_type_template_id_0038db76_hoisted_25 = {
   class: "col-6"
 };
-const Pendientesvue_type_template_id_42a8b47a_hoisted_26 = {
+const Pendientesvue_type_template_id_0038db76_hoisted_26 = {
   class: "col-6"
 };
-const Pendientesvue_type_template_id_42a8b47a_hoisted_27 = {
+const Pendientesvue_type_template_id_0038db76_hoisted_27 = {
   class: "col-6"
 };
-const Pendientesvue_type_template_id_42a8b47a_hoisted_28 = {
+const Pendientesvue_type_template_id_0038db76_hoisted_28 = {
   class: "col-6"
 };
-const Pendientesvue_type_template_id_42a8b47a_hoisted_29 = {
+const Pendientesvue_type_template_id_0038db76_hoisted_29 = {
   class: "col-6"
 };
-const Pendientesvue_type_template_id_42a8b47a_hoisted_30 = {
+const Pendientesvue_type_template_id_0038db76_hoisted_30 = {
   class: "col-6"
 };
-const Pendientesvue_type_template_id_42a8b47a_hoisted_31 = {
+const Pendientesvue_type_template_id_0038db76_hoisted_31 = {
   class: "col-6"
 };
-const Pendientesvue_type_template_id_42a8b47a_hoisted_32 = {
+const Pendientesvue_type_template_id_0038db76_hoisted_32 = {
   class: "col-6"
 };
-const Pendientesvue_type_template_id_42a8b47a_hoisted_33 = {
+const Pendientesvue_type_template_id_0038db76_hoisted_33 = {
   class: "col-6"
 };
-const Pendientesvue_type_template_id_42a8b47a_hoisted_34 = {
+const Pendientesvue_type_template_id_0038db76_hoisted_34 = {
   class: "col-6"
 };
-const Pendientesvue_type_template_id_42a8b47a_hoisted_35 = {
+const Pendientesvue_type_template_id_0038db76_hoisted_35 = {
   class: "col-6"
 };
-const Pendientesvue_type_template_id_42a8b47a_hoisted_36 = {
+const Pendientesvue_type_template_id_0038db76_hoisted_36 = {
   class: "col-6"
 };
-const Pendientesvue_type_template_id_42a8b47a_hoisted_37 = {
+const Pendientesvue_type_template_id_0038db76_hoisted_37 = {
   class: "col-6"
 };
-const Pendientesvue_type_template_id_42a8b47a_hoisted_38 = {
+const Pendientesvue_type_template_id_0038db76_hoisted_38 = {
   class: "col-6"
 };
-const Pendientesvue_type_template_id_42a8b47a_hoisted_39 = {
+const Pendientesvue_type_template_id_0038db76_hoisted_39 = {
   class: "col-6"
 };
-const Pendientesvue_type_template_id_42a8b47a_hoisted_40 = {
+const Pendientesvue_type_template_id_0038db76_hoisted_40 = {
   class: "col-6"
 };
-const Pendientesvue_type_template_id_42a8b47a_hoisted_41 = {
+const Pendientesvue_type_template_id_0038db76_hoisted_41 = {
   class: "col-6"
 };
-const Pendientesvue_type_template_id_42a8b47a_hoisted_42 = {
+const Pendientesvue_type_template_id_0038db76_hoisted_42 = {
   class: "col-6"
 };
-const Pendientesvue_type_template_id_42a8b47a_hoisted_43 = {
+const Pendientesvue_type_template_id_0038db76_hoisted_43 = {
   class: "col-6"
 };
-const Pendientesvue_type_template_id_42a8b47a_hoisted_44 = {
+const Pendientesvue_type_template_id_0038db76_hoisted_44 = {
   class: "col-6"
 };
-const Pendientesvue_type_template_id_42a8b47a_hoisted_45 = {
+const Pendientesvue_type_template_id_0038db76_hoisted_45 = {
   class: "col-6"
 };
-const Pendientesvue_type_template_id_42a8b47a_hoisted_46 = {
+const Pendientesvue_type_template_id_0038db76_hoisted_46 = {
   class: "col-6"
 };
-const Pendientesvue_type_template_id_42a8b47a_hoisted_47 = {
+const Pendientesvue_type_template_id_0038db76_hoisted_47 = {
   class: "col-6"
 };
-const Pendientesvue_type_template_id_42a8b47a_hoisted_48 = {
+const Pendientesvue_type_template_id_0038db76_hoisted_48 = {
   class: "col-6"
 };
-const Pendientesvue_type_template_id_42a8b47a_hoisted_49 = {
+const Pendientesvue_type_template_id_0038db76_hoisted_49 = {
   class: "col-6"
 };
-const Pendientesvue_type_template_id_42a8b47a_hoisted_50 = {
+const Pendientesvue_type_template_id_0038db76_hoisted_50 = {
   class: "col-6"
 };
-const Pendientesvue_type_template_id_42a8b47a_hoisted_51 = {
+const Pendientesvue_type_template_id_0038db76_hoisted_51 = {
   class: "col-6"
 };
-const Pendientesvue_type_template_id_42a8b47a_hoisted_52 = {
+const Pendientesvue_type_template_id_0038db76_hoisted_52 = {
   class: "col-12"
 };
 
-const Pendientesvue_type_template_id_42a8b47a_hoisted_53 = /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("div", {
+const Pendientesvue_type_template_id_0038db76_hoisted_53 = /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("div", {
   class: "text-h6"
 }, "Pedido Normal", -1);
 
-const Pendientesvue_type_template_id_42a8b47a_hoisted_54 = {
+const Pendientesvue_type_template_id_0038db76_hoisted_54 = {
   class: "row"
 };
-const Pendientesvue_type_template_id_42a8b47a_hoisted_55 = {
+const Pendientesvue_type_template_id_0038db76_hoisted_55 = {
   class: "col-12"
 };
 
-const Pendientesvue_type_template_id_42a8b47a_hoisted_56 = /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("div", {
+const Pendientesvue_type_template_id_0038db76_hoisted_56 = /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("div", {
   class: "text-h6"
 }, "Pedido Cerdo", -1);
 
-const Pendientesvue_type_template_id_42a8b47a_hoisted_57 = {
+const Pendientesvue_type_template_id_0038db76_hoisted_57 = {
   class: "row"
 };
-const Pendientesvue_type_template_id_42a8b47a_hoisted_58 = {
+const Pendientesvue_type_template_id_0038db76_hoisted_58 = {
   class: "col-4"
 };
-const Pendientesvue_type_template_id_42a8b47a_hoisted_59 = {
+const Pendientesvue_type_template_id_0038db76_hoisted_59 = {
   class: "col-4"
 };
-const Pendientesvue_type_template_id_42a8b47a_hoisted_60 = {
+const Pendientesvue_type_template_id_0038db76_hoisted_60 = {
   class: "col-4"
 };
-const Pendientesvue_type_template_id_42a8b47a_hoisted_61 = {
+const Pendientesvue_type_template_id_0038db76_hoisted_61 = {
   class: "col-4"
 };
-const Pendientesvue_type_template_id_42a8b47a_hoisted_62 = {
+const Pendientesvue_type_template_id_0038db76_hoisted_62 = {
   class: "col-4"
 };
-const Pendientesvue_type_template_id_42a8b47a_hoisted_63 = {
+const Pendientesvue_type_template_id_0038db76_hoisted_63 = {
   class: "col-4"
 };
-const Pendientesvue_type_template_id_42a8b47a_hoisted_64 = {
+const Pendientesvue_type_template_id_0038db76_hoisted_64 = {
   class: "col-12"
 };
 
-const Pendientesvue_type_template_id_42a8b47a_hoisted_65 = /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("div", {
+const Pendientesvue_type_template_id_0038db76_hoisted_65 = /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("div", {
   class: "text-h6"
 }, "Pedido Res", -1);
 
-const Pendientesvue_type_template_id_42a8b47a_hoisted_66 = {
+const Pendientesvue_type_template_id_0038db76_hoisted_66 = {
   class: "row"
 };
-const Pendientesvue_type_template_id_42a8b47a_hoisted_67 = {
+const Pendientesvue_type_template_id_0038db76_hoisted_67 = {
   class: "col-4"
 };
-const Pendientesvue_type_template_id_42a8b47a_hoisted_68 = {
+const Pendientesvue_type_template_id_0038db76_hoisted_68 = {
   class: "col-4"
 };
-const Pendientesvue_type_template_id_42a8b47a_hoisted_69 = {
+const Pendientesvue_type_template_id_0038db76_hoisted_69 = {
   class: "col-4"
 };
-const Pendientesvue_type_template_id_42a8b47a_hoisted_70 = {
+const Pendientesvue_type_template_id_0038db76_hoisted_70 = {
   class: "col-4"
 };
-const Pendientesvue_type_template_id_42a8b47a_hoisted_71 = {
+const Pendientesvue_type_template_id_0038db76_hoisted_71 = {
   class: "col-4"
 };
-const Pendientesvue_type_template_id_42a8b47a_hoisted_72 = {
+const Pendientesvue_type_template_id_0038db76_hoisted_72 = {
   class: "col-12"
 };
 
-const Pendientesvue_type_template_id_42a8b47a_hoisted_73 = /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("div", {
+const Pendientesvue_type_template_id_0038db76_hoisted_73 = /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("div", {
   class: "text-h6"
 }, "PEDIDO POLLO", -1);
 
-const Pendientesvue_type_template_id_42a8b47a_hoisted_74 = {
+const Pendientesvue_type_template_id_0038db76_hoisted_74 = {
   id: "example",
   class: "display",
   style: {
@@ -7257,13 +7273,13 @@ const Pendientesvue_type_template_id_42a8b47a_hoisted_74 = {
   }
 };
 
-const Pendientesvue_type_template_id_42a8b47a_hoisted_75 = /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("thead", null, [/*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("tr", null, [/*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "No"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "CLIENTE"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "C BRASA5"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "U BRASA5"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "BS"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "OBS"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "C BRASA6"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "U BRASA6"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "BS"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "OBS"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "C 104"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "U 104"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "BS"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "OBS"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "C 105"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "U 105"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "BS"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "OBS"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "C 106"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "U 106"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "BS"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "OBS"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "C 107"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "U 107"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "BS"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "OBS"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "C 108"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "U 108"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "BS"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "OBS"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "C 109"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "U 109"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "BS"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "OBS"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "ALA"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "UNID"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "BS"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "OBS"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "CADERA"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "UNID"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "BS"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "OBS"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "PECHO"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "UNID"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "BS"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "OBS"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "PI/MU"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "UNID"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "BS"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "OBS"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "FILETE"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "UNID"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "BS"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "OBS"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "PECHO"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "UNID"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "BS"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "OBS"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "HUESO"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "UNID"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "BS"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "OBS"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "MENUD"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "CONT"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "BS"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "OBS"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "CONT")])], -1);
+const Pendientesvue_type_template_id_0038db76_hoisted_75 = /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("thead", null, [/*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("tr", null, [/*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "No"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "CLIENTE"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "C BRASA5"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "U BRASA5"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "BS"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "OBS"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "C BRASA6"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "U BRASA6"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "BS"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "OBS"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "C 104"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "U 104"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "BS"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "OBS"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "C 105"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "U 105"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "BS"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "OBS"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "C 106"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "U 106"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "BS"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "OBS"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "C 107"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "U 107"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "BS"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "OBS"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "C 108"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "U 108"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "BS"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "OBS"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "C 109"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "U 109"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "BS"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "OBS"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "ALA"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "UNID"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "BS"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "OBS"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "CADERA"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "UNID"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "BS"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "OBS"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "PECHO"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "UNID"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "BS"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "OBS"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "PI/MU"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "UNID"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "BS"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "OBS"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "FILETE"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "UNID"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "BS"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "OBS"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "PECHO"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "UNID"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "BS"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "OBS"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "HUESO"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "UNID"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "BS"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "OBS"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "MENUD"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "CONT"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "BS"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "OBS"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "CONT")])], -1);
 
-const Pendientesvue_type_template_id_42a8b47a_hoisted_76 = /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("div", {
+const Pendientesvue_type_template_id_0038db76_hoisted_76 = /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("div", {
   class: "text-h6"
 }, "PEDIDO RES", -1);
 
-const Pendientesvue_type_template_id_42a8b47a_hoisted_77 = {
+const Pendientesvue_type_template_id_0038db76_hoisted_77 = {
   id: "example2",
   class: "display",
   style: {
@@ -7271,13 +7287,13 @@ const Pendientesvue_type_template_id_42a8b47a_hoisted_77 = {
   }
 };
 
-const Pendientesvue_type_template_id_42a8b47a_hoisted_78 = /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("thead", null, [/*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("tr", null, [/*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "No"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "CLIENTE"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "PRECIO"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "TROZADO"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "ENT/MED"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "PIERNA"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "BRAZO"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "CONT"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "OBSERVACION")])], -1);
+const Pendientesvue_type_template_id_0038db76_hoisted_78 = /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("thead", null, [/*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("tr", null, [/*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "No"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "CLIENTE"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "PRECIO"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "TROZADO"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "ENT/MED"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "PIERNA"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "BRAZO"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "CONT"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "OBSERVACION")])], -1);
 
-const Pendientesvue_type_template_id_42a8b47a_hoisted_79 = /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("div", {
+const Pendientesvue_type_template_id_0038db76_hoisted_79 = /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("div", {
   class: "text-h6"
 }, "PEDIDO CERDO", -1);
 
-const Pendientesvue_type_template_id_42a8b47a_hoisted_80 = {
+const Pendientesvue_type_template_id_0038db76_hoisted_80 = {
   id: "example3",
   class: "display",
   style: {
@@ -7285,9 +7301,9 @@ const Pendientesvue_type_template_id_42a8b47a_hoisted_80 = {
   }
 };
 
-const Pendientesvue_type_template_id_42a8b47a_hoisted_81 = /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("thead", null, [/*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("tr", null, [/*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "No"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "CLIENTE"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "PRECIO"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "TOTAL"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "ENTERO"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "DESMEMBRADO"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "CORTE"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "CORTE/KILO"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "CONT"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "OBSERVACION")])], -1);
+const Pendientesvue_type_template_id_0038db76_hoisted_81 = /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("thead", null, [/*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("tr", null, [/*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "No"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "CLIENTE"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "PRECIO"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "TOTAL"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "ENTERO"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "DESMEMBRADO"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "CORTE"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "CORTE/KILO"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "CONT"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "OBSERVACION")])], -1);
 
-function Pendientesvue_type_template_id_42a8b47a_render(_ctx, _cache, $props, $setup, $data, $options) {
+function Pendientesvue_type_template_id_0038db76_render(_ctx, _cache, $props, $setup, $data, $options) {
   const _component_q_input = (0,runtime_core_esm_bundler/* resolveComponent */.up)("q-input");
 
   const _component_q_btn = (0,runtime_core_esm_bundler/* resolveComponent */.up)("q-btn");
@@ -7323,19 +7339,19 @@ function Pendientesvue_type_template_id_42a8b47a_render(_ctx, _cache, $props, $s
   return (0,runtime_core_esm_bundler/* openBlock */.wg)(), (0,runtime_core_esm_bundler/* createBlock */.j4)(_component_q_page, {
     class: "q-pa-xs"
   }, {
-    default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Pendientesvue_type_template_id_42a8b47a_hoisted_1, [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Pendientesvue_type_template_id_42a8b47a_hoisted_2, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+    default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Pendientesvue_type_template_id_0038db76_hoisted_1, [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Pendientesvue_type_template_id_0038db76_hoisted_2, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
       dense: "",
       outlined: "",
       modelValue: $data.fecha1,
       "onUpdate:modelValue": _cache[0] || (_cache[0] = $event => $data.fecha1 = $event),
       label: "Fecha Ini",
       type: "date"
-    }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Pendientesvue_type_template_id_42a8b47a_hoisted_3, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_btn, {
+    }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Pendientesvue_type_template_id_0038db76_hoisted_3, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_btn, {
       color: "info",
       icon: "search",
       label: "consulta",
       onClick: $options.mispendiente
-    }, null, 8, ["onClick"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Pendientesvue_type_template_id_42a8b47a_hoisted_4, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_table, {
+    }, null, 8, ["onClick"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Pendientesvue_type_template_id_0038db76_hoisted_4, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_table, {
       "rows-per-page-options": [15, 50, 100, 0],
       dense: "",
       title: "Clientes ",
@@ -7383,12 +7399,12 @@ function Pendientesvue_type_template_id_42a8b47a_render(_ctx, _cache, $props, $s
     }, {
       default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_card, null, {
         default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_card_section, null, {
-          default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Pendientesvue_type_template_id_42a8b47a_hoisted_5, (0,shared_esm_bundler/* toDisplayString */.zw)($data.cliente.Cod_Aut) + " " + (0,shared_esm_bundler/* toDisplayString */.zw)($data.cliente.Nombres), 1)]),
+          default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Pendientesvue_type_template_id_0038db76_hoisted_5, (0,shared_esm_bundler/* toDisplayString */.zw)($data.cliente.Cod_Aut) + " " + (0,shared_esm_bundler/* toDisplayString */.zw)($data.cliente.Nombres), 1)]),
           _: 1
         }), (0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_card_section, {
           class: "q-pt-none"
         }, {
-          default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Pendientesvue_type_template_id_42a8b47a_hoisted_6, [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Pendientesvue_type_template_id_42a8b47a_hoisted_7, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_select, {
+          default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Pendientesvue_type_template_id_0038db76_hoisted_6, [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Pendientesvue_type_template_id_0038db76_hoisted_7, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_select, {
             label: "Productos",
             dense: "",
             outlined: "",
@@ -7404,19 +7420,19 @@ function Pendientesvue_type_template_id_42a8b47a_render(_ctx, _cache, $props, $s
               default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_item_section, {
                 class: "text-grey"
               }, {
-                default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [Pendientesvue_type_template_id_42a8b47a_hoisted_8]),
+                default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [Pendientesvue_type_template_id_0038db76_hoisted_8]),
                 _: 1
               })]),
               _: 1
             })]),
             _: 1
-          }, 8, ["onFilter", "options", "modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Pendientesvue_type_template_id_42a8b47a_hoisted_9, [$data.cliente.estado == 'CREADO' ? ((0,runtime_core_esm_bundler/* openBlock */.wg)(), (0,runtime_core_esm_bundler/* createBlock */.j4)(_component_q_btn, {
+          }, 8, ["onFilter", "options", "modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Pendientesvue_type_template_id_0038db76_hoisted_9, [$data.cliente.estado == 'CREADO' ? ((0,runtime_core_esm_bundler/* openBlock */.wg)(), (0,runtime_core_esm_bundler/* createBlock */.j4)(_component_q_btn, {
             key: 0,
             class: "q-pa-xs q-ma-none",
             color: "primary",
             icon: "add_circle",
             onClick: $options.agregarpedido
-          }, null, 8, ["onClick"])) : (0,runtime_core_esm_bundler/* createCommentVNode */.kq)("", true)]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Pendientesvue_type_template_id_42a8b47a_hoisted_10, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_table, {
+          }, null, 8, ["onClick"])) : (0,runtime_core_esm_bundler/* createCommentVNode */.kq)("", true)]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Pendientesvue_type_template_id_0038db76_hoisted_10, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_table, {
             rows: $data.misproductos,
             filter: $data.filteproducto,
             columns: $data.columnsproducto
@@ -7458,7 +7474,7 @@ function Pendientesvue_type_template_id_42a8b47a_render(_ctx, _cache, $props, $s
                 style: {
                   "width": "2.5em"
                 }
-              }, null, 40, Pendientesvue_type_template_id_42a8b47a_hoisted_11), [[runtime_dom_esm_bundler/* vModelText */.nr, props.row.cantidad]])], 64)) : (0,runtime_core_esm_bundler/* createCommentVNode */.kq)("", true), (0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_btn, {
+              }, null, 40, Pendientesvue_type_template_id_0038db76_hoisted_11), [[runtime_dom_esm_bundler/* vModelText */.nr, props.row.cantidad]])], 64)) : (0,runtime_core_esm_bundler/* createCommentVNode */.kq)("", true), (0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_btn, {
                 flat: "",
                 onClick: $event => $options.quitar(props.row, props.rowIndex),
                 class: "q-ma-none q-pa-none",
@@ -7478,10 +7494,10 @@ function Pendientesvue_type_template_id_42a8b47a_render(_ctx, _cache, $props, $s
                 style: {
                   "width": "3em"
                 }
-              }, null, 40, Pendientesvue_type_template_id_42a8b47a_hoisted_12), [[runtime_dom_esm_bundler/* vModelText */.nr, props.row.precio]])]),
+              }, null, 40, Pendientesvue_type_template_id_0038db76_hoisted_12), [[runtime_dom_esm_bundler/* vModelText */.nr, props.row.precio]])]),
               _: 2
             }, 1032, ["props"])]),
-            "top-right": (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Pendientesvue_type_template_id_42a8b47a_hoisted_13, [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Pendientesvue_type_template_id_42a8b47a_hoisted_14, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+            "top-right": (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Pendientesvue_type_template_id_0038db76_hoisted_13, [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Pendientesvue_type_template_id_0038db76_hoisted_14, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
               outlined: "",
               dense: "",
               modelValue: $data.filteproducto,
@@ -7497,7 +7513,7 @@ function Pendientesvue_type_template_id_42a8b47a_render(_ctx, _cache, $props, $s
               default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_td, {
                 colspan: "100%"
               }, {
-                default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Pendientesvue_type_template_id_42a8b47a_hoisted_15, "Total: " + (0,shared_esm_bundler/* toDisplayString */.zw)($options.total) + " Bs.", 1)]),
+                default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Pendientesvue_type_template_id_0038db76_hoisted_15, "Total: " + (0,shared_esm_bundler/* toDisplayString */.zw)($options.total) + " Bs.", 1)]),
                 _: 1
               })]),
               _: 1
@@ -7544,250 +7560,250 @@ function Pendientesvue_type_template_id_42a8b47a_render(_ctx, _cache, $props, $s
     }, {
       default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_card, null, {
         default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_card_section, null, {
-          default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [Pendientesvue_type_template_id_42a8b47a_hoisted_16]),
+          default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [Pendientesvue_type_template_id_0038db76_hoisted_16]),
           _: 1
         }), (0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_card_section, {
           class: "q-pt-none"
         }, {
-          default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Pendientesvue_type_template_id_42a8b47a_hoisted_17, [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Pendientesvue_type_template_id_42a8b47a_hoisted_18, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+          default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Pendientesvue_type_template_id_0038db76_hoisted_17, [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Pendientesvue_type_template_id_0038db76_hoisted_18, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
             type: "number",
             dense: "",
             outlined: "",
             label: "Cja b5",
             modelValue: $data.miproducto.cbrasa5,
             "onUpdate:modelValue": _cache[5] || (_cache[5] = $event => $data.miproducto.cbrasa5 = $event)
-          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Pendientesvue_type_template_id_42a8b47a_hoisted_19, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Pendientesvue_type_template_id_0038db76_hoisted_19, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
             type: "number",
             dense: "",
             outlined: "",
             label: "Uni b5",
             modelValue: $data.miproducto.ubrasa5,
             "onUpdate:modelValue": _cache[6] || (_cache[6] = $event => $data.miproducto.ubrasa5 = $event)
-          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Pendientesvue_type_template_id_42a8b47a_hoisted_20, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Pendientesvue_type_template_id_0038db76_hoisted_20, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
             type: "number",
             dense: "",
             outlined: "",
             label: "Cja b6",
             modelValue: $data.miproducto.cbrasa6,
             "onUpdate:modelValue": _cache[7] || (_cache[7] = $event => $data.miproducto.cbrasa6 = $event)
-          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Pendientesvue_type_template_id_42a8b47a_hoisted_21, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Pendientesvue_type_template_id_0038db76_hoisted_21, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
             type: "number",
             dense: "",
             outlined: "",
             label: "Uni b6",
             modelValue: $data.miproducto.cubrasa6,
             "onUpdate:modelValue": _cache[8] || (_cache[8] = $event => $data.miproducto.cubrasa6 = $event)
-          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Pendientesvue_type_template_id_42a8b47a_hoisted_22, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Pendientesvue_type_template_id_0038db76_hoisted_22, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
             type: "number",
             dense: "",
             outlined: "",
             label: "Cja-104",
             modelValue: $data.miproducto.c104,
             "onUpdate:modelValue": _cache[9] || (_cache[9] = $event => $data.miproducto.c104 = $event)
-          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Pendientesvue_type_template_id_42a8b47a_hoisted_23, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Pendientesvue_type_template_id_0038db76_hoisted_23, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
             type: "number",
             dense: "",
             outlined: "",
             label: "Unid-104",
             modelValue: $data.miproducto.u104,
             "onUpdate:modelValue": _cache[10] || (_cache[10] = $event => $data.miproducto.u104 = $event)
-          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Pendientesvue_type_template_id_42a8b47a_hoisted_24, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Pendientesvue_type_template_id_0038db76_hoisted_24, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
             type: "number",
             dense: "",
             outlined: "",
             label: "Cja-105",
             modelValue: $data.miproducto.c105,
             "onUpdate:modelValue": _cache[11] || (_cache[11] = $event => $data.miproducto.c105 = $event)
-          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Pendientesvue_type_template_id_42a8b47a_hoisted_25, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Pendientesvue_type_template_id_0038db76_hoisted_25, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
             type: "number",
             dense: "",
             outlined: "",
             label: "Unid-105",
             modelValue: $data.miproducto.u105,
             "onUpdate:modelValue": _cache[12] || (_cache[12] = $event => $data.miproducto.u105 = $event)
-          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Pendientesvue_type_template_id_42a8b47a_hoisted_26, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Pendientesvue_type_template_id_0038db76_hoisted_26, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
             type: "number",
             dense: "",
             outlined: "",
             label: "Cja-106",
             modelValue: $data.miproducto.c106,
             "onUpdate:modelValue": _cache[13] || (_cache[13] = $event => $data.miproducto.c106 = $event)
-          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Pendientesvue_type_template_id_42a8b47a_hoisted_27, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Pendientesvue_type_template_id_0038db76_hoisted_27, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
             type: "number",
             dense: "",
             outlined: "",
             label: "Unid-106",
             modelValue: $data.miproducto.u106,
             "onUpdate:modelValue": _cache[14] || (_cache[14] = $event => $data.miproducto.u106 = $event)
-          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Pendientesvue_type_template_id_42a8b47a_hoisted_28, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Pendientesvue_type_template_id_0038db76_hoisted_28, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
             type: "number",
             dense: "",
             outlined: "",
             label: "Cja-107",
             modelValue: $data.miproducto.c107,
             "onUpdate:modelValue": _cache[15] || (_cache[15] = $event => $data.miproducto.c107 = $event)
-          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Pendientesvue_type_template_id_42a8b47a_hoisted_29, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Pendientesvue_type_template_id_0038db76_hoisted_29, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
             type: "number",
             dense: "",
             outlined: "",
             label: "Unid-107",
             modelValue: $data.miproducto.u107,
             "onUpdate:modelValue": _cache[16] || (_cache[16] = $event => $data.miproducto.u107 = $event)
-          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Pendientesvue_type_template_id_42a8b47a_hoisted_30, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Pendientesvue_type_template_id_0038db76_hoisted_30, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
             type: "number",
             dense: "",
             outlined: "",
             label: "Cja-108",
             modelValue: $data.miproducto.c108,
             "onUpdate:modelValue": _cache[17] || (_cache[17] = $event => $data.miproducto.c108 = $event)
-          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Pendientesvue_type_template_id_42a8b47a_hoisted_31, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Pendientesvue_type_template_id_0038db76_hoisted_31, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
             type: "number",
             dense: "",
             outlined: "",
             label: "Unid-108",
             modelValue: $data.miproducto.u108,
             "onUpdate:modelValue": _cache[18] || (_cache[18] = $event => $data.miproducto.u108 = $event)
-          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Pendientesvue_type_template_id_42a8b47a_hoisted_32, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Pendientesvue_type_template_id_0038db76_hoisted_32, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
             type: "number",
             dense: "",
             outlined: "",
             label: "Cja-109",
             modelValue: $data.miproducto.c109,
             "onUpdate:modelValue": _cache[19] || (_cache[19] = $event => $data.miproducto.c109 = $event)
-          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Pendientesvue_type_template_id_42a8b47a_hoisted_33, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Pendientesvue_type_template_id_0038db76_hoisted_33, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
             type: "number",
             dense: "",
             outlined: "",
             label: "Unid-109",
             modelValue: $data.miproducto.u109,
             "onUpdate:modelValue": _cache[20] || (_cache[20] = $event => $data.miproducto.u109 = $event)
-          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Pendientesvue_type_template_id_42a8b47a_hoisted_34, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Pendientesvue_type_template_id_0038db76_hoisted_34, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
             type: "number",
             dense: "",
             outlined: "",
             label: "ala",
             modelValue: $data.miproducto.ala,
             "onUpdate:modelValue": _cache[21] || (_cache[21] = $event => $data.miproducto.ala = $event)
-          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Pendientesvue_type_template_id_42a8b47a_hoisted_35, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_select, {
+          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Pendientesvue_type_template_id_0038db76_hoisted_35, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_select, {
             dense: "",
             outlined: "",
             options: ['KG', 'CJA', 'U'],
             modelValue: $data.miproducto.unidala,
             "onUpdate:modelValue": _cache[22] || (_cache[22] = $event => $data.miproducto.unidala = $event),
             label: "Unidad"
-          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Pendientesvue_type_template_id_42a8b47a_hoisted_36, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Pendientesvue_type_template_id_0038db76_hoisted_36, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
             type: "number",
             dense: "",
             outlined: "",
             label: "cadera",
             modelValue: $data.miproducto.cadera,
             "onUpdate:modelValue": _cache[23] || (_cache[23] = $event => $data.miproducto.cadera = $event)
-          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Pendientesvue_type_template_id_42a8b47a_hoisted_37, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_select, {
+          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Pendientesvue_type_template_id_0038db76_hoisted_37, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_select, {
             dense: "",
             outlined: "",
             options: ['KG', 'CJA', 'U'],
             modelValue: $data.miproducto.unidcadera,
             "onUpdate:modelValue": _cache[24] || (_cache[24] = $event => $data.miproducto.unidcadera = $event),
             label: "Unidad"
-          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Pendientesvue_type_template_id_42a8b47a_hoisted_38, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Pendientesvue_type_template_id_0038db76_hoisted_38, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
             type: "number",
             dense: "",
             outlined: "",
             label: "pecho",
             modelValue: $data.miproducto.pecho,
             "onUpdate:modelValue": _cache[25] || (_cache[25] = $event => $data.miproducto.pecho = $event)
-          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Pendientesvue_type_template_id_42a8b47a_hoisted_39, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_select, {
+          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Pendientesvue_type_template_id_0038db76_hoisted_39, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_select, {
             dense: "",
             outlined: "",
             options: ['KG', 'CJA', 'U'],
             modelValue: $data.miproducto.unidpecho,
             "onUpdate:modelValue": _cache[26] || (_cache[26] = $event => $data.miproducto.unidpecho = $event),
             label: "Unidad"
-          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Pendientesvue_type_template_id_42a8b47a_hoisted_40, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Pendientesvue_type_template_id_0038db76_hoisted_40, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
             type: "number",
             dense: "",
             outlined: "",
             label: "pie",
             modelValue: $data.miproducto.pie,
             "onUpdate:modelValue": _cache[27] || (_cache[27] = $event => $data.miproducto.pie = $event)
-          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Pendientesvue_type_template_id_42a8b47a_hoisted_41, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_select, {
+          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Pendientesvue_type_template_id_0038db76_hoisted_41, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_select, {
             dense: "",
             outlined: "",
             options: ['KG', 'CJA', 'U'],
             modelValue: $data.miproducto.unidpie,
             "onUpdate:modelValue": _cache[28] || (_cache[28] = $event => $data.miproducto.unidpie = $event),
             label: "Unidad"
-          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Pendientesvue_type_template_id_42a8b47a_hoisted_42, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Pendientesvue_type_template_id_0038db76_hoisted_42, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
             type: "number",
             dense: "",
             outlined: "",
             label: "filete",
             modelValue: $data.miproducto.filete,
             "onUpdate:modelValue": _cache[29] || (_cache[29] = $event => $data.miproducto.filete = $event)
-          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Pendientesvue_type_template_id_42a8b47a_hoisted_43, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_select, {
+          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Pendientesvue_type_template_id_0038db76_hoisted_43, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_select, {
             dense: "",
             outlined: "",
             options: ['KG', 'CJA', 'U'],
             modelValue: $data.miproducto.unidfilete,
             "onUpdate:modelValue": _cache[30] || (_cache[30] = $event => $data.miproducto.unidfilete = $event),
             label: "Unidad"
-          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Pendientesvue_type_template_id_42a8b47a_hoisted_44, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Pendientesvue_type_template_id_0038db76_hoisted_44, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
             type: "number",
             dense: "",
             outlined: "",
             label: "cuello",
             modelValue: $data.miproducto.cuello,
             "onUpdate:modelValue": _cache[31] || (_cache[31] = $event => $data.miproducto.cuello = $event)
-          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Pendientesvue_type_template_id_42a8b47a_hoisted_45, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_select, {
+          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Pendientesvue_type_template_id_0038db76_hoisted_45, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_select, {
             dense: "",
             outlined: "",
             options: ['KG', 'CJA', 'U'],
             modelValue: $data.miproducto.unidcuello,
             "onUpdate:modelValue": _cache[32] || (_cache[32] = $event => $data.miproducto.unidcuello = $event),
             label: "Unidad"
-          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Pendientesvue_type_template_id_42a8b47a_hoisted_46, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Pendientesvue_type_template_id_0038db76_hoisted_46, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
             type: "number",
             dense: "",
             outlined: "",
             label: "hueso",
             modelValue: $data.miproducto.hueso,
             "onUpdate:modelValue": _cache[33] || (_cache[33] = $event => $data.miproducto.hueso = $event)
-          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Pendientesvue_type_template_id_42a8b47a_hoisted_47, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_select, {
+          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Pendientesvue_type_template_id_0038db76_hoisted_47, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_select, {
             dense: "",
             outlined: "",
             options: ['KG', 'CJA', 'U'],
             modelValue: $data.miproducto.unidhueso,
             "onUpdate:modelValue": _cache[34] || (_cache[34] = $event => $data.miproducto.unidhueso = $event),
             label: "Unidad"
-          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Pendientesvue_type_template_id_42a8b47a_hoisted_48, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Pendientesvue_type_template_id_0038db76_hoisted_48, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
             type: "number",
             dense: "",
             outlined: "",
             label: "menu",
             modelValue: $data.miproducto.menu,
             "onUpdate:modelValue": _cache[35] || (_cache[35] = $event => $data.miproducto.menu = $event)
-          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Pendientesvue_type_template_id_42a8b47a_hoisted_49, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_select, {
+          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Pendientesvue_type_template_id_0038db76_hoisted_49, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_select, {
             dense: "",
             outlined: "",
             options: ['KG', 'CJA', 'U'],
             modelValue: $data.miproducto.unidmenu,
             "onUpdate:modelValue": _cache[36] || (_cache[36] = $event => $data.miproducto.unidmenu = $event),
             label: "Unidad"
-          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Pendientesvue_type_template_id_42a8b47a_hoisted_50, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Pendientesvue_type_template_id_0038db76_hoisted_50, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
             type: "number",
             dense: "",
             outlined: "",
             label: "BS",
             modelValue: $data.miproducto.bs,
             "onUpdate:modelValue": _cache[37] || (_cache[37] = $event => $data.miproducto.bs = $event)
-          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Pendientesvue_type_template_id_42a8b47a_hoisted_51, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Pendientesvue_type_template_id_0038db76_hoisted_51, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
             type: "text",
             dense: "",
             outlined: "",
             label: "BS2",
             modelValue: $data.miproducto.bs2,
             "onUpdate:modelValue": _cache[38] || (_cache[38] = $event => $data.miproducto.bs2 = $event)
-          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Pendientesvue_type_template_id_42a8b47a_hoisted_52, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Pendientesvue_type_template_id_0038db76_hoisted_52, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
             type: "text",
             dense: "",
             outlined: "",
@@ -7817,12 +7833,12 @@ function Pendientesvue_type_template_id_42a8b47a_render(_ctx, _cache, $props, $s
     }, {
       default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_card, null, {
         default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_card_section, null, {
-          default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [Pendientesvue_type_template_id_42a8b47a_hoisted_53]),
+          default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [Pendientesvue_type_template_id_0038db76_hoisted_53]),
           _: 1
         }), (0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_card_section, {
           class: "q-pt-none"
         }, {
-          default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Pendientesvue_type_template_id_42a8b47a_hoisted_54, [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Pendientesvue_type_template_id_42a8b47a_hoisted_55, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+          default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Pendientesvue_type_template_id_0038db76_hoisted_54, [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Pendientesvue_type_template_id_0038db76_hoisted_55, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
             dense: "",
             outlined: "",
             label: "observacion",
@@ -7851,48 +7867,48 @@ function Pendientesvue_type_template_id_42a8b47a_render(_ctx, _cache, $props, $s
     }, {
       default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_card, null, {
         default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_card_section, null, {
-          default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [Pendientesvue_type_template_id_42a8b47a_hoisted_56]),
+          default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [Pendientesvue_type_template_id_0038db76_hoisted_56]),
           _: 1
         }), (0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_card_section, {
           class: "q-pt-none"
         }, {
-          default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Pendientesvue_type_template_id_42a8b47a_hoisted_57, [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Pendientesvue_type_template_id_42a8b47a_hoisted_58, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+          default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Pendientesvue_type_template_id_0038db76_hoisted_57, [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Pendientesvue_type_template_id_0038db76_hoisted_58, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
             dense: "",
             outlined: "",
             label: "precio",
             modelValue: $data.miproducto.pfrial,
             "onUpdate:modelValue": _cache[43] || (_cache[43] = $event => $data.miproducto.pfrial = $event)
-          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Pendientesvue_type_template_id_42a8b47a_hoisted_59, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Pendientesvue_type_template_id_0038db76_hoisted_59, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
             dense: "",
             outlined: "",
             label: "total",
             modelValue: $data.miproducto.total,
             "onUpdate:modelValue": _cache[44] || (_cache[44] = $event => $data.miproducto.total = $event)
-          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Pendientesvue_type_template_id_42a8b47a_hoisted_60, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Pendientesvue_type_template_id_0038db76_hoisted_60, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
             dense: "",
             outlined: "",
             label: "entero",
             modelValue: $data.miproducto.entero,
             "onUpdate:modelValue": _cache[45] || (_cache[45] = $event => $data.miproducto.entero = $event)
-          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Pendientesvue_type_template_id_42a8b47a_hoisted_61, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Pendientesvue_type_template_id_0038db76_hoisted_61, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
             dense: "",
             outlined: "",
             label: "desmembre",
             modelValue: $data.miproducto.desmembre,
             "onUpdate:modelValue": _cache[46] || (_cache[46] = $event => $data.miproducto.desmembre = $event)
-          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Pendientesvue_type_template_id_42a8b47a_hoisted_62, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Pendientesvue_type_template_id_0038db76_hoisted_62, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
             dense: "",
             outlined: "",
             label: "corte",
             modelValue: $data.miproducto.corte,
             "onUpdate:modelValue": _cache[47] || (_cache[47] = $event => $data.miproducto.corte = $event)
-          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Pendientesvue_type_template_id_42a8b47a_hoisted_63, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Pendientesvue_type_template_id_0038db76_hoisted_63, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
             dense: "",
             outlined: "",
             label: "kilo",
             modelValue: $data.miproducto.kilo,
             "onUpdate:modelValue": _cache[48] || (_cache[48] = $event => $data.miproducto.kilo = $event)
-          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Pendientesvue_type_template_id_42a8b47a_hoisted_64, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Pendientesvue_type_template_id_0038db76_hoisted_64, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
             dense: "",
             outlined: "",
             label: "observacion",
@@ -7921,42 +7937,42 @@ function Pendientesvue_type_template_id_42a8b47a_render(_ctx, _cache, $props, $s
     }, {
       default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_card, null, {
         default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_card_section, null, {
-          default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [Pendientesvue_type_template_id_42a8b47a_hoisted_65]),
+          default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [Pendientesvue_type_template_id_0038db76_hoisted_65]),
           _: 1
         }), (0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_card_section, {
           class: "q-pt-none"
         }, {
-          default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Pendientesvue_type_template_id_42a8b47a_hoisted_66, [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Pendientesvue_type_template_id_42a8b47a_hoisted_67, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+          default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Pendientesvue_type_template_id_0038db76_hoisted_66, [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Pendientesvue_type_template_id_0038db76_hoisted_67, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
             dense: "",
             outlined: "",
             label: "precio",
             modelValue: $data.miproducto.pfrial,
             "onUpdate:modelValue": _cache[51] || (_cache[51] = $event => $data.miproducto.pfrial = $event)
-          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Pendientesvue_type_template_id_42a8b47a_hoisted_68, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Pendientesvue_type_template_id_0038db76_hoisted_68, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
             dense: "",
             outlined: "",
             label: "trozado",
             modelValue: $data.miproducto.trozado,
             "onUpdate:modelValue": _cache[52] || (_cache[52] = $event => $data.miproducto.trozado = $event)
-          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Pendientesvue_type_template_id_42a8b47a_hoisted_69, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Pendientesvue_type_template_id_0038db76_hoisted_69, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
             dense: "",
             outlined: "",
             label: "entero",
             modelValue: $data.miproducto.entero,
             "onUpdate:modelValue": _cache[53] || (_cache[53] = $event => $data.miproducto.entero = $event)
-          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Pendientesvue_type_template_id_42a8b47a_hoisted_70, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Pendientesvue_type_template_id_0038db76_hoisted_70, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
             dense: "",
             outlined: "",
             label: "pierna",
             modelValue: $data.miproducto.pierna,
             "onUpdate:modelValue": _cache[54] || (_cache[54] = $event => $data.miproducto.pierna = $event)
-          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Pendientesvue_type_template_id_42a8b47a_hoisted_71, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Pendientesvue_type_template_id_0038db76_hoisted_71, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
             dense: "",
             outlined: "",
             label: "brazo",
             modelValue: $data.miproducto.brazo,
             "onUpdate:modelValue": _cache[55] || (_cache[55] = $event => $data.miproducto.brazo = $event)
-          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Pendientesvue_type_template_id_42a8b47a_hoisted_72, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Pendientesvue_type_template_id_0038db76_hoisted_72, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
             dense: "",
             outlined: "",
             label: "observacion",
@@ -7986,7 +8002,7 @@ function Pendientesvue_type_template_id_42a8b47a_render(_ctx, _cache, $props, $s
     }, {
       default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_card, null, {
         default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_card_section, null, {
-          default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [Pendientesvue_type_template_id_42a8b47a_hoisted_73, (0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_btn, {
+          default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [Pendientesvue_type_template_id_0038db76_hoisted_73, (0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_btn, {
             color: "accent",
             icon: "print",
             label: "IMPRIMIR",
@@ -7996,7 +8012,7 @@ function Pendientesvue_type_template_id_42a8b47a_render(_ctx, _cache, $props, $s
         }), (0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_card_section, {
           class: "q-pt-none"
         }, {
-          default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createElementVNode */._)("table", Pendientesvue_type_template_id_42a8b47a_hoisted_74, [Pendientesvue_type_template_id_42a8b47a_hoisted_75, (0,runtime_core_esm_bundler/* createElementVNode */._)("tbody", null, [((0,runtime_core_esm_bundler/* openBlock */.wg)(true), (0,runtime_core_esm_bundler/* createElementBlock */.iD)(runtime_core_esm_bundler/* Fragment */.HY, null, (0,runtime_core_esm_bundler/* renderList */.Ko)($data.pollo, (v, index) => {
+          default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createElementVNode */._)("table", Pendientesvue_type_template_id_0038db76_hoisted_74, [Pendientesvue_type_template_id_0038db76_hoisted_75, (0,runtime_core_esm_bundler/* createElementVNode */._)("tbody", null, [((0,runtime_core_esm_bundler/* openBlock */.wg)(true), (0,runtime_core_esm_bundler/* createElementBlock */.iD)(runtime_core_esm_bundler/* Fragment */.HY, null, (0,runtime_core_esm_bundler/* renderList */.Ko)($data.pollo, (v, index) => {
             return (0,runtime_core_esm_bundler/* openBlock */.wg)(), (0,runtime_core_esm_bundler/* createElementBlock */.iD)("tr", {
               key: index
             }, [(0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(index + 1), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.Nombres), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.cbrasa5), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.ubrasa5), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.bsbrasa5), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.obsbrasa5), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.cbrasa6), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.cubrasa6), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.bsbrasa6), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.obsbrasa6), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.c104), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.u104), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.bs104), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.obs104), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.c105), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.u105), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.bs105), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.obs105), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.c106), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.u106), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.bs106), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.obs106), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.c107), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.u107), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.bs107), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.obs107), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.c108), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.u108), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.bs108), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.obs108), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.c109), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.u109), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.bs109), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.obs109), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.ala), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.unidala), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.bsala), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.obsala), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.cadera), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.unidcadera), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.bscadera), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.obscadera), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.pecho), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.unidpecho), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.bspecho), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.obspecho), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.pie), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.unidpie), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.bspie), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.obspie), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.filete), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.unidfilete), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.bsfilete), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.obsfilete), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.cuello), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.unidcuello), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.bscuello), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.obscuello), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.hueso), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.unidhueso), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.bshueso), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.obshueso), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.menu), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.unidmenu), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.bsmenu), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.obsmenu), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.pago), 1)]);
@@ -8025,7 +8041,7 @@ function Pendientesvue_type_template_id_42a8b47a_render(_ctx, _cache, $props, $s
     }, {
       default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_card, null, {
         default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_card_section, null, {
-          default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [Pendientesvue_type_template_id_42a8b47a_hoisted_76, (0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_btn, {
+          default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [Pendientesvue_type_template_id_0038db76_hoisted_76, (0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_btn, {
             color: "accent",
             icon: "print",
             label: "IMPRIMIR",
@@ -8035,7 +8051,7 @@ function Pendientesvue_type_template_id_42a8b47a_render(_ctx, _cache, $props, $s
         }), (0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_card_section, {
           class: "q-pt-none"
         }, {
-          default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createElementVNode */._)("table", Pendientesvue_type_template_id_42a8b47a_hoisted_77, [Pendientesvue_type_template_id_42a8b47a_hoisted_78, (0,runtime_core_esm_bundler/* createElementVNode */._)("tbody", null, [((0,runtime_core_esm_bundler/* openBlock */.wg)(true), (0,runtime_core_esm_bundler/* createElementBlock */.iD)(runtime_core_esm_bundler/* Fragment */.HY, null, (0,runtime_core_esm_bundler/* renderList */.Ko)($data.res, (v, index) => {
+          default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createElementVNode */._)("table", Pendientesvue_type_template_id_0038db76_hoisted_77, [Pendientesvue_type_template_id_0038db76_hoisted_78, (0,runtime_core_esm_bundler/* createElementVNode */._)("tbody", null, [((0,runtime_core_esm_bundler/* openBlock */.wg)(true), (0,runtime_core_esm_bundler/* createElementBlock */.iD)(runtime_core_esm_bundler/* Fragment */.HY, null, (0,runtime_core_esm_bundler/* renderList */.Ko)($data.res, (v, index) => {
             return (0,runtime_core_esm_bundler/* openBlock */.wg)(), (0,runtime_core_esm_bundler/* createElementBlock */.iD)("tr", {
               key: index
             }, [(0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(index + 1), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.Nombres), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.precio), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.trozado), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.entero), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.pierna), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.brazo), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.pago), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.observaciones), 1)]);
@@ -8064,7 +8080,7 @@ function Pendientesvue_type_template_id_42a8b47a_render(_ctx, _cache, $props, $s
     }, {
       default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_card, null, {
         default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_card_section, null, {
-          default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [Pendientesvue_type_template_id_42a8b47a_hoisted_79, (0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_btn, {
+          default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [Pendientesvue_type_template_id_0038db76_hoisted_79, (0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_btn, {
             color: "accent",
             icon: "print",
             label: "IMPRIMIR",
@@ -8074,7 +8090,7 @@ function Pendientesvue_type_template_id_42a8b47a_render(_ctx, _cache, $props, $s
         }), (0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_card_section, {
           class: "q-pt-none"
         }, {
-          default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createElementVNode */._)("table", Pendientesvue_type_template_id_42a8b47a_hoisted_80, [Pendientesvue_type_template_id_42a8b47a_hoisted_81, (0,runtime_core_esm_bundler/* createElementVNode */._)("tbody", null, [((0,runtime_core_esm_bundler/* openBlock */.wg)(true), (0,runtime_core_esm_bundler/* createElementBlock */.iD)(runtime_core_esm_bundler/* Fragment */.HY, null, (0,runtime_core_esm_bundler/* renderList */.Ko)($data.cerdo, (v, index) => {
+          default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createElementVNode */._)("table", Pendientesvue_type_template_id_0038db76_hoisted_80, [Pendientesvue_type_template_id_0038db76_hoisted_81, (0,runtime_core_esm_bundler/* createElementVNode */._)("tbody", null, [((0,runtime_core_esm_bundler/* openBlock */.wg)(true), (0,runtime_core_esm_bundler/* createElementBlock */.iD)(runtime_core_esm_bundler/* Fragment */.HY, null, (0,runtime_core_esm_bundler/* renderList */.Ko)($data.cerdo, (v, index) => {
             return (0,runtime_core_esm_bundler/* openBlock */.wg)(), (0,runtime_core_esm_bundler/* createElementBlock */.iD)("tr", {
               key: index
             }, [(0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(index + 1), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.Nombres), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.precio), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.total), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.entero), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.desmembre), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.corte), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.kilo), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.pago), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.observaciones), 1)]);
@@ -8100,7 +8116,7 @@ function Pendientesvue_type_template_id_42a8b47a_render(_ctx, _cache, $props, $s
     _: 1
   });
 }
-;// CONCATENATED MODULE: ./src/pages/Pendientes.vue?vue&type=template&id=42a8b47a
+;// CONCATENATED MODULE: ./src/pages/Pendientes.vue?vue&type=template&id=0038db76
 
 ;// CONCATENATED MODULE: ./node_modules/@quasar/app/lib/webpack/loader.js.transform-quasar-imports.js!./node_modules/babel-loader/lib/index.js??clonedRuleSet-2.use[0]!./node_modules/@quasar/app/lib/webpack/loader.vue.auto-import-quasar.js??ruleSet[0].use[0]!./node_modules/vue-loader/dist/index.js??ruleSet[0].use[1]!./src/pages/Pendientes.vue?vue&type=script&lang=js
 ;
@@ -8158,15 +8174,15 @@ window.JSZip = (jszip_default());
         label: ''
       },
       columns: [{
-        label: 'opciones',
+        label: 'OPCION',
         name: 'opciones',
         field: 'opciones'
       }, {
-        label: 'Comanda',
+        label: 'COMANDA',
         name: 'NroPed',
         field: 'NroPed'
       }, {
-        label: 'Nombre',
+        label: 'NOMBRE',
         name: 'Nombres',
         field: 'Nombres',
         align: 'left'
@@ -8174,6 +8190,16 @@ window.JSZip = (jszip_default());
         label: 'CI',
         name: 'Id',
         field: 'Id',
+        align: 'left'
+      }, {
+        label: 'DEUDA',
+        name: 'totdeuda',
+        field: 'totdeuda',
+        align: 'left'
+      }, {
+        label: 'FECHA ANTIGUA',
+        name: 'fechaminima',
+        field: 'fechaminima',
         align: 'left'
       }],
       columnsproducto: [{
@@ -9269,7 +9295,7 @@ window.JSZip = (jszip_default());
       this.$api.post('pedpendiente', {
         fecha: this.fecha1
       }).then(res => {
-        // console.log(res.data)
+        console.log(res.data);
         this.clientes = res.data;
         this.$q.loading.hide();
       });
@@ -9295,7 +9321,7 @@ window.JSZip = (jszip_default());
 
 
 ;
-const Pendientes_exports_ = /*#__PURE__*/(0,exportHelper/* default */.Z)(Pendientesvue_type_script_lang_js, [['render',Pendientesvue_type_template_id_42a8b47a_render]])
+const Pendientes_exports_ = /*#__PURE__*/(0,exportHelper/* default */.Z)(Pendientesvue_type_script_lang_js, [['render',Pendientesvue_type_template_id_0038db76_render]])
 
 /* harmony default export */ const Pendientes = (Pendientes_exports_);
 ;
@@ -11200,9 +11226,9 @@ module.exports = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5v
 /******/ 	// startup
 /******/ 	// Load entry module and return exports
 /******/ 	// This entry module depends on other loaded chunks and execution need to be delayed
-/******/ 	var __webpack_exports__ = __webpack_require__.O(undefined, [736], () => (__webpack_require__(7572)))
+/******/ 	var __webpack_exports__ = __webpack_require__.O(undefined, [736], () => (__webpack_require__(5690)))
 /******/ 	__webpack_exports__ = __webpack_require__.O(__webpack_exports__);
 /******/ 	
 /******/ })()
 ;
-//# sourceMappingURL=app.7a945a12.js.map
+//# sourceMappingURL=app.6adf09ea.js.map
