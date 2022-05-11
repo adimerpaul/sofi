@@ -116,7 +116,7 @@ export default {
         // console.log(err.response)
         this.$q.loading.hide()
         this.$q.notify({
-          message:'Error al conectarse al server',
+          message:err.response.data.message,
           color:'red',
           icon:'error'
         })

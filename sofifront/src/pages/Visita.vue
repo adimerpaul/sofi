@@ -541,7 +541,7 @@ export default {
         // console.log(err.response)
         this.$q.loading.hide()
         this.$q.notify({
-          message:'Error al conectarse al server',
+          message:err.response.data.message,
           color:'red',
           icon:'error'
         })
@@ -565,7 +565,7 @@ export default {
         // console.log(err.response)
         this.$q.loading.hide()
         this.$q.notify({
-          message:'Error al conectarse al server',
+          message:err.response.data.message,
           color:'red',
           icon:'error'
         })
@@ -656,6 +656,14 @@ export default {
         // return false
         this.modalopciones=false
         this.misclientes()
+      }).catch(err=>{
+        // console.log(err.response)
+        this.$q.loading.hide()
+        this.$q.notify({
+          message:err.response.data.message,
+          color:'red',
+          icon:'error'
+        })
       })
     },
     insertarpedido(lat,lng){
@@ -664,6 +672,14 @@ export default {
         // return false
         this.modalpedido=false
         this.misclientes()
+      }).catch(err=>{
+        // console.log(err.response)
+        this.$q.loading.hide()
+        this.$q.notify({
+          message:err.response.data.message,
+          color:'red',
+          icon:'error'
+        })
       })
     },
     seleccionartipo(m){
