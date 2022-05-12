@@ -166,7 +166,7 @@ export default {
         // if (con==55){
         //   doc.addPage();
         //   header(this.fecha)
-        //   y=0
+        //   y=0P
         // }
       })
       footer(con,sumtotal)

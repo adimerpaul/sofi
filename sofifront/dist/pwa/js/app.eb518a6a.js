@@ -1,7 +1,7 @@
 /******/ (() => { // webpackBootstrap
 /******/ 	var __webpack_modules__ = ({
 
-/***/ 5690:
+/***/ 8557:
 /***/ ((__unused_webpack_module, __unused_webpack___webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -4013,266 +4013,266 @@ const Mispedidos_exports_ = /*#__PURE__*/(0,exportHelper/* default */.Z)(Mispedi
 
 runtime_auto_import_default()(Mispedidosvue_type_script_lang_js, 'components', {QPage: QPage/* default */.Z,QInput: QInput/* default */.Z,QBtn: QBtn/* default */.Z,QTable: QTable/* default */.Z,QTd: QTd/* default */.Z,QIcon: QIcon/* default */.Z,QDialog: QDialog/* default */.Z,QCard: QCard/* default */.Z,QCardSection: QCardSection/* default */.Z,QSelect: QSelect/* default */.Z,QItem: QItem/* default */.Z,QItemSection: QItemSection/* default */.Z,QBadge: QBadge/* default */.Z,QTr: QTr/* default */.Z,QCardActions: QCardActions/* default */.Z});runtime_auto_import_default()(Mispedidosvue_type_script_lang_js, 'directives', {ClosePopup: ClosePopup/* default */.Z});
 
-;// CONCATENATED MODULE: ./node_modules/@quasar/app/lib/webpack/loader.js.transform-quasar-imports.js!./node_modules/babel-loader/lib/index.js??clonedRuleSet-2.use[0]!./node_modules/vue-loader/dist/templateLoader.js??ruleSet[1].rules[3]!./node_modules/@quasar/app/lib/webpack/loader.vue.auto-import-quasar.js??ruleSet[0].use[0]!./node_modules/vue-loader/dist/index.js??ruleSet[0].use[1]!./src/pages/Visita.vue?vue&type=template&id=ffa8a5a8
+;// CONCATENATED MODULE: ./node_modules/@quasar/app/lib/webpack/loader.js.transform-quasar-imports.js!./node_modules/babel-loader/lib/index.js??clonedRuleSet-2.use[0]!./node_modules/vue-loader/dist/templateLoader.js??ruleSet[1].rules[3]!./node_modules/@quasar/app/lib/webpack/loader.vue.auto-import-quasar.js??ruleSet[0].use[0]!./node_modules/vue-loader/dist/index.js??ruleSet[0].use[1]!./src/pages/Visita.vue?vue&type=template&id=44f5cb23
 
 
-const Visitavue_type_template_id_ffa8a5a8_hoisted_1 = {
+const Visitavue_type_template_id_44f5cb23_hoisted_1 = {
   style: {
     "height": "350px",
     "width": "100%"
   }
 };
-const Visitavue_type_template_id_ffa8a5a8_hoisted_2 = {
+const Visitavue_type_template_id_44f5cb23_hoisted_2 = {
   class: "row"
 };
-const Visitavue_type_template_id_ffa8a5a8_hoisted_3 = {
+const Visitavue_type_template_id_44f5cb23_hoisted_3 = {
   class: "col-12"
 };
-const Visitavue_type_template_id_ffa8a5a8_hoisted_4 = {
+const Visitavue_type_template_id_44f5cb23_hoisted_4 = {
   class: "text-weight-medium"
 };
-const Visitavue_type_template_id_ffa8a5a8_hoisted_5 = {
+const Visitavue_type_template_id_44f5cb23_hoisted_5 = {
   class: "text-caption",
   style: {
     "font-size": "8px"
   }
 };
-const Visitavue_type_template_id_ffa8a5a8_hoisted_6 = {
+const Visitavue_type_template_id_44f5cb23_hoisted_6 = {
   class: "row"
 };
-const Visitavue_type_template_id_ffa8a5a8_hoisted_7 = {
+const Visitavue_type_template_id_44f5cb23_hoisted_7 = {
   class: "col-8"
 };
-const Visitavue_type_template_id_ffa8a5a8_hoisted_8 = {
+const Visitavue_type_template_id_44f5cb23_hoisted_8 = {
   class: "text-subtitle2"
 };
-const Visitavue_type_template_id_ffa8a5a8_hoisted_9 = {
+const Visitavue_type_template_id_44f5cb23_hoisted_9 = {
   class: "text-subtitle2"
 };
-const Visitavue_type_template_id_ffa8a5a8_hoisted_10 = {
+const Visitavue_type_template_id_44f5cb23_hoisted_10 = {
   class: "text-subtitle2"
 };
-const Visitavue_type_template_id_ffa8a5a8_hoisted_11 = {
+const Visitavue_type_template_id_44f5cb23_hoisted_11 = {
   class: "text-subtitle2"
 };
-const Visitavue_type_template_id_ffa8a5a8_hoisted_12 = {
-  class: "text-subtitle2"
-};
-
-const Visitavue_type_template_id_ffa8a5a8_hoisted_13 = /*#__PURE__*/(0,runtime_core_esm_bundler/* createTextVNode */.Uk)("Monto Deuda: ");
-
-const Visitavue_type_template_id_ffa8a5a8_hoisted_14 = /*#__PURE__*/(0,runtime_core_esm_bundler/* createTextVNode */.Uk)(" NumPedidos: ");
-
-const Visitavue_type_template_id_ffa8a5a8_hoisted_15 = {
+const Visitavue_type_template_id_44f5cb23_hoisted_12 = {
   class: "text-subtitle2"
 };
 
-const Visitavue_type_template_id_ffa8a5a8_hoisted_16 = /*#__PURE__*/(0,runtime_core_esm_bundler/* createTextVNode */.Uk)("Fecha minima: ");
+const Visitavue_type_template_id_44f5cb23_hoisted_13 = /*#__PURE__*/(0,runtime_core_esm_bundler/* createTextVNode */.Uk)("Monto Deuda: ");
 
-const Visitavue_type_template_id_ffa8a5a8_hoisted_17 = {
+const Visitavue_type_template_id_44f5cb23_hoisted_14 = /*#__PURE__*/(0,runtime_core_esm_bundler/* createTextVNode */.Uk)(" NumPedidos: ");
+
+const Visitavue_type_template_id_44f5cb23_hoisted_15 = {
   class: "text-subtitle2"
 };
 
-const Visitavue_type_template_id_ffa8a5a8_hoisted_18 = /*#__PURE__*/(0,runtime_core_esm_bundler/* createTextVNode */.Uk)("Estado para pedidos: ");
+const Visitavue_type_template_id_44f5cb23_hoisted_16 = /*#__PURE__*/(0,runtime_core_esm_bundler/* createTextVNode */.Uk)("Fecha minima: ");
 
-const Visitavue_type_template_id_ffa8a5a8_hoisted_19 = {
+const Visitavue_type_template_id_44f5cb23_hoisted_17 = {
+  class: "text-h5"
+};
+
+const Visitavue_type_template_id_44f5cb23_hoisted_18 = /*#__PURE__*/(0,runtime_core_esm_bundler/* createTextVNode */.Uk)("Estado para pedidos: ");
+
+const Visitavue_type_template_id_44f5cb23_hoisted_19 = {
   class: "row"
 };
-const Visitavue_type_template_id_ffa8a5a8_hoisted_20 = {
+const Visitavue_type_template_id_44f5cb23_hoisted_20 = {
   class: "col-12 col-sm-6"
 };
-const Visitavue_type_template_id_ffa8a5a8_hoisted_21 = {
+const Visitavue_type_template_id_44f5cb23_hoisted_21 = {
   class: "col-12 col-sm-6"
 };
-const Visitavue_type_template_id_ffa8a5a8_hoisted_22 = {
+const Visitavue_type_template_id_44f5cb23_hoisted_22 = {
   class: "col-12 col-sm-6"
 };
-const Visitavue_type_template_id_ffa8a5a8_hoisted_23 = {
+const Visitavue_type_template_id_44f5cb23_hoisted_23 = {
   class: "col-12 col-sm-6"
 };
-const Visitavue_type_template_id_ffa8a5a8_hoisted_24 = {
+const Visitavue_type_template_id_44f5cb23_hoisted_24 = {
   class: "row"
 };
-const Visitavue_type_template_id_ffa8a5a8_hoisted_25 = {
+const Visitavue_type_template_id_44f5cb23_hoisted_25 = {
   class: "text-subtitle2 col-md-6 col-sm-12"
 };
-const Visitavue_type_template_id_ffa8a5a8_hoisted_26 = {
+const Visitavue_type_template_id_44f5cb23_hoisted_26 = {
   class: "q-gutter-sm col-md-6 col-sm-12"
 };
-const Visitavue_type_template_id_ffa8a5a8_hoisted_27 = {
+const Visitavue_type_template_id_44f5cb23_hoisted_27 = {
   class: "row"
 };
-const Visitavue_type_template_id_ffa8a5a8_hoisted_28 = {
+const Visitavue_type_template_id_44f5cb23_hoisted_28 = {
   class: "col-10"
 };
 
-const Visitavue_type_template_id_ffa8a5a8_hoisted_29 = /*#__PURE__*/(0,runtime_core_esm_bundler/* createTextVNode */.Uk)(" No results ");
+const Visitavue_type_template_id_44f5cb23_hoisted_29 = /*#__PURE__*/(0,runtime_core_esm_bundler/* createTextVNode */.Uk)(" No results ");
 
-const Visitavue_type_template_id_ffa8a5a8_hoisted_30 = {
+const Visitavue_type_template_id_44f5cb23_hoisted_30 = {
   class: "col-2 flex flex-center"
 };
-const Visitavue_type_template_id_ffa8a5a8_hoisted_31 = {
+const Visitavue_type_template_id_44f5cb23_hoisted_31 = {
   class: "col-12"
 };
-const Visitavue_type_template_id_ffa8a5a8_hoisted_32 = ["onKeyup", "onUpdate:modelValue"];
-const Visitavue_type_template_id_ffa8a5a8_hoisted_33 = ["onKeyup", "onUpdate:modelValue"];
-const Visitavue_type_template_id_ffa8a5a8_hoisted_34 = {
+const Visitavue_type_template_id_44f5cb23_hoisted_32 = ["onKeyup", "onUpdate:modelValue"];
+const Visitavue_type_template_id_44f5cb23_hoisted_33 = ["onKeyup", "onUpdate:modelValue"];
+const Visitavue_type_template_id_44f5cb23_hoisted_34 = {
   class: "row"
 };
-const Visitavue_type_template_id_ffa8a5a8_hoisted_35 = {
+const Visitavue_type_template_id_44f5cb23_hoisted_35 = {
   class: "col-12"
 };
-const Visitavue_type_template_id_ffa8a5a8_hoisted_36 = {
+const Visitavue_type_template_id_44f5cb23_hoisted_36 = {
   class: "text-subtitle2"
 };
 
-const Visitavue_type_template_id_ffa8a5a8_hoisted_37 = /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("div", {
+const Visitavue_type_template_id_44f5cb23_hoisted_37 = /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("div", {
   class: "text-h6"
 }, "Pedido Pollo", -1);
 
-const Visitavue_type_template_id_ffa8a5a8_hoisted_38 = {
+const Visitavue_type_template_id_44f5cb23_hoisted_38 = {
   class: "row"
 };
-const Visitavue_type_template_id_ffa8a5a8_hoisted_39 = {
+const Visitavue_type_template_id_44f5cb23_hoisted_39 = {
   class: "col-6"
 };
-const Visitavue_type_template_id_ffa8a5a8_hoisted_40 = {
+const Visitavue_type_template_id_44f5cb23_hoisted_40 = {
   class: "col-6"
 };
-const Visitavue_type_template_id_ffa8a5a8_hoisted_41 = {
+const Visitavue_type_template_id_44f5cb23_hoisted_41 = {
   class: "col-6"
 };
-const Visitavue_type_template_id_ffa8a5a8_hoisted_42 = {
+const Visitavue_type_template_id_44f5cb23_hoisted_42 = {
   class: "col-6"
 };
-const Visitavue_type_template_id_ffa8a5a8_hoisted_43 = {
+const Visitavue_type_template_id_44f5cb23_hoisted_43 = {
   class: "col-6"
 };
-const Visitavue_type_template_id_ffa8a5a8_hoisted_44 = {
+const Visitavue_type_template_id_44f5cb23_hoisted_44 = {
   class: "col-6"
 };
-const Visitavue_type_template_id_ffa8a5a8_hoisted_45 = {
+const Visitavue_type_template_id_44f5cb23_hoisted_45 = {
   class: "col-6"
 };
-const Visitavue_type_template_id_ffa8a5a8_hoisted_46 = {
+const Visitavue_type_template_id_44f5cb23_hoisted_46 = {
   class: "col-6"
 };
-const Visitavue_type_template_id_ffa8a5a8_hoisted_47 = {
+const Visitavue_type_template_id_44f5cb23_hoisted_47 = {
   class: "col-6"
 };
-const Visitavue_type_template_id_ffa8a5a8_hoisted_48 = {
+const Visitavue_type_template_id_44f5cb23_hoisted_48 = {
   class: "col-6"
 };
-const Visitavue_type_template_id_ffa8a5a8_hoisted_49 = {
+const Visitavue_type_template_id_44f5cb23_hoisted_49 = {
   class: "col-6"
 };
-const Visitavue_type_template_id_ffa8a5a8_hoisted_50 = {
+const Visitavue_type_template_id_44f5cb23_hoisted_50 = {
   class: "col-6"
 };
-const Visitavue_type_template_id_ffa8a5a8_hoisted_51 = {
+const Visitavue_type_template_id_44f5cb23_hoisted_51 = {
   class: "col-6"
 };
-const Visitavue_type_template_id_ffa8a5a8_hoisted_52 = {
+const Visitavue_type_template_id_44f5cb23_hoisted_52 = {
   class: "col-6"
 };
-const Visitavue_type_template_id_ffa8a5a8_hoisted_53 = {
+const Visitavue_type_template_id_44f5cb23_hoisted_53 = {
   class: "col-6"
 };
-const Visitavue_type_template_id_ffa8a5a8_hoisted_54 = {
+const Visitavue_type_template_id_44f5cb23_hoisted_54 = {
   class: "col-6"
 };
-const Visitavue_type_template_id_ffa8a5a8_hoisted_55 = {
+const Visitavue_type_template_id_44f5cb23_hoisted_55 = {
   class: "col-6"
 };
-const Visitavue_type_template_id_ffa8a5a8_hoisted_56 = {
+const Visitavue_type_template_id_44f5cb23_hoisted_56 = {
   class: "col-6"
 };
-const Visitavue_type_template_id_ffa8a5a8_hoisted_57 = {
+const Visitavue_type_template_id_44f5cb23_hoisted_57 = {
   class: "col-6"
 };
-const Visitavue_type_template_id_ffa8a5a8_hoisted_58 = {
+const Visitavue_type_template_id_44f5cb23_hoisted_58 = {
   class: "col-6"
 };
-const Visitavue_type_template_id_ffa8a5a8_hoisted_59 = {
+const Visitavue_type_template_id_44f5cb23_hoisted_59 = {
   class: "col-6"
 };
-const Visitavue_type_template_id_ffa8a5a8_hoisted_60 = {
+const Visitavue_type_template_id_44f5cb23_hoisted_60 = {
   class: "col-6"
 };
-const Visitavue_type_template_id_ffa8a5a8_hoisted_61 = {
+const Visitavue_type_template_id_44f5cb23_hoisted_61 = {
   class: "col-6"
 };
-const Visitavue_type_template_id_ffa8a5a8_hoisted_62 = {
+const Visitavue_type_template_id_44f5cb23_hoisted_62 = {
   class: "col-6"
 };
-const Visitavue_type_template_id_ffa8a5a8_hoisted_63 = {
+const Visitavue_type_template_id_44f5cb23_hoisted_63 = {
   class: "col-6"
 };
-const Visitavue_type_template_id_ffa8a5a8_hoisted_64 = {
+const Visitavue_type_template_id_44f5cb23_hoisted_64 = {
   class: "col-6"
 };
-const Visitavue_type_template_id_ffa8a5a8_hoisted_65 = {
+const Visitavue_type_template_id_44f5cb23_hoisted_65 = {
   class: "col-6"
 };
-const Visitavue_type_template_id_ffa8a5a8_hoisted_66 = {
+const Visitavue_type_template_id_44f5cb23_hoisted_66 = {
   class: "col-6"
 };
-const Visitavue_type_template_id_ffa8a5a8_hoisted_67 = {
+const Visitavue_type_template_id_44f5cb23_hoisted_67 = {
   class: "col-6"
 };
-const Visitavue_type_template_id_ffa8a5a8_hoisted_68 = {
+const Visitavue_type_template_id_44f5cb23_hoisted_68 = {
   class: "col-6"
 };
-const Visitavue_type_template_id_ffa8a5a8_hoisted_69 = {
+const Visitavue_type_template_id_44f5cb23_hoisted_69 = {
   class: "col-6"
 };
-const Visitavue_type_template_id_ffa8a5a8_hoisted_70 = {
+const Visitavue_type_template_id_44f5cb23_hoisted_70 = {
   class: "col-6"
 };
-const Visitavue_type_template_id_ffa8a5a8_hoisted_71 = {
+const Visitavue_type_template_id_44f5cb23_hoisted_71 = {
   class: "col-6"
 };
-const Visitavue_type_template_id_ffa8a5a8_hoisted_72 = {
+const Visitavue_type_template_id_44f5cb23_hoisted_72 = {
   class: "col-6"
 };
-const Visitavue_type_template_id_ffa8a5a8_hoisted_73 = {
+const Visitavue_type_template_id_44f5cb23_hoisted_73 = {
   class: "col-12"
 };
 
-const Visitavue_type_template_id_ffa8a5a8_hoisted_74 = /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("div", {
+const Visitavue_type_template_id_44f5cb23_hoisted_74 = /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("div", {
   class: "text-h6"
 }, "Pedido Normal", -1);
 
-const Visitavue_type_template_id_ffa8a5a8_hoisted_75 = {
+const Visitavue_type_template_id_44f5cb23_hoisted_75 = {
   class: "row"
 };
-const Visitavue_type_template_id_ffa8a5a8_hoisted_76 = {
+const Visitavue_type_template_id_44f5cb23_hoisted_76 = {
   class: "col-12"
 };
 
-const Visitavue_type_template_id_ffa8a5a8_hoisted_77 = /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("div", {
+const Visitavue_type_template_id_44f5cb23_hoisted_77 = /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("div", {
   class: "text-h6"
 }, "Pedido Cerdo", -1);
 
-const Visitavue_type_template_id_ffa8a5a8_hoisted_78 = {
+const Visitavue_type_template_id_44f5cb23_hoisted_78 = {
   class: "row"
 };
-const Visitavue_type_template_id_ffa8a5a8_hoisted_79 = {
+const Visitavue_type_template_id_44f5cb23_hoisted_79 = {
   class: "col-4"
 };
-const Visitavue_type_template_id_ffa8a5a8_hoisted_80 = {
+const Visitavue_type_template_id_44f5cb23_hoisted_80 = {
   class: "col-4"
 };
-const Visitavue_type_template_id_ffa8a5a8_hoisted_81 = {
+const Visitavue_type_template_id_44f5cb23_hoisted_81 = {
   class: "col-4"
 };
-const Visitavue_type_template_id_ffa8a5a8_hoisted_82 = {
+const Visitavue_type_template_id_44f5cb23_hoisted_82 = {
   class: "col-4"
 };
-const Visitavue_type_template_id_ffa8a5a8_hoisted_83 = {
+const Visitavue_type_template_id_44f5cb23_hoisted_83 = {
   class: "col-4"
 };
-const Visitavue_type_template_id_ffa8a5a8_hoisted_84 = {
+const Visitavue_type_template_id_44f5cb23_hoisted_84 = {
   class: "col-4"
 };
 const _hoisted_85 = {
@@ -4304,7 +4304,7 @@ const _hoisted_92 = {
 const _hoisted_93 = {
   class: "col-12"
 };
-function Visitavue_type_template_id_ffa8a5a8_render(_ctx, _cache, $props, $setup, $data, $options) {
+function Visitavue_type_template_id_44f5cb23_render(_ctx, _cache, $props, $setup, $data, $options) {
   const _component_l_tile_layer = (0,runtime_core_esm_bundler/* resolveComponent */.up)("l-tile-layer");
 
   const _component_q_badge = (0,runtime_core_esm_bundler/* resolveComponent */.up)("q-badge");
@@ -4345,7 +4345,7 @@ function Visitavue_type_template_id_ffa8a5a8_render(_ctx, _cache, $props, $setup
 
   const _directive_close_popup = (0,runtime_core_esm_bundler/* resolveDirective */.Q2)("close-popup");
 
-  return (0,runtime_core_esm_bundler/* openBlock */.wg)(), (0,runtime_core_esm_bundler/* createElementBlock */.iD)("div", Visitavue_type_template_id_ffa8a5a8_hoisted_1, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_l_map, {
+  return (0,runtime_core_esm_bundler/* openBlock */.wg)(), (0,runtime_core_esm_bundler/* createElementBlock */.iD)("div", Visitavue_type_template_id_44f5cb23_hoisted_1, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_l_map, {
     onReady: $options.onReady,
     onLocationfound: $options.onLocationFound,
     modelValue: $data.zoom,
@@ -4378,7 +4378,7 @@ function Visitavue_type_template_id_ffa8a5a8_render(_ctx, _cache, $props, $setup
       "lat-lng": $data.center
     }, null, 8, ["lat-lng"])]),
     _: 1
-  }, 8, ["onReady", "onLocationfound", "modelValue", "zoom", "center"]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_ffa8a5a8_hoisted_2, [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_ffa8a5a8_hoisted_3, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_table, {
+  }, 8, ["onReady", "onLocationfound", "modelValue", "zoom", "center"]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_44f5cb23_hoisted_2, [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_44f5cb23_hoisted_3, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_table, {
     rows: $data.clientes,
     "hide-header": "",
     filter: $data.filter,
@@ -4404,7 +4404,7 @@ function Visitavue_type_template_id_ffa8a5a8_render(_ctx, _cache, $props, $setup
       onClick: $event => $options.clickopciones(props.row),
       props: props
     }, {
-      default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_ffa8a5a8_hoisted_4, (0,shared_esm_bundler/* toDisplayString */.zw)(props.row.Nombres), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_ffa8a5a8_hoisted_5, (0,shared_esm_bundler/* toDisplayString */.zw)(props.row.Direccion), 1)]),
+      default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_44f5cb23_hoisted_4, (0,shared_esm_bundler/* toDisplayString */.zw)(props.row.Nombres), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_44f5cb23_hoisted_5, (0,shared_esm_bundler/* toDisplayString */.zw)(props.row.Direccion), 1)]),
       _: 2
     }, 1032, ["class", "onClick", "props"])]),
     "body-cell-opcion": (0,runtime_core_esm_bundler/* withCtx */.w5)(props => [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_td, {
@@ -4419,7 +4419,7 @@ function Visitavue_type_template_id_ffa8a5a8_render(_ctx, _cache, $props, $setup
       }, null, 8, ["onClick"])]),
       _: 2
     }, 1032, ["class", "props"])]),
-    "top-right": (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_ffa8a5a8_hoisted_6, [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", {
+    "top-right": (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_44f5cb23_hoisted_6, [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", {
       class: "col-2 flex flex-center",
       onClick: _cache[2] || (_cache[2] = (...args) => $options.getUserPosition && $options.getUserPosition(...args))
     }, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_btn, {
@@ -4433,7 +4433,7 @@ function Visitavue_type_template_id_ffa8a5a8_render(_ctx, _cache, $props, $setup
       icon: "my_location",
       size: "xs",
       color: "secondary"
-    })]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_ffa8a5a8_hoisted_7, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+    })]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_44f5cb23_hoisted_7, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
       filled: "",
       dense: "",
       modelValue: $data.filter,
@@ -4453,23 +4453,24 @@ function Visitavue_type_template_id_ffa8a5a8_render(_ctx, _cache, $props, $setup
   }, {
     default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_card, null, {
       default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_card_section, null, {
-        default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_ffa8a5a8_hoisted_8, (0,shared_esm_bundler/* toDisplayString */.zw)($data.cliente.Cod_Aut) + " " + (0,shared_esm_bundler/* toDisplayString */.zw)($data.cliente.Nombres), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_ffa8a5a8_hoisted_9, "Cel: " + (0,shared_esm_bundler/* toDisplayString */.zw)($data.cliente.Telf), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_ffa8a5a8_hoisted_10, (0,shared_esm_bundler/* toDisplayString */.zw)($data.cliente.Direccion), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_ffa8a5a8_hoisted_11, (0,shared_esm_bundler/* toDisplayString */.zw)($data.cliente.Canal), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_ffa8a5a8_hoisted_12, [Visitavue_type_template_id_ffa8a5a8_hoisted_13, (0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_badge, {
+        default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_44f5cb23_hoisted_8, (0,shared_esm_bundler/* toDisplayString */.zw)($data.cliente.Cod_Aut) + " " + (0,shared_esm_bundler/* toDisplayString */.zw)($data.cliente.Nombres), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_44f5cb23_hoisted_9, "Cel: " + (0,shared_esm_bundler/* toDisplayString */.zw)($data.cliente.Telf), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_44f5cb23_hoisted_10, (0,shared_esm_bundler/* toDisplayString */.zw)($data.cliente.Direccion), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_44f5cb23_hoisted_11, (0,shared_esm_bundler/* toDisplayString */.zw)($data.cliente.Canal), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_44f5cb23_hoisted_12, [Visitavue_type_template_id_44f5cb23_hoisted_13, (0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_badge, {
           color: "negative"
         }, {
           default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createTextVNode */.Uk)((0,shared_esm_bundler/* toDisplayString */.zw)($data.cliente.totdeuda) + " Bs ", 1)]),
           _: 1
-        }), Visitavue_type_template_id_ffa8a5a8_hoisted_14, (0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_badge, {
+        }), Visitavue_type_template_id_44f5cb23_hoisted_14, (0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_badge, {
           color: "negative"
         }, {
           default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createTextVNode */.Uk)((0,shared_esm_bundler/* toDisplayString */.zw)($data.cliente.cantdeuda), 1)]),
           _: 1
-        })]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_ffa8a5a8_hoisted_15, [Visitavue_type_template_id_ffa8a5a8_hoisted_16, (0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_badge, {
+        })]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_44f5cb23_hoisted_15, [Visitavue_type_template_id_44f5cb23_hoisted_16, (0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_badge, {
           color: "negative"
         }, {
           default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createTextVNode */.Uk)((0,shared_esm_bundler/* toDisplayString */.zw)($data.cliente.fechaminima), 1)]),
           _: 1
-        })]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_ffa8a5a8_hoisted_17, [Visitavue_type_template_id_ffa8a5a8_hoisted_18, (0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_badge, {
-          color: $data.cliente.venta == 'ACTIVO' ? 'green' : 'negative'
+        })]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_44f5cb23_hoisted_17, [Visitavue_type_template_id_44f5cb23_hoisted_18, (0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_badge, {
+          color: $data.cliente.venta == 'ACTIVO' ? 'green' : 'negative',
+          class: "text-h5"
         }, {
           default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createTextVNode */.Uk)((0,shared_esm_bundler/* toDisplayString */.zw)($data.cliente.venta), 1)]),
           _: 1
@@ -4478,7 +4479,7 @@ function Visitavue_type_template_id_ffa8a5a8_render(_ctx, _cache, $props, $setup
       }), (0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_card_section, {
         class: "q-pt-none"
       }, {
-        default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_ffa8a5a8_hoisted_19, [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_ffa8a5a8_hoisted_20, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_btn, {
+        default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_44f5cb23_hoisted_19, [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_44f5cb23_hoisted_20, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_btn, {
           class: "q-ma-xs",
           onClick: $options.clickpedido,
           label: "realizar pedido",
@@ -4487,7 +4488,7 @@ function Visitavue_type_template_id_ffa8a5a8_render(_ctx, _cache, $props, $setup
             "width": "100%"
           },
           icon: "shopping_cart"
-        }, null, 8, ["onClick"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_ffa8a5a8_hoisted_21, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_btn, {
+        }, null, 8, ["onClick"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_44f5cb23_hoisted_21, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_btn, {
           class: "q-ma-xs",
           onClick: $options.clickretornar,
           label: "retornar",
@@ -4496,7 +4497,7 @@ function Visitavue_type_template_id_ffa8a5a8_render(_ctx, _cache, $props, $setup
             "width": "100%"
           },
           icon: "schedule"
-        }, null, 8, ["onClick"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_ffa8a5a8_hoisted_22, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_btn, {
+        }, null, 8, ["onClick"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_44f5cb23_hoisted_22, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_btn, {
           class: "q-ma-xs",
           onClick: $options.clicknopedido,
           label: "no pedido",
@@ -4505,7 +4506,7 @@ function Visitavue_type_template_id_ffa8a5a8_render(_ctx, _cache, $props, $setup
             "width": "100%"
           },
           icon: "highlight_off"
-        }, null, 8, ["onClick"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_ffa8a5a8_hoisted_23, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_btn, {
+        }, null, 8, ["onClick"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_44f5cb23_hoisted_23, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_btn, {
           class: "q-ma-xs",
           label: "generar ruta",
           color: "accent",
@@ -4539,7 +4540,7 @@ function Visitavue_type_template_id_ffa8a5a8_render(_ctx, _cache, $props, $setup
   }, {
     default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_card, null, {
       default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_card_section, null, {
-        default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_ffa8a5a8_hoisted_24, [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_ffa8a5a8_hoisted_25, (0,shared_esm_bundler/* toDisplayString */.zw)($data.cliente.Cod_Aut) + " " + (0,shared_esm_bundler/* toDisplayString */.zw)($data.cliente.Nombres), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_ffa8a5a8_hoisted_26, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_radio, {
+        default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_44f5cb23_hoisted_24, [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_44f5cb23_hoisted_25, (0,shared_esm_bundler/* toDisplayString */.zw)($data.cliente.Cod_Aut) + " " + (0,shared_esm_bundler/* toDisplayString */.zw)($data.cliente.Nombres), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_44f5cb23_hoisted_26, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_radio, {
           dense: "",
           modelValue: $data.pago,
           "onUpdate:modelValue": _cache[6] || (_cache[6] = $event => $data.pago = $event),
@@ -4556,7 +4557,7 @@ function Visitavue_type_template_id_ffa8a5a8_render(_ctx, _cache, $props, $setup
       }), (0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_card_section, {
         class: "q-pt-none"
       }, {
-        default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_ffa8a5a8_hoisted_27, [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_ffa8a5a8_hoisted_28, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_select, {
+        default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_44f5cb23_hoisted_27, [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_44f5cb23_hoisted_28, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_select, {
           label: "Productos",
           dense: "",
           outlined: "",
@@ -4572,18 +4573,18 @@ function Visitavue_type_template_id_ffa8a5a8_render(_ctx, _cache, $props, $setup
             default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_item_section, {
               class: "text-grey"
             }, {
-              default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [Visitavue_type_template_id_ffa8a5a8_hoisted_29]),
+              default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [Visitavue_type_template_id_44f5cb23_hoisted_29]),
               _: 1
             })]),
             _: 1
           })]),
           _: 1
-        }, 8, ["onFilter", "options", "modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_ffa8a5a8_hoisted_30, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_btn, {
+        }, 8, ["onFilter", "options", "modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_44f5cb23_hoisted_30, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_btn, {
           class: "q-pa-xs q-ma-none",
           color: "primary",
           icon: "add_circle",
           onClick: $options.agregarpedido
-        }, null, 8, ["onClick"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_ffa8a5a8_hoisted_31, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_table, {
+        }, null, 8, ["onClick"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_44f5cb23_hoisted_31, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_table, {
           rows: $data.misproductos,
           filter: $data.filteproducto,
           columns: $data.columnsproducto
@@ -4625,7 +4626,7 @@ function Visitavue_type_template_id_ffa8a5a8_render(_ctx, _cache, $props, $setup
               style: {
                 "width": "2.5em"
               }
-            }, null, 40, Visitavue_type_template_id_ffa8a5a8_hoisted_32), [[runtime_dom_esm_bundler/* vModelText */.nr, props.row.cantidad]])], 64)) : (0,runtime_core_esm_bundler/* createCommentVNode */.kq)("", true), (0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_btn, {
+            }, null, 40, Visitavue_type_template_id_44f5cb23_hoisted_32), [[runtime_dom_esm_bundler/* vModelText */.nr, props.row.cantidad]])], 64)) : (0,runtime_core_esm_bundler/* createCommentVNode */.kq)("", true), (0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_btn, {
               flat: "",
               onClick: $event => $options.quitar(props.row, props.rowIndex),
               class: "q-ma-none q-pa-none",
@@ -4645,10 +4646,10 @@ function Visitavue_type_template_id_ffa8a5a8_render(_ctx, _cache, $props, $setup
               style: {
                 "width": "3em"
               }
-            }, null, 40, Visitavue_type_template_id_ffa8a5a8_hoisted_33), [[runtime_dom_esm_bundler/* vModelText */.nr, props.row.precio]])]),
+            }, null, 40, Visitavue_type_template_id_44f5cb23_hoisted_33), [[runtime_dom_esm_bundler/* vModelText */.nr, props.row.precio]])]),
             _: 2
           }, 1032, ["props"])]),
-          "top-right": (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_ffa8a5a8_hoisted_34, [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_ffa8a5a8_hoisted_35, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+          "top-right": (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_44f5cb23_hoisted_34, [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_44f5cb23_hoisted_35, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
             outlined: "",
             dense: "",
             modelValue: $data.filteproducto,
@@ -4664,7 +4665,7 @@ function Visitavue_type_template_id_ffa8a5a8_render(_ctx, _cache, $props, $setup
             default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_td, {
               colspan: "100%"
             }, {
-              default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_ffa8a5a8_hoisted_36, "Total: " + (0,shared_esm_bundler/* toDisplayString */.zw)($options.total) + " Bs.", 1)]),
+              default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_44f5cb23_hoisted_36, "Total: " + (0,shared_esm_bundler/* toDisplayString */.zw)($options.total) + " Bs.", 1)]),
               _: 1
             })]),
             _: 1
@@ -4701,250 +4702,250 @@ function Visitavue_type_template_id_ffa8a5a8_render(_ctx, _cache, $props, $setup
   }, {
     default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_card, null, {
       default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_card_section, null, {
-        default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [Visitavue_type_template_id_ffa8a5a8_hoisted_37]),
+        default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [Visitavue_type_template_id_44f5cb23_hoisted_37]),
         _: 1
       }), (0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_card_section, {
         class: "q-pt-none"
       }, {
-        default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_ffa8a5a8_hoisted_38, [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_ffa8a5a8_hoisted_39, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+        default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_44f5cb23_hoisted_38, [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_44f5cb23_hoisted_39, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
           type: "number",
           dense: "",
           outlined: "",
           label: "Cja b5",
           modelValue: $data.miproducto.cbrasa5,
           "onUpdate:modelValue": _cache[11] || (_cache[11] = $event => $data.miproducto.cbrasa5 = $event)
-        }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_ffa8a5a8_hoisted_40, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+        }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_44f5cb23_hoisted_40, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
           type: "number",
           dense: "",
           outlined: "",
           label: "Uni b5",
           modelValue: $data.miproducto.ubrasa5,
           "onUpdate:modelValue": _cache[12] || (_cache[12] = $event => $data.miproducto.ubrasa5 = $event)
-        }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_ffa8a5a8_hoisted_41, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+        }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_44f5cb23_hoisted_41, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
           type: "number",
           dense: "",
           outlined: "",
           label: "Cja b6",
           modelValue: $data.miproducto.cbrasa6,
           "onUpdate:modelValue": _cache[13] || (_cache[13] = $event => $data.miproducto.cbrasa6 = $event)
-        }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_ffa8a5a8_hoisted_42, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+        }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_44f5cb23_hoisted_42, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
           type: "number",
           dense: "",
           outlined: "",
           label: "Uni b6",
           modelValue: $data.miproducto.cubrasa6,
           "onUpdate:modelValue": _cache[14] || (_cache[14] = $event => $data.miproducto.cubrasa6 = $event)
-        }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_ffa8a5a8_hoisted_43, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+        }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_44f5cb23_hoisted_43, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
           type: "number",
           dense: "",
           outlined: "",
           label: "Cja-104",
           modelValue: $data.miproducto.c104,
           "onUpdate:modelValue": _cache[15] || (_cache[15] = $event => $data.miproducto.c104 = $event)
-        }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_ffa8a5a8_hoisted_44, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+        }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_44f5cb23_hoisted_44, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
           type: "number",
           dense: "",
           outlined: "",
           label: "Unid-104",
           modelValue: $data.miproducto.u104,
           "onUpdate:modelValue": _cache[16] || (_cache[16] = $event => $data.miproducto.u104 = $event)
-        }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_ffa8a5a8_hoisted_45, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+        }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_44f5cb23_hoisted_45, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
           type: "number",
           dense: "",
           outlined: "",
           label: "Cja-105",
           modelValue: $data.miproducto.c105,
           "onUpdate:modelValue": _cache[17] || (_cache[17] = $event => $data.miproducto.c105 = $event)
-        }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_ffa8a5a8_hoisted_46, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+        }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_44f5cb23_hoisted_46, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
           type: "number",
           dense: "",
           outlined: "",
           label: "Unid-105",
           modelValue: $data.miproducto.u105,
           "onUpdate:modelValue": _cache[18] || (_cache[18] = $event => $data.miproducto.u105 = $event)
-        }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_ffa8a5a8_hoisted_47, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+        }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_44f5cb23_hoisted_47, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
           type: "number",
           dense: "",
           outlined: "",
           label: "Cja-106",
           modelValue: $data.miproducto.c106,
           "onUpdate:modelValue": _cache[19] || (_cache[19] = $event => $data.miproducto.c106 = $event)
-        }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_ffa8a5a8_hoisted_48, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+        }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_44f5cb23_hoisted_48, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
           type: "number",
           dense: "",
           outlined: "",
           label: "Unid-106",
           modelValue: $data.miproducto.u106,
           "onUpdate:modelValue": _cache[20] || (_cache[20] = $event => $data.miproducto.u106 = $event)
-        }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_ffa8a5a8_hoisted_49, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+        }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_44f5cb23_hoisted_49, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
           type: "number",
           dense: "",
           outlined: "",
           label: "Cja-107",
           modelValue: $data.miproducto.c107,
           "onUpdate:modelValue": _cache[21] || (_cache[21] = $event => $data.miproducto.c107 = $event)
-        }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_ffa8a5a8_hoisted_50, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+        }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_44f5cb23_hoisted_50, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
           type: "number",
           dense: "",
           outlined: "",
           label: "Unid-107",
           modelValue: $data.miproducto.u107,
           "onUpdate:modelValue": _cache[22] || (_cache[22] = $event => $data.miproducto.u107 = $event)
-        }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_ffa8a5a8_hoisted_51, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+        }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_44f5cb23_hoisted_51, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
           type: "number",
           dense: "",
           outlined: "",
           label: "Cja-108",
           modelValue: $data.miproducto.c108,
           "onUpdate:modelValue": _cache[23] || (_cache[23] = $event => $data.miproducto.c108 = $event)
-        }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_ffa8a5a8_hoisted_52, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+        }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_44f5cb23_hoisted_52, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
           type: "number",
           dense: "",
           outlined: "",
           label: "Unid-108",
           modelValue: $data.miproducto.u108,
           "onUpdate:modelValue": _cache[24] || (_cache[24] = $event => $data.miproducto.u108 = $event)
-        }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_ffa8a5a8_hoisted_53, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+        }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_44f5cb23_hoisted_53, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
           type: "number",
           dense: "",
           outlined: "",
           label: "Cja-109",
           modelValue: $data.miproducto.c109,
           "onUpdate:modelValue": _cache[25] || (_cache[25] = $event => $data.miproducto.c109 = $event)
-        }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_ffa8a5a8_hoisted_54, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+        }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_44f5cb23_hoisted_54, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
           type: "number",
           dense: "",
           outlined: "",
           label: "Unid-109",
           modelValue: $data.miproducto.u109,
           "onUpdate:modelValue": _cache[26] || (_cache[26] = $event => $data.miproducto.u109 = $event)
-        }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_ffa8a5a8_hoisted_55, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+        }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_44f5cb23_hoisted_55, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
           type: "number",
           dense: "",
           outlined: "",
           label: "ala",
           modelValue: $data.miproducto.ala,
           "onUpdate:modelValue": _cache[27] || (_cache[27] = $event => $data.miproducto.ala = $event)
-        }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_ffa8a5a8_hoisted_56, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_select, {
+        }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_44f5cb23_hoisted_56, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_select, {
           dense: "",
           outlined: "",
           options: ['KG', 'CJA', 'U'],
           modelValue: $data.miproducto.unidala,
           "onUpdate:modelValue": _cache[28] || (_cache[28] = $event => $data.miproducto.unidala = $event),
           label: "Unidad"
-        }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_ffa8a5a8_hoisted_57, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+        }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_44f5cb23_hoisted_57, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
           type: "number",
           dense: "",
           outlined: "",
           label: "cadera",
           modelValue: $data.miproducto.cadera,
           "onUpdate:modelValue": _cache[29] || (_cache[29] = $event => $data.miproducto.cadera = $event)
-        }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_ffa8a5a8_hoisted_58, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_select, {
+        }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_44f5cb23_hoisted_58, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_select, {
           dense: "",
           outlined: "",
           options: ['KG', 'CJA', 'U'],
           modelValue: $data.miproducto.unidcadera,
           "onUpdate:modelValue": _cache[30] || (_cache[30] = $event => $data.miproducto.unidcadera = $event),
           label: "Unidad"
-        }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_ffa8a5a8_hoisted_59, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+        }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_44f5cb23_hoisted_59, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
           type: "number",
           dense: "",
           outlined: "",
           label: "pecho",
           modelValue: $data.miproducto.pecho,
           "onUpdate:modelValue": _cache[31] || (_cache[31] = $event => $data.miproducto.pecho = $event)
-        }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_ffa8a5a8_hoisted_60, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_select, {
+        }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_44f5cb23_hoisted_60, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_select, {
           dense: "",
           outlined: "",
           options: ['KG', 'CJA', 'U'],
           modelValue: $data.miproducto.unidpecho,
           "onUpdate:modelValue": _cache[32] || (_cache[32] = $event => $data.miproducto.unidpecho = $event),
           label: "Unidad"
-        }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_ffa8a5a8_hoisted_61, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+        }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_44f5cb23_hoisted_61, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
           type: "number",
           dense: "",
           outlined: "",
           label: "pi/mu",
           modelValue: $data.miproducto.pie,
           "onUpdate:modelValue": _cache[33] || (_cache[33] = $event => $data.miproducto.pie = $event)
-        }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_ffa8a5a8_hoisted_62, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_select, {
+        }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_44f5cb23_hoisted_62, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_select, {
           dense: "",
           outlined: "",
           options: ['KG', 'CJA', 'U'],
           modelValue: $data.miproducto.unidpie,
           "onUpdate:modelValue": _cache[34] || (_cache[34] = $event => $data.miproducto.unidpie = $event),
           label: "Unidad"
-        }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_ffa8a5a8_hoisted_63, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+        }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_44f5cb23_hoisted_63, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
           type: "number",
           dense: "",
           outlined: "",
           label: "filete",
           modelValue: $data.miproducto.filete,
           "onUpdate:modelValue": _cache[35] || (_cache[35] = $event => $data.miproducto.filete = $event)
-        }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_ffa8a5a8_hoisted_64, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_select, {
+        }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_44f5cb23_hoisted_64, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_select, {
           dense: "",
           outlined: "",
           options: ['KG', 'CJA', 'U'],
           modelValue: $data.miproducto.unidfilete,
           "onUpdate:modelValue": _cache[36] || (_cache[36] = $event => $data.miproducto.unidfilete = $event),
           label: "Unidad"
-        }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_ffa8a5a8_hoisted_65, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+        }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_44f5cb23_hoisted_65, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
           type: "number",
           dense: "",
           outlined: "",
           label: "cuello",
           modelValue: $data.miproducto.cuello,
           "onUpdate:modelValue": _cache[37] || (_cache[37] = $event => $data.miproducto.cuello = $event)
-        }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_ffa8a5a8_hoisted_66, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_select, {
+        }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_44f5cb23_hoisted_66, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_select, {
           dense: "",
           outlined: "",
           options: ['KG', 'CJA', 'U'],
           modelValue: $data.miproducto.unidcuello,
           "onUpdate:modelValue": _cache[38] || (_cache[38] = $event => $data.miproducto.unidcuello = $event),
           label: "Unidad"
-        }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_ffa8a5a8_hoisted_67, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+        }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_44f5cb23_hoisted_67, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
           type: "number",
           dense: "",
           outlined: "",
           label: "hueso",
           modelValue: $data.miproducto.hueso,
           "onUpdate:modelValue": _cache[39] || (_cache[39] = $event => $data.miproducto.hueso = $event)
-        }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_ffa8a5a8_hoisted_68, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_select, {
+        }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_44f5cb23_hoisted_68, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_select, {
           dense: "",
           outlined: "",
           options: ['KG', 'CJA', 'U'],
           modelValue: $data.miproducto.unidhueso,
           "onUpdate:modelValue": _cache[40] || (_cache[40] = $event => $data.miproducto.unidhueso = $event),
           label: "Unidad"
-        }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_ffa8a5a8_hoisted_69, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+        }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_44f5cb23_hoisted_69, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
           type: "number",
           dense: "",
           outlined: "",
           label: "menudencia",
           modelValue: $data.miproducto.menu,
           "onUpdate:modelValue": _cache[41] || (_cache[41] = $event => $data.miproducto.menu = $event)
-        }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_ffa8a5a8_hoisted_70, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_select, {
+        }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_44f5cb23_hoisted_70, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_select, {
           dense: "",
           outlined: "",
           options: ['KG', 'CJA', 'U'],
           modelValue: $data.miproducto.unidmenu,
           "onUpdate:modelValue": _cache[42] || (_cache[42] = $event => $data.miproducto.unidmenu = $event),
           label: "Unidad"
-        }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_ffa8a5a8_hoisted_71, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+        }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_44f5cb23_hoisted_71, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
           type: "number",
           dense: "",
           outlined: "",
           label: "BS",
           modelValue: $data.miproducto.bs,
           "onUpdate:modelValue": _cache[43] || (_cache[43] = $event => $data.miproducto.bs = $event)
-        }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_ffa8a5a8_hoisted_72, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+        }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_44f5cb23_hoisted_72, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
           type: "number",
           dense: "",
           outlined: "",
           label: "BS2",
           modelValue: $data.miproducto.bs2,
           "onUpdate:modelValue": _cache[44] || (_cache[44] = $event => $data.miproducto.bs2 = $event)
-        }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_ffa8a5a8_hoisted_73, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+        }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_44f5cb23_hoisted_73, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
           type: "text",
           dense: "",
           outlined: "",
@@ -4974,12 +4975,12 @@ function Visitavue_type_template_id_ffa8a5a8_render(_ctx, _cache, $props, $setup
   }, {
     default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_card, null, {
       default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_card_section, null, {
-        default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [Visitavue_type_template_id_ffa8a5a8_hoisted_74]),
+        default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [Visitavue_type_template_id_44f5cb23_hoisted_74]),
         _: 1
       }), (0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_card_section, {
         class: "q-pt-none"
       }, {
-        default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_ffa8a5a8_hoisted_75, [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_ffa8a5a8_hoisted_76, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+        default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_44f5cb23_hoisted_75, [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_44f5cb23_hoisted_76, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
           dense: "",
           outlined: "",
           label: "observacion",
@@ -5008,42 +5009,42 @@ function Visitavue_type_template_id_ffa8a5a8_render(_ctx, _cache, $props, $setup
   }, {
     default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_card, null, {
       default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_card_section, null, {
-        default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [Visitavue_type_template_id_ffa8a5a8_hoisted_77]),
+        default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [Visitavue_type_template_id_44f5cb23_hoisted_77]),
         _: 1
       }), (0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_card_section, {
         class: "q-pt-none"
       }, {
-        default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_ffa8a5a8_hoisted_78, [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_ffa8a5a8_hoisted_79, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+        default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_44f5cb23_hoisted_78, [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_44f5cb23_hoisted_79, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
           dense: "",
           outlined: "",
           label: "precio",
           modelValue: $data.miproducto.pfrial,
           "onUpdate:modelValue": _cache[49] || (_cache[49] = $event => $data.miproducto.pfrial = $event)
-        }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_ffa8a5a8_hoisted_80, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+        }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_44f5cb23_hoisted_80, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
           dense: "",
           outlined: "",
           label: "total",
           modelValue: $data.miproducto.total,
           "onUpdate:modelValue": _cache[50] || (_cache[50] = $event => $data.miproducto.total = $event)
-        }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_ffa8a5a8_hoisted_81, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+        }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_44f5cb23_hoisted_81, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
           dense: "",
           outlined: "",
           label: "entero",
           modelValue: $data.miproducto.entero,
           "onUpdate:modelValue": _cache[51] || (_cache[51] = $event => $data.miproducto.entero = $event)
-        }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_ffa8a5a8_hoisted_82, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+        }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_44f5cb23_hoisted_82, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
           dense: "",
           outlined: "",
           label: "desmembre",
           modelValue: $data.miproducto.desmembre,
           "onUpdate:modelValue": _cache[52] || (_cache[52] = $event => $data.miproducto.desmembre = $event)
-        }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_ffa8a5a8_hoisted_83, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+        }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_44f5cb23_hoisted_83, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
           dense: "",
           outlined: "",
           label: "corte",
           modelValue: $data.miproducto.corte,
           "onUpdate:modelValue": _cache[53] || (_cache[53] = $event => $data.miproducto.corte = $event)
-        }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_ffa8a5a8_hoisted_84, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+        }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_44f5cb23_hoisted_84, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
           dense: "",
           outlined: "",
           label: "kilo",
@@ -5137,7 +5138,7 @@ function Visitavue_type_template_id_ffa8a5a8_render(_ctx, _cache, $props, $setup
     _: 1
   }, 8, ["modelValue"])]);
 }
-;// CONCATENATED MODULE: ./src/pages/Visita.vue?vue&type=template&id=ffa8a5a8
+;// CONCATENATED MODULE: ./src/pages/Visita.vue?vue&type=template&id=44f5cb23
 
 // EXTERNAL MODULE: ./node_modules/@vue-leaflet/vue-leaflet/dist/vue-leaflet.esm.js
 var vue_leaflet_esm = __webpack_require__(8892);
@@ -5710,7 +5711,7 @@ var vue_leaflet_esm = __webpack_require__(8892);
 ;
 
 
-const Visita_exports_ = /*#__PURE__*/(0,exportHelper/* default */.Z)(Visitavue_type_script_lang_js, [['render',Visitavue_type_template_id_ffa8a5a8_render]])
+const Visita_exports_ = /*#__PURE__*/(0,exportHelper/* default */.Z)(Visitavue_type_script_lang_js, [['render',Visitavue_type_template_id_44f5cb23_render]])
 
 /* harmony default export */ const Visita = (Visita_exports_);
 ;
@@ -5731,21 +5732,21 @@ const Visita_exports_ = /*#__PURE__*/(0,exportHelper/* default */.Z)(Visitavue_t
 
 runtime_auto_import_default()(Visitavue_type_script_lang_js, 'components', {QBadge: QBadge/* default */.Z,QTable: QTable/* default */.Z,QTd: QTd/* default */.Z,QBtn: QBtn/* default */.Z,QInput: QInput/* default */.Z,QIcon: QIcon/* default */.Z,QDialog: QDialog/* default */.Z,QCard: QCard/* default */.Z,QCardSection: QCardSection/* default */.Z,QCardActions: QCardActions/* default */.Z,QRadio: QRadio/* default */.Z,QSelect: QSelect/* default */.Z,QItem: QItem/* default */.Z,QItemSection: QItemSection/* default */.Z,QTr: QTr/* default */.Z});runtime_auto_import_default()(Visitavue_type_script_lang_js, 'directives', {ClosePopup: ClosePopup/* default */.Z});
 
-;// CONCATENATED MODULE: ./node_modules/@quasar/app/lib/webpack/loader.js.transform-quasar-imports.js!./node_modules/babel-loader/lib/index.js??clonedRuleSet-2.use[0]!./node_modules/vue-loader/dist/templateLoader.js??ruleSet[1].rules[3]!./node_modules/@quasar/app/lib/webpack/loader.vue.auto-import-quasar.js??ruleSet[0].use[0]!./node_modules/vue-loader/dist/index.js??ruleSet[0].use[1]!./src/pages/Miscobranzas.vue?vue&type=template&id=63c3ecf4
+;// CONCATENATED MODULE: ./node_modules/@quasar/app/lib/webpack/loader.js.transform-quasar-imports.js!./node_modules/babel-loader/lib/index.js??clonedRuleSet-2.use[0]!./node_modules/vue-loader/dist/templateLoader.js??ruleSet[1].rules[3]!./node_modules/@quasar/app/lib/webpack/loader.vue.auto-import-quasar.js??ruleSet[0].use[0]!./node_modules/vue-loader/dist/index.js??ruleSet[0].use[1]!./src/pages/Miscobranzas.vue?vue&type=template&id=417e99c3
 
-const Miscobranzasvue_type_template_id_63c3ecf4_hoisted_1 = {
+const Miscobranzasvue_type_template_id_417e99c3_hoisted_1 = {
   class: "row"
 };
-const Miscobranzasvue_type_template_id_63c3ecf4_hoisted_2 = {
+const Miscobranzasvue_type_template_id_417e99c3_hoisted_2 = {
   class: "col-4"
 };
-const Miscobranzasvue_type_template_id_63c3ecf4_hoisted_3 = {
+const Miscobranzasvue_type_template_id_417e99c3_hoisted_3 = {
   class: "col-4 flex flex-center"
 };
-const Miscobranzasvue_type_template_id_63c3ecf4_hoisted_4 = {
+const Miscobranzasvue_type_template_id_417e99c3_hoisted_4 = {
   class: "col-12"
 };
-function Miscobranzasvue_type_template_id_63c3ecf4_render(_ctx, _cache, $props, $setup, $data, $options) {
+function Miscobranzasvue_type_template_id_417e99c3_render(_ctx, _cache, $props, $setup, $data, $options) {
   const _component_q_input = (0,runtime_core_esm_bundler/* resolveComponent */.up)("q-input");
 
   const _component_q_btn = (0,runtime_core_esm_bundler/* resolveComponent */.up)("q-btn");
@@ -5763,20 +5764,20 @@ function Miscobranzasvue_type_template_id_63c3ecf4_render(_ctx, _cache, $props, 
   return (0,runtime_core_esm_bundler/* openBlock */.wg)(), (0,runtime_core_esm_bundler/* createBlock */.j4)(_component_q_page, {
     class: "q-pa-xs"
   }, {
-    default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Miscobranzasvue_type_template_id_63c3ecf4_hoisted_1, [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Miscobranzasvue_type_template_id_63c3ecf4_hoisted_2, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+    default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Miscobranzasvue_type_template_id_417e99c3_hoisted_1, [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Miscobranzasvue_type_template_id_417e99c3_hoisted_2, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
       dense: "",
       outlined: "",
       modelValue: $data.fecha1,
       "onUpdate:modelValue": _cache[0] || (_cache[0] = $event => $data.fecha1 = $event),
       label: "Fecha Ini",
       type: "date"
-    }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Miscobranzasvue_type_template_id_63c3ecf4_hoisted_3, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_btn, {
+    }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Miscobranzasvue_type_template_id_417e99c3_hoisted_3, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_btn, {
       color: "info",
       icon: "search",
       label: "consulta",
       onClick: $options.mcobros,
       size: "xs"
-    }, null, 8, ["onClick"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Miscobranzasvue_type_template_id_63c3ecf4_hoisted_4, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_table, {
+    }, null, 8, ["onClick"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Miscobranzasvue_type_template_id_417e99c3_hoisted_4, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_table, {
       dense: "",
       title: "Clientes ",
       columns: $data.columns,
@@ -5822,15 +5823,20 @@ function Miscobranzasvue_type_template_id_63c3ecf4_render(_ctx, _cache, $props, 
     _: 1
   });
 }
-;// CONCATENATED MODULE: ./src/pages/Miscobranzas.vue?vue&type=template&id=63c3ecf4
+;// CONCATENATED MODULE: ./src/pages/Miscobranzas.vue?vue&type=template&id=417e99c3
 
 ;// CONCATENATED MODULE: ./node_modules/@quasar/app/lib/webpack/loader.js.transform-quasar-imports.js!./node_modules/babel-loader/lib/index.js??clonedRuleSet-2.use[0]!./node_modules/@quasar/app/lib/webpack/loader.vue.auto-import-quasar.js??ruleSet[0].use[0]!./node_modules/vue-loader/dist/index.js??ruleSet[0].use[1]!./src/pages/Miscobranzas.vue?vue&type=script&lang=js
 ;
+
+
+const conversor = __webpack_require__(1694);
+
 /* harmony default export */ const Miscobranzasvue_type_script_lang_js = ({
   data() {
     return {
       filter: '',
       fecha1: date/* default.formatDate */.ZP.formatDate(Date.now(), 'YYYY-MM-DD'),
+      hoy: date/* default.formatDate */.ZP.formatDate(Date.now(), 'YYYY-MM-DD'),
       cobros: [],
       columns: [{
         label: 'ESTADO',
@@ -5931,27 +5937,73 @@ function Miscobranzasvue_type_template_id_63c3ecf4_render(_ctx, _cache, $props, 
     },
 
     imprimir() {
-      let total = 0;
-      let cadena = "<style> table, th, td { border: 1px solid;}  table {border-collapse: collapse; width:100%;          }</style>";
-      cadena += "<div>NOMBRE:" + this.$store.getters['login/user'].Nombre1 + " " + this.$store.getters['login/user'].Nombre2 + " " + this.$store.getters['login/user'].App1 + " " + this.$store.getters['login/user'].Apm + "</div>";
-      cadena += "<div>FECHA: " + this.fecha1 + " al " + this.fecha2 + "</div>";
-      cadena += "<table>        <tr>";
-      cadena += "<th>FECHA</th>";
-      cadena += "<th>No NOTA</th>";
-      cadena += "<th>NOMBRE</th>";
-      cadena += "<th>MONTO</th>";
-      cadena += "<th>N BOLETA</th></tr>";
-      this.cobros.forEach(r => {
-        total = parseFloat(total) + parseFloat(r.pago);
-        cadena += "<tr><td>" + r.fecomanda + "</td> <td>" + r.comanda + "</td><td>" + r.Nombres + "</td><td>" + r.pago + "</td><td>" + r.nboleta + "</td></tr>";
-      });
-      cadena += "</table><div>TOTAL: " + total + " Bs.</div>"; //this.$api.post('impcobros',{fecha1:this.fecha1,fecha2:this.fecha2}).then(res=>{
+      let cm = this;
 
-      let myWindow = window.open("", "Imprimir", "width=200,height=200");
-      myWindow.document.write(cadena);
-      myWindow.document.close();
-      myWindow.print();
-      myWindow.close(); //  })
+      function header(vendedor) {
+        var img = new Image();
+        img.src = 'logo.jpg';
+        doc.addImage(img, 'jpg', 0.5, 0.5, 3, 2);
+        doc.setFont(undefined, 'bold');
+        doc.setFontSize(8);
+        doc.text(15, 0.5, 'fecha de proceso: ' + cm.hoy);
+        doc.setFontSize(11);
+        doc.text(5, 1, 'RESUMEN DE COBROS');
+        doc.text(5, 1.5, 'DE FECHA ' + cm.fecha1 + ' DEL PREVENTISTA ' + vendedor);
+        doc.text(1, 3, '_____________________________________________________________________________________');
+        doc.text(2, 3, 'PAGO');
+        doc.text(5, 3, 'CLIENTE');
+        doc.text(13, 3, 'COMANDA');
+        doc.text(16, 3, 'NBOLETA');
+        doc.setFont(undefined, 'normal');
+      }
+
+      function footer(con, sumtotal) {
+        doc.setFont(undefined, 'bold');
+        doc.text(2, y + 3.5, 'TOTALES:     ' + con + ' ');
+        doc.text(12, y + 3.5, 'TOTAL RECAUDADCION: ');
+        let ClaseConversor = conversor.conversorNumerosALetras;
+        let miConversor = new ClaseConversor();
+        let a = miConversor.convertToText(sumtotal);
+        doc.text(1.5, y + 4.4, 'SON: ');
+        doc.setFont(undefined, 'normal');
+        doc.text(2.5, y + 4.4, a.toUpperCase());
+        doc.setFont(undefined, 'bold'); // console.log(a)
+
+        doc.text(1.8, y + 5.9, '___________________      __________________________        ____________________');
+        doc.text(2, y + 6.3, 'FIRMA SELLO CAJERO');
+        doc.text(7.5, y + 6.3, 'FIRMA SELLO CONTROL INTERNO');
+        doc.text(15.5, y + 6.3, 'FIRMA SELLO LIQUIDADOR'); // doc.setFont(undefined,'normal')
+
+        doc.text(18, y + 3.5, sumtotal.toFixed(2) + ' Bs');
+      }
+
+      var doc = new jspdf_es_min/* jsPDF */.kH('p', 'cm', 'letter');
+      doc.setFont("courier");
+      doc.setFontSize(11);
+      let y = 0; // let sumtotal=0
+
+      let sumtotal = 0;
+      let con = 0;
+      let vendedor = this.$store.getters['login/user'].Nombre1 + " " + this.$store.getters['login/user'].App1;
+      header(vendedor);
+      this.cobros.forEach(r => {
+        y += 0.5;
+        con++;
+        doc.text(2, y + 3, r.pago + '');
+        doc.text(5, y + 3, r.cliente + '');
+        doc.text(13, y + 3, r.comanda + '');
+        doc.text(16, y + 3, r.nboleta + '');
+        sumtotal += parseFloat(r.pago);
+
+        if (y + 5 >= 28) {
+          y = 0;
+          footer(con, sumtotal);
+          doc.addPage();
+          header(vendedor);
+        }
+      });
+      footer(con, sumtotal);
+      window.open(doc.output('bloburl'), '_blank');
     }
 
   }
@@ -5964,7 +6016,7 @@ function Miscobranzasvue_type_template_id_63c3ecf4_render(_ctx, _cache, $props, 
 
 
 ;
-const Miscobranzas_exports_ = /*#__PURE__*/(0,exportHelper/* default */.Z)(Miscobranzasvue_type_script_lang_js, [['render',Miscobranzasvue_type_template_id_63c3ecf4_render]])
+const Miscobranzas_exports_ = /*#__PURE__*/(0,exportHelper/* default */.Z)(Miscobranzasvue_type_script_lang_js, [['render',Miscobranzasvue_type_template_id_417e99c3_render]])
 
 /* harmony default export */ const Miscobranzas = (Miscobranzas_exports_);
 ;
@@ -6434,33 +6486,33 @@ const Generar_exports_ = /*#__PURE__*/(0,exportHelper/* default */.Z)(Generarvue
 
 runtime_auto_import_default()(Generarvue_type_script_lang_js, 'components', {QPage: QPage/* default */.Z,QForm: QForm/* default */.Z,QInput: QInput/* default */.Z,QBtn: QBtn/* default */.Z,QTable: QTable/* default */.Z,QTd: QTd/* default */.Z,QIcon: QIcon/* default */.Z});
 
-;// CONCATENATED MODULE: ./node_modules/@quasar/app/lib/webpack/loader.js.transform-quasar-imports.js!./node_modules/babel-loader/lib/index.js??clonedRuleSet-2.use[0]!./node_modules/vue-loader/dist/templateLoader.js??ruleSet[1].rules[3]!./node_modules/@quasar/app/lib/webpack/loader.vue.auto-import-quasar.js??ruleSet[0].use[0]!./node_modules/vue-loader/dist/index.js??ruleSet[0].use[1]!./src/pages/Cobrosrealizados.vue?vue&type=template&id=5613aaf6
+;// CONCATENATED MODULE: ./node_modules/@quasar/app/lib/webpack/loader.js.transform-quasar-imports.js!./node_modules/babel-loader/lib/index.js??clonedRuleSet-2.use[0]!./node_modules/vue-loader/dist/templateLoader.js??ruleSet[1].rules[3]!./node_modules/@quasar/app/lib/webpack/loader.vue.auto-import-quasar.js??ruleSet[0].use[0]!./node_modules/vue-loader/dist/index.js??ruleSet[0].use[1]!./src/pages/Cobrosrealizados.vue?vue&type=template&id=4edae35e
 
-const Cobrosrealizadosvue_type_template_id_5613aaf6_hoisted_1 = {
+const Cobrosrealizadosvue_type_template_id_4edae35e_hoisted_1 = {
   class: "row"
 };
-const Cobrosrealizadosvue_type_template_id_5613aaf6_hoisted_2 = {
+const Cobrosrealizadosvue_type_template_id_4edae35e_hoisted_2 = {
   class: "col-12"
 };
-const Cobrosrealizadosvue_type_template_id_5613aaf6_hoisted_3 = {
+const Cobrosrealizadosvue_type_template_id_4edae35e_hoisted_3 = {
   class: "row"
 };
-const Cobrosrealizadosvue_type_template_id_5613aaf6_hoisted_4 = {
+const Cobrosrealizadosvue_type_template_id_4edae35e_hoisted_4 = {
   class: "col-4"
 };
-const Cobrosrealizadosvue_type_template_id_5613aaf6_hoisted_5 = {
+const Cobrosrealizadosvue_type_template_id_4edae35e_hoisted_5 = {
   class: "col-4"
 };
-const Cobrosrealizadosvue_type_template_id_5613aaf6_hoisted_6 = {
+const Cobrosrealizadosvue_type_template_id_4edae35e_hoisted_6 = {
   class: "col-4"
 };
-const Cobrosrealizadosvue_type_template_id_5613aaf6_hoisted_7 = {
+const Cobrosrealizadosvue_type_template_id_4edae35e_hoisted_7 = {
   class: "col-12"
 };
-const Cobrosrealizadosvue_type_template_id_5613aaf6_hoisted_8 = {
+const Cobrosrealizadosvue_type_template_id_4edae35e_hoisted_8 = {
   class: "col-12"
 };
-function Cobrosrealizadosvue_type_template_id_5613aaf6_render(_ctx, _cache, $props, $setup, $data, $options) {
+function Cobrosrealizadosvue_type_template_id_4edae35e_render(_ctx, _cache, $props, $setup, $data, $options) {
   const _component_q_input = (0,runtime_core_esm_bundler/* resolveComponent */.up)("q-input");
 
   const _component_q_btn = (0,runtime_core_esm_bundler/* resolveComponent */.up)("q-btn");
@@ -6476,23 +6528,23 @@ function Cobrosrealizadosvue_type_template_id_5613aaf6_render(_ctx, _cache, $pro
   return (0,runtime_core_esm_bundler/* openBlock */.wg)(), (0,runtime_core_esm_bundler/* createBlock */.j4)(_component_q_page, {
     class: "q-pa-xs"
   }, {
-    default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Cobrosrealizadosvue_type_template_id_5613aaf6_hoisted_1, [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Cobrosrealizadosvue_type_template_id_5613aaf6_hoisted_2, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_form, {
+    default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Cobrosrealizadosvue_type_template_id_4edae35e_hoisted_1, [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Cobrosrealizadosvue_type_template_id_4edae35e_hoisted_2, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_form, {
       onSubmit: (0,runtime_dom_esm_bundler/* withModifiers */.iM)($options.miscobrosrealizados, ["prevent"])
     }, {
-      default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Cobrosrealizadosvue_type_template_id_5613aaf6_hoisted_3, [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Cobrosrealizadosvue_type_template_id_5613aaf6_hoisted_4, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+      default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Cobrosrealizadosvue_type_template_id_4edae35e_hoisted_3, [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Cobrosrealizadosvue_type_template_id_4edae35e_hoisted_4, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
         label: "fecha",
         modelValue: $data.fecha,
         "onUpdate:modelValue": _cache[0] || (_cache[0] = $event => $data.fecha = $event),
         outlined: "",
         dense: "",
         type: "date"
-      }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Cobrosrealizadosvue_type_template_id_5613aaf6_hoisted_5, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_btn, {
+      }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Cobrosrealizadosvue_type_template_id_4edae35e_hoisted_5, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_btn, {
         type: "submit",
         color: "positive",
         icon: "check",
         label: "consultar",
         class: "full-width full-height"
-      })]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Cobrosrealizadosvue_type_template_id_5613aaf6_hoisted_6, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_btn, {
+      })]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Cobrosrealizadosvue_type_template_id_4edae35e_hoisted_6, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_btn, {
         color: "accent",
         label: "CtaCobrar",
         icon: "import",
@@ -6500,7 +6552,7 @@ function Cobrosrealizadosvue_type_template_id_5613aaf6_render(_ctx, _cache, $pro
         onClick: $options.recuperar
       }, null, 8, ["onClick"])])])]),
       _: 1
-    }, 8, ["onSubmit"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Cobrosrealizadosvue_type_template_id_5613aaf6_hoisted_7, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_table, {
+    }, 8, ["onSubmit"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Cobrosrealizadosvue_type_template_id_4edae35e_hoisted_7, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_table, {
       filter: $data.filter,
       dense: "",
       title: "Cobros realizados",
@@ -6527,7 +6579,7 @@ function Cobrosrealizadosvue_type_template_id_5613aaf6_render(_ctx, _cache, $pro
         "onUpdate:modelValue": _cache[1] || (_cache[1] = $event => $data.filter = $event)
       }, null, 8, ["modelValue"])]),
       _: 1
-    }, 8, ["filter", "columns", "rows"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Cobrosrealizadosvue_type_template_id_5613aaf6_hoisted_8, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_btn, {
+    }, 8, ["filter", "columns", "rows"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Cobrosrealizadosvue_type_template_id_4edae35e_hoisted_8, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_btn, {
       onClick: $options.imprimir,
       color: "info",
       icon: "print",
@@ -6537,13 +6589,13 @@ function Cobrosrealizadosvue_type_template_id_5613aaf6_render(_ctx, _cache, $pro
     _: 1
   });
 }
-;// CONCATENATED MODULE: ./src/pages/Cobrosrealizados.vue?vue&type=template&id=5613aaf6
+;// CONCATENATED MODULE: ./src/pages/Cobrosrealizados.vue?vue&type=template&id=4edae35e
 
 ;// CONCATENATED MODULE: ./node_modules/@quasar/app/lib/webpack/loader.js.transform-quasar-imports.js!./node_modules/babel-loader/lib/index.js??clonedRuleSet-2.use[0]!./node_modules/@quasar/app/lib/webpack/loader.vue.auto-import-quasar.js??ruleSet[0].use[0]!./node_modules/vue-loader/dist/index.js??ruleSet[0].use[1]!./src/pages/Cobrosrealizados.vue?vue&type=script&lang=js
 ;
 
 
-const conversor = __webpack_require__(1694);
+const Cobrosrealizadosvue_type_script_lang_js_conversor = __webpack_require__(1694);
 
 /* harmony default export */ const Cobrosrealizadosvue_type_script_lang_js = ({
   name: `Cobrosrealizados`,
@@ -6647,7 +6699,7 @@ const conversor = __webpack_require__(1694);
         doc.setFont(undefined, 'bold');
         doc.text(2, y + 3.5, 'TOTALES:     ' + con + ' ');
         doc.text(12, y + 3.5, 'TOTAL RECAUDADCION: ');
-        let ClaseConversor = conversor.conversorNumerosALetras;
+        let ClaseConversor = Cobrosrealizadosvue_type_script_lang_js_conversor.conversorNumerosALetras;
         let miConversor = new ClaseConversor();
         let a = miConversor.convertToText(sumtotal);
         doc.text(1.5, y + 4.4, 'SON: ');
@@ -6699,7 +6751,7 @@ const conversor = __webpack_require__(1694);
         } // if (con==55){
         //   doc.addPage();
         //   header(this.fecha)
-        //   y=0
+        //   y=0P
         // }
 
       });
@@ -6732,7 +6784,7 @@ const conversor = __webpack_require__(1694);
 
 
 ;
-const Cobrosrealizados_exports_ = /*#__PURE__*/(0,exportHelper/* default */.Z)(Cobrosrealizadosvue_type_script_lang_js, [['render',Cobrosrealizadosvue_type_template_id_5613aaf6_render]])
+const Cobrosrealizados_exports_ = /*#__PURE__*/(0,exportHelper/* default */.Z)(Cobrosrealizadosvue_type_script_lang_js, [['render',Cobrosrealizadosvue_type_template_id_4edae35e_render]])
 
 /* harmony default export */ const Cobrosrealizados = (Cobrosrealizados_exports_);
 ;
@@ -10238,7 +10290,7 @@ runtime_auto_import_default()(Reportevue_type_script_lang_js, 'components', {QPa
 
 const routes = [{
   path: '/',
-  component: () => Promise.all(/* import() */[__webpack_require__.e(736), __webpack_require__.e(588)]).then(__webpack_require__.bind(__webpack_require__, 1588)),
+  component: () => Promise.all(/* import() */[__webpack_require__.e(736), __webpack_require__.e(582)]).then(__webpack_require__.bind(__webpack_require__, 2140)),
   children: [{
     path: '',
     component: Index
@@ -11039,7 +11091,7 @@ module.exports = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5v
 /******/ 		// This function allow to reference async chunks
 /******/ 		__webpack_require__.u = (chunkId) => {
 /******/ 			// return url for filenames based on template
-/******/ 			return "js/" + chunkId + "." + {"193":"10b407ea","588":"e886c82b"}[chunkId] + ".js";
+/******/ 			return "js/" + chunkId + "." + {"193":"10b407ea","582":"17670389"}[chunkId] + ".js";
 /******/ 		};
 /******/ 	})();
 /******/ 	
@@ -11226,9 +11278,9 @@ module.exports = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5v
 /******/ 	// startup
 /******/ 	// Load entry module and return exports
 /******/ 	// This entry module depends on other loaded chunks and execution need to be delayed
-/******/ 	var __webpack_exports__ = __webpack_require__.O(undefined, [736], () => (__webpack_require__(5690)))
+/******/ 	var __webpack_exports__ = __webpack_require__.O(undefined, [736], () => (__webpack_require__(8557)))
 /******/ 	__webpack_exports__ = __webpack_require__.O(__webpack_exports__);
 /******/ 	
 /******/ })()
 ;
-//# sourceMappingURL=app.6adf09ea.js.map
+//# sourceMappingURL=app.eb518a6a.js.map

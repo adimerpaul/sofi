@@ -129,7 +129,7 @@
           <div class="text-subtitle2">{{cliente.Canal}}</div>
           <div class="text-subtitle2" >Monto Deuda: <q-badge color="negative">{{cliente.totdeuda}} Bs </q-badge> NumPedidos: <q-badge color="negative">{{cliente.cantdeuda}}</q-badge></div>
           <div class="text-subtitle2" >Fecha minima: <q-badge color="negative">{{cliente.fechaminima}} </q-badge> </div>
-          <div class="text-subtitle2" >Estado para pedidos: <q-badge :color="cliente.venta=='ACTIVO'?'green':'negative'">{{cliente.venta}} </q-badge> </div>
+          <div class="text-h5" >Estado para pedidos: <q-badge :color="cliente.venta=='ACTIVO'?'green':'negative'" class="text-h5">{{cliente.venta}} </q-badge> </div>
         </q-card-section>
         <q-card-section class="q-pt-none">
 <!--          <pre>{{cliente}}</pre>-->

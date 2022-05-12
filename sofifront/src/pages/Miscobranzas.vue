@@ -59,12 +59,15 @@
 </template>
 <script>
 import {date} from 'quasar'
+import {jsPDF} from "jspdf";
+const conversor = require('conversor-numero-a-letras-es-ar');
 
 export default {
   data(){
     return{
       filter:'',
       fecha1:date.formatDate(Date.now(),'YYYY-MM-DD'),
+      hoy:date.formatDate(Date.now(),'YYYY-MM-DD'),
       cobros:[],
       columns:[
         {label:'ESTADO',name:'estado',field:'estado'},
@@ -143,29 +146,75 @@ export default {
 
       },
       imprimir(){
-        let total=0;
-                let cadena="<style> table, th, td { border: 1px solid;}  table {border-collapse: collapse; width:100%;          }</style>";
-        cadena+="<div>NOMBRE:"+ this.$store.getters['login/user'].Nombre1+" "+this.$store.getters['login/user'].Nombre2 +" "+this.$store.getters['login/user'].App1 +" "+this.$store.getters['login/user'].Apm +"</div>";
-        cadena+="<div>FECHA: "+this.fecha1+" al "+this.fecha2+"</div>";
-        cadena+="<table>        <tr>";
-        cadena+="<th>FECHA</th>";
-        cadena+="<th>No NOTA</th>";
-        cadena+="<th>NOMBRE</th>";
-        cadena+="<th>MONTO</th>";
-        cadena+="<th>N BOLETA</th></tr>";
-        this.cobros.forEach(r => {
-             total  = parseFloat(total)+ parseFloat(r.pago) ;
-            cadena+="<tr><td>"+r.fecomanda+"</td> <td>"+r.comanda+"</td><td>"+r.Nombres+"</td><td>"+r.pago+"</td><td>"+r.nboleta+"</td></tr>";
-                });
+      let cm=this;
+      function header(vendedor){
+        var img = new Image()
+        img.src = 'logo.jpg'
+        doc.addImage(img, 'jpg', 0.5, 0.5, 3, 2)
+        doc.setFont(undefined,'bold')
+        doc.setFontSize(8);
+        doc.text(15, 0.5, 'fecha de proceso: '+cm.hoy)
+        doc.setFontSize(11);
+        doc.text(5, 1, 'RESUMEN DE COBROS')
+        doc.text(5, 1.5, 'DE FECHA '+cm.fecha1+' DEL PREVENTISTA '+vendedor)
+        doc.text(1, 3, '_____________________________________________________________________________________')
+        doc.text(2, 3, 'PAGO')
+        doc.text(5, 3, 'CLIENTE')
+        doc.text(13, 3, 'COMANDA')
+        doc.text(16, 3, 'NBOLETA')
+        doc.setFont(undefined,'normal')
+      }
+      function footer(con,sumtotal){
+        doc.setFont(undefined,'bold')
+        doc.text(2, y+3.5, 'TOTALES:     '+con+' ')
+        doc.text(12, y+3.5, 'TOTAL RECAUDADCION: ')
+        let ClaseConversor = conversor.conversorNumerosALetras;
+        let miConversor = new ClaseConversor();
+        let a = miConversor.convertToText(sumtotal);
+        doc.text(1.5, y+4.4, 'SON: ')
+        doc.setFont(undefined,'normal')
+        doc.text(2.5, y+4.4, a.toUpperCase())
+        doc.setFont(undefined,'bold')
+        // console.log(a)
+        doc.text(1.8, y+5.9, '___________________      __________________________        ____________________')
+        doc.text(2, y+6.3, 'FIRMA SELLO CAJERO')
+        doc.text(7.5, y+6.3, 'FIRMA SELLO CONTROL INTERNO')
+        doc.text(15.5, y+6.3, 'FIRMA SELLO LIQUIDADOR')
+        // doc.setFont(undefined,'normal')
+        doc.text(18, y+3.5, sumtotal.toFixed(2)+ ' Bs')
+      }
+      var doc = new jsPDF('p','cm','letter')
+      doc.setFont("courier");
+      doc.setFontSize(11);
 
-        cadena+="</table><div>TOTAL: "+total+" Bs.</div>";
-        //this.$api.post('impcobros',{fecha1:this.fecha1,fecha2:this.fecha2}).then(res=>{
-        let myWindow = window.open("", "Imprimir", "width=200,height=200");
-        myWindow.document.write(cadena);
-        myWindow.document.close();
-        myWindow.print();
-        myWindow.close();
-      //  })
+      let y=0
+      // let sumtotal=0
+      let sumtotal=0
+      let con=0
+      let vendedor=this.$store.getters['login/user'].Nombre1+" "+this.$store.getters['login/user'].App1
+      header(vendedor )
+      this.cobros.forEach(r=>{
+        
+          y+=0.5
+          con++
+          doc.text(2, y+3, r.pago+'')
+          doc.text(5, y+3, r.cliente+'')
+          doc.text(13, y+3, r.comanda+'')
+          doc.text(16, y+3, r.nboleta+'')
+          sumtotal+=parseFloat(r.pago)
+
+          if(y+5>=28){
+          y=0
+
+          footer(con,sumtotal)
+          doc.addPage();
+          header(vendedor)
+
+          }
+        })
+              footer(con,sumtotal)
+
+      window.open(doc.output('bloburl'), '_blank');
 
       }
 
