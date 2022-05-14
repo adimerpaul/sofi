@@ -58,7 +58,7 @@ class CobrarController extends Controller
         return DB::SELECT("
             SELECT t1.FechaEntreg,t1.comanda,t1.CINIT,t1.CIFunc, sum(t1.Importe - (select sum(Acuenta) from tbctascobrar t2 where t2.comanda=t1.comanda)) saldo
             FROM tbctascobrar t1
-            WHERE t1.CINIT='$ci'
+            WHERE t1.CINIT='$ci' AND t1.Nrocierre=0 and t1.Acuenta=0 
             group by t1.comanda	,t1.CINIT,t1.CIFunc,	t1.FechaEntreg
             ORDER BY comanda");
 
