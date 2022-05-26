@@ -157,11 +157,19 @@
       <q-card >
         <q-card-section>
           <div class="row">
-          <div class="text-subtitle2 col-md-6  col-sm-12">{{cliente.Cod_Aut}} {{cliente.Nombres}}</div>
-                       <div class="q-gutter-sm col-md-6 col-sm-12" >
-                <q-radio  dense v-model="pago" val="CONTADO" label="CONTADO" />
-                <q-radio  dense v-model="pago" val="CREDITO" label="CREDITO" />
-              </div></div>
+            <div class="col-12">
+              {{cliente.Cod_Aut}} {{cliente.Nombres}}
+            </div>
+          <div class="text-bold col-6 flex flex-center">
+<!--               <div class="q-gutter-sm col-md-6 col-sm-12" >-->
+                <q-radio  dense v-model="pago" val="CONTADO" label="Contado" />
+                <q-radio  dense v-model="pago" val="CREDITO" label="Credito" />
+<!--              </div>-->
+          </div>
+            <div class="col-6">
+              <q-input label="Fecha" v-model="fecha" type="date" dense outlined :min="fechamenos" />
+            </div>
+          </div>
         </q-card-section>
         <q-card-section class="q-pt-none">
 
@@ -181,7 +189,7 @@
               <q-btn  class="q-pa-xs q-ma-none" color="primary" icon="add_circle" @click="agregarpedido"/>
             </div>
             <div class="col-12">
-              <q-table :rows="misproductos"  :filter="filteproducto" :columns="columnsproducto">
+              <q-table :rows="misproductos"  :filter="filteproducto" :columns="columnsproducto" :rows-per-page-options="[0]">
                 <template v-slot:body-cell-subtotal="props" >
                   <q-td :props="props" auto-width >
                     <q-btn flat @click="seleccionartipo(props.row)" class="q-ma-none q-pa-none" color="accent" icon="tune"/>
@@ -205,7 +213,10 @@
                 </template>
                 <template v-slot:top-right>
                   <div class="row">
-                    <div class="col-12">
+                    <div class="col-1 text-bold flex flex-center" >
+                      {{misproductos.length}}
+                    </div>
+                    <div class="col-11">
                       <q-input outlined dense v-model="filteproducto" placeholder="Buscar pedido">
                         <template v-slot:append>
                           <q-icon name="search" />
@@ -451,6 +462,10 @@ import {
   LRectangle,
 } from "@vue-leaflet/vue-leaflet";
 import "leaflet/dist/leaflet.css";
+import {date} from "quasar";
+const { addToDate } = date
+
+
 export default {
   components: {
     LMap,
@@ -466,6 +481,8 @@ export default {
   },
   data() {
     return {
+      fecha:date.formatDate(new Date(),'YYYY-MM-DD'),
+      fechamenos:date.formatDate(addToDate(new Date(), { days: 0}),'YYYY-MM-DD'),
       filteproducto:'',
       modalopciones:false,
       modalpedido:false,
@@ -667,8 +684,16 @@ export default {
       })
     },
     insertarpedido(lat,lng){
-      this.$api.post('pedido',{idCli:this.cliente.Cod_Aut,lat:lat,lng:lng,productos:this.misproductos,pago:this.pago}).then(res=>{
-         console.log(res.data)
+      if ( this.fecha==null || this.fecha==undefined || this.fecha==''){
+        this.$q.notify({
+          message:'Debes selecionar una fecha',
+          color:'red',
+          icon:'error'
+        })
+        return false
+      }
+      this.$api.post('pedido',{idCli:this.cliente.Cod_Aut,lat:lat,lng:lng,productos:this.misproductos,pago:this.pago,fecha:this.fecha}).then(res=>{
+         // console.log(res.data)
         // return false
         this.modalpedido=false
         this.misclientes()
@@ -841,7 +866,7 @@ export default {
         cantidad:1,
         subtotal:parseFloat(this.producto.Precio).toFixed(2)
       })
-      this.producto={label:''}
+      // this.producto={label:''} //comentarpedido
     },
     clickpedido(){
       this.modalopciones=false
