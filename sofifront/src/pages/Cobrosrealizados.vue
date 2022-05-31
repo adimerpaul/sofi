@@ -161,6 +161,10 @@ export default {
           doc.text(13, y+3, r.comanda+'')
           doc.text(16, y+3, r.nboleta+'')
           sumtotal+=parseFloat(r.pago)
+          if(y+5>25){
+          header(vendedor)
+          doc.addPage();
+         }
         }
 
         // if (con==55){
