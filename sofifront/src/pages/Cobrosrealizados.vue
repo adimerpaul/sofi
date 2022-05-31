@@ -163,7 +163,8 @@ export default {
           sumtotal+=parseFloat(r.pago)
           if(y+5>25){
           header(vendedor)
-          doc.addPage();
+          doc.addPage()
+          y=0;
          }
         }
 
