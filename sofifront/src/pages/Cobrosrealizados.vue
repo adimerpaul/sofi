@@ -114,7 +114,7 @@ export default {
         doc.text(12, y+3.5, 'TOTAL RECAUDADCION: ')
         let ClaseConversor = conversor.conversorNumerosALetras;
         let miConversor = new ClaseConversor();
-        let a = miConversor.convertToText(sumtotal);
+        let a = miConversor.convertToText(parseInt(sumtotal));
         doc.text(1.5, y+4.4, 'SON: ')
         doc.setFont(undefined,'normal')
         doc.text(2.5, y+4.4, a.toUpperCase())
