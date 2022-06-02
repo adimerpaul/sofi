@@ -1,0 +1,26 @@
+
+.my-sticky-header-table {
+  /* height or max-height is important */
+  height: 450px;
+  /* this is when the loading indicator appears */
+}
+.my-sticky-header-table .q-table__top,
+.my-sticky-header-table .q-table__bottom,
+.my-sticky-header-table thead tr:first-child th {
+  /* bg color is important for th; just specify one */
+  background-color: white;
+}
+.my-sticky-header-table thead tr th {
+  position: -webkit-sticky;
+  position: sticky;
+  z-index: 1;
+}
+.my-sticky-header-table thead tr:first-child th {
+  top: 0;
+}
+.my-sticky-header-table.q-table--loading thead tr:last-child th {
+  /* height of all previous header rows */
+  top: 48px;
+}
+
+/*# sourceMappingURL=app.19a56655.css.map*/
