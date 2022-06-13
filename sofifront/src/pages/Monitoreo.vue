@@ -25,6 +25,8 @@
     </div>
     <div class="col-12">
 <!--      <pre>{{datos}}</pre>-->
+    <q-table title="VISITAS" :rows="visitas" :columns="columns" row-key="name" />
+
     </div>
   </div>
 </q-page>
@@ -43,6 +45,19 @@ export default {
       pedido:0,
       retorno:0,
       nopedido:0,
+      visitas:[],
+       columns : [
+  {
+    name: 'name',
+    label: 'CLIENTE',
+    align: 'left',
+    field: 'Nombres',
+    sortable: true
+  },
+  { name: 'estado', align: 'center', label: 'ESTADO', field: 'estado', sortable: true },
+  { name: 'personal', align: 'center', label: 'PERSANAL', field: row=> row.Nombre1 + ' ' +row.App1, sortable: true },
+  { name: 'observacion', label: 'OBSERVACION', field: 'observacion' },
+]
     }
   },
   created(){
@@ -77,6 +92,10 @@ export default {
         // this.datos=res.data
 
         // console.log(res.data)
+        this.$api.post('listvisita',{id:user.CodAut,fecha:this.fecha
+        }).then(res=>{
+          this.visitas=res.data
+        })
         this.$q.loading.hide()
       })
     },

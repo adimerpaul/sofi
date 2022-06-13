@@ -79,6 +79,7 @@ class PedidoController extends Controller
             'lat'=>$request->lat,
             'lng'=>$request->lng,
             'distancia'=>$distancia,
+            'observacion'=>'',
             'cliente_id'=>$request->idCli,
             'personal_id'=>$request->user()->CodAut
         ]);
@@ -315,6 +316,7 @@ class PedidoController extends Controller
             'lat'=>$request->lat,
             'lng'=>$request->lng,
             'distancia'=>$distancia,
+            'observacion'=>$request->observacion,
             'cliente_id'=>$request->idCli,
             'personal_id'=>$request->user()->CodAut
         ]);

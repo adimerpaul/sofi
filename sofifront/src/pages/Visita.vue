@@ -638,17 +638,28 @@ export default {
           // ]
           lat=pos.coords.latitude
           lng=pos.coords.longitude
-          this.insertarpedidoestado(lat,lng,'PARADO')
+          this.insertarpedidoestado(lat,lng,'PARADO','')
         });
       }else{
         lat=0
         lng=0
-        this.insertarpedidoestado(lat,lng,'PARADO')
+        this.insertarpedidoestado(lat,lng,'PARADO','')
       }
     },
     clicknopedido(){
-      this.$q.loading.show()
-      var lat=0,lng=0
+
+      this.$q.dialog({
+        title: 'NO PEDIDO',
+        message: 'INGRESE ALGUN COMENTARIO?',
+        prompt: {
+          model: '',
+          type: 'text' // optional
+        },
+        cancel: true,
+        persistent: false
+      }).onOk(data => {
+        console.log(data)
+              var lat=0,lng=0
       if (navigator.geolocation) {
         // get  geolocation
         navigator.geolocation.getCurrentPosition(pos => {
@@ -659,16 +670,24 @@ export default {
           // ]
           lat=pos.coords.latitude
           lng=pos.coords.longitude
-          this.insertarpedidoestado(lat,lng,'NO PEDIDO')
-        });
-      }else{
-        lat=0
-        lng=0
-        this.insertarpedidoestado(lat,lng,'NO PEDIDO')
+        this.insertarpedidoestado(lat,lng,'NO PEDIDO',data)
+        
+        })
       }
+      else{
+
+        this.insertarpedidoestado(lat,lng,'NO PEDIDO',data)
+      }
+      }).onCancel(() => {
+        // console.log('>>>> Cancel')
+      }).onDismiss(() => {
+        // console.log('I am triggered on both OK and Cancel')
+      })
+    
+
     },
-    insertarpedidoestado(lat,lng,estado){
-      this.$api.put('pedido/1',{idCli:this.cliente.Cod_Aut,lat:lat,lng:lng,estado:estado}).then(res=>{
+    insertarpedidoestado(lat,lng,estado,obs){
+      this.$api.put('pedido/1',{idCli:this.cliente.Cod_Aut,lat:lat,lng:lng,estado:estado,observacion:obs}).then(res=>{
         // console.log(res.data)
         // return false
         this.modalopciones=false

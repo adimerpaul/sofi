@@ -43,6 +43,12 @@ class MisvisitasController extends Controller
         }
     }
 
+    public function listvisita(Request $request){
+        if ($request->id==0){
+            return DB::SELECT("select * from misvisitas v inner join tbclientes c on v.cliente_id=c.Cod_Aut inner join personal on v.personal_id=CodAut where date(fecha)='".$request->fecha."' order by v.id");}
+        else{
+            return DB::SELECT("select * from misvisitas v inner join tbclientes c on v.cliente_id=c.Cod_Aut inner join personal on v.personal_id=CodAut where date(fecha)='".$request->fecha."' AND personal_id='".$request->id."' order by v.id");}
+    }
     /**
      * Display the specified resource.
      *
