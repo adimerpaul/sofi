@@ -55,7 +55,7 @@ export default {
     sortable: true
   },
   { name: 'estado', align: 'center', label: 'ESTADO', field: 'estado', sortable: true },
-  { name: 'personal', align: 'center', label: 'PERSANAL', field: row=> row.Nombre1 + ' ' +row.App1, sortable: true },
+  { name: 'personal', align: 'center', label: 'PERSONAL', field: row=> row.Nombre1 + ' ' +row.App1, sortable: true },
   { name: 'observacion', label: 'OBSERVACION', field: 'observacion' },
 ]
     }
