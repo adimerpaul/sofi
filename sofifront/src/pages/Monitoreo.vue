@@ -2,7 +2,7 @@
 <q-page class="q-pa-xs">
   <div class="row">
     <div class="col-6">
-      <q-select @update:model-value="consula" dense outlined label="Vendero" :options="usuarios" v-model="user" />
+      <q-select @update:model-value="consula(user)" dense outlined label="Vendero" :options="usuarios" v-model="user" />
     </div>
     <div class="col-6">
       <q-input @change="consula(user)" v-model="fecha" label="fecha" dense outlined type="date" />
@@ -25,8 +25,26 @@
     </div>
     <div class="col-12">
 <!--      <pre>{{datos}}</pre>-->
-    <q-table title="VISITAS" :rows="visitas" :columns="columns" row-key="name" />
-
+      <table id="example" class="display" style="width:100%">
+        <thead>
+        <tr>
+          <th>No</th>
+          <th>CLIENTE</th>
+          <th>ESTADO</th>
+          <th>PERSONAL</th>
+          <th>OBSERVACION</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr v-for="(v,index) in visitas" :key="index">
+          <td>{{index + 1}}</td>
+          <td>{{v.Nombres}}</td>
+          <td>{{v.estado}}</td>
+          <td>{{v.Nombre1}} {{v.App1}}</td>
+          <td>{{v.observacion}}</td>
+        </tr>
+        </tbody>
+      </table>
     </div>
   </div>
 </q-page>
@@ -34,7 +52,17 @@
 
 <script>
 import {date} from "quasar";
-
+var $  = require( 'jquery' );
+require( 'datatables.net-buttons/js/buttons.html5.js' )();
+require( 'datatables.net-buttons/js/buttons.print.js' )();
+require('datatables.net-buttons/js/dataTables.buttons');
+require('datatables.net-dt/css/jquery.dataTables.min.css');
+import print from 'datatables.net-buttons/js/buttons.print';
+import jszip from 'jszip/dist/jszip';
+import pdfMake from 'pdfmake/build/pdfmake';
+import pdfFonts from 'pdfmake/build/vfs_fonts';
+pdfMake.vfs=pdfFonts.pdfMake.vfs;
+window.JSZip=jszip;
 export default {
   name: `Monitoreo`,
   data(){
@@ -61,8 +89,13 @@ export default {
     }
   },
   created(){
+           $('#example').DataTable( {
+       dom: 'Blfrtip',
+       buttons: ['copy', 'csv', 'excel', 'pdf', 'print']
+     } );
     this.$q.loading.show()
     this.misuser()
+    this.consula(this.user)
   },
   methods:{
     consula(user){
@@ -71,6 +104,10 @@ export default {
       this.nopedido=0
       this.$q.loading.show()
       // console.log()
+      this.visitas=[]
+
+      $('#example').DataTable().destroy()
+
       this.$api.post('misvisitas',{
         id:user.CodAut,
         fecha:this.fecha
@@ -92,9 +129,17 @@ export default {
         // this.datos=res.data
 
         // console.log(res.data)
-        this.$api.post('listvisita',{id:user.CodAut,fecha:this.fecha
-        }).then(res=>{
-          this.visitas=res.data
+        this.$api.post('listvisita',{id:user.CodAut,fecha:this.fecha }).then(res=>{
+          $('#example').DataTable().destroy();
+          this.visitas=res.data;
+          this.$nextTick(()=>{
+               $('#example').DataTable( {
+                 dom: 'Blfrtip',
+                 buttons: [
+                   'copy', 'csv', 'excel', 'pdf', 'print'
+                 ],
+                  "lengthMenu": [[10, 25, 50, -1], [10, 25, 50, "All"]]     } )})
+
         })
         this.$q.loading.hide()
       })

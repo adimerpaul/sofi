@@ -1,7 +1,7 @@
 /******/ (() => { // webpackBootstrap
 /******/ 	var __webpack_modules__ = ({
 
-/***/ 4472:
+/***/ 4344:
 /***/ ((__unused_webpack_module, __unused_webpack___webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -9501,104 +9501,128 @@ const Pendientes_exports_ = /*#__PURE__*/(0,exportHelper/* default */.Z)(Pendien
 
 runtime_auto_import_default()(Pendientesvue_type_script_lang_js, 'components', {QPage: QPage/* default */.Z,QInput: QInput/* default */.Z,QBtn: QBtn/* default */.Z,QTable: QTable/* default */.Z,QTd: QTd/* default */.Z,QIcon: QIcon/* default */.Z,QDialog: QDialog/* default */.Z,QCard: QCard/* default */.Z,QCardSection: QCardSection/* default */.Z,QSelect: QSelect/* default */.Z,QItem: QItem/* default */.Z,QItemSection: QItemSection/* default */.Z,QBadge: QBadge/* default */.Z,QTr: QTr/* default */.Z,QCardActions: QCardActions/* default */.Z});runtime_auto_import_default()(Pendientesvue_type_script_lang_js, 'directives', {ClosePopup: ClosePopup/* default */.Z});
 
-;// CONCATENATED MODULE: ./node_modules/@quasar/app/lib/webpack/loader.js.transform-quasar-imports.js!./node_modules/babel-loader/lib/index.js??clonedRuleSet-2.use[0]!./node_modules/vue-loader/dist/templateLoader.js??ruleSet[1].rules[3]!./node_modules/@quasar/app/lib/webpack/loader.vue.auto-import-quasar.js??ruleSet[0].use[0]!./node_modules/vue-loader/dist/index.js??ruleSet[0].use[1]!./src/pages/Monitoreo.vue?vue&type=template&id=0152accd
+;// CONCATENATED MODULE: ./node_modules/@quasar/app/lib/webpack/loader.js.transform-quasar-imports.js!./node_modules/babel-loader/lib/index.js??clonedRuleSet-2.use[0]!./node_modules/vue-loader/dist/templateLoader.js??ruleSet[1].rules[3]!./node_modules/@quasar/app/lib/webpack/loader.vue.auto-import-quasar.js??ruleSet[0].use[0]!./node_modules/vue-loader/dist/index.js??ruleSet[0].use[1]!./src/pages/Monitoreo.vue?vue&type=template&id=c88df62a
 
-const Monitoreovue_type_template_id_0152accd_hoisted_1 = {
+const Monitoreovue_type_template_id_c88df62a_hoisted_1 = {
   class: "row"
 };
-const Monitoreovue_type_template_id_0152accd_hoisted_2 = {
+const Monitoreovue_type_template_id_c88df62a_hoisted_2 = {
   class: "col-6"
 };
-const Monitoreovue_type_template_id_0152accd_hoisted_3 = {
+const Monitoreovue_type_template_id_c88df62a_hoisted_3 = {
   class: "col-6"
 };
-const Monitoreovue_type_template_id_0152accd_hoisted_4 = {
+const Monitoreovue_type_template_id_c88df62a_hoisted_4 = {
   class: "col-3 text-center q-pa-xs"
 };
 
-const Monitoreovue_type_template_id_0152accd_hoisted_5 = /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("div", {
+const Monitoreovue_type_template_id_c88df62a_hoisted_5 = /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("div", {
   class: "text-subtitle2 text-bold"
 }, "Totales", -1);
 
-const Monitoreovue_type_template_id_0152accd_hoisted_6 = {
+const Monitoreovue_type_template_id_c88df62a_hoisted_6 = {
   class: "text-h3 text-bold"
 };
-const Monitoreovue_type_template_id_0152accd_hoisted_7 = {
+const Monitoreovue_type_template_id_c88df62a_hoisted_7 = {
   class: "col-3 text-center q-pa-xs"
 };
 
-const Monitoreovue_type_template_id_0152accd_hoisted_8 = /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("div", {
+const Monitoreovue_type_template_id_c88df62a_hoisted_8 = /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("div", {
   class: "text-subtitle2 text-bold"
 }, "Pedidos", -1);
 
-const Monitoreovue_type_template_id_0152accd_hoisted_9 = {
+const Monitoreovue_type_template_id_c88df62a_hoisted_9 = {
   class: "text-h3 text-bold text-green"
 };
-const Monitoreovue_type_template_id_0152accd_hoisted_10 = {
+const Monitoreovue_type_template_id_c88df62a_hoisted_10 = {
   class: "col-3 text-center q-pa-xs"
 };
 
-const Monitoreovue_type_template_id_0152accd_hoisted_11 = /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("div", {
+const Monitoreovue_type_template_id_c88df62a_hoisted_11 = /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("div", {
   class: "text-subtitle2 text-bold"
 }, "Retorno", -1);
 
-const Monitoreovue_type_template_id_0152accd_hoisted_12 = {
+const Monitoreovue_type_template_id_c88df62a_hoisted_12 = {
   class: "text-h3 text-bold text-yellow"
 };
-const Monitoreovue_type_template_id_0152accd_hoisted_13 = {
+const Monitoreovue_type_template_id_c88df62a_hoisted_13 = {
   class: "col-3 text-center q-pa-xs"
 };
 
-const Monitoreovue_type_template_id_0152accd_hoisted_14 = /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("div", {
+const Monitoreovue_type_template_id_c88df62a_hoisted_14 = /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("div", {
   class: "text-subtitle2 text-bold"
 }, "No pedidos", -1);
 
-const Monitoreovue_type_template_id_0152accd_hoisted_15 = {
+const Monitoreovue_type_template_id_c88df62a_hoisted_15 = {
   class: "text-h3 text-bold text-red"
 };
-const Monitoreovue_type_template_id_0152accd_hoisted_16 = {
+const Monitoreovue_type_template_id_c88df62a_hoisted_16 = {
   class: "col-12"
 };
-function Monitoreovue_type_template_id_0152accd_render(_ctx, _cache, $props, $setup, $data, $options) {
+const Monitoreovue_type_template_id_c88df62a_hoisted_17 = {
+  id: "example",
+  class: "display",
+  style: {
+    "width": "100%"
+  }
+};
+
+const Monitoreovue_type_template_id_c88df62a_hoisted_18 = /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("thead", null, [/*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("tr", null, [/*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "No"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "CLIENTE"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "ESTADO"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "PERSONAL"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "OBSERVACION")])], -1);
+
+function Monitoreovue_type_template_id_c88df62a_render(_ctx, _cache, $props, $setup, $data, $options) {
   const _component_q_select = (0,runtime_core_esm_bundler/* resolveComponent */.up)("q-select");
 
   const _component_q_input = (0,runtime_core_esm_bundler/* resolveComponent */.up)("q-input");
-
-  const _component_q_table = (0,runtime_core_esm_bundler/* resolveComponent */.up)("q-table");
 
   const _component_q_page = (0,runtime_core_esm_bundler/* resolveComponent */.up)("q-page");
 
   return (0,runtime_core_esm_bundler/* openBlock */.wg)(), (0,runtime_core_esm_bundler/* createBlock */.j4)(_component_q_page, {
     class: "q-pa-xs"
   }, {
-    default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Monitoreovue_type_template_id_0152accd_hoisted_1, [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Monitoreovue_type_template_id_0152accd_hoisted_2, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_select, {
-      "onUpdate:modelValue": [$options.consula, _cache[0] || (_cache[0] = $event => $data.user = $event)],
+    default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Monitoreovue_type_template_id_c88df62a_hoisted_1, [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Monitoreovue_type_template_id_c88df62a_hoisted_2, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_select, {
+      "onUpdate:modelValue": [_cache[0] || (_cache[0] = $event => $options.consula($data.user)), _cache[1] || (_cache[1] = $event => $data.user = $event)],
       dense: "",
       outlined: "",
       label: "Vendero",
       options: $data.usuarios,
       modelValue: $data.user
-    }, null, 8, ["onUpdate:modelValue", "options", "modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Monitoreovue_type_template_id_0152accd_hoisted_3, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
-      onChange: _cache[1] || (_cache[1] = $event => $options.consula($data.user)),
+    }, null, 8, ["options", "modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Monitoreovue_type_template_id_c88df62a_hoisted_3, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+      onChange: _cache[2] || (_cache[2] = $event => $options.consula($data.user)),
       modelValue: $data.fecha,
-      "onUpdate:modelValue": _cache[2] || (_cache[2] = $event => $data.fecha = $event),
+      "onUpdate:modelValue": _cache[3] || (_cache[3] = $event => $data.fecha = $event),
       label: "fecha",
       dense: "",
       outlined: "",
       type: "date"
-    }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Monitoreovue_type_template_id_0152accd_hoisted_4, [Monitoreovue_type_template_id_0152accd_hoisted_5, (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Monitoreovue_type_template_id_0152accd_hoisted_6, (0,shared_esm_bundler/* toDisplayString */.zw)($data.pedido + $data.retorno + $data.nopedido), 1)]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Monitoreovue_type_template_id_0152accd_hoisted_7, [Monitoreovue_type_template_id_0152accd_hoisted_8, (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Monitoreovue_type_template_id_0152accd_hoisted_9, (0,shared_esm_bundler/* toDisplayString */.zw)($data.pedido), 1)]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Monitoreovue_type_template_id_0152accd_hoisted_10, [Monitoreovue_type_template_id_0152accd_hoisted_11, (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Monitoreovue_type_template_id_0152accd_hoisted_12, (0,shared_esm_bundler/* toDisplayString */.zw)($data.retorno), 1)]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Monitoreovue_type_template_id_0152accd_hoisted_13, [Monitoreovue_type_template_id_0152accd_hoisted_14, (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Monitoreovue_type_template_id_0152accd_hoisted_15, (0,shared_esm_bundler/* toDisplayString */.zw)($data.nopedido), 1)]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Monitoreovue_type_template_id_0152accd_hoisted_16, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_table, {
-      title: "VISITAS",
-      rows: $data.visitas,
-      columns: $data.columns,
-      "row-key": "name"
-    }, null, 8, ["rows", "columns"])])])]),
+    }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Monitoreovue_type_template_id_c88df62a_hoisted_4, [Monitoreovue_type_template_id_c88df62a_hoisted_5, (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Monitoreovue_type_template_id_c88df62a_hoisted_6, (0,shared_esm_bundler/* toDisplayString */.zw)($data.pedido + $data.retorno + $data.nopedido), 1)]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Monitoreovue_type_template_id_c88df62a_hoisted_7, [Monitoreovue_type_template_id_c88df62a_hoisted_8, (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Monitoreovue_type_template_id_c88df62a_hoisted_9, (0,shared_esm_bundler/* toDisplayString */.zw)($data.pedido), 1)]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Monitoreovue_type_template_id_c88df62a_hoisted_10, [Monitoreovue_type_template_id_c88df62a_hoisted_11, (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Monitoreovue_type_template_id_c88df62a_hoisted_12, (0,shared_esm_bundler/* toDisplayString */.zw)($data.retorno), 1)]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Monitoreovue_type_template_id_c88df62a_hoisted_13, [Monitoreovue_type_template_id_c88df62a_hoisted_14, (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Monitoreovue_type_template_id_c88df62a_hoisted_15, (0,shared_esm_bundler/* toDisplayString */.zw)($data.nopedido), 1)]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Monitoreovue_type_template_id_c88df62a_hoisted_16, [(0,runtime_core_esm_bundler/* createElementVNode */._)("table", Monitoreovue_type_template_id_c88df62a_hoisted_17, [Monitoreovue_type_template_id_c88df62a_hoisted_18, (0,runtime_core_esm_bundler/* createElementVNode */._)("tbody", null, [((0,runtime_core_esm_bundler/* openBlock */.wg)(true), (0,runtime_core_esm_bundler/* createElementBlock */.iD)(runtime_core_esm_bundler/* Fragment */.HY, null, (0,runtime_core_esm_bundler/* renderList */.Ko)($data.visitas, (v, index) => {
+      return (0,runtime_core_esm_bundler/* openBlock */.wg)(), (0,runtime_core_esm_bundler/* createElementBlock */.iD)("tr", {
+        key: index
+      }, [(0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(index + 1), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.Nombres), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.estado), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.Nombre1) + " " + (0,shared_esm_bundler/* toDisplayString */.zw)(v.App1), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.observacion), 1)]);
+    }), 128))])])])])]),
     _: 1
   });
 }
-;// CONCATENATED MODULE: ./src/pages/Monitoreo.vue?vue&type=template&id=0152accd
+;// CONCATENATED MODULE: ./src/pages/Monitoreo.vue?vue&type=template&id=c88df62a
 
 ;// CONCATENATED MODULE: ./node_modules/@quasar/app/lib/webpack/loader.js.transform-quasar-imports.js!./node_modules/babel-loader/lib/index.js??clonedRuleSet-2.use[0]!./node_modules/@quasar/app/lib/webpack/loader.vue.auto-import-quasar.js??ruleSet[0].use[0]!./node_modules/vue-loader/dist/index.js??ruleSet[0].use[1]!./src/pages/Monitoreo.vue?vue&type=script&lang=js
 ;
+
+var Monitoreovue_type_script_lang_js_$ = __webpack_require__(7345);
+
+__webpack_require__(5241)();
+
+__webpack_require__(9720)();
+
+__webpack_require__(2905);
+
+__webpack_require__(1400);
+
+
+
+
+
+(pdfmake_default()).vfs = vfs_fonts/* pdfMake.vfs */.I.vfs;
+window.JSZip = (jszip_default());
 /* harmony default export */ const Monitoreovue_type_script_lang_js = ({
   name: `Monitoreo`,
 
@@ -9638,8 +9662,13 @@ function Monitoreovue_type_template_id_0152accd_render(_ctx, _cache, $props, $se
   },
 
   created() {
+    Monitoreovue_type_script_lang_js_$('#example').DataTable({
+      dom: 'Blfrtip',
+      buttons: ['copy', 'csv', 'excel', 'pdf', 'print']
+    });
     this.$q.loading.show();
     this.misuser();
+    this.consula(this.user);
   },
 
   methods: {
@@ -9649,6 +9678,8 @@ function Monitoreovue_type_template_id_0152accd_render(_ctx, _cache, $props, $se
       this.nopedido = 0;
       this.$q.loading.show(); // console.log()
 
+      this.visitas = [];
+      Monitoreovue_type_script_lang_js_$('#example').DataTable().destroy();
       this.$api.post('misvisitas', {
         id: user.CodAut,
         fecha: this.fecha
@@ -9677,7 +9708,15 @@ function Monitoreovue_type_template_id_0152accd_render(_ctx, _cache, $props, $se
           id: user.CodAut,
           fecha: this.fecha
         }).then(res => {
+          Monitoreovue_type_script_lang_js_$('#example').DataTable().destroy();
           this.visitas = res.data;
+          this.$nextTick(() => {
+            Monitoreovue_type_script_lang_js_$('#example').DataTable({
+              dom: 'Blfrtip',
+              buttons: ['copy', 'csv', 'excel', 'pdf', 'print'],
+              "lengthMenu": [[10, 25, 50, -1], [10, 25, 50, "All"]]
+            });
+          });
         });
         this.$q.loading.hide();
       });
@@ -9714,15 +9753,14 @@ function Monitoreovue_type_template_id_0152accd_render(_ctx, _cache, $props, $se
 
 
 ;
-const Monitoreo_exports_ = /*#__PURE__*/(0,exportHelper/* default */.Z)(Monitoreovue_type_script_lang_js, [['render',Monitoreovue_type_template_id_0152accd_render]])
+const Monitoreo_exports_ = /*#__PURE__*/(0,exportHelper/* default */.Z)(Monitoreovue_type_script_lang_js, [['render',Monitoreovue_type_template_id_c88df62a_render]])
 
 /* harmony default export */ const Monitoreo = (Monitoreo_exports_);
 ;
 
 
 
-
-runtime_auto_import_default()(Monitoreovue_type_script_lang_js, 'components', {QPage: QPage/* default */.Z,QSelect: QSelect/* default */.Z,QInput: QInput/* default */.Z,QTable: QTable/* default */.Z});
+runtime_auto_import_default()(Monitoreovue_type_script_lang_js, 'components', {QPage: QPage/* default */.Z,QSelect: QSelect/* default */.Z,QInput: QInput/* default */.Z});
 
 ;// CONCATENATED MODULE: ./node_modules/@quasar/app/lib/webpack/loader.js.transform-quasar-imports.js!./node_modules/babel-loader/lib/index.js??clonedRuleSet-2.use[0]!./node_modules/vue-loader/dist/templateLoader.js??ruleSet[1].rules[3]!./node_modules/@quasar/app/lib/webpack/loader.vue.auto-import-quasar.js??ruleSet[0].use[0]!./node_modules/vue-loader/dist/index.js??ruleSet[0].use[1]!./src/pages/Ruta.vue?vue&type=template&id=6ef16834
 
@@ -11421,9 +11459,9 @@ module.exports = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5v
 /******/ 	// startup
 /******/ 	// Load entry module and return exports
 /******/ 	// This entry module depends on other loaded chunks and execution need to be delayed
-/******/ 	var __webpack_exports__ = __webpack_require__.O(undefined, [736], () => (__webpack_require__(4472)))
+/******/ 	var __webpack_exports__ = __webpack_require__.O(undefined, [736], () => (__webpack_require__(4344)))
 /******/ 	__webpack_exports__ = __webpack_require__.O(__webpack_exports__);
 /******/ 	
 /******/ })()
 ;
-//# sourceMappingURL=app.cce6a17d.js.map
+//# sourceMappingURL=app.2b978c47.js.map
