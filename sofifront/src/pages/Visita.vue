@@ -112,6 +112,17 @@
               </div>
             </div>
           </template>
+                    <template v-slot:top-left>
+            <div class="row">
+              <div class="col-6 "  @click="misclientes" >
+                <q-btn icon="list" size="xs" color="orange"  />
+              </div>
+              <div class="col-6 " @click="listhoy" >
+                <q-btn icon="today" size="xs" color="cyan" />
+              </div>
+  
+            </div>
+          </template>
 <!--          <template v-slot:top>-->
 <!--            a-->
 <!--          </template>-->
@@ -530,6 +541,40 @@ export default {
     // })
   },
   methods: {
+    listhoy(){
+      this.$q.loading.show()
+      this.$api.post('filtrarlista',{filtradia:1}).then(res=>{
+         console.log(res.data)
+        this.clientes=[]
+        // this.clientes=res.data
+        res.data.forEach(r=>{
+          let d=r
+          // if (r.Latitud)
+          // console.log(r.Latitud)
+          if (parseFloat(r.Latitud)!=NaN && parseFloat(r.longitud)!=NaN && r.Latitud!='' && r.longitud!='' ){
+            // console.log( 'id='+r.Cod_Aut+'  '+(r.Latitud!='' && r.longitud!='' )+' R='+parseFloat(r.Latitud)+'---'+parseFloat(r.longitud))
+            d.Latitud=parseFloat(r.Latitud)
+            d.longitud=parseFloat(r.longitud)
+          }else{
+            // console.log( (r.Latitud!='' && r.longitud!='' )+' R='+r.Latitud+'---'+r.longitud)
+            d.Latitud=0
+            d.longitud=0
+          }
+
+          this.clientes.push(d)
+        })
+        // console.log(this.clientes)
+        this.$q.loading.hide()
+      }).catch(err=>{
+        // console.log(err.response)
+        this.$q.loading.hide()
+        this.$q.notify({
+          message:err.response.data.message,
+          color:'red',
+          icon:'error'
+        })
+      })
+    },
     misclientes(){
       this.$q.loading.show()
       this.$api.get('cliente').then(res=>{
