@@ -29,6 +29,7 @@
         <thead>
         <tr>
           <th>No</th>
+          <th>HORA</th>
           <th>CLIENTE</th>
           <th>ESTADO</th>
           <th>PERSONAL</th>
@@ -38,6 +39,7 @@
         <tbody>
         <tr v-for="(v,index) in visitas" :key="index">
           <td>{{index + 1}}</td>
+          <td>{{v.hora}}</td>
           <td>{{v.Nombres}}</td>
           <td>{{v.estado}}</td>
           <td>{{v.Nombre1}} {{v.App1}}</td>
