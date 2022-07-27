@@ -48,7 +48,12 @@
           <div class="text-subtitle2">{{cliente.Cod_Aut}} {{cliente.Nombres}}</div>
         </q-card-section>
         <q-card-section class="q-pt-none">
-
+          <div class="text-bold col-6 flex flex-center">
+<!--               <div class="q-gutter-sm col-md-6 col-sm-12" >-->
+                <q-radio  dense v-model="pago" val="CONTADO" label="Contado" />
+                <q-radio  dense v-model="pago" val="CREDITO" label="Credito" />
+<!--              </div>-->
+          </div>
           <div class="row">
             <div class="col-10">
               <q-select label="Productos" dense outlined class="q-ma-xs" use-input input-debounce="0"  @filter="filterFn" :options="productos" v-model="producto">
@@ -531,6 +536,7 @@ export default {
       url:process.env.API,
       filter:'',
       pedestado:'',
+      pago:'CONTADO',
       miproducto:{},
       modalpedido:false,
       modalcerdo:false,
@@ -1418,8 +1424,9 @@ generarpollo(){
       // console.log(this.misproductos)
       // console.log(this.cliente)
       this.$q.loading.show()
-      this.$api.post('updatecomanda',{comanda:this.cliente.NroPed,idCli:this.cliente.Cod_Aut,productos:this.misproductos}).then(res=>{
+      this.$api.post('updatecomanda',{comanda:this.cliente.NroPed,idCli:this.cliente.Cod_Aut,productos:this.misproductos,pago:this.pago}).then(res=>{
         // console.log(res.data)
+        this.pago='CONTADO'
         this.$q.loading.hide()
         this.modalpedido=false
       })
@@ -1543,6 +1550,7 @@ generarpollo(){
         bs2:'',
         contado:'',
         pfrial:'',
+
          tipo:this.producto.tipo,
         nombre:this.producto.Producto,
         cod_prod:this.producto.cod_prod,

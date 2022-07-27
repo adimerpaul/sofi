@@ -143,7 +143,7 @@ class ExcelController extends Controller
                 $sheet->setCellValue('Z'.$c, $r->menu==''?'':$r->menu.''.$r->unidmenu);
                 $sheet->setCellValue('AA'.$c, $r->bs);
                 $sheet->setCellValue('AB'.$c, $r->bs2);
-                $sheet->setCellValue('AC'.$c, $r->pago=='CONTADO'?'si':'');
+                $sheet->setCellValue('AC'.$c, $r->pago=='CONTADO'?'si':'no');
                 $sheet->setCellValue('AD'.$c, $r->Observaciones);
                 $c++;
             }
@@ -197,6 +197,7 @@ class ExcelController extends Controller
                 $sheet->setCellValue('F'.$c, $r->pierna);
                 $sheet->setCellValue('G'.$c, $r->brazo);
                 $sheet->setCellValue('J'.$c, $r->Observaciones);
+                $sheet->setCellValue('K'.$c, $r->pago=='CONTADO'?'si':'no');
                 $c++;
             }
 //            return $t;
@@ -248,6 +249,7 @@ class ExcelController extends Controller
                 $sheet->setCellValue('H'.$c, $r->corte);
                 $sheet->setCellValue('I'.$c, $r->kilo);
                 $sheet->setCellValue('J'.$c, $r->Observaciones);
+                $sheet->setCellValue('U'.$c, $r->pago=='CONTADO'?'si':'no');
                 $c++;
             }
         //            return $t;
