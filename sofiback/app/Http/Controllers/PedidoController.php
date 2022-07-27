@@ -487,7 +487,7 @@ class PedidoController extends Controller
                 DB::select("DELETE FROM tbpedidos where NroPed='$numpedido'");
     }
     public function listpedido(Request $request){
-        $pedido= DB::SELECT("SELECT NroPed,CIfunc,idCli,fecha,estado from tbpedidos where NroPed='$request->NroPed'  group by NroPed,CIfunc,idCli,fecha,estado ");
+        $pedido= DB::SELECT("SELECT NroPed,CIfunc,idCli,fecha,estado,pago from tbpedidos where NroPed='$request->NroPed'  group by NroPed,CIfunc,idCli,fecha,estado,pago ");
 //        return $pedido;
         foreach ($pedido as $row) {
             $lisrped=DB::SELECT("SELECT

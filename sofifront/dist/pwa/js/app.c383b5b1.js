@@ -1,7 +1,7 @@
 /******/ (() => { // webpackBootstrap
 /******/ 	var __webpack_modules__ = ({
 
-/***/ 118:
+/***/ 2930:
 /***/ ((__unused_webpack_module, __unused_webpack___webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -1626,67 +1626,67 @@ const Misasignaciones_exports_ = /*#__PURE__*/(0,exportHelper/* default */.Z)(Mi
 
 runtime_auto_import_default()(Misasignacionesvue_type_script_lang_js, 'components', {QPage: QPage/* default */.Z,QInput: QInput/* default */.Z,QBtn: QBtn/* default */.Z,QTable: QTable/* default */.Z,QTd: QTd/* default */.Z,QIcon: QIcon/* default */.Z,QDialog: QDialog/* default */.Z,QCard: QCard/* default */.Z,QCardSection: QCardSection/* default */.Z,QRadio: QRadio/* default */.Z,QCardActions: QCardActions/* default */.Z});runtime_auto_import_default()(Misasignacionesvue_type_script_lang_js, 'directives', {ClosePopup: ClosePopup/* default */.Z});
 
-;// CONCATENATED MODULE: ./node_modules/@quasar/app/lib/webpack/loader.js.transform-quasar-imports.js!./node_modules/babel-loader/lib/index.js??clonedRuleSet-2.use[0]!./node_modules/vue-loader/dist/templateLoader.js??ruleSet[1].rules[3]!./node_modules/@quasar/app/lib/webpack/loader.vue.auto-import-quasar.js??ruleSet[0].use[0]!./node_modules/vue-loader/dist/index.js??ruleSet[0].use[1]!./src/pages/Mispedidos.vue?vue&type=template&id=2046685b
+;// CONCATENATED MODULE: ./node_modules/@quasar/app/lib/webpack/loader.js.transform-quasar-imports.js!./node_modules/babel-loader/lib/index.js??clonedRuleSet-2.use[0]!./node_modules/vue-loader/dist/templateLoader.js??ruleSet[1].rules[3]!./node_modules/@quasar/app/lib/webpack/loader.vue.auto-import-quasar.js??ruleSet[0].use[0]!./node_modules/vue-loader/dist/index.js??ruleSet[0].use[1]!./src/pages/Mispedidos.vue?vue&type=template&id=0e55f2ac
 
-const Mispedidosvue_type_template_id_2046685b_hoisted_1 = {
+const Mispedidosvue_type_template_id_0e55f2ac_hoisted_1 = {
   class: "row"
 };
-const Mispedidosvue_type_template_id_2046685b_hoisted_2 = {
+const Mispedidosvue_type_template_id_0e55f2ac_hoisted_2 = {
   class: "col-6"
 };
-const Mispedidosvue_type_template_id_2046685b_hoisted_3 = {
+const Mispedidosvue_type_template_id_0e55f2ac_hoisted_3 = {
   class: "col-6 flex flex-center"
 };
-const Mispedidosvue_type_template_id_2046685b_hoisted_4 = {
+const Mispedidosvue_type_template_id_0e55f2ac_hoisted_4 = {
   class: "col-4 col-sm-4 flex flex-center"
 };
-const Mispedidosvue_type_template_id_2046685b_hoisted_5 = {
+const Mispedidosvue_type_template_id_0e55f2ac_hoisted_5 = {
   class: "col-4 col-sm-4 flex flex-center"
 };
-const Mispedidosvue_type_template_id_2046685b_hoisted_6 = {
+const Mispedidosvue_type_template_id_0e55f2ac_hoisted_6 = {
   class: "col-4 col-sm-4 flex flex-center"
 };
-const Mispedidosvue_type_template_id_2046685b_hoisted_7 = {
+const Mispedidosvue_type_template_id_0e55f2ac_hoisted_7 = {
   class: "col-12"
 };
-const Mispedidosvue_type_template_id_2046685b_hoisted_8 = {
+const Mispedidosvue_type_template_id_0e55f2ac_hoisted_8 = {
   class: "text-subtitle2"
 };
-const Mispedidosvue_type_template_id_2046685b_hoisted_9 = {
+const Mispedidosvue_type_template_id_0e55f2ac_hoisted_9 = {
   class: "text-bold col-6 flex flex-center"
 };
-const Mispedidosvue_type_template_id_2046685b_hoisted_10 = {
+const Mispedidosvue_type_template_id_0e55f2ac_hoisted_10 = {
   class: "row"
 };
-const Mispedidosvue_type_template_id_2046685b_hoisted_11 = {
+const Mispedidosvue_type_template_id_0e55f2ac_hoisted_11 = {
   class: "col-10"
 };
 
-const Mispedidosvue_type_template_id_2046685b_hoisted_12 = /*#__PURE__*/(0,runtime_core_esm_bundler/* createTextVNode */.Uk)(" No results ");
+const Mispedidosvue_type_template_id_0e55f2ac_hoisted_12 = /*#__PURE__*/(0,runtime_core_esm_bundler/* createTextVNode */.Uk)(" No results ");
 
-const Mispedidosvue_type_template_id_2046685b_hoisted_13 = {
+const Mispedidosvue_type_template_id_0e55f2ac_hoisted_13 = {
   class: "col-2 flex flex-center"
 };
-const Mispedidosvue_type_template_id_2046685b_hoisted_14 = {
+const Mispedidosvue_type_template_id_0e55f2ac_hoisted_14 = {
   class: "col-12"
 };
-const Mispedidosvue_type_template_id_2046685b_hoisted_15 = ["onKeyup", "onUpdate:modelValue"];
-const Mispedidosvue_type_template_id_2046685b_hoisted_16 = ["onKeyup", "onUpdate:modelValue"];
-const Mispedidosvue_type_template_id_2046685b_hoisted_17 = {
+const Mispedidosvue_type_template_id_0e55f2ac_hoisted_15 = ["onKeyup", "onUpdate:modelValue"];
+const Mispedidosvue_type_template_id_0e55f2ac_hoisted_16 = ["onKeyup", "onUpdate:modelValue"];
+const Mispedidosvue_type_template_id_0e55f2ac_hoisted_17 = {
   class: "row"
 };
-const Mispedidosvue_type_template_id_2046685b_hoisted_18 = {
+const Mispedidosvue_type_template_id_0e55f2ac_hoisted_18 = {
   class: "col-12"
 };
-const Mispedidosvue_type_template_id_2046685b_hoisted_19 = {
+const Mispedidosvue_type_template_id_0e55f2ac_hoisted_19 = {
   class: "text-subtitle2"
 };
 
-const Mispedidosvue_type_template_id_2046685b_hoisted_20 = /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("div", {
+const Mispedidosvue_type_template_id_0e55f2ac_hoisted_20 = /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("div", {
   class: "text-h6"
 }, "Pedido Pollo", -1);
 
-const Mispedidosvue_type_template_id_2046685b_hoisted_21 = {
+const Mispedidosvue_type_template_id_0e55f2ac_hoisted_21 = {
   class: "row"
 };
 const _hoisted_22 = {
@@ -1903,7 +1903,7 @@ const _hoisted_84 = {
 
 const _hoisted_85 = /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("thead", null, [/*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("tr", null, [/*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "No"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "CLIENTE"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "PRECIO"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "TOTAL"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "ENTERO"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "DESMEMBRADO"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "CORTE"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "CORTE/KILO"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "CONT"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "OBSERVACION")])], -1);
 
-function Mispedidosvue_type_template_id_2046685b_render(_ctx, _cache, $props, $setup, $data, $options) {
+function Mispedidosvue_type_template_id_0e55f2ac_render(_ctx, _cache, $props, $setup, $data, $options) {
   const _component_q_input = (0,runtime_core_esm_bundler/* resolveComponent */.up)("q-input");
 
   const _component_q_btn = (0,runtime_core_esm_bundler/* resolveComponent */.up)("q-btn");
@@ -1941,19 +1941,19 @@ function Mispedidosvue_type_template_id_2046685b_render(_ctx, _cache, $props, $s
   return (0,runtime_core_esm_bundler/* openBlock */.wg)(), (0,runtime_core_esm_bundler/* createBlock */.j4)(_component_q_page, {
     class: "q-pa-xs"
   }, {
-    default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Mispedidosvue_type_template_id_2046685b_hoisted_1, [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Mispedidosvue_type_template_id_2046685b_hoisted_2, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+    default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Mispedidosvue_type_template_id_0e55f2ac_hoisted_1, [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Mispedidosvue_type_template_id_0e55f2ac_hoisted_2, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
       dense: "",
       outlined: "",
       modelValue: $data.fecha1,
       "onUpdate:modelValue": _cache[0] || (_cache[0] = $event => $data.fecha1 = $event),
       label: "Fecha Ini",
       type: "date"
-    }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Mispedidosvue_type_template_id_2046685b_hoisted_3, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_btn, {
+    }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Mispedidosvue_type_template_id_0e55f2ac_hoisted_3, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_btn, {
       color: "info",
       icon: "search",
       label: "consulta",
       onClick: $options.misclientes
-    }, null, 8, ["onClick"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Mispedidosvue_type_template_id_2046685b_hoisted_4, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_btn, {
+    }, null, 8, ["onClick"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Mispedidosvue_type_template_id_0e55f2ac_hoisted_4, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_btn, {
       class: "full-width",
       color: "green",
       type: "a",
@@ -1962,7 +1962,7 @@ function Mispedidosvue_type_template_id_2046685b_render(_ctx, _cache, $props, $s
       icon: "list",
       label: "Reporte Pollo",
       onClick1: $options.generarpollo
-    }, null, 8, ["href", "onClick1"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Mispedidosvue_type_template_id_2046685b_hoisted_5, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_btn, {
+    }, null, 8, ["href", "onClick1"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Mispedidosvue_type_template_id_0e55f2ac_hoisted_5, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_btn, {
       class: "full-width",
       color: "accent",
       type: "a",
@@ -1971,7 +1971,7 @@ function Mispedidosvue_type_template_id_2046685b_render(_ctx, _cache, $props, $s
       icon: "list",
       label: "Reporte Res",
       onClick1: $options.generarres
-    }, null, 8, ["href", "onClick1"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Mispedidosvue_type_template_id_2046685b_hoisted_6, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_btn, {
+    }, null, 8, ["href", "onClick1"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Mispedidosvue_type_template_id_0e55f2ac_hoisted_6, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_btn, {
       class: "full-width",
       color: "teal",
       type: "a",
@@ -1980,7 +1980,7 @@ function Mispedidosvue_type_template_id_2046685b_render(_ctx, _cache, $props, $s
       icon: "list",
       label: "Reporte Cerdo",
       onClick1: $options.generarcerdo
-    }, null, 8, ["href", "onClick1"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Mispedidosvue_type_template_id_2046685b_hoisted_7, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_table, {
+    }, null, 8, ["href", "onClick1"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Mispedidosvue_type_template_id_0e55f2ac_hoisted_7, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_table, {
       "rows-per-page-options": [15, 50, 100, 0],
       dense: "",
       title: "Clientes ",
@@ -2036,12 +2036,12 @@ function Mispedidosvue_type_template_id_2046685b_render(_ctx, _cache, $props, $s
     }, {
       default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_card, null, {
         default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_card_section, null, {
-          default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Mispedidosvue_type_template_id_2046685b_hoisted_8, (0,shared_esm_bundler/* toDisplayString */.zw)($data.cliente.Cod_Aut) + " " + (0,shared_esm_bundler/* toDisplayString */.zw)($data.cliente.Nombres), 1)]),
+          default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Mispedidosvue_type_template_id_0e55f2ac_hoisted_8, (0,shared_esm_bundler/* toDisplayString */.zw)($data.cliente.Cod_Aut) + " " + (0,shared_esm_bundler/* toDisplayString */.zw)($data.cliente.Nombres), 1)]),
           _: 1
         }), (0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_card_section, {
           class: "q-pt-none"
         }, {
-          default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Mispedidosvue_type_template_id_2046685b_hoisted_9, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_radio, {
+          default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Mispedidosvue_type_template_id_0e55f2ac_hoisted_9, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_radio, {
             dense: "",
             modelValue: $data.pago,
             "onUpdate:modelValue": _cache[2] || (_cache[2] = $event => $data.pago = $event),
@@ -2053,7 +2053,7 @@ function Mispedidosvue_type_template_id_2046685b_render(_ctx, _cache, $props, $s
             "onUpdate:modelValue": _cache[3] || (_cache[3] = $event => $data.pago = $event),
             val: "CREDITO",
             label: "Credito"
-          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Mispedidosvue_type_template_id_2046685b_hoisted_10, [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Mispedidosvue_type_template_id_2046685b_hoisted_11, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_select, {
+          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Mispedidosvue_type_template_id_0e55f2ac_hoisted_10, [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Mispedidosvue_type_template_id_0e55f2ac_hoisted_11, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_select, {
             label: "Productos",
             dense: "",
             outlined: "",
@@ -2069,19 +2069,19 @@ function Mispedidosvue_type_template_id_2046685b_render(_ctx, _cache, $props, $s
               default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_item_section, {
                 class: "text-grey"
               }, {
-                default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [Mispedidosvue_type_template_id_2046685b_hoisted_12]),
+                default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [Mispedidosvue_type_template_id_0e55f2ac_hoisted_12]),
                 _: 1
               })]),
               _: 1
             })]),
             _: 1
-          }, 8, ["onFilter", "options", "modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Mispedidosvue_type_template_id_2046685b_hoisted_13, [$data.cliente.estado == 'CREADO' ? ((0,runtime_core_esm_bundler/* openBlock */.wg)(), (0,runtime_core_esm_bundler/* createBlock */.j4)(_component_q_btn, {
+          }, 8, ["onFilter", "options", "modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Mispedidosvue_type_template_id_0e55f2ac_hoisted_13, [$data.cliente.estado == 'CREADO' ? ((0,runtime_core_esm_bundler/* openBlock */.wg)(), (0,runtime_core_esm_bundler/* createBlock */.j4)(_component_q_btn, {
             key: 0,
             class: "q-pa-xs q-ma-none",
             color: "primary",
             icon: "add_circle",
             onClick: $options.agregarpedido
-          }, null, 8, ["onClick"])) : (0,runtime_core_esm_bundler/* createCommentVNode */.kq)("", true)]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Mispedidosvue_type_template_id_2046685b_hoisted_14, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_table, {
+          }, null, 8, ["onClick"])) : (0,runtime_core_esm_bundler/* createCommentVNode */.kq)("", true)]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Mispedidosvue_type_template_id_0e55f2ac_hoisted_14, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_table, {
             rows: $data.misproductos,
             filter: $data.filteproducto,
             columns: $data.columnsproducto
@@ -2123,7 +2123,7 @@ function Mispedidosvue_type_template_id_2046685b_render(_ctx, _cache, $props, $s
                 style: {
                   "width": "2.5em"
                 }
-              }, null, 40, Mispedidosvue_type_template_id_2046685b_hoisted_15), [[runtime_dom_esm_bundler/* vModelText */.nr, props.row.cantidad]])], 64)) : (0,runtime_core_esm_bundler/* createCommentVNode */.kq)("", true), (0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_btn, {
+              }, null, 40, Mispedidosvue_type_template_id_0e55f2ac_hoisted_15), [[runtime_dom_esm_bundler/* vModelText */.nr, props.row.cantidad]])], 64)) : (0,runtime_core_esm_bundler/* createCommentVNode */.kq)("", true), (0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_btn, {
                 flat: "",
                 onClick: $event => $options.quitar(props.row, props.rowIndex),
                 class: "q-ma-none q-pa-none",
@@ -2143,10 +2143,10 @@ function Mispedidosvue_type_template_id_2046685b_render(_ctx, _cache, $props, $s
                 style: {
                   "width": "3em"
                 }
-              }, null, 40, Mispedidosvue_type_template_id_2046685b_hoisted_16), [[runtime_dom_esm_bundler/* vModelText */.nr, props.row.precio]])]),
+              }, null, 40, Mispedidosvue_type_template_id_0e55f2ac_hoisted_16), [[runtime_dom_esm_bundler/* vModelText */.nr, props.row.precio]])]),
               _: 2
             }, 1032, ["props"])]),
-            "top-right": (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Mispedidosvue_type_template_id_2046685b_hoisted_17, [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Mispedidosvue_type_template_id_2046685b_hoisted_18, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+            "top-right": (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Mispedidosvue_type_template_id_0e55f2ac_hoisted_17, [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Mispedidosvue_type_template_id_0e55f2ac_hoisted_18, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
               outlined: "",
               dense: "",
               modelValue: $data.filteproducto,
@@ -2162,7 +2162,7 @@ function Mispedidosvue_type_template_id_2046685b_render(_ctx, _cache, $props, $s
               default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_td, {
                 colspan: "100%"
               }, {
-                default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Mispedidosvue_type_template_id_2046685b_hoisted_19, "Total: " + (0,shared_esm_bundler/* toDisplayString */.zw)($options.total) + " Bs.", 1)]),
+                default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Mispedidosvue_type_template_id_0e55f2ac_hoisted_19, "Total: " + (0,shared_esm_bundler/* toDisplayString */.zw)($options.total) + " Bs.", 1)]),
                 _: 1
               })]),
               _: 1
@@ -2218,12 +2218,12 @@ function Mispedidosvue_type_template_id_2046685b_render(_ctx, _cache, $props, $s
     }, {
       default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_card, null, {
         default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_card_section, null, {
-          default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [Mispedidosvue_type_template_id_2046685b_hoisted_20]),
+          default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [Mispedidosvue_type_template_id_0e55f2ac_hoisted_20]),
           _: 1
         }), (0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_card_section, {
           class: "q-pt-none"
         }, {
-          default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Mispedidosvue_type_template_id_2046685b_hoisted_21, [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", _hoisted_22, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+          default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Mispedidosvue_type_template_id_0e55f2ac_hoisted_21, [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", _hoisted_22, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
             type: "number",
             dense: "",
             outlined: "",
@@ -2774,7 +2774,7 @@ function Mispedidosvue_type_template_id_2046685b_render(_ctx, _cache, $props, $s
     _: 1
   });
 }
-;// CONCATENATED MODULE: ./src/pages/Mispedidos.vue?vue&type=template&id=2046685b
+;// CONCATENATED MODULE: ./src/pages/Mispedidos.vue?vue&type=template&id=0e55f2ac
 
 // EXTERNAL MODULE: ./node_modules/datatables.net-buttons/js/buttons.print.js
 var buttons_print = __webpack_require__(9720);
@@ -3955,6 +3955,7 @@ window.JSZip = (jszip_default());
       }).then(res => {
         // console.log(res.data)
         // return false
+        this.pago = res.data[0].pago;
         this.misproductos = res.data[0].pedidos;
         this.modalpedido = true;
         this.$q.loading.hide();
@@ -4012,7 +4013,7 @@ var QItemSection = __webpack_require__(2035);
 
 
 ;
-const Mispedidos_exports_ = /*#__PURE__*/(0,exportHelper/* default */.Z)(Mispedidosvue_type_script_lang_js, [['render',Mispedidosvue_type_template_id_2046685b_render]])
+const Mispedidos_exports_ = /*#__PURE__*/(0,exportHelper/* default */.Z)(Mispedidosvue_type_script_lang_js, [['render',Mispedidosvue_type_template_id_0e55f2ac_render]])
 
 /* harmony default export */ const Mispedidos = (Mispedidos_exports_);
 ;
@@ -11480,9 +11481,9 @@ module.exports = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5v
 /******/ 	// startup
 /******/ 	// Load entry module and return exports
 /******/ 	// This entry module depends on other loaded chunks and execution need to be delayed
-/******/ 	var __webpack_exports__ = __webpack_require__.O(undefined, [736], () => (__webpack_require__(118)))
+/******/ 	var __webpack_exports__ = __webpack_require__.O(undefined, [736], () => (__webpack_require__(2930)))
 /******/ 	__webpack_exports__ = __webpack_require__.O(__webpack_exports__);
 /******/ 	
 /******/ })()
 ;
-//# sourceMappingURL=app.69a878ef.js.map
+//# sourceMappingURL=app.c383b5b1.js.map

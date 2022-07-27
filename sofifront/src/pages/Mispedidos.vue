@@ -1595,6 +1595,7 @@ generarpollo(){
         this.$api.post('listpedido',{NroPed:cliente.NroPed,fecha1:this.fecha1,fecha2:this.fecha2}).then(res=>{
           // console.log(res.data)
           // return false
+          this.pago=res.data[0].pago
           this.misproductos=res.data[0].pedidos
 
           this.modalpedido=true
