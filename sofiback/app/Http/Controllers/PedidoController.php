@@ -184,6 +184,10 @@ class PedidoController extends Controller
 //                "pago"=>$request->pago
 //            ]);
 // //            var_dump($p);
+        if($p['tipo']=='POLLO' || $p['tipo']=='RES' || $p['tipo']=='CERDO')
+            $imp=1;
+        else
+            $imp=0;
             $d=[
                 'NroPed' => $numpedido,
                 'cod_prod'=>$p['cod_prod'],
@@ -205,7 +209,7 @@ class PedidoController extends Controller
                 "obsbrasa6"=>$p['obsbrasa6'],
                 "Observaciones"=>$p['observacion'],
                 "Canttxt"=>$p['observacion']!=null?$p['observacion']:'',
-                "impreso"=>0,
+                "impreso"=>$imp,
                 "pagado"=>0,
                 "Tipo1"=>0,
                 "Tipo2"=>0,
@@ -383,6 +387,10 @@ class PedidoController extends Controller
         $numpedido=$request->comanda;
         DB::select("DELETE FROM tbpedidos where NroPed='$numpedido'");
         foreach ($request->productos as $p){
+            if($p['tipo']=='POLLO' || $p['tipo']=='RES' || $p['tipo']=='CERDO')
+            $imp=1;
+        else
+            $imp=0;
             DB::table('tbpedidos')->insert([
                 'NroPed' => $numpedido,
                 'cod_prod'=>$p['cod_prod'],
@@ -402,7 +410,7 @@ class PedidoController extends Controller
                 "obsbrasa6"=>$p['obsbrasa6'],
                 "Observaciones"=>$p['observacion'],
                 "Canttxt"=>$p['observacion']!=null?$p['observacion']:'',
-                "impreso"=>0,
+                "impreso"=>$imp,
                 "pagado"=>0,
                 "Tipo1"=>0,
                 "Tipo2"=>0,
