@@ -567,6 +567,7 @@ export default {
         {label:'Comanda',name:'NroPed',field:'NroPed'},
         {label:'Nombre',name:'Nombres',field:'Nombres',align:'left'},
         {label:'CI',name:'Id',field:'Id',align:'left'},
+        {label:'PAGO',name:'pago',field:'pago',align:'left'},
       ],
       columnsproducto:[
         {label:'subtotal',name:'subtotal',field:'subtotal'},
