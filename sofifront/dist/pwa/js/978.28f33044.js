@@ -1,7 +1,7 @@
 "use strict";
-(self["webpackChunksofi"] = self["webpackChunksofi"] || []).push([[898],{
+(self["webpackChunksofi"] = self["webpackChunksofi"] || []).push([[978],{
 
-/***/ 5898:
+/***/ 2978:
 /***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 // ESM COMPAT FLAG
@@ -16,7 +16,7 @@ __webpack_require__.d(__webpack_exports__, {
 var runtime_core_esm_bundler = __webpack_require__(3673);
 // EXTERNAL MODULE: ./node_modules/@vue/shared/dist/shared.esm-bundler.js
 var shared_esm_bundler = __webpack_require__(2323);
-;// CONCATENATED MODULE: ./node_modules/@quasar/app/lib/webpack/loader.js.transform-quasar-imports.js!./node_modules/babel-loader/lib/index.js??clonedRuleSet-2.use[0]!./node_modules/vue-loader/dist/templateLoader.js??ruleSet[1].rules[3]!./node_modules/@quasar/app/lib/webpack/loader.vue.auto-import-quasar.js??ruleSet[0].use[0]!./node_modules/vue-loader/dist/index.js??ruleSet[0].use[1]!./src/layouts/MainLayout.vue?vue&type=template&id=22b8f84c
+;// CONCATENATED MODULE: ./node_modules/@quasar/app/lib/webpack/loader.js.transform-quasar-imports.js!./node_modules/babel-loader/lib/index.js??clonedRuleSet-2.use[0]!./node_modules/vue-loader/dist/templateLoader.js??ruleSet[1].rules[3]!./node_modules/@quasar/app/lib/webpack/loader.vue.auto-import-quasar.js??ruleSet[0].use[0]!./node_modules/vue-loader/dist/index.js??ruleSet[0].use[1]!./src/layouts/MainLayout.vue?vue&type=template&id=488c26c6
 
 
 const _hoisted_1 = /*#__PURE__*/(0,runtime_core_esm_bundler/* createTextVNode */.Uk)("Sofia");
@@ -552,9 +552,9 @@ function render(_ctx, _cache, $props, $setup, $data, $options) {
   data() {
     return {
       leftDrawerOpen: false,
-      vendores: ['12612870', '1593578', '33555433', '3520335', '5676554', '7422201', '9876785', '7360035'],
-      encargados: ['0', '123321', '22222222', '2754612'],
-      despachador: ['7386961', '9688418', '2754612', '7417239', '12810781', '7395208']
+      vendores: ['12612870', '1593578', '33555433', '3520335', '5676554', '7422201', '9876785', '7360035', '5067737', '7331330'],
+      encargados: ['0', '123321', '22222222', '7205489'],
+      despachador: ['7386961', '9688418', '7205489', '7417239', '12810781', '7395208']
     };
   },
 
@@ -650,4 +650,4 @@ runtime_auto_import_default()(MainLayoutvue_type_script_lang_js, 'components', {
 /***/ })
 
 }]);
-//# sourceMappingURL=898.d40e01ee.js.map
+//# sourceMappingURL=978.28f33044.js.map

@@ -266,25 +266,25 @@
             <div class="col-6" ><q-input type="number" dense outlined label="Cja b5" v-model="miproducto.cbrasa5"/></div>
             <div class="col-6" ><q-input type="number" dense outlined label="Uni b5" v-model="miproducto.ubrasa5"/></div>
 
-            <div class="col-6" ><q-input type="number" dense outlined label="Cja b6" v-model="miproducto.cbrasa6"/></div>
+            <div class="col-6" ><q-input type="number" dense outlined label="Cja b6()" v-model="miproducto.cbrasa6"/></div>
             <div class="col-6" ><q-input type="number" dense outlined label="Uni b6" v-model="miproducto.cubrasa6"/></div>
 
-            <div class="col-6" ><q-input type="number" dense outlined label="Cja-104" v-model="miproducto.c104"/></div>
+            <div class="col-6" ><q-input type="number" dense outlined label="Cja-104(1.5-1.7)" v-model="miproducto.c104"/></div>
             <div class="col-6" ><q-input type="number" dense outlined label="Unid-104" v-model="miproducto.u104"/></div>
 
-            <div class="col-6" ><q-input type="number" dense outlined label="Cja-105" v-model="miproducto.c105"/></div>
+            <div class="col-6" ><q-input type="number" dense outlined label="Cja-105(1.7-1.9)" v-model="miproducto.c105"/></div>
             <div class="col-6" ><q-input type="number" dense outlined label="Unid-105" v-model="miproducto.u105"/></div>
 
-            <div class="col-6" ><q-input type="number" dense outlined label="Cja-106" v-model="miproducto.c106"/></div>
+            <div class="col-6" ><q-input type="number" dense outlined label="Cja-106(1.9-2.2)" v-model="miproducto.c106"/></div>
             <div class="col-6" ><q-input type="number" dense outlined label="Unid-106" v-model="miproducto.u106"/></div>
 
-            <div class="col-6" ><q-input type="number" dense outlined label="Cja-107" v-model="miproducto.c107"/></div>
+            <div class="col-6" ><q-input type="number" dense outlined label="Cja-107(2.2-2.5)" v-model="miproducto.c107"/></div>
             <div class="col-6" ><q-input type="number" dense outlined label="Unid-107" v-model="miproducto.u107"/></div>
 
-            <div class="col-6" ><q-input type="number" dense outlined label="Cja-108" v-model="miproducto.c108"/></div>
+            <div class="col-6" ><q-input type="number" dense outlined label="Cja-108(2.6-2.7)" v-model="miproducto.c108"/></div>
             <div class="col-6" ><q-input type="number" dense outlined label="Unid-108" v-model="miproducto.u108"/></div>
 
-            <div class="col-6" ><q-input type="number" dense outlined label="Cja-109" v-model="miproducto.c109"/></div>
+            <div class="col-6" ><q-input type="number" dense outlined label="Cja-109(2.8-2.9)" v-model="miproducto.c109"/></div>
             <div class="col-6" ><q-input type="number" dense outlined label="Unid-109" v-model="miproducto.u109"/></div>
 
             <div class="col-6" ><q-input type="number" dense outlined label="ala" v-model="miproducto.ala"/></div>
