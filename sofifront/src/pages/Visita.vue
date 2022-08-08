@@ -266,7 +266,7 @@
             <div class="col-6" ><q-input type="number" dense outlined label="Cja b5" v-model="miproducto.cbrasa5"/></div>
             <div class="col-6" ><q-input type="number" dense outlined label="Uni b5" v-model="miproducto.ubrasa5"/></div>
 
-            <div class="col-6" ><q-input type="number" dense outlined label="Cja b6()" v-model="miproducto.cbrasa6"/></div>
+            <div class="col-6" ><q-input type="number" dense outlined label="Cja b6" v-model="miproducto.cbrasa6"/></div>
             <div class="col-6" ><q-input type="number" dense outlined label="Uni b6" v-model="miproducto.cubrasa6"/></div>
 
             <div class="col-6" ><q-input type="number" dense outlined label="Cja-104(1.5-1.7)" v-model="miproducto.c104"/></div>
