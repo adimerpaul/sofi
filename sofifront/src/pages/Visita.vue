@@ -177,6 +177,14 @@
                 <q-radio  dense v-model="pago" val="CREDITO" label="Credito" />
 <!--              </div>-->
           </div>
+          <div class="col-6">    
+            <q-toggle
+            :label="fact+' FACTURA'"
+            color="green"
+            false-value="NO"
+            true-value="SI"
+            v-model="fact"/>
+            </div>
             <div class="col-6">
               <q-input label="Fecha" v-model="fecha" type="date" dense outlined :min="fechamenos" />
             </div>
@@ -515,6 +523,7 @@ export default {
       producto:{label:''},
       userLocation:{},
       pago:'CONTADO',
+      fact:'NO',
       columns:[
         {label:'Cod_Aut',name:'Cod_Aut',field:'Cod_Aut'},
         {label:'Nombres',name:'Nombres',field:'Nombres',align:'left'},
@@ -756,7 +765,7 @@ export default {
         })
         return false
       }
-      this.$api.post('pedido',{idCli:this.cliente.Cod_Aut,lat:lat,lng:lng,productos:this.misproductos,pago:this.pago,fecha:this.fecha}).then(res=>{
+      this.$api.post('pedido',{idCli:this.cliente.Cod_Aut,lat:lat,lng:lng,productos:this.misproductos,pago:this.pago,fact:this.fact,fecha:this.fecha}).then(res=>{
          // console.log(res.data)
         // return false
         this.modalpedido=false

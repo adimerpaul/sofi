@@ -283,7 +283,8 @@ class PedidoController extends Controller
                 "brazo"=>$p['brazo'],
                 "pfrial"=>$p['pfrial'],
                 "hora"=>date('H:i:s'),
-                "pago"=>$request->pago
+                "pago"=>$request->pago,
+                "fact"=>$request->fact
             ];
             array_push($data, $d);
         }
@@ -346,9 +347,9 @@ class PedidoController extends Controller
     public function clientepedido(Request $request){
         //$cl=DB::SELECT("SELECT * from tbclientes where ci='".$request->user()->CodAut."'")[0];
         if($request->user()->CodAut==1)
-            return DB::SELECT("SELECT p.NroPed,p.pago,Cod_Aut,Id,Cod_ciudad,Cod_Nacio,cod_car,Nombres,Telf,Direccion,EstCiv,edad,Empresa,Categoria,Imp_pieza,CiVend,ListBlanck,MotivoListBlack,ListBlack,TipoPaciente,SupraCanal,Canal,subcanal,zona,Latitud,longitud,transporte,territorio,codcli,clinew,p.estado FROM tbpedidos p inner join tbclientes c on c.Cod_Aut=p.idCli  where date(p.fecha)='$request->fecha1' GROUP by  p.NroPed,p.pago,Cod_Aut,Id,Cod_ciudad,Cod_Nacio,cod_car,Nombres,Telf,Direccion,EstCiv,edad,Empresa,Categoria,Imp_pieza,CiVend,ListBlanck,MotivoListBlack,ListBlack,TipoPaciente,SupraCanal,Canal,subcanal,zona,Latitud,longitud,transporte,territorio,codcli,clinew,p.estado");
+            return DB::SELECT("SELECT p.NroPed,p.pago,p.fact,Cod_Aut,Id,Cod_ciudad,Cod_Nacio,cod_car,Nombres,Telf,Direccion,EstCiv,edad,Empresa,Categoria,Imp_pieza,CiVend,ListBlanck,MotivoListBlack,ListBlack,TipoPaciente,SupraCanal,Canal,subcanal,zona,Latitud,longitud,transporte,territorio,codcli,clinew,p.estado FROM tbpedidos p inner join tbclientes c on c.Cod_Aut=p.idCli  where date(p.fecha)='$request->fecha1' GROUP by  p.NroPed,p.pago,p.fact,cod_Aut,Id,Cod_ciudad,Cod_Nacio,cod_car,Nombres,Telf,Direccion,EstCiv,edad,Empresa,Categoria,Imp_pieza,CiVend,ListBlanck,MotivoListBlack,ListBlack,TipoPaciente,SupraCanal,Canal,subcanal,zona,Latitud,longitud,transporte,territorio,codcli,clinew,p.estado");
         else
-            return DB::SELECT("SELECT p.NroPed,p.pago,Cod_Aut,Id,Cod_ciudad,Cod_Nacio,cod_car,Nombres,Telf,Direccion,EstCiv,edad,Empresa,Categoria,Imp_pieza,CiVend,ListBlanck,MotivoListBlack,ListBlack,TipoPaciente,SupraCanal,Canal,subcanal,zona,Latitud,longitud,transporte,territorio,codcli,clinew,p.estado FROM tbpedidos p inner join tbclientes c on c.Cod_Aut=p.idCli  where date(p.fecha)='$request->fecha1' and c.CiVend='".$request->user()->ci."' GROUP by p.NroPed,p.pago,Cod_Aut,Id,Cod_ciudad,Cod_Nacio,cod_car,Nombres,Telf,Direccion,EstCiv,edad,Empresa,Categoria,Imp_pieza,CiVend,ListBlanck,MotivoListBlack,ListBlack,TipoPaciente,SupraCanal,Canal,subcanal,zona,Latitud,longitud,transporte,territorio,codcli,clinew,p.estado");
+            return DB::SELECT("SELECT p.NroPed,p.pago,p.fact,Cod_Aut,Id,Cod_ciudad,Cod_Nacio,cod_car,Nombres,Telf,Direccion,EstCiv,edad,Empresa,Categoria,Imp_pieza,CiVend,ListBlanck,MotivoListBlack,ListBlack,TipoPaciente,SupraCanal,Canal,subcanal,zona,Latitud,longitud,transporte,territorio,codcli,clinew,p.estado FROM tbpedidos p inner join tbclientes c on c.Cod_Aut=p.idCli  where date(p.fecha)='$request->fecha1' and c.CiVend='".$request->user()->ci."' GROUP by p.NroPed,p.pago,p.fact,Cod_Aut,Id,Cod_ciudad,Cod_Nacio,cod_car,Nombres,Telf,Direccion,EstCiv,edad,Empresa,Categoria,Imp_pieza,CiVend,ListBlanck,MotivoListBlack,ListBlack,TipoPaciente,SupraCanal,Canal,subcanal,zona,Latitud,longitud,transporte,territorio,codcli,clinew,p.estado");
     }
 
     public function pedpendiente(Request $request){
@@ -484,7 +485,8 @@ class PedidoController extends Controller
                 "brazo"=>$p['brazo'],
                 "pfrial"=>$p['pfrial'],
                 "hora"=>date('H:i:s'),
-                "pago"=>$request->pago
+                "pago"=>$request->pago,
+                "fact"=>$request->fact
             ]);
 //            var_dump($p);
         }
@@ -495,7 +497,7 @@ class PedidoController extends Controller
                 DB::select("DELETE FROM tbpedidos where NroPed='$numpedido'");
     }
     public function listpedido(Request $request){
-        $pedido= DB::SELECT("SELECT NroPed,CIfunc,idCli,fecha,estado,pago from tbpedidos where NroPed='$request->NroPed'  group by NroPed,CIfunc,idCli,fecha,estado,pago ");
+        $pedido= DB::SELECT("SELECT NroPed,CIfunc,idCli,fecha,estado,pago,fact from tbpedidos where NroPed='$request->NroPed'  group by NroPed,CIfunc,idCli,fecha,estado,pago,fact ");
 //        return $pedido;
         foreach ($pedido as $row) {
             $lisrped=DB::SELECT("SELECT
@@ -594,6 +596,7 @@ class PedidoController extends Controller
             pfrial	,
             hora	,
             pago,
+            fact,
             tbproductos.Producto as nombre
             from tbpedidos,tbproductos where tbpedidos.cod_prod=tbproductos.cod_prod and  NroPed = '$row->NroPed'" );
 
@@ -713,6 +716,8 @@ class PedidoController extends Controller
                         "pfrial"=>$p->pfrial,
                         "hora"=>$p->hora,
                         "pago"=>$p->pago,
+                        "fact"=>$p->fact,
+
                     ]);
 //                }
                 //}

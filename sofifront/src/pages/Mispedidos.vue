@@ -54,6 +54,14 @@
                 <q-radio  dense v-model="pago" val="CREDITO" label="Credito" />
 <!--              </div>-->
           </div>
+                    <div class="col-6">    
+            <q-toggle
+            :label="fact+' FACTURA'"
+            color="green"
+            false-value="NO"
+            true-value="SI"
+            v-model="fact"/>
+            </div>
           <div class="row">
             <div class="col-10">
               <q-select label="Productos" dense outlined class="q-ma-xs" use-input input-debounce="0"  @filter="filterFn" :options="productos" v-model="producto">
@@ -537,6 +545,7 @@ export default {
       filter:'',
       pedestado:'',
       pago:'CONTADO',
+      fact:'NO',
       miproducto:{},
       modalpedido:false,
       modalcerdo:false,
@@ -568,6 +577,7 @@ export default {
         {label:'Nombre',name:'Nombres',field:'Nombres',align:'left'},
         {label:'CI',name:'Id',field:'Id',align:'left'},
         {label:'PAGO',name:'pago',field:'pago',align:'left'},
+        {label:'FACTURA',name:'fact',field:'fact',align:'left'},
       ],
       columnsproducto:[
         {label:'subtotal',name:'subtotal',field:'subtotal'},
@@ -1425,9 +1435,10 @@ generarpollo(){
       // console.log(this.misproductos)
       // console.log(this.cliente)
       this.$q.loading.show()
-      this.$api.post('updatecomanda',{comanda:this.cliente.NroPed,idCli:this.cliente.Cod_Aut,productos:this.misproductos,pago:this.pago}).then(res=>{
+      this.$api.post('updatecomanda',{comanda:this.cliente.NroPed,idCli:this.cliente.Cod_Aut,productos:this.misproductos,pago:this.pago,fact:this.fact}).then(res=>{
         // console.log(res.data)
         this.pago='CONTADO'
+        this.fact='NO'
         this.$q.loading.hide()
         this.modalpedido=false
       })
@@ -1597,6 +1608,7 @@ generarpollo(){
           // console.log(res.data)
           // return false
           this.pago=res.data[0].pago
+          this.fact=res.data[0].fact
           this.misproductos=res.data[0].pedidos
 
           this.modalpedido=true
