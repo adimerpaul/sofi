@@ -399,7 +399,7 @@ class PedidoController extends Controller
                 'idCli'=>$request->idCli,
                 'Cant'=>$p['cantidad'],
                 'precio'=>$p['precio'],
-                'fecha'=>date('Y-m-d H:i:s'),
+                'fecha'=>$request->fecha.' '.date('H:i:s'),
                 'subtotal'=>$p['subtotal'],
                 "cbrasa5"=>$p['cbrasa5'],
                 "ubrasa5"=>$p['ubrasa5'],

@@ -1,7 +1,7 @@
 /******/ (() => { // webpackBootstrap
 /******/ 	var __webpack_modules__ = ({
 
-/***/ 7329:
+/***/ 6151:
 /***/ ((__unused_webpack_module, __unused_webpack___webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -1626,74 +1626,74 @@ const Misasignaciones_exports_ = /*#__PURE__*/(0,exportHelper/* default */.Z)(Mi
 
 runtime_auto_import_default()(Misasignacionesvue_type_script_lang_js, 'components', {QPage: QPage/* default */.Z,QInput: QInput/* default */.Z,QBtn: QBtn/* default */.Z,QTable: QTable/* default */.Z,QTd: QTd/* default */.Z,QIcon: QIcon/* default */.Z,QDialog: QDialog/* default */.Z,QCard: QCard/* default */.Z,QCardSection: QCardSection/* default */.Z,QRadio: QRadio/* default */.Z,QCardActions: QCardActions/* default */.Z});runtime_auto_import_default()(Misasignacionesvue_type_script_lang_js, 'directives', {ClosePopup: ClosePopup/* default */.Z});
 
-;// CONCATENATED MODULE: ./node_modules/@quasar/app/lib/webpack/loader.js.transform-quasar-imports.js!./node_modules/babel-loader/lib/index.js??clonedRuleSet-2.use[0]!./node_modules/vue-loader/dist/templateLoader.js??ruleSet[1].rules[3]!./node_modules/@quasar/app/lib/webpack/loader.vue.auto-import-quasar.js??ruleSet[0].use[0]!./node_modules/vue-loader/dist/index.js??ruleSet[0].use[1]!./src/pages/Mispedidos.vue?vue&type=template&id=2ad54996
+;// CONCATENATED MODULE: ./node_modules/@quasar/app/lib/webpack/loader.js.transform-quasar-imports.js!./node_modules/babel-loader/lib/index.js??clonedRuleSet-2.use[0]!./node_modules/vue-loader/dist/templateLoader.js??ruleSet[1].rules[3]!./node_modules/@quasar/app/lib/webpack/loader.vue.auto-import-quasar.js??ruleSet[0].use[0]!./node_modules/vue-loader/dist/index.js??ruleSet[0].use[1]!./src/pages/Mispedidos.vue?vue&type=template&id=07851f7e
 
-const Mispedidosvue_type_template_id_2ad54996_hoisted_1 = {
+const Mispedidosvue_type_template_id_07851f7e_hoisted_1 = {
   class: "row"
 };
-const Mispedidosvue_type_template_id_2ad54996_hoisted_2 = {
+const Mispedidosvue_type_template_id_07851f7e_hoisted_2 = {
   class: "col-6"
 };
-const Mispedidosvue_type_template_id_2ad54996_hoisted_3 = {
+const Mispedidosvue_type_template_id_07851f7e_hoisted_3 = {
   class: "col-6 flex flex-center"
 };
-const Mispedidosvue_type_template_id_2ad54996_hoisted_4 = {
+const Mispedidosvue_type_template_id_07851f7e_hoisted_4 = {
   class: "col-4 col-sm-4 flex flex-center"
 };
-const Mispedidosvue_type_template_id_2ad54996_hoisted_5 = {
+const Mispedidosvue_type_template_id_07851f7e_hoisted_5 = {
   class: "col-4 col-sm-4 flex flex-center"
 };
-const Mispedidosvue_type_template_id_2ad54996_hoisted_6 = {
+const Mispedidosvue_type_template_id_07851f7e_hoisted_6 = {
   class: "col-4 col-sm-4 flex flex-center"
 };
-const Mispedidosvue_type_template_id_2ad54996_hoisted_7 = {
+const Mispedidosvue_type_template_id_07851f7e_hoisted_7 = {
   class: "col-12"
 };
-const Mispedidosvue_type_template_id_2ad54996_hoisted_8 = {
+const Mispedidosvue_type_template_id_07851f7e_hoisted_8 = {
   class: "text-subtitle2"
 };
-const Mispedidosvue_type_template_id_2ad54996_hoisted_9 = {
+const Mispedidosvue_type_template_id_07851f7e_hoisted_9 = {
   class: "text-bold col-6 flex flex-center"
 };
-const Mispedidosvue_type_template_id_2ad54996_hoisted_10 = {
+const Mispedidosvue_type_template_id_07851f7e_hoisted_10 = {
   class: "col-6"
 };
-const Mispedidosvue_type_template_id_2ad54996_hoisted_11 = {
+const Mispedidosvue_type_template_id_07851f7e_hoisted_11 = {
+  class: "col-6"
+};
+const Mispedidosvue_type_template_id_07851f7e_hoisted_12 = {
   class: "row"
 };
-const Mispedidosvue_type_template_id_2ad54996_hoisted_12 = {
+const Mispedidosvue_type_template_id_07851f7e_hoisted_13 = {
   class: "col-10"
 };
 
-const Mispedidosvue_type_template_id_2ad54996_hoisted_13 = /*#__PURE__*/(0,runtime_core_esm_bundler/* createTextVNode */.Uk)(" No results ");
+const Mispedidosvue_type_template_id_07851f7e_hoisted_14 = /*#__PURE__*/(0,runtime_core_esm_bundler/* createTextVNode */.Uk)(" No results ");
 
-const Mispedidosvue_type_template_id_2ad54996_hoisted_14 = {
+const Mispedidosvue_type_template_id_07851f7e_hoisted_15 = {
   class: "col-2 flex flex-center"
 };
-const Mispedidosvue_type_template_id_2ad54996_hoisted_15 = {
+const Mispedidosvue_type_template_id_07851f7e_hoisted_16 = {
   class: "col-12"
 };
-const Mispedidosvue_type_template_id_2ad54996_hoisted_16 = ["onKeyup", "onUpdate:modelValue"];
-const Mispedidosvue_type_template_id_2ad54996_hoisted_17 = ["onKeyup", "onUpdate:modelValue"];
-const Mispedidosvue_type_template_id_2ad54996_hoisted_18 = {
+const Mispedidosvue_type_template_id_07851f7e_hoisted_17 = ["onKeyup", "onUpdate:modelValue"];
+const Mispedidosvue_type_template_id_07851f7e_hoisted_18 = ["onKeyup", "onUpdate:modelValue"];
+const Mispedidosvue_type_template_id_07851f7e_hoisted_19 = {
   class: "row"
 };
-const Mispedidosvue_type_template_id_2ad54996_hoisted_19 = {
+const Mispedidosvue_type_template_id_07851f7e_hoisted_20 = {
   class: "col-12"
 };
-const Mispedidosvue_type_template_id_2ad54996_hoisted_20 = {
+const Mispedidosvue_type_template_id_07851f7e_hoisted_21 = {
   class: "text-subtitle2"
 };
 
-const Mispedidosvue_type_template_id_2ad54996_hoisted_21 = /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("div", {
+const _hoisted_22 = /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("div", {
   class: "text-h6"
 }, "Pedido Pollo", -1);
 
-const _hoisted_22 = {
-  class: "row"
-};
 const _hoisted_23 = {
-  class: "col-6"
+  class: "row"
 };
 const _hoisted_24 = {
   class: "col-6"
@@ -1795,29 +1795,29 @@ const _hoisted_56 = {
   class: "col-6"
 };
 const _hoisted_57 = {
+  class: "col-6"
+};
+const _hoisted_58 = {
   class: "col-12"
 };
 
-const _hoisted_58 = /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("div", {
+const _hoisted_59 = /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("div", {
   class: "text-h6"
 }, "Pedido Normal", -1);
 
-const _hoisted_59 = {
+const _hoisted_60 = {
   class: "row"
 };
-const _hoisted_60 = {
+const _hoisted_61 = {
   class: "col-12"
 };
 
-const _hoisted_61 = /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("div", {
+const _hoisted_62 = /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("div", {
   class: "text-h6"
 }, "Pedido Cerdo", -1);
 
-const _hoisted_62 = {
-  class: "row"
-};
 const _hoisted_63 = {
-  class: "col-4"
+  class: "row"
 };
 const _hoisted_64 = {
   class: "col-4"
@@ -1835,18 +1835,18 @@ const _hoisted_68 = {
   class: "col-4"
 };
 const _hoisted_69 = {
+  class: "col-4"
+};
+const _hoisted_70 = {
   class: "col-12"
 };
 
-const _hoisted_70 = /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("div", {
+const _hoisted_71 = /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("div", {
   class: "text-h6"
 }, "Pedido Res", -1);
 
-const _hoisted_71 = {
-  class: "row"
-};
 const _hoisted_72 = {
-  class: "col-4"
+  class: "row"
 };
 const _hoisted_73 = {
   class: "col-4"
@@ -1861,14 +1861,17 @@ const _hoisted_76 = {
   class: "col-4"
 };
 const _hoisted_77 = {
+  class: "col-4"
+};
+const _hoisted_78 = {
   class: "col-12"
 };
 
-const _hoisted_78 = /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("div", {
+const _hoisted_79 = /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("div", {
   class: "text-h6"
 }, "PEDIDO POLLO", -1);
 
-const _hoisted_79 = {
+const _hoisted_80 = {
   id: "example",
   class: "display",
   style: {
@@ -1876,13 +1879,13 @@ const _hoisted_79 = {
   }
 };
 
-const _hoisted_80 = /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("thead", null, [/*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("tr", null, [/*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "No"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "CLIENTE"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "C BRASA5"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "U BRASA5"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "BS"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "OBS"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "C BRASA6"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "U BRASA6"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "BS"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "OBS"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "C 104"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "U 104"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "BS"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "OBS"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "C 105"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "U 105"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "BS"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "OBS"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "C 106"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "U 106"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "BS"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "OBS"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "C 107"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "U 107"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "BS"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "OBS"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "C 108"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "U 108"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "BS"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "OBS"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "C 109"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "U 109"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "BS"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "OBS"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "ALA"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "UNID"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "BS"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "OBS"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "CADERA"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "UNID"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "BS"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "OBS"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "PECHO"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "UNID"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "BS"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "OBS"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "PI/MU"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "UNID"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "BS"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "OBS"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "FILETE"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "UNID"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "BS"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "OBS"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "PECHO"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "UNID"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "BS"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "OBS"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "HUESO"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "UNID"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "BS"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "OBS"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "MENUD"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "CONT"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "BS"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "OBS"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "CONT")])], -1);
+const _hoisted_81 = /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("thead", null, [/*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("tr", null, [/*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "No"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "CLIENTE"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "C BRASA5"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "U BRASA5"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "BS"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "OBS"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "C BRASA6"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "U BRASA6"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "BS"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "OBS"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "C 104"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "U 104"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "BS"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "OBS"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "C 105"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "U 105"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "BS"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "OBS"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "C 106"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "U 106"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "BS"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "OBS"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "C 107"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "U 107"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "BS"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "OBS"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "C 108"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "U 108"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "BS"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "OBS"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "C 109"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "U 109"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "BS"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "OBS"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "ALA"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "UNID"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "BS"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "OBS"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "CADERA"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "UNID"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "BS"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "OBS"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "PECHO"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "UNID"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "BS"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "OBS"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "PI/MU"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "UNID"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "BS"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "OBS"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "FILETE"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "UNID"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "BS"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "OBS"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "PECHO"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "UNID"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "BS"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "OBS"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "HUESO"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "UNID"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "BS"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "OBS"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "MENUD"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "CONT"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "BS"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "OBS"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "CONT")])], -1);
 
-const _hoisted_81 = /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("div", {
+const _hoisted_82 = /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("div", {
   class: "text-h6"
 }, "PEDIDO RES", -1);
 
-const _hoisted_82 = {
+const _hoisted_83 = {
   id: "example2",
   class: "display",
   style: {
@@ -1890,13 +1893,13 @@ const _hoisted_82 = {
   }
 };
 
-const _hoisted_83 = /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("thead", null, [/*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("tr", null, [/*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "No"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "CLIENTE"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "PRECIO"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "TROZADO"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "ENT/MED"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "PIERNA"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "BRAZO"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "CONT"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "OBSERVACION")])], -1);
+const _hoisted_84 = /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("thead", null, [/*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("tr", null, [/*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "No"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "CLIENTE"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "PRECIO"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "TROZADO"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "ENT/MED"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "PIERNA"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "BRAZO"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "CONT"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "OBSERVACION")])], -1);
 
-const _hoisted_84 = /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("div", {
+const _hoisted_85 = /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("div", {
   class: "text-h6"
 }, "PEDIDO CERDO", -1);
 
-const _hoisted_85 = {
+const _hoisted_86 = {
   id: "example3",
   class: "display",
   style: {
@@ -1904,9 +1907,9 @@ const _hoisted_85 = {
   }
 };
 
-const _hoisted_86 = /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("thead", null, [/*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("tr", null, [/*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "No"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "CLIENTE"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "PRECIO"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "TOTAL"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "ENTERO"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "DESMEMBRADO"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "CORTE"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "CORTE/KILO"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "CONT"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "OBSERVACION")])], -1);
+const _hoisted_87 = /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("thead", null, [/*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("tr", null, [/*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "No"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "CLIENTE"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "PRECIO"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "TOTAL"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "ENTERO"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "DESMEMBRADO"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "CORTE"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "CORTE/KILO"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "CONT"), /*#__PURE__*/(0,runtime_core_esm_bundler/* createElementVNode */._)("th", null, "OBSERVACION")])], -1);
 
-function Mispedidosvue_type_template_id_2ad54996_render(_ctx, _cache, $props, $setup, $data, $options) {
+function Mispedidosvue_type_template_id_07851f7e_render(_ctx, _cache, $props, $setup, $data, $options) {
   const _component_q_input = (0,runtime_core_esm_bundler/* resolveComponent */.up)("q-input");
 
   const _component_q_btn = (0,runtime_core_esm_bundler/* resolveComponent */.up)("q-btn");
@@ -1946,19 +1949,19 @@ function Mispedidosvue_type_template_id_2ad54996_render(_ctx, _cache, $props, $s
   return (0,runtime_core_esm_bundler/* openBlock */.wg)(), (0,runtime_core_esm_bundler/* createBlock */.j4)(_component_q_page, {
     class: "q-pa-xs"
   }, {
-    default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Mispedidosvue_type_template_id_2ad54996_hoisted_1, [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Mispedidosvue_type_template_id_2ad54996_hoisted_2, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+    default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Mispedidosvue_type_template_id_07851f7e_hoisted_1, [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Mispedidosvue_type_template_id_07851f7e_hoisted_2, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
       dense: "",
       outlined: "",
       modelValue: $data.fecha1,
       "onUpdate:modelValue": _cache[0] || (_cache[0] = $event => $data.fecha1 = $event),
       label: "Fecha Ini",
       type: "date"
-    }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Mispedidosvue_type_template_id_2ad54996_hoisted_3, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_btn, {
+    }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Mispedidosvue_type_template_id_07851f7e_hoisted_3, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_btn, {
       color: "info",
       icon: "search",
       label: "consulta",
       onClick: $options.misclientes
-    }, null, 8, ["onClick"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Mispedidosvue_type_template_id_2ad54996_hoisted_4, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_btn, {
+    }, null, 8, ["onClick"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Mispedidosvue_type_template_id_07851f7e_hoisted_4, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_btn, {
       class: "full-width",
       color: "green",
       type: "a",
@@ -1967,7 +1970,7 @@ function Mispedidosvue_type_template_id_2ad54996_render(_ctx, _cache, $props, $s
       icon: "list",
       label: "Reporte Pollo",
       onClick1: $options.generarpollo
-    }, null, 8, ["href", "onClick1"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Mispedidosvue_type_template_id_2ad54996_hoisted_5, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_btn, {
+    }, null, 8, ["href", "onClick1"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Mispedidosvue_type_template_id_07851f7e_hoisted_5, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_btn, {
       class: "full-width",
       color: "accent",
       type: "a",
@@ -1976,7 +1979,7 @@ function Mispedidosvue_type_template_id_2ad54996_render(_ctx, _cache, $props, $s
       icon: "list",
       label: "Reporte Res",
       onClick1: $options.generarres
-    }, null, 8, ["href", "onClick1"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Mispedidosvue_type_template_id_2ad54996_hoisted_6, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_btn, {
+    }, null, 8, ["href", "onClick1"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Mispedidosvue_type_template_id_07851f7e_hoisted_6, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_btn, {
       class: "full-width",
       color: "teal",
       type: "a",
@@ -1985,7 +1988,7 @@ function Mispedidosvue_type_template_id_2ad54996_render(_ctx, _cache, $props, $s
       icon: "list",
       label: "Reporte Cerdo",
       onClick1: $options.generarcerdo
-    }, null, 8, ["href", "onClick1"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Mispedidosvue_type_template_id_2ad54996_hoisted_7, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_table, {
+    }, null, 8, ["href", "onClick1"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Mispedidosvue_type_template_id_07851f7e_hoisted_7, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_table, {
       "rows-per-page-options": [15, 50, 100, 0],
       dense: "",
       title: "Clientes ",
@@ -2037,16 +2040,16 @@ function Mispedidosvue_type_template_id_2ad54996_render(_ctx, _cache, $props, $s
       "full-width": "",
       "full-height": "",
       modelValue: $data.modalpedido,
-      "onUpdate:modelValue": _cache[7] || (_cache[7] = $event => $data.modalpedido = $event)
+      "onUpdate:modelValue": _cache[8] || (_cache[8] = $event => $data.modalpedido = $event)
     }, {
       default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_card, null, {
         default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_card_section, null, {
-          default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Mispedidosvue_type_template_id_2ad54996_hoisted_8, (0,shared_esm_bundler/* toDisplayString */.zw)($data.cliente.Cod_Aut) + " " + (0,shared_esm_bundler/* toDisplayString */.zw)($data.cliente.Nombres), 1)]),
+          default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Mispedidosvue_type_template_id_07851f7e_hoisted_8, (0,shared_esm_bundler/* toDisplayString */.zw)($data.cliente.Cod_Aut) + " " + (0,shared_esm_bundler/* toDisplayString */.zw)($data.cliente.Nombres), 1)]),
           _: 1
         }), (0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_card_section, {
           class: "q-pt-none"
         }, {
-          default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Mispedidosvue_type_template_id_2ad54996_hoisted_9, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_radio, {
+          default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Mispedidosvue_type_template_id_07851f7e_hoisted_9, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_radio, {
             dense: "",
             modelValue: $data.pago,
             "onUpdate:modelValue": _cache[2] || (_cache[2] = $event => $data.pago = $event),
@@ -2058,14 +2061,22 @@ function Mispedidosvue_type_template_id_2ad54996_render(_ctx, _cache, $props, $s
             "onUpdate:modelValue": _cache[3] || (_cache[3] = $event => $data.pago = $event),
             val: "CREDITO",
             label: "Credito"
-          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Mispedidosvue_type_template_id_2ad54996_hoisted_10, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_toggle, {
+          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Mispedidosvue_type_template_id_07851f7e_hoisted_10, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_toggle, {
             label: $data.fact + ' FACTURA',
             color: "green",
             "false-value": "NO",
             "true-value": "SI",
             modelValue: $data.fact,
             "onUpdate:modelValue": _cache[4] || (_cache[4] = $event => $data.fact = $event)
-          }, null, 8, ["label", "modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Mispedidosvue_type_template_id_2ad54996_hoisted_11, [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Mispedidosvue_type_template_id_2ad54996_hoisted_12, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_select, {
+          }, null, 8, ["label", "modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Mispedidosvue_type_template_id_07851f7e_hoisted_11, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+            label: "Fecha",
+            modelValue: $data.fecha,
+            "onUpdate:modelValue": _cache[5] || (_cache[5] = $event => $data.fecha = $event),
+            type: "date",
+            dense: "",
+            outlined: "",
+            min: $data.fechamenos
+          }, null, 8, ["modelValue", "min"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Mispedidosvue_type_template_id_07851f7e_hoisted_12, [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Mispedidosvue_type_template_id_07851f7e_hoisted_13, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_select, {
             label: "Productos",
             dense: "",
             outlined: "",
@@ -2075,25 +2086,25 @@ function Mispedidosvue_type_template_id_2ad54996_render(_ctx, _cache, $props, $s
             onFilter: $options.filterFn,
             options: $data.productos,
             modelValue: $data.producto,
-            "onUpdate:modelValue": _cache[5] || (_cache[5] = $event => $data.producto = $event)
+            "onUpdate:modelValue": _cache[6] || (_cache[6] = $event => $data.producto = $event)
           }, {
             "no-option": (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_item, null, {
               default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_item_section, {
                 class: "text-grey"
               }, {
-                default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [Mispedidosvue_type_template_id_2ad54996_hoisted_13]),
+                default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [Mispedidosvue_type_template_id_07851f7e_hoisted_14]),
                 _: 1
               })]),
               _: 1
             })]),
             _: 1
-          }, 8, ["onFilter", "options", "modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Mispedidosvue_type_template_id_2ad54996_hoisted_14, [$data.cliente.estado == 'CREADO' ? ((0,runtime_core_esm_bundler/* openBlock */.wg)(), (0,runtime_core_esm_bundler/* createBlock */.j4)(_component_q_btn, {
+          }, 8, ["onFilter", "options", "modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Mispedidosvue_type_template_id_07851f7e_hoisted_15, [$data.cliente.estado == 'CREADO' ? ((0,runtime_core_esm_bundler/* openBlock */.wg)(), (0,runtime_core_esm_bundler/* createBlock */.j4)(_component_q_btn, {
             key: 0,
             class: "q-pa-xs q-ma-none",
             color: "primary",
             icon: "add_circle",
             onClick: $options.agregarpedido
-          }, null, 8, ["onClick"])) : (0,runtime_core_esm_bundler/* createCommentVNode */.kq)("", true)]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Mispedidosvue_type_template_id_2ad54996_hoisted_15, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_table, {
+          }, null, 8, ["onClick"])) : (0,runtime_core_esm_bundler/* createCommentVNode */.kq)("", true)]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Mispedidosvue_type_template_id_07851f7e_hoisted_16, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_table, {
             rows: $data.misproductos,
             filter: $data.filteproducto,
             columns: $data.columnsproducto
@@ -2135,7 +2146,7 @@ function Mispedidosvue_type_template_id_2ad54996_render(_ctx, _cache, $props, $s
                 style: {
                   "width": "2.5em"
                 }
-              }, null, 40, Mispedidosvue_type_template_id_2ad54996_hoisted_16), [[runtime_dom_esm_bundler/* vModelText */.nr, props.row.cantidad]])], 64)) : (0,runtime_core_esm_bundler/* createCommentVNode */.kq)("", true), (0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_btn, {
+              }, null, 40, Mispedidosvue_type_template_id_07851f7e_hoisted_17), [[runtime_dom_esm_bundler/* vModelText */.nr, props.row.cantidad]])], 64)) : (0,runtime_core_esm_bundler/* createCommentVNode */.kq)("", true), (0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_btn, {
                 flat: "",
                 onClick: $event => $options.quitar(props.row, props.rowIndex),
                 class: "q-ma-none q-pa-none",
@@ -2155,14 +2166,14 @@ function Mispedidosvue_type_template_id_2ad54996_render(_ctx, _cache, $props, $s
                 style: {
                   "width": "3em"
                 }
-              }, null, 40, Mispedidosvue_type_template_id_2ad54996_hoisted_17), [[runtime_dom_esm_bundler/* vModelText */.nr, props.row.precio]])]),
+              }, null, 40, Mispedidosvue_type_template_id_07851f7e_hoisted_18), [[runtime_dom_esm_bundler/* vModelText */.nr, props.row.precio]])]),
               _: 2
             }, 1032, ["props"])]),
-            "top-right": (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Mispedidosvue_type_template_id_2ad54996_hoisted_18, [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Mispedidosvue_type_template_id_2ad54996_hoisted_19, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+            "top-right": (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Mispedidosvue_type_template_id_07851f7e_hoisted_19, [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Mispedidosvue_type_template_id_07851f7e_hoisted_20, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
               outlined: "",
               dense: "",
               modelValue: $data.filteproducto,
-              "onUpdate:modelValue": _cache[6] || (_cache[6] = $event => $data.filteproducto = $event),
+              "onUpdate:modelValue": _cache[7] || (_cache[7] = $event => $data.filteproducto = $event),
               placeholder: "Buscar pedido"
             }, {
               append: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_icon, {
@@ -2174,7 +2185,7 @@ function Mispedidosvue_type_template_id_2ad54996_render(_ctx, _cache, $props, $s
               default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_td, {
                 colspan: "100%"
               }, {
-                default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Mispedidosvue_type_template_id_2ad54996_hoisted_20, "Total: " + (0,shared_esm_bundler/* toDisplayString */.zw)($options.total) + " Bs.", 1)]),
+                default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", Mispedidosvue_type_template_id_07851f7e_hoisted_21, "Total: " + (0,shared_esm_bundler/* toDisplayString */.zw)($options.total) + " Bs.", 1)]),
                 _: 1
               })]),
               _: 1
@@ -2225,261 +2236,261 @@ function Mispedidosvue_type_template_id_2ad54996_render(_ctx, _cache, $props, $s
       _: 1
     }, 8, ["modelValue"]), (0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_dialog, {
       modelValue: $data.modalpollo,
-      "onUpdate:modelValue": _cache[43] || (_cache[43] = $event => $data.modalpollo = $event),
+      "onUpdate:modelValue": _cache[44] || (_cache[44] = $event => $data.modalpollo = $event),
       "full-width": ""
     }, {
       default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_card, null, {
         default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_card_section, null, {
-          default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [Mispedidosvue_type_template_id_2ad54996_hoisted_21]),
+          default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [_hoisted_22]),
           _: 1
         }), (0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_card_section, {
           class: "q-pt-none"
         }, {
-          default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", _hoisted_22, [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", _hoisted_23, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+          default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", _hoisted_23, [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", _hoisted_24, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
             type: "number",
             dense: "",
             outlined: "",
             label: "Cja b5",
             modelValue: $data.miproducto.cbrasa5,
-            "onUpdate:modelValue": _cache[8] || (_cache[8] = $event => $data.miproducto.cbrasa5 = $event)
-          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", _hoisted_24, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+            "onUpdate:modelValue": _cache[9] || (_cache[9] = $event => $data.miproducto.cbrasa5 = $event)
+          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", _hoisted_25, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
             type: "number",
             dense: "",
             outlined: "",
             label: "Uni b5",
             modelValue: $data.miproducto.ubrasa5,
-            "onUpdate:modelValue": _cache[9] || (_cache[9] = $event => $data.miproducto.ubrasa5 = $event)
-          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", _hoisted_25, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+            "onUpdate:modelValue": _cache[10] || (_cache[10] = $event => $data.miproducto.ubrasa5 = $event)
+          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", _hoisted_26, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
             type: "number",
             dense: "",
             outlined: "",
             label: "Cja b6",
             modelValue: $data.miproducto.cbrasa6,
-            "onUpdate:modelValue": _cache[10] || (_cache[10] = $event => $data.miproducto.cbrasa6 = $event)
-          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", _hoisted_26, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+            "onUpdate:modelValue": _cache[11] || (_cache[11] = $event => $data.miproducto.cbrasa6 = $event)
+          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", _hoisted_27, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
             type: "number",
             dense: "",
             outlined: "",
             label: "Uni b6",
             modelValue: $data.miproducto.cubrasa6,
-            "onUpdate:modelValue": _cache[11] || (_cache[11] = $event => $data.miproducto.cubrasa6 = $event)
-          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", _hoisted_27, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+            "onUpdate:modelValue": _cache[12] || (_cache[12] = $event => $data.miproducto.cubrasa6 = $event)
+          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", _hoisted_28, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
             type: "number",
             dense: "",
             outlined: "",
             label: "Cja-104",
             modelValue: $data.miproducto.c104,
-            "onUpdate:modelValue": _cache[12] || (_cache[12] = $event => $data.miproducto.c104 = $event)
-          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", _hoisted_28, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+            "onUpdate:modelValue": _cache[13] || (_cache[13] = $event => $data.miproducto.c104 = $event)
+          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", _hoisted_29, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
             type: "number",
             dense: "",
             outlined: "",
             label: "Unid-104",
             modelValue: $data.miproducto.u104,
-            "onUpdate:modelValue": _cache[13] || (_cache[13] = $event => $data.miproducto.u104 = $event)
-          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", _hoisted_29, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+            "onUpdate:modelValue": _cache[14] || (_cache[14] = $event => $data.miproducto.u104 = $event)
+          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", _hoisted_30, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
             type: "number",
             dense: "",
             outlined: "",
             label: "Cja-105",
             modelValue: $data.miproducto.c105,
-            "onUpdate:modelValue": _cache[14] || (_cache[14] = $event => $data.miproducto.c105 = $event)
-          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", _hoisted_30, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+            "onUpdate:modelValue": _cache[15] || (_cache[15] = $event => $data.miproducto.c105 = $event)
+          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", _hoisted_31, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
             type: "number",
             dense: "",
             outlined: "",
             label: "Unid-105",
             modelValue: $data.miproducto.u105,
-            "onUpdate:modelValue": _cache[15] || (_cache[15] = $event => $data.miproducto.u105 = $event)
-          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", _hoisted_31, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+            "onUpdate:modelValue": _cache[16] || (_cache[16] = $event => $data.miproducto.u105 = $event)
+          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", _hoisted_32, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
             type: "number",
             dense: "",
             outlined: "",
             label: "Cja-106",
             modelValue: $data.miproducto.c106,
-            "onUpdate:modelValue": _cache[16] || (_cache[16] = $event => $data.miproducto.c106 = $event)
-          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", _hoisted_32, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+            "onUpdate:modelValue": _cache[17] || (_cache[17] = $event => $data.miproducto.c106 = $event)
+          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", _hoisted_33, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
             type: "number",
             dense: "",
             outlined: "",
             label: "Unid-106",
             modelValue: $data.miproducto.u106,
-            "onUpdate:modelValue": _cache[17] || (_cache[17] = $event => $data.miproducto.u106 = $event)
-          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", _hoisted_33, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+            "onUpdate:modelValue": _cache[18] || (_cache[18] = $event => $data.miproducto.u106 = $event)
+          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", _hoisted_34, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
             type: "number",
             dense: "",
             outlined: "",
             label: "Cja-107",
             modelValue: $data.miproducto.c107,
-            "onUpdate:modelValue": _cache[18] || (_cache[18] = $event => $data.miproducto.c107 = $event)
-          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", _hoisted_34, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+            "onUpdate:modelValue": _cache[19] || (_cache[19] = $event => $data.miproducto.c107 = $event)
+          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", _hoisted_35, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
             type: "number",
             dense: "",
             outlined: "",
             label: "Unid-107",
             modelValue: $data.miproducto.u107,
-            "onUpdate:modelValue": _cache[19] || (_cache[19] = $event => $data.miproducto.u107 = $event)
-          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", _hoisted_35, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+            "onUpdate:modelValue": _cache[20] || (_cache[20] = $event => $data.miproducto.u107 = $event)
+          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", _hoisted_36, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
             type: "number",
             dense: "",
             outlined: "",
             label: "Cja-108",
             modelValue: $data.miproducto.c108,
-            "onUpdate:modelValue": _cache[20] || (_cache[20] = $event => $data.miproducto.c108 = $event)
-          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", _hoisted_36, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+            "onUpdate:modelValue": _cache[21] || (_cache[21] = $event => $data.miproducto.c108 = $event)
+          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", _hoisted_37, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
             type: "number",
             dense: "",
             outlined: "",
             label: "Unid-108",
             modelValue: $data.miproducto.u108,
-            "onUpdate:modelValue": _cache[21] || (_cache[21] = $event => $data.miproducto.u108 = $event)
-          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", _hoisted_37, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+            "onUpdate:modelValue": _cache[22] || (_cache[22] = $event => $data.miproducto.u108 = $event)
+          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", _hoisted_38, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
             type: "number",
             dense: "",
             outlined: "",
             label: "Cja-109",
             modelValue: $data.miproducto.c109,
-            "onUpdate:modelValue": _cache[22] || (_cache[22] = $event => $data.miproducto.c109 = $event)
-          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", _hoisted_38, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+            "onUpdate:modelValue": _cache[23] || (_cache[23] = $event => $data.miproducto.c109 = $event)
+          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", _hoisted_39, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
             type: "number",
             dense: "",
             outlined: "",
             label: "Unid-109",
             modelValue: $data.miproducto.u109,
-            "onUpdate:modelValue": _cache[23] || (_cache[23] = $event => $data.miproducto.u109 = $event)
-          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", _hoisted_39, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+            "onUpdate:modelValue": _cache[24] || (_cache[24] = $event => $data.miproducto.u109 = $event)
+          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", _hoisted_40, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
             type: "number",
             dense: "",
             outlined: "",
             label: "ala",
             modelValue: $data.miproducto.ala,
-            "onUpdate:modelValue": _cache[24] || (_cache[24] = $event => $data.miproducto.ala = $event)
-          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", _hoisted_40, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_select, {
+            "onUpdate:modelValue": _cache[25] || (_cache[25] = $event => $data.miproducto.ala = $event)
+          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", _hoisted_41, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_select, {
             dense: "",
             outlined: "",
             options: ['KG', 'CJA', 'U'],
             modelValue: $data.miproducto.unidala,
-            "onUpdate:modelValue": _cache[25] || (_cache[25] = $event => $data.miproducto.unidala = $event),
+            "onUpdate:modelValue": _cache[26] || (_cache[26] = $event => $data.miproducto.unidala = $event),
             label: "Unidad"
-          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", _hoisted_41, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", _hoisted_42, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
             type: "number",
             dense: "",
             outlined: "",
             label: "cadera",
             modelValue: $data.miproducto.cadera,
-            "onUpdate:modelValue": _cache[26] || (_cache[26] = $event => $data.miproducto.cadera = $event)
-          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", _hoisted_42, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_select, {
+            "onUpdate:modelValue": _cache[27] || (_cache[27] = $event => $data.miproducto.cadera = $event)
+          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", _hoisted_43, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_select, {
             dense: "",
             outlined: "",
             options: ['KG', 'CJA', 'U'],
             modelValue: $data.miproducto.unidcadera,
-            "onUpdate:modelValue": _cache[27] || (_cache[27] = $event => $data.miproducto.unidcadera = $event),
+            "onUpdate:modelValue": _cache[28] || (_cache[28] = $event => $data.miproducto.unidcadera = $event),
             label: "Unidad"
-          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", _hoisted_43, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", _hoisted_44, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
             type: "number",
             dense: "",
             outlined: "",
             label: "pecho",
             modelValue: $data.miproducto.pecho,
-            "onUpdate:modelValue": _cache[28] || (_cache[28] = $event => $data.miproducto.pecho = $event)
-          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", _hoisted_44, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_select, {
+            "onUpdate:modelValue": _cache[29] || (_cache[29] = $event => $data.miproducto.pecho = $event)
+          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", _hoisted_45, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_select, {
             dense: "",
             outlined: "",
             options: ['KG', 'CJA', 'U'],
             modelValue: $data.miproducto.unidpecho,
-            "onUpdate:modelValue": _cache[29] || (_cache[29] = $event => $data.miproducto.unidpecho = $event),
+            "onUpdate:modelValue": _cache[30] || (_cache[30] = $event => $data.miproducto.unidpecho = $event),
             label: "Unidad"
-          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", _hoisted_45, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", _hoisted_46, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
             type: "number",
             dense: "",
             outlined: "",
             label: "pie",
             modelValue: $data.miproducto.pie,
-            "onUpdate:modelValue": _cache[30] || (_cache[30] = $event => $data.miproducto.pie = $event)
-          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", _hoisted_46, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_select, {
+            "onUpdate:modelValue": _cache[31] || (_cache[31] = $event => $data.miproducto.pie = $event)
+          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", _hoisted_47, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_select, {
             dense: "",
             outlined: "",
             options: ['KG', 'CJA', 'U'],
             modelValue: $data.miproducto.unidpie,
-            "onUpdate:modelValue": _cache[31] || (_cache[31] = $event => $data.miproducto.unidpie = $event),
+            "onUpdate:modelValue": _cache[32] || (_cache[32] = $event => $data.miproducto.unidpie = $event),
             label: "Unidad"
-          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", _hoisted_47, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", _hoisted_48, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
             type: "number",
             dense: "",
             outlined: "",
             label: "filete",
             modelValue: $data.miproducto.filete,
-            "onUpdate:modelValue": _cache[32] || (_cache[32] = $event => $data.miproducto.filete = $event)
-          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", _hoisted_48, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_select, {
+            "onUpdate:modelValue": _cache[33] || (_cache[33] = $event => $data.miproducto.filete = $event)
+          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", _hoisted_49, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_select, {
             dense: "",
             outlined: "",
             options: ['KG', 'CJA', 'U'],
             modelValue: $data.miproducto.unidfilete,
-            "onUpdate:modelValue": _cache[33] || (_cache[33] = $event => $data.miproducto.unidfilete = $event),
+            "onUpdate:modelValue": _cache[34] || (_cache[34] = $event => $data.miproducto.unidfilete = $event),
             label: "Unidad"
-          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", _hoisted_49, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", _hoisted_50, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
             type: "number",
             dense: "",
             outlined: "",
             label: "cuello",
             modelValue: $data.miproducto.cuello,
-            "onUpdate:modelValue": _cache[34] || (_cache[34] = $event => $data.miproducto.cuello = $event)
-          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", _hoisted_50, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_select, {
+            "onUpdate:modelValue": _cache[35] || (_cache[35] = $event => $data.miproducto.cuello = $event)
+          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", _hoisted_51, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_select, {
             dense: "",
             outlined: "",
             options: ['KG', 'CJA', 'U'],
             modelValue: $data.miproducto.unidcuello,
-            "onUpdate:modelValue": _cache[35] || (_cache[35] = $event => $data.miproducto.unidcuello = $event),
+            "onUpdate:modelValue": _cache[36] || (_cache[36] = $event => $data.miproducto.unidcuello = $event),
             label: "Unidad"
-          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", _hoisted_51, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", _hoisted_52, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
             type: "number",
             dense: "",
             outlined: "",
             label: "hueso",
             modelValue: $data.miproducto.hueso,
-            "onUpdate:modelValue": _cache[36] || (_cache[36] = $event => $data.miproducto.hueso = $event)
-          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", _hoisted_52, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_select, {
+            "onUpdate:modelValue": _cache[37] || (_cache[37] = $event => $data.miproducto.hueso = $event)
+          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", _hoisted_53, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_select, {
             dense: "",
             outlined: "",
             options: ['KG', 'CJA', 'U'],
             modelValue: $data.miproducto.unidhueso,
-            "onUpdate:modelValue": _cache[37] || (_cache[37] = $event => $data.miproducto.unidhueso = $event),
+            "onUpdate:modelValue": _cache[38] || (_cache[38] = $event => $data.miproducto.unidhueso = $event),
             label: "Unidad"
-          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", _hoisted_53, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", _hoisted_54, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
             type: "number",
             dense: "",
             outlined: "",
             label: "menu",
             modelValue: $data.miproducto.menu,
-            "onUpdate:modelValue": _cache[38] || (_cache[38] = $event => $data.miproducto.menu = $event)
-          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", _hoisted_54, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_select, {
+            "onUpdate:modelValue": _cache[39] || (_cache[39] = $event => $data.miproducto.menu = $event)
+          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", _hoisted_55, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_select, {
             dense: "",
             outlined: "",
             options: ['KG', 'CJA', 'U'],
             modelValue: $data.miproducto.unidmenu,
-            "onUpdate:modelValue": _cache[39] || (_cache[39] = $event => $data.miproducto.unidmenu = $event),
+            "onUpdate:modelValue": _cache[40] || (_cache[40] = $event => $data.miproducto.unidmenu = $event),
             label: "Unidad"
-          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", _hoisted_55, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", _hoisted_56, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
             type: "number",
             dense: "",
             outlined: "",
             label: "BS",
             modelValue: $data.miproducto.bs,
-            "onUpdate:modelValue": _cache[40] || (_cache[40] = $event => $data.miproducto.bs = $event)
-          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", _hoisted_56, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+            "onUpdate:modelValue": _cache[41] || (_cache[41] = $event => $data.miproducto.bs = $event)
+          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", _hoisted_57, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
             type: "text",
             dense: "",
             outlined: "",
             label: "BS2",
             modelValue: $data.miproducto.bs2,
-            "onUpdate:modelValue": _cache[41] || (_cache[41] = $event => $data.miproducto.bs2 = $event)
-          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", _hoisted_57, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+            "onUpdate:modelValue": _cache[42] || (_cache[42] = $event => $data.miproducto.bs2 = $event)
+          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", _hoisted_58, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
             type: "text",
             dense: "",
             outlined: "",
             label: "OBS",
             modelValue: $data.miproducto.observacion,
-            "onUpdate:modelValue": _cache[42] || (_cache[42] = $event => $data.miproducto.observacion = $event)
+            "onUpdate:modelValue": _cache[43] || (_cache[43] = $event => $data.miproducto.observacion = $event)
           }, null, 8, ["modelValue"])])])]),
           _: 1
         }), (0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_card_actions, {
@@ -2498,22 +2509,22 @@ function Mispedidosvue_type_template_id_2ad54996_render(_ctx, _cache, $props, $s
       _: 1
     }, 8, ["modelValue"]), (0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_dialog, {
       modelValue: $data.modalnormal,
-      "onUpdate:modelValue": _cache[45] || (_cache[45] = $event => $data.modalnormal = $event),
+      "onUpdate:modelValue": _cache[46] || (_cache[46] = $event => $data.modalnormal = $event),
       "full-width": ""
     }, {
       default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_card, null, {
         default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_card_section, null, {
-          default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [_hoisted_58]),
+          default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [_hoisted_59]),
           _: 1
         }), (0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_card_section, {
           class: "q-pt-none"
         }, {
-          default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", _hoisted_59, [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", _hoisted_60, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+          default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", _hoisted_60, [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", _hoisted_61, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
             dense: "",
             outlined: "",
             label: "observacion",
             modelValue: $data.miproducto.observacion,
-            "onUpdate:modelValue": _cache[44] || (_cache[44] = $event => $data.miproducto.observacion = $event)
+            "onUpdate:modelValue": _cache[45] || (_cache[45] = $event => $data.miproducto.observacion = $event)
           }, null, 8, ["modelValue"])])])]),
           _: 1
         }), (0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_card_actions, {
@@ -2532,58 +2543,58 @@ function Mispedidosvue_type_template_id_2ad54996_render(_ctx, _cache, $props, $s
       _: 1
     }, 8, ["modelValue"]), (0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_dialog, {
       modelValue: $data.modalcerdo,
-      "onUpdate:modelValue": _cache[53] || (_cache[53] = $event => $data.modalcerdo = $event),
+      "onUpdate:modelValue": _cache[54] || (_cache[54] = $event => $data.modalcerdo = $event),
       "full-width": ""
     }, {
       default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_card, null, {
         default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_card_section, null, {
-          default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [_hoisted_61]),
+          default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [_hoisted_62]),
           _: 1
         }), (0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_card_section, {
           class: "q-pt-none"
         }, {
-          default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", _hoisted_62, [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", _hoisted_63, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+          default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", _hoisted_63, [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", _hoisted_64, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
             dense: "",
             outlined: "",
             label: "precio",
             modelValue: $data.miproducto.pfrial,
-            "onUpdate:modelValue": _cache[46] || (_cache[46] = $event => $data.miproducto.pfrial = $event)
-          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", _hoisted_64, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+            "onUpdate:modelValue": _cache[47] || (_cache[47] = $event => $data.miproducto.pfrial = $event)
+          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", _hoisted_65, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
             dense: "",
             outlined: "",
             label: "total",
             modelValue: $data.miproducto.total,
-            "onUpdate:modelValue": _cache[47] || (_cache[47] = $event => $data.miproducto.total = $event)
-          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", _hoisted_65, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+            "onUpdate:modelValue": _cache[48] || (_cache[48] = $event => $data.miproducto.total = $event)
+          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", _hoisted_66, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
             dense: "",
             outlined: "",
             label: "entero",
             modelValue: $data.miproducto.entero,
-            "onUpdate:modelValue": _cache[48] || (_cache[48] = $event => $data.miproducto.entero = $event)
-          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", _hoisted_66, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+            "onUpdate:modelValue": _cache[49] || (_cache[49] = $event => $data.miproducto.entero = $event)
+          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", _hoisted_67, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
             dense: "",
             outlined: "",
             label: "desmembre",
             modelValue: $data.miproducto.desmembre,
-            "onUpdate:modelValue": _cache[49] || (_cache[49] = $event => $data.miproducto.desmembre = $event)
-          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", _hoisted_67, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+            "onUpdate:modelValue": _cache[50] || (_cache[50] = $event => $data.miproducto.desmembre = $event)
+          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", _hoisted_68, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
             dense: "",
             outlined: "",
             label: "corte",
             modelValue: $data.miproducto.corte,
-            "onUpdate:modelValue": _cache[50] || (_cache[50] = $event => $data.miproducto.corte = $event)
-          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", _hoisted_68, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+            "onUpdate:modelValue": _cache[51] || (_cache[51] = $event => $data.miproducto.corte = $event)
+          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", _hoisted_69, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
             dense: "",
             outlined: "",
             label: "kilo",
             modelValue: $data.miproducto.kilo,
-            "onUpdate:modelValue": _cache[51] || (_cache[51] = $event => $data.miproducto.kilo = $event)
-          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", _hoisted_69, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+            "onUpdate:modelValue": _cache[52] || (_cache[52] = $event => $data.miproducto.kilo = $event)
+          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", _hoisted_70, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
             dense: "",
             outlined: "",
             label: "observacion",
             modelValue: $data.miproducto.observacion,
-            "onUpdate:modelValue": _cache[52] || (_cache[52] = $event => $data.miproducto.observacion = $event)
+            "onUpdate:modelValue": _cache[53] || (_cache[53] = $event => $data.miproducto.observacion = $event)
           }, null, 8, ["modelValue"])])])]),
           _: 1
         }), (0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_card_actions, {
@@ -2602,52 +2613,52 @@ function Mispedidosvue_type_template_id_2ad54996_render(_ctx, _cache, $props, $s
       _: 1
     }, 8, ["modelValue"]), (0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_dialog, {
       modelValue: $data.modalres,
-      "onUpdate:modelValue": _cache[60] || (_cache[60] = $event => $data.modalres = $event),
+      "onUpdate:modelValue": _cache[61] || (_cache[61] = $event => $data.modalres = $event),
       "full-width": ""
     }, {
       default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_card, null, {
         default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_card_section, null, {
-          default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [_hoisted_70]),
+          default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [_hoisted_71]),
           _: 1
         }), (0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_card_section, {
           class: "q-pt-none"
         }, {
-          default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", _hoisted_71, [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", _hoisted_72, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+          default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", _hoisted_72, [(0,runtime_core_esm_bundler/* createElementVNode */._)("div", _hoisted_73, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
             dense: "",
             outlined: "",
             label: "precio",
             modelValue: $data.miproducto.pfrial,
-            "onUpdate:modelValue": _cache[54] || (_cache[54] = $event => $data.miproducto.pfrial = $event)
-          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", _hoisted_73, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+            "onUpdate:modelValue": _cache[55] || (_cache[55] = $event => $data.miproducto.pfrial = $event)
+          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", _hoisted_74, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
             dense: "",
             outlined: "",
             label: "trozado",
             modelValue: $data.miproducto.trozado,
-            "onUpdate:modelValue": _cache[55] || (_cache[55] = $event => $data.miproducto.trozado = $event)
-          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", _hoisted_74, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+            "onUpdate:modelValue": _cache[56] || (_cache[56] = $event => $data.miproducto.trozado = $event)
+          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", _hoisted_75, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
             dense: "",
             outlined: "",
             label: "entero",
             modelValue: $data.miproducto.entero,
-            "onUpdate:modelValue": _cache[56] || (_cache[56] = $event => $data.miproducto.entero = $event)
-          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", _hoisted_75, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+            "onUpdate:modelValue": _cache[57] || (_cache[57] = $event => $data.miproducto.entero = $event)
+          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", _hoisted_76, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
             dense: "",
             outlined: "",
             label: "pierna",
             modelValue: $data.miproducto.pierna,
-            "onUpdate:modelValue": _cache[57] || (_cache[57] = $event => $data.miproducto.pierna = $event)
-          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", _hoisted_76, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+            "onUpdate:modelValue": _cache[58] || (_cache[58] = $event => $data.miproducto.pierna = $event)
+          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", _hoisted_77, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
             dense: "",
             outlined: "",
             label: "brazo",
             modelValue: $data.miproducto.brazo,
-            "onUpdate:modelValue": _cache[58] || (_cache[58] = $event => $data.miproducto.brazo = $event)
-          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", _hoisted_77, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+            "onUpdate:modelValue": _cache[59] || (_cache[59] = $event => $data.miproducto.brazo = $event)
+          }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", _hoisted_78, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
             dense: "",
             outlined: "",
             label: "observacion",
             modelValue: $data.miproducto.observacion,
-            "onUpdate:modelValue": _cache[59] || (_cache[59] = $event => $data.miproducto.observacion = $event)
+            "onUpdate:modelValue": _cache[60] || (_cache[60] = $event => $data.miproducto.observacion = $event)
           }, null, 8, ["modelValue"])])])]),
           _: 1
         }), (0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_card_actions, {
@@ -2666,13 +2677,13 @@ function Mispedidosvue_type_template_id_2ad54996_render(_ctx, _cache, $props, $s
       _: 1
     }, 8, ["modelValue"]), (0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_dialog, {
       modelValue: $data.dialog_pollo,
-      "onUpdate:modelValue": _cache[61] || (_cache[61] = $event => $data.dialog_pollo = $event),
+      "onUpdate:modelValue": _cache[62] || (_cache[62] = $event => $data.dialog_pollo = $event),
       "full-width": "",
       "full-height": ""
     }, {
       default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_card, null, {
         default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_card_section, null, {
-          default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [_hoisted_78, (0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_btn, {
+          default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [_hoisted_79, (0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_btn, {
             color: "accent",
             icon: "print",
             label: "IMPRIMIR",
@@ -2682,7 +2693,7 @@ function Mispedidosvue_type_template_id_2ad54996_render(_ctx, _cache, $props, $s
         }), (0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_card_section, {
           class: "q-pt-none"
         }, {
-          default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createElementVNode */._)("table", _hoisted_79, [_hoisted_80, (0,runtime_core_esm_bundler/* createElementVNode */._)("tbody", null, [((0,runtime_core_esm_bundler/* openBlock */.wg)(true), (0,runtime_core_esm_bundler/* createElementBlock */.iD)(runtime_core_esm_bundler/* Fragment */.HY, null, (0,runtime_core_esm_bundler/* renderList */.Ko)($data.pollo, (v, index) => {
+          default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createElementVNode */._)("table", _hoisted_80, [_hoisted_81, (0,runtime_core_esm_bundler/* createElementVNode */._)("tbody", null, [((0,runtime_core_esm_bundler/* openBlock */.wg)(true), (0,runtime_core_esm_bundler/* createElementBlock */.iD)(runtime_core_esm_bundler/* Fragment */.HY, null, (0,runtime_core_esm_bundler/* renderList */.Ko)($data.pollo, (v, index) => {
             return (0,runtime_core_esm_bundler/* openBlock */.wg)(), (0,runtime_core_esm_bundler/* createElementBlock */.iD)("tr", {
               key: index
             }, [(0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(index + 1), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.Nombres), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.cbrasa5), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.ubrasa5), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.bsbrasa5), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.obsbrasa5), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.cbrasa6), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.cubrasa6), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.bsbrasa6), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.obsbrasa6), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.c104), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.u104), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.bs104), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.obs104), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.c105), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.u105), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.bs105), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.obs105), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.c106), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.u106), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.bs106), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.obs106), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.c107), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.u107), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.bs107), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.obs107), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.c108), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.u108), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.bs108), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.obs108), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.c109), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.u109), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.bs109), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.obs109), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.ala), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.unidala), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.bsala), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.obsala), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.cadera), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.unidcadera), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.bscadera), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.obscadera), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.pecho), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.unidpecho), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.bspecho), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.obspecho), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.pie), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.unidpie), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.bspie), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.obspie), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.filete), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.unidfilete), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.bsfilete), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.obsfilete), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.cuello), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.unidcuello), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.bscuello), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.obscuello), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.hueso), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.unidhueso), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.bshueso), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.obshueso), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.menu), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.unidmenu), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.bsmenu), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.obsmenu), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.pago), 1)]);
@@ -2706,12 +2717,12 @@ function Mispedidosvue_type_template_id_2ad54996_render(_ctx, _cache, $props, $s
       _: 1
     }, 8, ["modelValue"]), (0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_dialog, {
       modelValue: $data.dialog_res,
-      "onUpdate:modelValue": _cache[62] || (_cache[62] = $event => $data.dialog_res = $event),
+      "onUpdate:modelValue": _cache[63] || (_cache[63] = $event => $data.dialog_res = $event),
       "full-width": ""
     }, {
       default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_card, null, {
         default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_card_section, null, {
-          default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [_hoisted_81, (0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_btn, {
+          default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [_hoisted_82, (0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_btn, {
             color: "accent",
             icon: "print",
             label: "IMPRIMIR",
@@ -2721,7 +2732,7 @@ function Mispedidosvue_type_template_id_2ad54996_render(_ctx, _cache, $props, $s
         }), (0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_card_section, {
           class: "q-pt-none"
         }, {
-          default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createElementVNode */._)("table", _hoisted_82, [_hoisted_83, (0,runtime_core_esm_bundler/* createElementVNode */._)("tbody", null, [((0,runtime_core_esm_bundler/* openBlock */.wg)(true), (0,runtime_core_esm_bundler/* createElementBlock */.iD)(runtime_core_esm_bundler/* Fragment */.HY, null, (0,runtime_core_esm_bundler/* renderList */.Ko)($data.res, (v, index) => {
+          default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createElementVNode */._)("table", _hoisted_83, [_hoisted_84, (0,runtime_core_esm_bundler/* createElementVNode */._)("tbody", null, [((0,runtime_core_esm_bundler/* openBlock */.wg)(true), (0,runtime_core_esm_bundler/* createElementBlock */.iD)(runtime_core_esm_bundler/* Fragment */.HY, null, (0,runtime_core_esm_bundler/* renderList */.Ko)($data.res, (v, index) => {
             return (0,runtime_core_esm_bundler/* openBlock */.wg)(), (0,runtime_core_esm_bundler/* createElementBlock */.iD)("tr", {
               key: index
             }, [(0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(index + 1), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.Nombres), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.precio), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.trozado), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.entero), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.pierna), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.brazo), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.pago), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.observaciones), 1)]);
@@ -2745,12 +2756,12 @@ function Mispedidosvue_type_template_id_2ad54996_render(_ctx, _cache, $props, $s
       _: 1
     }, 8, ["modelValue"]), (0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_dialog, {
       modelValue: $data.dialog_cerdo,
-      "onUpdate:modelValue": _cache[63] || (_cache[63] = $event => $data.dialog_cerdo = $event),
+      "onUpdate:modelValue": _cache[64] || (_cache[64] = $event => $data.dialog_cerdo = $event),
       "full-width": ""
     }, {
       default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_card, null, {
         default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_card_section, null, {
-          default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [_hoisted_84, (0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_btn, {
+          default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [_hoisted_85, (0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_btn, {
             color: "accent",
             icon: "print",
             label: "IMPRIMIR",
@@ -2760,7 +2771,7 @@ function Mispedidosvue_type_template_id_2ad54996_render(_ctx, _cache, $props, $s
         }), (0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_card_section, {
           class: "q-pt-none"
         }, {
-          default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createElementVNode */._)("table", _hoisted_85, [_hoisted_86, (0,runtime_core_esm_bundler/* createElementVNode */._)("tbody", null, [((0,runtime_core_esm_bundler/* openBlock */.wg)(true), (0,runtime_core_esm_bundler/* createElementBlock */.iD)(runtime_core_esm_bundler/* Fragment */.HY, null, (0,runtime_core_esm_bundler/* renderList */.Ko)($data.cerdo, (v, index) => {
+          default: (0,runtime_core_esm_bundler/* withCtx */.w5)(() => [(0,runtime_core_esm_bundler/* createElementVNode */._)("table", _hoisted_86, [_hoisted_87, (0,runtime_core_esm_bundler/* createElementVNode */._)("tbody", null, [((0,runtime_core_esm_bundler/* openBlock */.wg)(true), (0,runtime_core_esm_bundler/* createElementBlock */.iD)(runtime_core_esm_bundler/* Fragment */.HY, null, (0,runtime_core_esm_bundler/* renderList */.Ko)($data.cerdo, (v, index) => {
             return (0,runtime_core_esm_bundler/* openBlock */.wg)(), (0,runtime_core_esm_bundler/* createElementBlock */.iD)("tr", {
               key: index
             }, [(0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(index + 1), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.Nombres), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.precio), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.total), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.entero), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.desmembre), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.corte), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.kilo), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.pago), 1), (0,runtime_core_esm_bundler/* createElementVNode */._)("td", null, (0,shared_esm_bundler/* toDisplayString */.zw)(v.observaciones), 1)]);
@@ -2786,7 +2797,7 @@ function Mispedidosvue_type_template_id_2ad54996_render(_ctx, _cache, $props, $s
     _: 1
   });
 }
-;// CONCATENATED MODULE: ./src/pages/Mispedidos.vue?vue&type=template&id=2ad54996
+;// CONCATENATED MODULE: ./src/pages/Mispedidos.vue?vue&type=template&id=07851f7e
 
 // EXTERNAL MODULE: ./node_modules/datatables.net-buttons/js/buttons.print.js
 var buttons_print = __webpack_require__(9720);
@@ -2820,6 +2831,9 @@ __webpack_require__(1400);
 (pdfmake_default()).vfs = vfs_fonts/* pdfMake.vfs */.I.vfs;
 window.JSZip = (jszip_default());
 
+const {
+  addToDate
+} = date/* default */.ZP;
 /* harmony default export */ const Mispedidosvue_type_script_lang_js = ({
   data() {
     return {
@@ -2915,7 +2929,10 @@ window.JSZip = (jszip_default());
         field: 'observacion',
         align: 'left'
       }],
-      fecha: date/* default.formatDate */.ZP.formatDate(Date.now(), 'YYYY-MM-DD')
+      fecha: date/* default.formatDate */.ZP.formatDate(Date.now(), 'YYYY-MM-DD'),
+      fechamenos: date/* default.formatDate */.ZP.formatDate(addToDate(new Date(), {
+        days: 0
+      }), 'YYYY-MM-DD')
     };
   },
 
@@ -3800,13 +3817,15 @@ window.JSZip = (jszip_default());
         idCli: this.cliente.Cod_Aut,
         productos: this.misproductos,
         pago: this.pago,
-        fact: this.fact
+        fact: this.fact,
+        fecha: this.fecha
       }).then(res => {
         // console.log(res.data)
         this.pago = 'CONTADO';
         this.fact = 'NO';
         this.$q.loading.hide();
         this.modalpedido = false;
+        this.misclientes();
       });
     },
 
@@ -3978,10 +3997,11 @@ window.JSZip = (jszip_default());
         fecha1: this.fecha1,
         fecha2: this.fecha2
       }).then(res => {
-        // console.log(res.data)
-        // return false
+        console.log(res.data); // return false
+
         this.pago = res.data[0].pago;
         this.fact = res.data[0].fact;
+        this.fecha = date/* default.formatDate */.ZP.formatDate(res.data[0].fecha, 'YYYY-MM-DD');
         this.misproductos = res.data[0].pedidos;
         this.modalpedido = true;
         this.$q.loading.hide();
@@ -4041,7 +4061,7 @@ var QItemSection = __webpack_require__(2035);
 
 
 ;
-const Mispedidos_exports_ = /*#__PURE__*/(0,exportHelper/* default */.Z)(Mispedidosvue_type_script_lang_js, [['render',Mispedidosvue_type_template_id_2ad54996_render]])
+const Mispedidos_exports_ = /*#__PURE__*/(0,exportHelper/* default */.Z)(Mispedidosvue_type_script_lang_js, [['render',Mispedidosvue_type_template_id_07851f7e_render]])
 
 /* harmony default export */ const Mispedidos = (Mispedidos_exports_);
 ;
@@ -4332,7 +4352,7 @@ const Visitavue_type_template_id_356d9d16_hoisted_85 = {
 const Visitavue_type_template_id_356d9d16_hoisted_86 = {
   class: "col-4"
 };
-const _hoisted_87 = {
+const Visitavue_type_template_id_356d9d16_hoisted_87 = {
   class: "col-4"
 };
 const _hoisted_88 = {
@@ -5134,7 +5154,7 @@ function Visitavue_type_template_id_356d9d16_render(_ctx, _cache, $props, $setup
           label: "desmembre",
           modelValue: $data.miproducto.desmembre,
           "onUpdate:modelValue": _cache[56] || (_cache[56] = $event => $data.miproducto.desmembre = $event)
-        }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", _hoisted_87, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
+        }, null, 8, ["modelValue"])]), (0,runtime_core_esm_bundler/* createElementVNode */._)("div", Visitavue_type_template_id_356d9d16_hoisted_87, [(0,runtime_core_esm_bundler/* createVNode */.Wm)(_component_q_input, {
           dense: "",
           outlined: "",
           label: "corte",
@@ -5243,7 +5263,7 @@ var vue_leaflet_esm = __webpack_require__(8892);
 
 ;
 const {
-  addToDate
+  addToDate: Visitavue_type_script_lang_js_addToDate
 } = date/* default */.ZP;
 /* harmony default export */ const Visitavue_type_script_lang_js = ({
   components: {
@@ -5262,7 +5282,7 @@ const {
   data() {
     return {
       fecha: date/* default.formatDate */.ZP.formatDate(new Date(), 'YYYY-MM-DD'),
-      fechamenos: date/* default.formatDate */.ZP.formatDate(addToDate(new Date(), {
+      fechamenos: date/* default.formatDate */.ZP.formatDate(Visitavue_type_script_lang_js_addToDate(new Date(), {
         days: 0
       }), 'YYYY-MM-DD'),
       filteproducto: '',
@@ -11525,9 +11545,9 @@ module.exports = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5v
 /******/ 	// startup
 /******/ 	// Load entry module and return exports
 /******/ 	// This entry module depends on other loaded chunks and execution need to be delayed
-/******/ 	var __webpack_exports__ = __webpack_require__.O(undefined, [736], () => (__webpack_require__(7329)))
+/******/ 	var __webpack_exports__ = __webpack_require__.O(undefined, [736], () => (__webpack_require__(6151)))
 /******/ 	__webpack_exports__ = __webpack_require__.O(__webpack_exports__);
 /******/ 	
 /******/ })()
 ;
-//# sourceMappingURL=app.f9b03dcc.js.map
+//# sourceMappingURL=app.d6f213ab.js.map

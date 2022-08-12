@@ -62,6 +62,9 @@
             true-value="SI"
             v-model="fact"/>
             </div>
+          <div class="col-6">
+              <q-input label="Fecha" v-model="fecha" type="date" dense outlined :min="fechamenos" />
+            </div>
           <div class="row">
             <div class="col-10">
               <q-select label="Productos" dense outlined class="q-ma-xs" use-input input-debounce="0"  @filter="filterFn" :options="productos" v-model="producto">
@@ -538,6 +541,7 @@ import pdfFonts from 'pdfmake/build/vfs_fonts';
 pdfMake.vfs=pdfFonts.pdfMake.vfs;
 window.JSZip=jszip;
 import { jsPDF } from "jspdf";
+const { addToDate } = date
 export default {
   data(){
     return{
@@ -587,7 +591,8 @@ export default {
         {label:'nombre',name:'nombre',field:'nombre',align:'left'},
         {label:'observacion',name:'observacion',field:'observacion',align:'left'},
       ],
-      fecha:date.formatDate(Date.now(),'YYYY-MM-DD')
+      fecha:date.formatDate(Date.now(),'YYYY-MM-DD'),
+      fechamenos:date.formatDate(addToDate(new Date(), { days: 0}),'YYYY-MM-DD'),
     }
   },
   created() {
@@ -1435,12 +1440,13 @@ generarpollo(){
       // console.log(this.misproductos)
       // console.log(this.cliente)
       this.$q.loading.show()
-      this.$api.post('updatecomanda',{comanda:this.cliente.NroPed,idCli:this.cliente.Cod_Aut,productos:this.misproductos,pago:this.pago,fact:this.fact}).then(res=>{
+      this.$api.post('updatecomanda',{comanda:this.cliente.NroPed,idCli:this.cliente.Cod_Aut,productos:this.misproductos,pago:this.pago,fact:this.fact,fecha:this.fecha}).then(res=>{
         // console.log(res.data)
         this.pago='CONTADO'
         this.fact='NO'
         this.$q.loading.hide()
         this.modalpedido=false
+        this.misclientes()
       })
     },
         eliminarcomanda(){
@@ -1605,10 +1611,11 @@ generarpollo(){
       console.log(this.cliente)
       this.$q.loading.show()
         this.$api.post('listpedido',{NroPed:cliente.NroPed,fecha1:this.fecha1,fecha2:this.fecha2}).then(res=>{
-          // console.log(res.data)
+           console.log(res.data)
           // return false
           this.pago=res.data[0].pago
           this.fact=res.data[0].fact
+          this.fecha=date.formatDate(res.data[0].fecha,'YYYY-MM-DD')
           this.misproductos=res.data[0].pedidos
 
           this.modalpedido=true
