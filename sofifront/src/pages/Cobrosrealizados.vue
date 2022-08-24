@@ -10,9 +10,9 @@
           <div class="col-4">
             <q-btn type="submit" color="positive" icon="check" label="consultar" class="full-width full-height"/>
           </div>
-          <div class="col-4">
+          <!--<div class="col-4">
             <q-btn color="accent" label="CtaCobrar" icon="import" type="button" @click="recuperar"/>
-          </div>
+          </div>-->
         </div>
       </q-form>
     </div>

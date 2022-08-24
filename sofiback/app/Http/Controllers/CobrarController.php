@@ -211,8 +211,10 @@ class CobrarController extends Controller
     DB::SELECT(" UPDATE tbclientes set venta='ACTIVO'
     where(SELECT sum(c.Importe-(SELECT sum(c2.Acuenta) from $cont c2 where c2.comanda=c.comanda) )
     FROM $cont c WHERE c.CINIT=tbclientes.Id and c.Nrocierre=0 and Acuenta=0 and (c.Importe-(SELECT sum(c2.Acuenta) from $cont c2 where c2.comanda=c.comanda))>5 )<7000
-    and (SELECT DATEDIFF( curdate(), (select min(c.FechaEntreg) from $cont c where c.CINIT =tbclientes.Id and c.Nrocierre=0 and Acuenta=0 and
-        (c.Importe-(SELECT sum(c2.Acuenta) from $cont c2 where c2.comanda=c.comanda))>=5)))<7  ");
+
+         ");
+            // and (SELECT DATEDIFF( curdate(), (select min(c.FechaEntreg) from $cont c where c.CINIT =tbclientes.Id and c.Nrocierre=0 and Acuenta=0 and
+             //(c.Importe-(SELECT sum(c2.Acuenta) from $cont c2 where c2.comanda=c.comanda))>=5)))<7 
                 $cc=DB::SELECT("SELECT * from tbctascow where estado='ENVIADO' and date(fecha)='$request->fecha1' ");
 
                /* foreach ($cc as $r) {
