@@ -769,6 +769,7 @@ export default {
          // console.log(res.data)
         // return false
         this.modalpedido=false
+        this.fecha=date.formatDate(new Date(),'YYYY-MM-DD')
         this.misclientes()
       }).catch(err=>{
         // console.log(err.response)
