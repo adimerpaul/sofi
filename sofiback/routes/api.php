@@ -71,6 +71,8 @@ Route::group(['middleware'=>'auth:sanctum'],function (){
     Route::post('/reporteVenta',[\App\Http\Controllers\PedidoController::class,'reporteVenta']);
     Route::post('/comentario',[\App\Http\Controllers\ClienteController::class,'comentario']);
     Route::post('/updateComentario',[\App\Http\Controllers\ClienteController::class,'updateComentario']);
+    Route::post('/lispreventista',[\App\Http\Controllers\PedidoController::class,'lispreventista']);
+    Route::post('/informeProducto',[\App\Http\Controllers\PedidoController::class,'informeProducto']);
 
     Route::post('/me',[\App\Http\Controllers\UserController::class,'me']);
     Route::post('/logout',[\App\Http\Controllers\UserController::class,'logout']);

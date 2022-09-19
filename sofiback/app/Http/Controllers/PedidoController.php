@@ -58,6 +58,17 @@ class PedidoController extends Controller
         return DB::SELECT(" SELECT tbpedidos.*,tbproductos.Producto from tbpedidos,tbproductos where tbpedidos.cod_prod=tbproductos.cod_prod  and tbpedidos.tipo='NORMAL' and NroPed=$request->comanda");
     }
 
+    public function lispreventista(){
+        return DB::SELECT("SELECT DISTINCT(l.CodAut),l.ci,l.Nombre1,l.App1 FROM tbpedidos p inner JOIN personal l on p.CIfunc=l.CodAut WHERE p.tipo='NORMAL'");
+    }
+
+    public function informeProducto(Request $request ){
+        return DB::SELECT("SELECT o.cod_prod,o.Producto,count(*) as cantidad
+        FROM tbpedidos p inner join tbproductos o on p.cod_prod=o.cod_prod
+        WHERE p.tipo='NORMAL' and date(p.fecha)>='$request->ini' and date(p.fecha)<='$request->fin' 
+        and p.CIfunc=$request->cod
+        group by o.cod_prod,o.Producto;");
+    }
 
 
     public function store(Request $request)

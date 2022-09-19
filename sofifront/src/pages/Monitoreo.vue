@@ -24,7 +24,7 @@
       <div class="text-h3 text-bold text-red " >{{nopedido}}</div>
     </div>
     <div class="col-12">
-      <q-table title="Eficiencia " :rows="infoventa" :columns="columns2" row-key="name" />
+      <q-table title="Efectividad Pedido Cliente" :rows="infoventa" :columns="columns2" row-key="name" />
       
     </div>
     <div class="col-12">
@@ -52,6 +52,17 @@
         </tbody>
       </table>
     </div>
+    <div class="col-12">
+      <div class="row">
+        <div class="col-3"><q-select dense outlined v-model="preventista" :options="preventistas" label="Pre Ventista" /></div>
+        <div class="col-3"><q-input dense outlined v-model="fechareporte.ini" label="Inicio" type="date" /></div>
+        <div class="col-3"><q-input dense outlined v-model="fechareporte.fin" label="Fin" type="date" /></div>
+        <div class="col-3"> <q-btn color="green" label="Reporte" icon="search" @click="ventaProducto"/>
+        </div>
+      </div>
+      <q-table title="Productos Vendidos" :rows="productos" :columns="columns3" row-key="name" />
+      
+    </div>
   </div>
 </q-page>
 </template>
@@ -75,12 +86,16 @@ export default {
     return{
       usuarios:[],
       fecha:date.formatDate(new Date(),'YYYY-MM-DD'),
+      fechareporte:{ini:date.formatDate(new Date(),'YYYY-MM-DD'),fin:date.formatDate(new Date(),'YYYY-MM-DD')},
       user:{},
       pedido:0,
       retorno:0,
       nopedido:0,
       visitas:[],
       infoventa:[],
+      preventistas:[],
+      preventista:{},
+      productos:[],
 
        columns : [
   {
@@ -98,8 +113,14 @@ export default {
   { name: 'totclient', label: 'T PEDIDOS',    field: 'totclient', },
   { name: 'totvisita',  label: 'T DIA', field: 'totvisita', },
   { name: 'numcli', label: 'NUM ASIGNADO', field: 'numcli' },
-  { name: 'numcli', label: 'EFICIENCIA', field: row=>(parseFloat(row.totvisita) / parseFloat(row.numcli)*100)+' %' }
+  { name: 'numcli', label: 'Efectividad', field: row=>(parseFloat(row.totvisita) / parseFloat(row.numcli)*100)+' %' }
+],
+columns3 : [
+  { name: 'codigo',  label: 'CODIGO PROD', field: 'cod_prod', sortable: true },
+  { name: 'producto', label: 'PRODUCTO',    field: 'Producto', },
+  { name: 'cantidad',  label: 'CANTIDAD', field: 'cantidad', },
 ]
+
     }
   },
   created(){
@@ -111,12 +132,30 @@ export default {
     this.misuser()
     this.consula(this.user)
     this.controlvisita()
+    this.listvendedor()
   },
   methods:{
+    listvendedor(){
+      this.$api.post('lispreventista').then(res=>{
+          res.data.forEach(r=>{
+            r.label=r.Nombre1+' '+r.App1;
+          })
+          this.preventistas=res.data
+      })
+
+    },
+    ventaProducto(){
+      this.$api.post('informeProducto',{cod:this.preventista.CodAut,ini:this.fechareporte.ini,fin:this.fechareporte.fin}).then(res=>{
+        console.log(res.data)
+        this.productos=res.data
+      })
+
+    },
     controlvisita(){
       this.$api.post('reporteVenta',{fecha:this.fecha}).then(res=>{
         console.log(res.data)
         this.infoventa=res.data
+        this.preventista=this.preventistas[0]
       })
     },
     consula(user){
