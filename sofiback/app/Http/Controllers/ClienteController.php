@@ -127,6 +127,22 @@ class ClienteController extends Controller
     {
         //
     }
+    
+    public function comentario(Request $request){
+        $obs=DB::SELECT("SELECT * FROM obscliente where ci=trim($request->ci)");
+        if(sizeof($obs)==0){
+            DB::SELECT("INSERT INTO obscliente(ci, observacion) VALUES (trim($request->ci),'')");
+            $obs=DB::SELECT("SELECT * FROM obscliente where ci=trim($request->ci)")[0];
+        }
+        else $obs=$obs[0];
+        return $obs;
+    }
+
+    public function updateComentario(Request $request){
+        $obs=DB::SELECT("UPDATE obscliente set observacion='$request->observacion' where ci='$request->ci'");
+        return $obs;
+    }
+
     public function bloquear(){
         DB::SELECT("UPDATE tbclientes set venta='ACTIVO'");
 

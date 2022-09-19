@@ -134,13 +134,21 @@
     <q-dialog full-width v-model="modalopciones">
       <q-card >
         <q-card-section>
-          <div class="text-subtitle2">{{cliente.Cod_Aut}} {{cliente.Nombres}} </div>
+          <div class="row">
+          <div class="col-md-6 col-xs-12"><div class="text-subtitle2 ">{{cliente.Cod_Aut}} {{cliente.Nombres}} </div>
           <div class="text-subtitle2">Cel: {{cliente.Telf}}</div>
           <div class="text-subtitle2">{{cliente.Direccion}}</div>
           <div class="text-subtitle2">{{cliente.Canal}}</div>
           <div class="text-subtitle2" >Monto Deuda: <q-badge color="negative">{{cliente.totdeuda}} Bs </q-badge> NumPedidos: <q-badge color="negative">{{cliente.cantdeuda}}</q-badge></div>
           <div class="text-subtitle2" >Fecha minima: <q-badge color="negative">{{cliente.fechaminima}} </q-badge> </div>
           <div class="text-h5" >Estado para pedidos: <q-badge :color="cliente.venta=='ACTIVO'?'green':'negative'" class="text-h5">{{cliente.venta}} </q-badge> </div>
+        </div>
+        <div class="col-md-6 col-xs-12"><q-input dense outlined v-model="comentario.observacion" label="Comentario" > 
+          <template v-slot:after>
+            <q-btn round dense flat icon="edit" @click="modcomentario"/>
+          </template>
+      </q-input></div></div>
+
         </q-card-section>
         <q-card-section class="q-pt-none">
 <!--          <pre>{{cliente}}</pre>-->
@@ -523,6 +531,7 @@ export default {
       producto:{label:''},
       userLocation:{},
       pago:'CONTADO',
+      comentario:{},
       fact:'NO',
       columns:[
         {label:'Cod_Aut',name:'Cod_Aut',field:'Cod_Aut'},
@@ -550,6 +559,18 @@ export default {
     // })
   },
   methods: {
+    modcomentario(){
+      console.log(this.comentario)
+      this.$api.post('updateComentario',this.comentario).then(res=>{
+        console.log(res.data)
+        this.$q.notify({
+          message:'Modificado Comentario',
+          color:'green',
+          icon:'info'
+        })
+      })
+
+    },
     listhoy(){
       this.$q.loading.show()
       this.$api.post('filtrarlista',{filtradia:1}).then(res=>{
@@ -950,6 +971,11 @@ export default {
     clickopciones(cliente){
       this.modalopciones=true
       this.cliente=cliente
+      this.comentario={}
+      this.$api.post('comentario',{ci:this.cliente.Id}).then(res=>{
+          //console.log(res.data)
+          this.comentario=res.data
+      })
     },
     ubicacion(e){
       // console.log(e.latlng)
