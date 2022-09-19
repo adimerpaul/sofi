@@ -24,6 +24,10 @@
       <div class="text-h3 text-bold text-red " >{{nopedido}}</div>
     </div>
     <div class="col-12">
+      <q-table title="Eficiencia " :rows="infoventa" :columns="columns2" row-key="name" />
+      
+    </div>
+    <div class="col-12">
 <!--      <pre>{{datos}}</pre>-->
       <table id="example" class="display" style="width:100%">
         <thead>
@@ -76,6 +80,8 @@ export default {
       retorno:0,
       nopedido:0,
       visitas:[],
+      infoventa:[],
+
        columns : [
   {
     name: 'name',
@@ -86,7 +92,13 @@ export default {
   },
   { name: 'estado', align: 'center', label: 'ESTADO', field: 'estado', sortable: true },
   { name: 'personal', align: 'center', label: 'PERSONAL', field: row=> row.Nombre1 + ' ' +row.App1, sortable: true },
-  { name: 'observacion', label: 'OBSERVACION', field: 'observacion' },
+  { name: 'observacion', label: 'OBSERVACION', field: 'observacion' },],
+  columns2 : [
+  { name: 'personal',  label: 'PERSONAL', field: row=> row.Nombre1 + ' ' +row.App1, sortable: true },
+  { name: 'totclient', label: 'T PEDIDOS',    field: 'totclient', },
+  { name: 'totvisita',  label: 'T DIA', field: 'totvisita', },
+  { name: 'numcli', label: 'NUM ASIGNADO', field: 'numcli' },
+  { name: 'numcli', label: 'EFICIENCIA', field: row=>(parseFloat(row.totvisita) / parseFloat(row.numcli)*100)+' %' }
 ]
     }
   },
@@ -98,8 +110,15 @@ export default {
     this.$q.loading.show()
     this.misuser()
     this.consula(this.user)
+    this.controlvisita()
   },
   methods:{
+    controlvisita(){
+      this.$api.post('reporteVenta',{fecha:this.fecha}).then(res=>{
+        console.log(res.data)
+        this.infoventa=res.data
+      })
+    },
     consula(user){
       this.pedido=0
       this.retorno=0
@@ -143,6 +162,7 @@ export default {
                   "lengthMenu": [[10, 25, 50, -1], [10, 25, 50, "All"]]     } )})
 
         })
+        this.controlvisita()
         this.$q.loading.hide()
       })
     },

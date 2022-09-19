@@ -68,6 +68,7 @@ Route::group(['middleware'=>'auth:sanctum'],function (){
     Route::post('/modprevent',[\App\Http\Controllers\ClienteController::class,'modprevent']);
     Route::post('/filtrarlista',[\App\Http\Controllers\ClienteController::class,'filtrarlista']);
     Route::post('/listvisita',[\App\Http\Controllers\MisvisitasController::class,'listvisita']);
+    Route::post('/reporteVenta',[\App\Http\Controllers\PedidoController::class,'reporteVenta']);
 
     Route::post('/me',[\App\Http\Controllers\UserController::class,'me']);
     Route::post('/logout',[\App\Http\Controllers\UserController::class,'logout']);

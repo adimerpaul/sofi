@@ -327,6 +327,45 @@ class PedidoController extends Controller
         ]);
     }
 
+    public function reporteVenta(Request $request){
+         
+        $fec= strtotime($request->fecha);
+        $numdia= date('w',$fec);
+        $filtro='';
+        switch ($numdia) {
+            case 0:
+                $filtro=" AND do=1 ";
+                break;
+            case 1:
+                $filtro=" AND lu=1 ";
+                break;
+            case 2:
+                $filtro=" AND Ma=1 ";
+                break;
+            case 3:
+                $filtro= " AND Mi=1 ";
+                break;
+            case 4:
+                $filtro= " AND Ju=1 ";
+                break;
+            case 5:
+                $filtro=" AND Vi=1 ";
+                break;
+            case 6:
+                $filtro=" AND Sa=1 ";
+                break;            
+            default:
+                $filtro= '';
+                break;
+        }
+        return DB::SELECT("
+        select p.CIfunc,l.ci, l.Nombre1,l.App1,
+        (SELECT count(DISTINCT(p2.idCli)) from tbpedidos p2 where date(p2.fecha)='$request->fecha' and p.CIfunc=p2.CIfunc) as totclient, 
+        (SELECT count(DISTINCT(p2.idCli)) from tbpedidos p2 inner join tbclientes c on p2.idCli=c.Cod_Aut where  date(p2.fecha)='$request->fecha' and p.CIfunc=p2.CIfunc ".$filtro.") as totvisita,
+        (SELECT count(*) from tbclientes tc where tc.CiVend=l.ci ".$filtro.") as numcli         
+        from tbpedidos p inner join personal l on p.CIfunc= l.CodAut where date(p.fecha)='$request->fecha' GROUP by p.CIfunc,l.ci, l.Nombre1,l.App1
+        ");
+    }
     /**
      * Remove the specified resource from storage.
      *
