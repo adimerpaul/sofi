@@ -160,6 +160,7 @@
             </q-item-label>
           </q-item-section>
         </q-item>
+
         <q-item clickable exact to="monitoreo" v-if="$store.getters['login/user'].ci=='7308976'">
           <q-item-section avatar>
             <q-icon name="computer" />
@@ -168,6 +169,17 @@
             <q-item-label>Monitoreo</q-item-label>
             <q-item-label caption>
               Monitoreo
+            </q-item-label>
+          </q-item-section>
+        </q-item>
+        <q-item clickable exact  @click="irformulario" v-if="vendores.includes($store.getters['login/user'].ci) || cobrador.includes($store.getters['login/user'].ci)">
+          <q-item-section avatar>
+            <q-icon name="people" />
+          </q-item-section>
+          <q-item-section>
+            <q-item-label>Alta Cliente</q-item-label>
+            <q-item-label caption>
+              Formulario
             </q-item-label>
           </q-item-section>
         </q-item>
@@ -231,6 +243,11 @@ export default {
     }
   },
   methods:{
+    irformulario(){
+      var win = window.open('https://form.jotform.com/221124252520035', '_blank');
+        // Cambiar el foco al nuevo tab (punto opcional)
+        win.focus();
+    },
       validar(){
         return this.vendores.includes();
       },
