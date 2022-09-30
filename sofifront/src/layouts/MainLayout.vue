@@ -244,7 +244,7 @@ export default {
   },
   methods:{
     irformulario(){
-      var win = window.open('https://form.jotform.com/221124252520035', '_blank');
+      var win = window.open('https://form.jotform.com/222723184727660', '_blank');
         // Cambiar el foco al nuevo tab (punto opcional)
         win.focus();
     },
