@@ -370,11 +370,14 @@ class PedidoController extends Controller
                 break;
         }
         return DB::SELECT("
-        select p.CIfunc,l.ci, l.Nombre1,l.App1,
+        select p.CIfunc,l.ci,l.CodAut, l.Nombre1,l.App1,
         (SELECT count(DISTINCT(p2.idCli)) from tbpedidos p2 where date(p2.fecha)='$request->fecha' and p.CIfunc=p2.CIfunc) as totclient, 
         (SELECT count(DISTINCT(p2.idCli)) from tbpedidos p2 inner join tbclientes c on p2.idCli=c.Cod_Aut where  date(p2.fecha)='$request->fecha' and p.CIfunc=p2.CIfunc ".$filtro.") as totvisita,
-        (SELECT count(*) from tbclientes tc where tc.CiVend=l.ci ".$filtro.") as numcli         
-        from tbpedidos p inner join personal l on p.CIfunc= l.CodAut where date(p.fecha)='$request->fecha' GROUP by p.CIfunc,l.ci, l.Nombre1,l.App1
+        (SELECT count(*) from tbclientes tc where tc.CiVend=l.ci ".$filtro.") as numcli ,
+        (SELECT count(*) from misvisitas v WHERE v.fecha='$request->fecha' and v.personal_id=l.CodAut and v.estado='PEDIDO') as npedido,     
+        (SELECT count(*) from misvisitas v WHERE v.fecha='$request->fecha' and v.personal_id=l.CodAut and v.estado='NO PEDIDO') as nopedido,      
+        (SELECT count(*) from misvisitas v WHERE v.fecha='$request->fecha' and v.personal_id=l.CodAut and v.estado='PARADO') as nparado      
+        from tbpedidos p inner join personal l on p.CIfunc= l.CodAut where date(p.fecha)='$request->fecha' GROUP by p.CIfunc,l.ci, l.Nombre1,l.App1,l.CodAut
         ");
     }
     /**

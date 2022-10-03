@@ -209,7 +209,7 @@ class ClienteController extends Controller
     }
 
     public function listaclientes(){
-        return DB::SELECT("SELECT * from tbclientes c inner join personal p on c.CiVend=p.ci");
+        return DB::SELECT("SELECT *,(select o.observacion from obscliente o where o.ci=trim(c.Id))as obs from tbclientes c inner join personal p on c.CiVend=p.ci");
     }
 
     public function modprevent(Request $request){

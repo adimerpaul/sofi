@@ -1,13 +1,34 @@
 <template>
 <q-page class="q-pa-xs">
-<div class="row">
 
+<div class="row">
+  <div style="height: 350px; width: 100%;">
+    <l-map
+      @ready="onReady"
+      @locationfound="onLocationFound"
+      v-model="zoom"
+      :zoom="zoom"
+      :center="center"
+      @move="log('move')"
+    >
+      <l-tile-layer
+        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+      ></l-tile-layer>
+  <!--    @click="clickopciones(c)"-->
+      <l-marker v-for="(c,i) in clientes" :key="c.Cod_Aut" :lat-lng="[c.Latitud, c.longitud]"  >
+        <l-icon><q-badge  class=" text-italic q-pa-none" color="info" >{{i+1}}</q-badge></l-icon>
+      </l-marker>
+      <l-marker :lat-lng="center"  >
+      </l-marker>
+    </l-map>
+    </div>
   <div class="col-12">
     <q-table :rows-per-page-options="[20,50,100,0]" dense title="CLIENTES" :columns="columns" :rows="clientes" :filter="filter">
       <template v-slot:body-cell-opcion="props">
         <q-td :props="props">
 <!--          <q-btn @click="cambiar(props.row)"  color="teal"  icon="check" size="xs"  />-->
           <q-select @update:model-value="cambiopreventista($event,props.row)" dense outlined label="preventista" v-model="props.row.user" :options="usuarios"/>
+          <q-btn @click="clickclientes(props.row)" icon="my_location" size="xs" color="accent"  />
         </q-td>
       </template>
 
@@ -43,12 +64,42 @@
 </template>
 
 <script>
+import {
+  LMap,
+  LIcon,
+  LTileLayer,
+  LMarker,
+  LControlLayers,
+  LTooltip,
+  LPopup,
+  LPolyline,
+  LPolygon,
+  LRectangle,
+} from "@vue-leaflet/vue-leaflet";
+import "leaflet/dist/leaflet.css";
 import {date} from "quasar";
+const { addToDate } = date
 export default {
+  name: `Modifica.vue`,
+
+  components: {
+    LMap,
+    LIcon,
+    LTileLayer,
+    LMarker,
+    // LControlLayers,
+    // LTooltip,
+    // LPopup,
+    // LPolyline,
+    // LPolygon,
+    // LRectangle,
+  },
   data(){
     return{
       filter:'',
       dialog_mod:false,
+      center:[-17.970371, -67.112303],
+      zoom:16,
       asignaciones:[],
       asignar:{},
       cliente:{},
@@ -66,6 +117,7 @@ export default {
         {label:'NOMBRES',name:'nombres',field:'Nombres',align:'left'},
         {label:'PREVENTISTA',name:'nombres',field:row=>row.Nombre1 + ' ' + row.App1,align:'left'},
         {label:'CI/NIT',name:'Id',field:'Id',align:'left'},
+        {label:'Observacion',name:'obs',field:'obs',align:'left'},
         {label:'telefono',name:'Telf',field:'Telf',align:'left'},
         {label:'Direccion',name:'Direccion',field:'Direccion',align:'left'},
 
@@ -76,6 +128,7 @@ export default {
   },
   created() {
     this.misuser()
+    this.misclientes()
 
 
   },
@@ -106,7 +159,6 @@ export default {
       this.usuarios=[]
       // this.$q.loading.show()
       this.$api.get('listapersonal').then(res=>{
-        this.misclientes()
          // console.log(res.data)
         // this.$q.loading.hide()
         res.data.forEach(r => {
@@ -143,17 +195,41 @@ export default {
         this.clientes=[]
         // this.clientes=res.data
         res.data.forEach(r=>{
-          r.user=this.usuarios.find(u=>u.ci==r.CiVend)
+          let d=r
+
+          d.user=this.usuarios.find(u=>u.ci==r.CiVend)
+          if ((parseFloat(r.Latitud)!=NaN || parseFloat(r.longitud)!=NaN) && (r.Latitud!='' || r.longitud!='') ){
+            // console.log( 'id='+r.Cod_Aut+'  '+(r.Latitud!='' && r.longitud!='' )+' R='+parseFloat(r.Latitud)+'---'+parseFloat(r.longitud))
+            d.Latitud=parseFloat(r.Latitud)
+            d.longitud=parseFloat(r.longitud)
+          }else{
+            // console.log( (r.Latitud!='' && r.longitud!='' )+' R='+r.Latitud+'---'+r.longitud)
+            d.Latitud=0
+            d.longitud=0
+          }
           // console.log(r)
-          this.clientes.push(r)
+          this.clientes.push(d)
         })
+        console.log(this.clientes)
         this.$q.loading.hide()
 
       })
 
     },
-
-
+    onReady (mapObject) {
+      mapObject.locate();
+    },
+    onLocationFound(location){
+      // console.log(location)
+      this.center=[location.latlng.lat,location.latlng.lng]
+    },
+    clickclientes(c){
+      console.log(c)
+      this.center = [c.Latitud, c.longitud]
+    },
+    log(a) {
+      // console.log(a);
+    },
   }
 }
 </script>

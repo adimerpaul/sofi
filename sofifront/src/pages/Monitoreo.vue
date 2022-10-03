@@ -113,7 +113,10 @@ export default {
   { name: 'totclient', label: 'T PEDIDOS',    field: 'totclient', },
   { name: 'totvisita',  label: 'T DIA', field: 'totvisita', },
   { name: 'numcli', label: 'NUM ASIGNADO', field: 'numcli' },
-  { name: 'numcli', label: 'Efectividad', field: row=>Math.round((parseFloat(row.totvisita) / parseFloat(row.numcli)*100))+' %' }
+  { name: 'numcli', label: 'Efectividad', field: row=>Math.round((parseFloat(row.totvisita) / parseFloat(row.numcli)*100))+' %' },
+  { name: 'npedido', label: 'NUM PEDIDO', field: 'npedido' },
+  { name: 'nopedido', label: 'NUM NO PEDIDO', field: 'nopedido' },
+  { name: 'nparado', label: 'NUM VOLVER', field: 'nparado' },
 ],
 columns3 : [
   { name: 'codigo',  label: 'CODIGO PROD', field: 'cod_prod', sortable: true },

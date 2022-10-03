@@ -30,8 +30,7 @@
     <l-marker v-for="(c,i) in clientes" :key="c.Cod_Aut" :lat-lng="[c.Latitud, c.longitud]"  >
       <l-icon><q-badge  :class="c.estados=='ENTREGADO'?'bg-green text-italic':c.estados=='NO ENTREGADO'?'bg-red text-italic':''"  class="q-pa-none" color="info" >{{i+1}}</q-badge></l-icon>
     </l-marker>
-    <l-marker :lat-lng="center"  >
-    </l-marker>
+
   </l-map>
   </div>
   <div class="row">
