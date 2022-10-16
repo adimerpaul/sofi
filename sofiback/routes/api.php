@@ -37,8 +37,10 @@ Route::group(['middleware'=>'auth:sanctum'],function (){
     Route::resource('/entrega',\App\Http\Controllers\EntregaController::class);
 
     Route::get('/listdeudores',[\App\Http\Controllers\CobrarController::class,'listdeudores']);
+    Route::get('/listProducto',[\App\Http\Controllers\ProductoController::class,'listProducto']);
     Route::post('/cxcobrar/{ci}',[\App\Http\Controllers\CobrarController::class,'cxcobrar']);
     Route::post('/insertcobro',[\App\Http\Controllers\CobrarController::class,'insertcobro']);
+    Route::post('/listsinpedido',[\App\Http\Controllers\ClienteController::class,'listsinpedido']);
     Route::post('/miscobros',[\App\Http\Controllers\CobrarController::class,'miscobros']);
     Route::post('/impcobros',[\App\Http\Controllers\CobrarController::class,'impcobros']);
     Route::post('/verificar',[\App\Http\Controllers\CobrarController::class,'verificar']);

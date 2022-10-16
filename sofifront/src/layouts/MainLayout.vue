@@ -116,6 +116,28 @@
             </q-item-label>
           </q-item-section>
         </q-item>
+        <q-item clickable exact to="productos"  v-if="vendores.includes($store.getters['login/user'].ci)">
+          <q-item-section avatar>
+            <q-icon name="list" />
+          </q-item-section>
+          <q-item-section>
+            <q-item-label>Productos</q-item-label>
+            <q-item-label caption>
+              Mis Productos
+            </q-item-label>
+          </q-item-section>
+        </q-item>
+        <q-item clickable exact to="nopedido"  v-if="vendores.includes($store.getters['login/user'].ci)">
+          <q-item-section avatar>
+            <q-icon name="list" />
+          </q-item-section>
+          <q-item-section>
+            <q-item-label>Cliente No Pedido</q-item-label>
+            <q-item-label caption>
+              No pedido 
+            </q-item-label>
+          </q-item-section>
+        </q-item>
         <q-item clickable exact to="generar" v-if="encargados.includes($store.getters['login/user'].ci)">
           <q-item-section avatar>
             <q-icon name="money" />
