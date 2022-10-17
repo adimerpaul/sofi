@@ -142,7 +142,7 @@
           <div class="text-subtitle2" >Monto Deuda: <q-badge color="negative">{{cliente.totdeuda}} Bs </q-badge> NumPedidos: <q-badge color="negative">{{cliente.cantdeuda}}</q-badge></div>
           <div class="text-subtitle2" >Fecha minima: <q-badge color="negative">{{cliente.fechaminima}} </q-badge> </div>
           <div class="text-h5" >Estado para pedidos: <q-badge :color="cliente.venta=='ACTIVO'?'green':'negative'" class="text-h5">{{cliente.venta}} </q-badge> </div>
-          <div class="text-h6" >Dias Pedidos Mes: {{cliente.totalpedido}} </div>
+          
 
         </div>
         <div class="col-md-6 col-xs-12"><q-input dense outlined v-model="comentario.observacion" label="Comentario" > 
