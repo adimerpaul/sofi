@@ -28,6 +28,12 @@ class ProductoController extends Controller
         GROUP BY p.cod_prod,p.Producto,p.Precio,p.Precio_Costo,p.Precio3,p.Precio4,p.Precio5,p.Precio6,p.Precio7,p.Precio8,p.Precio9,p.Precio10,p.Precio11,p.Precio12,p.Precio13,p.PreCosto,p.codUnid,p.tipo");  
     }
 
+    public function verProducto(){
+        return DB::select("SELECT p.cod_prod,p.Producto,p.Precio,p.Precio_Costo,p.Precio3,p.Precio4,p.Precio5,p.Precio6,p.Precio7,p.Precio8,p.Precio9,p.Precio10,p.Precio11,p.Precio12,p.Precio13,p.PreCosto,
+        p.codUnid,p.tipo
+        FROM tbproductos p
+                ");  
+    }
     /**
      * Store a newly created resource in storage.
      *

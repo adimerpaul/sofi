@@ -73,7 +73,7 @@
         misproductos(){
           // this.clientes=[]
           this.$q.loading.show()
-          this.$api.get('listProducto').then(res=>{
+          this.$api.get('verProducto').then(res=>{
             console.log(res.data)
             this.$q.loading.hide()
               this.productos=res.data

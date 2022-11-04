@@ -38,6 +38,7 @@ Route::group(['middleware'=>'auth:sanctum'],function (){
 
     Route::get('/listdeudores',[\App\Http\Controllers\CobrarController::class,'listdeudores']);
     Route::get('/listProducto',[\App\Http\Controllers\ProductoController::class,'listProducto']);
+    Route::get('/verProducto',[\App\Http\Controllers\ProductoController::class,'verProducto']);
     Route::post('/cxcobrar/{ci}',[\App\Http\Controllers\CobrarController::class,'cxcobrar']);
     Route::post('/insertcobro',[\App\Http\Controllers\CobrarController::class,'insertcobro']);
     Route::post('/listsinpedido',[\App\Http\Controllers\ClienteController::class,'listsinpedido']);
