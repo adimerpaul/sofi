@@ -14,12 +14,13 @@ class ProductoController extends Controller
      */
     public function index()
     {
-        return DB::select("SELECT cod_prod,Producto,Precio,codUnid,tipo,0 cantidad FROM `tbproductos` ");
+        //return DB::select("SELECT cod_prod,Producto,Precio,codUnid,tipo,0 cantidad FROM `tbproductos` ");
         /*return DB::select("SELECT p.cod_prod,p.Producto,p.Precio,p.codUnid,p.tipo,
         (SUM(s.cant)-SUM(s.saldo)) cantidad
         FROM tbproductos p
         INNER JOIN tbstock s ON s.cod_prod=p.cod_prod
         GROUP BY p.cod_prod,p.Producto,p.Precio,p.codUnid,p.tipo");*/
+        return DB::SELECT("SELECT p.cod_prod,p.Producto,p.Precio,p.codUnid,p.tipo, (select (SUM(s.cant)-SUM(s.saldo)) from tbstock s where s.cod_prod=p.cod_prod group by p.cod_prod) as cantidad from tbproductos p");
     }
 
     public function listProducto(){

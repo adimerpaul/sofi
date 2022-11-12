@@ -579,6 +579,7 @@ export default {
         res.data.forEach(r=>{
           let d=r
           // console.log(d)
+          if(r.cantidad==null) r.cantidad=0
           d.label=r.cod_prod+'-'+r.Producto+' '+ parseFloat(r.Precio).toFixed(2) +'Bs '+ parseFloat(r.cantidad).toFixed(2)+r.codUnid
           this.productos.push(d)
         })
