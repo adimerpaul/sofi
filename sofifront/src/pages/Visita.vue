@@ -120,7 +120,7 @@
               <div class="col-6 " @click="listhoy" >
                 <q-btn icon="today" size="xs" color="cyan" />
               </div>
-  
+
             </div>
           </template>
 <!--          <template v-slot:top>-->
@@ -142,10 +142,10 @@
           <div class="text-subtitle2" >Monto Deuda: <q-badge color="negative">{{cliente.totdeuda}} Bs </q-badge> NumPedidos: <q-badge color="negative">{{cliente.cantdeuda}}</q-badge></div>
           <div class="text-subtitle2" >Fecha minima: <q-badge color="negative">{{cliente.fechaminima}} </q-badge> </div>
           <div class="text-h5" >Estado para pedidos: <q-badge :color="cliente.venta=='ACTIVO'?'green':'negative'" class="text-h5">{{cliente.venta}} </q-badge> </div>
-          
+
 
         </div>
-        <div class="col-md-6 col-xs-12"><q-input dense outlined v-model="comentario.observacion" label="Comentario" > 
+        <div class="col-md-6 col-xs-12"><q-input dense outlined v-model="comentario.observacion" label="Comentario" >
           <template v-slot:after>
             <q-btn round dense flat icon="edit" @click="modcomentario"/>
           </template>
@@ -187,7 +187,7 @@
                 <q-radio  dense v-model="pago" val="CREDITO" label="Credito" />
 <!--              </div>-->
           </div>
-          <div class="col-6">    
+          <div class="col-6">
             <q-toggle
             :label="fact+' FACTURA'"
             color="green"
@@ -649,7 +649,7 @@ export default {
         res.data.forEach(r=>{
           let d=r
           // console.log(d)
-          if(r.cantidad==NULL ||r.cantidad==undefined) {r.cantidad=0}
+          if(d.cantidad==null || d.cantidad==undefined) {d.cantidad=0}
           d.label=r.cod_prod+'-'+r.Producto+' '+ parseFloat(r.Precio).toFixed(2) +'Bs '+ parseFloat(r.cantidad).toFixed(2)+r.codUnid
           this.productos.push(d)
         })
@@ -749,7 +749,7 @@ export default {
           lat=pos.coords.latitude
           lng=pos.coords.longitude
         this.insertarpedidoestado(lat,lng,'NO PEDIDO',data)
-        
+
         })
       }
       else{
@@ -761,7 +761,7 @@ export default {
       }).onDismiss(() => {
         // console.log('I am triggered on both OK and Cancel')
       })
-    
+
 
     },
     insertarpedidoestado(lat,lng,estado,obs){
