@@ -83,7 +83,7 @@
             </q-item-label>
           </q-item-section>
         </q-item>
-        <q-item clickable exact to="cobrosrealizados" v-if="$store.getters['login/user'].ci=='7329536'">
+        <q-item clickable exact to="cobrosrealizados" >
           <q-item-section avatar>
             <q-icon name="monetization_on" />
           </q-item-section>

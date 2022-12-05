@@ -21,7 +21,7 @@
       <q-table :filter="filter" dense title="Cobros realizados" :columns="columscobros" :rows="cobros">
             <template v-slot:body-cell-opcion="props">
         <q-td :props="props">
-           <q-btn dense color="red"  icon='delete' v-if="props.row.estado=='CREADO'" @click="eliminar(props.row.codAut)"/>
+           <q-btn dense color="red"  icon='delete' v-if="props.row.estado=='CREADO' && $store.getters['login/user'].ci=='7329536'" @click="eliminar(props.row.codAut)"/>
         </q-td>
       </template>
         <template v-slot:top-right>

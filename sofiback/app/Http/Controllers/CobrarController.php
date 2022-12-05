@@ -99,11 +99,11 @@ class CobrarController extends Controller
     public function miscobros(Request $request ){
         //return $request;
         //return "SELECT *,(select Nombres from tbclientes where id=idcli) as Nombres from tbctascow where trim(CIFunc)='".$request->user()->ci."' and date(fecha)>='$request->fecha1' and date(fecha)<='$request->fecha2'";
-        return DB::SELECT("SELECT *,(select Nombres from tbclientes where id=idcli) as Nombres from tbctascow where trim(CIFunc)='".$request->user()->ci."' and date(fecha)='$request->fecha1' ");
+        return DB::SELECT("SELECT *,(select Nombres from tbclientes where id=idcli) as Nombres from tbctascow where trim(CIFunc)='".$request->user()->ci."' and date(fecha)='$request->fecha1' order by fecha desc");
     }
 
     public function impcobros(Request $request ){
-        $datos= DB::SELECT("SELECT *,(select Nombres from tbclientes where id=idcli) as Nombres from tbctascow where trim(CIFunc)='".$request->user()->ci."' and date(fecha)='$request->fecha1'  ");
+        $datos= DB::SELECT("SELECT *,(select Nombres from tbclientes where id=idcli) as Nombres from tbctascow where trim(CIFunc)='".$request->user()->ci."' and date(fecha)='$request->fecha1'  order by fecha desc");
         $total=0;
         $cadena="
         <style>

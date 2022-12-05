@@ -50,6 +50,11 @@
             <q-badge :label="props.row.estado" :color="props.row.estado=='CREADO'?'negative':'positive'" />
           </q-td>
         </template>
+        <template v-slot:body-cell-opcion="props">
+          <q-td :props="props">
+            <q-btn dense color="red"  icon='delete'  v-if="props.row.estado=='CREADO'"  @click="eliminar(props.row.codAut)"/>
+          </q-td>
+        </template>
       </q-table>
       <q-btn class="full-width" @click="enviarpedidos" color="accent" icon="check" label="Enviar todos los Cobros"> </q-btn>
       <q-btn class="full-width" @click="imprimir" color="info" icon="print" label="Imprimir todos los Cobros"> </q-btn>
@@ -70,6 +75,7 @@ export default {
       hoy:date.formatDate(Date.now(),'YYYY-MM-DD'),
       cobros:[],
       columns:[
+        {label:'OPCION',name:'opcion',field:'opcion'},
         {label:'ESTADO',name:'estado',field:'estado'},
         {label:'FECHA',name:'fecha',field:'fecha'},
         {label:'COMANDA',name:'comanda',field:'comanda'},
@@ -85,6 +91,18 @@ export default {
 
     },
     methods: {
+      eliminar(cod){
+      this.$q.loading.show()
+      this.$api.post('delcobro',{'codAut':cod}).then(res=>{
+          this.$q.notify({
+          color:'green',
+          message:'Eliminado Registro',
+          icon:'delete'
+        })
+        this.miscobrosrealizados()
+      })
+
+    },
       enviarcow(){
               this.$q.loading.show()
       this.$api.post('copiacow',{fecha1:this.fecha1}).then(res=>{
