@@ -580,6 +580,7 @@ export default {
         {label:'Comanda',name:'NroPed',field:'NroPed'},
         {label:'Nombre',name:'Nombres',field:'Nombres',align:'left'},
         {label:'CI',name:'Id',field:'Id',align:'left'},
+        {label:'Fec/Hora',name:'fecha',field:'fecha',align:'left'},
         {label:'PAGO',name:'pago',field:'pago',align:'left'},
         {label:'FACTURA',name:'fact',field:'fact',align:'left'},
       ],
