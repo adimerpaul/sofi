@@ -41,7 +41,6 @@ Route::get('/excel/{t}/{f1}/{f2}/{CodAut}',[\App\Http\Controllers\ExcelControlle
     Route::get('/verProducto',[\App\Http\Controllers\ProductoController::class,'verProducto']);
     Route::post('/cxcobrar/{ci}',[\App\Http\Controllers\CobrarController::class,'cxcobrar']);
     Route::post('/insertcobro',[\App\Http\Controllers\CobrarController::class,'insertcobro']);
-    Route::post('/listsinpedido',[\App\Http\Controllers\ClienteController::class,'listsinpedido']);
     Route::post('/miscobros',[\App\Http\Controllers\CobrarController::class,'miscobros']);
     Route::post('/impcobros',[\App\Http\Controllers\CobrarController::class,'impcobros']);
     Route::post('/verificar',[\App\Http\Controllers\CobrarController::class,'verificar']);
