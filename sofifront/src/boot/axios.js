@@ -25,7 +25,8 @@ export default boot(({ app,store }) => {
     app.config.globalProperties.$api.post(process.env.API+'me').then(res=>{
       // console.log(res.data);
       // return false;
-       store.state.user=res.data;
+
+      store.state.user=res.data;
       // store().commit('login/auth_success', {token:token,user:res.data})
       store.commit('login/auth_success',{token:token,user:res.data})
     }).catch(err=>{
