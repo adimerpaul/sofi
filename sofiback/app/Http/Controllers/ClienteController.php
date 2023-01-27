@@ -30,7 +30,7 @@ class ClienteController extends Controller
             (SELECT sum(c.Importe-(SELECT sum(c2.Acuenta) from tbctascobrar c2 where c2.comanda=c.comanda)) FROM tbctascobrar c WHERE c.CINIT=tbclientes.Id and c.Nrocierre=0 and Acuenta=0) as totdeuda ,
             (SELECT MIN(c.FechaEntreg) FROM tbctascobrar c WHERE c.CINIT=tbclientes.Id and c.Nrocierre=0 and Acuenta=0) as fechaminima ,
             (SELECT count(*) FROM tbctascobrar WHERE CINIT=tbclientes.Id AND Nrocierre=0 and Acuenta=0) as cantdeuda
-            
+
              FROM tbclientes
              WHERE TRIM(CiVend)='".$request->user()->ci."'
              ORDER BY tipo desc;"
@@ -57,7 +57,7 @@ class ClienteController extends Controller
                 break;
             case 0:
                 return " AND Sa=1 ";
-                break;            
+                break;
             default:
                 return '';
                 break;
@@ -67,7 +67,7 @@ class ClienteController extends Controller
     public function filtrarlista(Request $request){
         if($request->filtradia==1) $numdia=date('w');
         else $numdia=9;
-        
+
         $filtro='';
         switch ($numdia) {
             case 0:
@@ -90,7 +90,7 @@ class ClienteController extends Controller
                 break;
             case 6:
                 $filtro=" AND Sa=1 ";
-                break;            
+                break;
             default:
                 $filtro= '';
                 break;
@@ -101,7 +101,7 @@ class ClienteController extends Controller
             (SELECT sum(c.Importe-(SELECT sum(c2.Acuenta) from tbctascobrar c2 where c2.comanda=c.comanda)) FROM tbctascobrar c WHERE c.CINIT=tbclientes.Id and c.Nrocierre=0 and Acuenta=0) as totdeuda ,
             (SELECT MIN(c.FechaEntreg) FROM tbctascobrar c WHERE c.CINIT=tbclientes.Id and c.Nrocierre=0 and Acuenta=0) as fechaminima ,
             (SELECT count(*) FROM tbctascobrar WHERE CINIT=tbclientes.Id AND Nrocierre=0 and Acuenta=0) as cantdeuda
-            
+
              FROM tbclientes
              WHERE TRIM(CiVend)='".$request->user()->ci."' " .$filtro." ORDER BY tipo desc;");
 
@@ -110,7 +110,7 @@ class ClienteController extends Controller
     }
 
     public function listsinpedido(Request $request){
-        return DB::SELECT("SELECT * from tbclientes t where trim(t.CiVend)='".$request->user()->ci."' and t.Cod_Aut not in (select DISTINCT(p.idCli) from tbpedidos p where p.CIfunc='".$request->user()->CodAut."' and date(p.fecha)>='$request->ini' and date(p.fecha)<='$request->fin')");
+        return DB::SELECT("SELECT * from tbclientes t where trim(t.CiVend)='".$request->ci."' and t.Cod_Aut not in (select DISTINCT(p.idCli) from tbpedidos p where p.CIfunc='".$request->user()->CodAut."' and date(p.fecha)>='$request->ini' and date(p.fecha)<='$request->fin')");
     }
 
     public function todosclientes(Request $request)
@@ -118,7 +118,7 @@ class ClienteController extends Controller
 //        return DB::select("SELECT * FROM tbclientes WHERE TRIM(CiVend)='".$request->user()->ci."'");
         return DB::select("
         SELECT *,(SELECT estado from misvisitas where id=(SELECT max(id) from misvisitas where cliente_id=Cod_Aut AND fecha='".date('Y-m-d')."' )) as tipo,
-        (SELECT sum(c.Importe-(SELECT sum(c2.Acuenta) from tbctascobrar c2 where c2.comanda=c.comanda)) 
+        (SELECT sum(c.Importe-(SELECT sum(c2.Acuenta) from tbctascobrar c2 where c2.comanda=c.comanda))
         FROM tbctascobrar c WHERE c.CINIT=tbclientes.Id and c.Nrocierre=0 and Acuenta=0) as totdeuda
         ,(SELECT count(*) FROM tbctascobrar WHERE CINIT=tbclientes.Id AND Nrocierre=0  and Acuenta=0) as cantdeuda
         FROM tbclientes
@@ -136,7 +136,7 @@ class ClienteController extends Controller
     {
         //
     }
-    
+
     public function comentario(Request $request){
         $obs=DB::SELECT("SELECT * FROM obscliente where ci=trim($request->ci)");
         if(sizeof($obs)==0){

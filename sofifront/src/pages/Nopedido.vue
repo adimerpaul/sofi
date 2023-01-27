@@ -30,7 +30,7 @@
     import {date} from 'quasar'
     import {jsPDF} from "jspdf";
     const conversor = require('conversor-numero-a-letras-es-ar');
-    
+
     export default {
       data(){
         return{
@@ -46,22 +46,22 @@
         }
         },
         created() {
-    
+
           this.consultar();
-    
+
         },
         methods: {
 
           consultar(){
           this.$q.loading.show()
-    
-          this.$api.post('listsinpedido',{ini:this.fecha1,fin:this.fecha2}).then(res=>{
+          let user=this.$store.getters['login/user'].ci
+          this.$api.post('listsinpedido',{ini:this.fecha1,fin:this.fecha2,ci:user}).then(res=>{
             //console.log('s')
             console.log(res.data)
            // return false
             this.clientes=res.data;
             this.$q.loading.hide()
-    
+
           }).catch(err=>{
             // console.log(err.response)
             this.$q.loading.hide()
@@ -71,17 +71,16 @@
               icon:'error'
             })
           })
-    
+
           },
 
 
-    
+
         },
-    
+
     }
     </script>
-    
+
     <style scoped>
-    
+
     </style>
-    
