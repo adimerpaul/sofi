@@ -110,6 +110,7 @@ class ClienteController extends Controller
     }
 
     public function listsinpedido(Request $request){
+        return $request;
         return DB::SELECT("SELECT * from tbclientes t where trim(t.CiVend)='".$request->user['ci']."' and t.Cod_Aut not in (select DISTINCT(p.idCli) from tbpedidos p where p.CIfunc='".$request->user['CodAut']."' and date(p.fecha)>='$request->ini' and date(p.fecha)<='$request->fin')");
     }
 
