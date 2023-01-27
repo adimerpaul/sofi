@@ -11,7 +11,7 @@
     <q-btn color="info" icon="search" label="consulta" @click="misclientes"  />
   </div>
   <div class="col-4 col-sm-4 flex flex-center">
-    <q-btn class="full-width" color="green" type="a" :href="url+'excel/p/'+fecha1+'/'+fecha2+'/'+$store.axios.CodAut" target="_blank" icon="list" label="Reporte Pollo" @click1="generarpollo" />
+    <q-btn class="full-width" color="green" type="a" :href="url+'excel/p/'+fecha1+'/'+fecha2+'/'+$store.state.login.user.CodAut" target="_blank" icon="list" label="Reporte Pollo" @click1="generarpollo" />
   </div>
   <div class="col-4 col-sm-4 flex flex-center">
     <q-btn class="full-width" color="accent" type="a" :href="url+'excel/r/'+fecha1+'/'+fecha2+'/'+$store.state.login.user.CodAut" target="_blank" icon="list" label="Reporte Res" @click1="generarres" />
