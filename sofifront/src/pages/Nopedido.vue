@@ -45,9 +45,9 @@
           ],
         }
         },
-        created() {
+        mounted() {
 
-          this.consultar();
+          this.consultar()
 
         },
         methods: {
@@ -56,7 +56,7 @@
           this.$q.loading.show()
           let userlog=this.$store.state.login.user
           console.log(userlog)
-          this.$api.post('listsinpedido',{ini:this.fecha1,fin:this.fecha2,user:userlog}).then(res=>{
+          this.$api.post('listsinpedido',{ini:this.fecha1,fin:this.fecha2}).then(res=>{
             //console.log('s')
             console.log(res.data)
            // return false
@@ -74,8 +74,6 @@
           })
 
           },
-
-
 
         },
 
