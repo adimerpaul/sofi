@@ -54,7 +54,7 @@
 
           consultar(){
           this.$q.loading.show()
-          let user=this.$store.getters['login/user'].ci
+          let user=this.$store.state.login.user.ci
           console.log(user)
           this.$api.post('listsinpedido',{ini:this.fecha1,fin:this.fecha2,ci:user}).then(res=>{
             //console.log('s')
