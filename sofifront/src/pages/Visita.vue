@@ -552,7 +552,8 @@ export default {
   },
 
   created() {
-    this.misclientes()
+    this.listhoy()
+    //this.misclientes()
     this.consultamisproductos()
     // this.$q.notify({
     //   message:'aaaa',
