@@ -158,7 +158,7 @@ export default {
         console.log(res.data);
         res.data.forEach(element => {
           element.pago=0;
-          if(element.factura==1) 
+          if(element.fact==1)
                 element.factura='SI'
           else element.factura='NO'
           this.cxcobrar.push(element)

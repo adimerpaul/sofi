@@ -28,8 +28,8 @@ class CobrarController extends Controller
         return DB::SELECT("
         select t1.CINIT Id,
             (SELECT Nombres from tbclientes c where c.Id=t1.CINIT) as Nombres,
-            sum(t1.Importe - (select sum(Acuenta) from tbctascobrar t2 where t2.comanda=t1.comanda)) deuda 
-        from tbctascobrar t1 where Nrocierre=0 and Acuenta=0 
+            sum(t1.Importe - (select sum(Acuenta) from tbctascobrar t2 where t2.comanda=t1.comanda)) deuda
+        from tbctascobrar t1 where Nrocierre=0 and Acuenta=0
         group by t1.CINIT");
     }
 
@@ -58,9 +58,11 @@ class CobrarController extends Controller
 
     public function cxcobrar($ci){
         return DB::SELECT("
-            SELECT t1.FechaEntreg,t1.comanda,t1.CINIT,t1.CIFunc, sum(t1.Importe - (select sum(Acuenta) from tbctascobrar t2 where t2.comanda=t1.comanda)) saldo, EXISTS(SELECT tf.comanda from tbfactura tf where tf.comanda=t1.comanda ) as factura
+            SELECT t1.FechaEntreg,t1.comanda,t1.CINIT,t1.CIFunc,
+            sum(t1.Importe - (select sum(Acuenta) from tbctascobrar t2 where t2.comanda=t1.comanda)) saldo,
+            EXISTS(SELECT tf.comanda from tbfactura tf where tf.comanda=t1.comanda ) as fact
             FROM tbctascobrar t1
-            WHERE t1.CINIT='$ci' AND t1.Nrocierre=0 and t1.Acuenta=0 
+            WHERE t1.CINIT='$ci' AND t1.Nrocierre=0 and t1.Acuenta=0
             group by t1.comanda	,t1.CINIT,t1.CIFunc,	t1.FechaEntreg
             ORDER BY comanda");
 
@@ -76,6 +78,7 @@ class CobrarController extends Controller
         'CIfunc'=>$request->CIfunc,
         'fecha'=>date("Y-m-d H:i:s")
         ]);
+        $monto=$request->monto;
 
         $query=DB::SELECT(" SELECT * FROM tbctascobrar c
         INNER JOIN tbclientes cli ON cli.Id=c.CINIT
@@ -90,7 +93,7 @@ class CobrarController extends Controller
                     DB::table('tbctascobrar')->where('codAuto',$row->CodAuto)->update(['Acuenta'=>'Importe']);
                     $monto=$monto-$saldo;
                 }else{
-                    DB::table('tbctascobrar')->where('codAuto',$row->CodAuto)->update(['Acuenta'=>Acuenta + $monto]);
+                    DB::table('tbctascobrar')->where('codAuto',$row->CodAuto)->update(['Acuenta'=>'Acuenta' + $monto]);
                     $monto=0;
                 }
             }
@@ -134,7 +137,7 @@ class CobrarController extends Controller
             <td>$r->comanda</td>
             <td>$r->Nombres</td>
             <td>$r->pago</td>
-            
+
             <td>$r->nboleta</td>
             </tr>";
         }
@@ -216,7 +219,7 @@ class CobrarController extends Controller
 
          ");
             // and (SELECT DATEDIFF( curdate(), (select min(c.FechaEntreg) from $cont c where c.CINIT =tbclientes.Id and c.Nrocierre=0 and Acuenta=0 and
-             //(c.Importe-(SELECT sum(c2.Acuenta) from $cont c2 where c2.comanda=c.comanda))>=5)))<7 
+             //(c.Importe-(SELECT sum(c2.Acuenta) from $cont c2 where c2.comanda=c.comanda))>=5)))<7
                 $cc=DB::SELECT("SELECT * from tbctascow where estado='ENVIADO' and date(fecha)='$request->fecha1' ");
 
                /* foreach ($cc as $r) {
@@ -233,7 +236,7 @@ class CobrarController extends Controller
                         "procesado"=>$r->procesado,
                         "nboleta"=>$r->nboleta,
                         "fecomanda"=>$r->fecomanda]);
-                    }         	                            
+                    }
                 } */
     }
 
@@ -258,7 +261,7 @@ class CobrarController extends Controller
                 "procesado"=>$r->procesado,
                 "nboleta"=>$r->nboleta,
                 "fecomanda"=>$r->fecomanda]);
-            }         	                            
+            }
         }
     }
 
@@ -274,7 +277,7 @@ class CobrarController extends Controller
             $cta=DB::table('tbctascobrar')->where('codAuto',$r->CodAuto)->get()->count();
             if($cta==0){
                 DB::table('tbctascobrar')->insert([
-                    
+
                     "CodAuto" =>$r->CodAuto,
                     "comanda"	=>$r->comanda,
                     "CIFunc"	=>$r->CIFunc,
@@ -299,6 +302,6 @@ class CobrarController extends Controller
     }
     }
 
-  //  codAut	comanda	 CiFunc idCli                          pago	nboleta		fecha	     estado	    procesado		fecomanda	
-    //CodAuto   comanda	 CIFunc	CINIT	CiCajero	Importe	Acuenta	Nrocierre	FechaCan	Nroficha	FechaEntreg	codcli	
+  //  codAut	comanda	 CiFunc idCli                          pago	nboleta		fecha	     estado	    procesado		fecomanda
+    //CodAuto   comanda	 CIFunc	CINIT	CiCajero	Importe	Acuenta	Nrocierre	FechaCan	Nroficha	FechaEntreg	codcli
 }
