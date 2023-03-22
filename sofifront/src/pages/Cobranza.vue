@@ -158,12 +158,12 @@ export default {
         console.log(res.data);
         res.data.forEach(element => {
           element.pago=0;
-          if(element.factura) 
+          if(element.factura==1) 
                 element.factura='SI'
           else element.factura='NO'
+          this.cxcobrar.push(element)
         });
         this.$q.loading.hide()
-        this.cxcobrar=res.data;
         this.dialog_cc=true
       })
 
