@@ -46,6 +46,7 @@
         </q-card-section>
         <q-card-section class="q-pt-none">
         <q-table dense :rows="cxcobrar" :columns="columns2" row-key="name" >
+
         <template v-slot:body-cell-monto="props">
   <!--        <q-tr :props="props">-->
 
@@ -107,6 +108,7 @@ export default {
       columns2:[
         {label:'fecha',name:'fecha',field:'FechaEntreg'},
         {label:'comanda',name:'comanda',field:'comanda'},
+        {label:'factura',name:'factura',field:'factura'},
         {label:'saldo ',name:'saldo',field:'saldo',align:'right'},
         {label:'monto',name:'monto',field:'monto',align:'center'},
         {label:'boleta',name:'boleta',field:'boleta',align:'center'},
@@ -156,6 +158,9 @@ export default {
         console.log(res.data);
         res.data.forEach(element => {
           element.pago=0;
+          if(element.factura) 
+                element.factura='SI'
+          else element.factura='NO'
         });
         this.$q.loading.hide()
         this.cxcobrar=res.data;

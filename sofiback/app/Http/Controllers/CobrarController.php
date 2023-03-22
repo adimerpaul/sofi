@@ -26,8 +26,10 @@ class CobrarController extends Controller
      */
     public function listdeudores(){
         return DB::SELECT("
-        select t1.CINIT Id,(SELECT Nombres from tbclientes c where c.Id=t1.CINIT) as Nombres,sum(t1.Importe - (select sum(Acuenta)
-         from tbctascobrar t2 where t2.comanda=t1.comanda)) deuda from tbctascobrar t1 where Nrocierre=0 and Acuenta=0 
+        select t1.CINIT Id,
+            (SELECT Nombres from tbclientes c where c.Id=t1.CINIT) as Nombres,
+            sum(t1.Importe - (select sum(Acuenta) from tbctascobrar t2 where t2.comanda=t1.comanda)) deuda 
+        from tbctascobrar t1 where Nrocierre=0 and Acuenta=0 
         group by t1.CINIT");
     }
 
@@ -56,7 +58,7 @@ class CobrarController extends Controller
 
     public function cxcobrar($ci){
         return DB::SELECT("
-            SELECT t1.FechaEntreg,t1.comanda,t1.CINIT,t1.CIFunc, sum(t1.Importe - (select sum(Acuenta) from tbctascobrar t2 where t2.comanda=t1.comanda)) saldo
+            SELECT t1.FechaEntreg,t1.comanda,t1.CINIT,t1.CIFunc, sum(t1.Importe - (select sum(Acuenta) from tbctascobrar t2 where t2.comanda=t1.comanda)) saldo, EXISTS(SELECT tf.comanda from tbfactura tf where tf.comanda=t1.comanda ) as factura
             FROM tbctascobrar t1
             WHERE t1.CINIT='$ci' AND t1.Nrocierre=0 and t1.Acuenta=0 
             group by t1.comanda	,t1.CINIT,t1.CIFunc,	t1.FechaEntreg
