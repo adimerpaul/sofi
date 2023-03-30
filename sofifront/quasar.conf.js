@@ -74,7 +74,7 @@ module.exports = configure(function (ctx) {
       env: {
         API: ctx.dev
           ? 'http://localhost:8000/api/'
-          : 'https://back.sofiaoru.ml/api/'
+          : 'https://bsofia.siscenter.org/api/'
       }
     },
 
