@@ -55,6 +55,7 @@ export default {
         {label:"comanda",name:"comanda",field:"comanda"},
         // {label:"fecomanda",name:"fecomanda",field:"fecomanda"},
         {label:"nboleta",name:"nboleta",field:"nboleta"},
+        {label:"factura",name:"factura",field:"factura"},
         {label:"estado",name:"estado",field:"estado"},
         {label:"OPCION",name:"opcion",field:"opcion"},
       ],
@@ -106,6 +107,7 @@ export default {
         doc.text(5, 3, 'CLIENTE')
         doc.text(13, 3, 'COMANDA')
         doc.text(16, 3, 'NBOLETA')
+        doc.text(20, 3, 'FACT')
         doc.setFont(undefined,'normal')
       }
       function footer(con,sumtotal){
@@ -152,6 +154,7 @@ export default {
           doc.text(5, y+3, r.cliente+'')
           doc.text(13, y+3, r.comanda+'')
           doc.text(16, y+3, r.nboleta+'')
+          doc.text(20, y+3, r.factura)
           sumtotal+=parseFloat(r.pago)
         }else{
           y+=0.5
@@ -186,6 +189,11 @@ export default {
         res.data.forEach(r=>{
           r.vendedor=r.Nombre1+' '+r.App1
           r.cliente=r.Nombres
+          if(r.fact==1)
+          r.factura='SI'
+          else
+          r.factura='NO'
+
           this.cobros.push(r)
         })
         // console.log(res.data)

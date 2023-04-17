@@ -47,7 +47,7 @@ class CobrosrealizadosController extends Controller
     public function show($fecha)
     {
         return DB::select("
-        SELECT *
+        SELECT  SELECT p.*,c.*,cu.*,EXISTS(SELECT tf.comanda from tbfactura tf where tf.comanda=cu.comanda ) as fact
         FROM tbctascow cu INNER JOIN personal p ON p.ci=cu.CiFunc
         INNER JOIN tbclientes c ON c.Id=cu.idCli
         WHERE date(cu.fecha)='$fecha'
