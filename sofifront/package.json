@@ -21,6 +21,7 @@
     "datatables.net-dt": "^1.11.5",
     "datatables.net-editor": "^2.0.5",
     "jquery": "^3.6.0",
+    "json-as-xlsx": "^2.5.3",
     "jspdf": "^2.5.1",
     "jszip": "^3.7.1",
     "leaflet": "^1.7.1",

@@ -30,7 +30,9 @@
       </q-table>
     </div>
     <div class="col-12">
-      <q-btn @click="imprimir" color="info" icon="print" label="Imprimir" class="full-width" />
+      <div class="col-6"><q-btn @click="imprimir" color="info" icon="print" label="Imprimir" class="full-width" /></div>
+      <div class="col-6"><q-btn @click="excelexport" color="green" icon="download" label="Export Excel" class="full-width" /></div>
+
     </div>
   </div>
 </q-page>
@@ -38,6 +40,8 @@
 <script>
 import {date} from "quasar"
 import {jsPDF} from "jspdf";
+import xlsx from "json-as-xlsx"
+
 const conversor = require('conversor-numero-a-letras-es-ar');
 export default {
   name: `Cobrosrealizados`,
@@ -182,6 +186,35 @@ export default {
 
       // doc.save("Pago"+date.formatDate(Date.now(),'DD-MM-YYYY')+".pdf");
       window.open(doc.output('bloburl'), '_blank');
+    },
+    excelexport(){
+      let datacaja = [
+  {
+    sheet: "Cobros",
+    columns: [
+      { label: "vendedor", value: "vendedor" }, // Top level data
+      { label: "cliente", value: "cliente" }, // Top level data
+      { label: "comanda", value: "comanda" }, // Top level data
+      { label: "nboleta", value: "nboleta" }, // Top level data
+      { label: "factura", value: "factura" }, // Top level data
+    ],
+    content: this.cobros
+  },
+
+]
+
+let settings = {
+  fileName: "Cobros", // Name of the resulting spreadsheet
+  extraLength: 5, // A bigger number means that columns will be wider
+  writeOptions: {}, // Style options from https://github.com/SheetJS/sheetjs#writing-options
+}
+
+xlsx(datacaja, settings) // Will download the excel file
+      },
+                  totalgeneral(){
+      this.$axios.post(process.env.API + "/totalgeneral").then((res) => {
+          this.montogeneral=parseFloat( res.data.monto);
+      })
     },
     miscobrosrealizados(){
       this.$q.loading.show()
