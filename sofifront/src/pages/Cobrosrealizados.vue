@@ -194,6 +194,7 @@ export default {
     columns: [
       { label: "vendedor", value: "vendedor" }, // Top level data
       { label: "cliente", value: "cliente" }, // Top level data
+      { label: "pago", value: "pago" }, // Top level data
       { label: "comanda", value: "comanda" }, // Top level data
       { label: "nboleta", value: "nboleta" }, // Top level data
       { label: "factura", value: "factura" }, // Top level data
