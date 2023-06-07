@@ -205,7 +205,17 @@
             </q-item-label>
           </q-item-section>
         </q-item>
-
+        <q-item clickable exact  @click="irformulario2" v-if="vendores.includes($store.getters['login/user'].ci) || cobrador.includes($store.getters['login/user'].ci)">
+          <q-item-section avatar>
+            <q-icon name="people" />
+          </q-item-section>
+          <q-item-section>
+            <q-item-label>Cambios por Calidad</q-item-label>
+            <q-item-label caption>
+              Formulario
+            </q-item-label>
+          </q-item-section>
+        </q-item>  
         <!--        <q-item clickable exact to="asignar">-->
 <!--          <q-item-section avatar>-->
 <!--            <q-icon name="people" />-->
@@ -267,6 +277,11 @@ export default {
   methods:{
     irformulario(){
       var win = window.open('https://form.jotform.com/231523938942664', '_blank');
+        // Cambiar el foco al nuevo tab (punto opcional)
+        win.focus();
+    },
+    irformulario2(){
+      var win = window.open('https://docs.google.com/forms/d/e/1FAIpQLScp_D8ihzdtAN5ZwuBYqIEAbHu8L6T7dFaZ6-m2YdagKUZIaA/viewform', '_blank');
         // Cambiar el foco al nuevo tab (punto opcional)
         win.focus();
     },
