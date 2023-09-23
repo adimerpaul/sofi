@@ -79,5 +79,12 @@ Route::get('/excel/{t}/{f1}/{f2}/{CodAut}',[\App\Http\Controllers\ExcelControlle
     Route::post('/me',[\App\Http\Controllers\UserController::class,'me']);
     Route::post('/logout',[\App\Http\Controllers\UserController::class,'logout']);
     Route::post('/listsinpedido',[\App\Http\Controllers\ClienteController::class,'listsinpedido']);
+
+    Route::post('/reporteEmbutido',[\App\Http\Controllers\ExcelController::class,'reporteEmbutido']);
+    Route::post('/reporteCerdo',[\App\Http\Controllers\ExcelController::class,'reporteCerdo']);
+    Route::post('/reportePollo',[\App\Http\Controllers\ExcelController::class,'reportePollo']); 
+    Route::post('/listregistro',[\App\Http\Controllers\ExcelController::class,'listregistro']); 
+
+
 });
 

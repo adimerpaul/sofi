@@ -8,6 +8,7 @@ import Visita from "pages/Visita";
 import Miscobranzas from "pages/Miscobranzas";
 import Clientes from "pages/Clientes";
 import Generar from "pages/Generar";
+import GenerarReporte from "pages/GenerarReporte";
 import Cobrosrealizados from "pages/Cobrosrealizados";
 import Modifica from "pages/Modifica";
 import Pendientes from "pages/Pendientes";
@@ -30,6 +31,7 @@ const routes = [
       { path: '/miscobranzas', component: Miscobranzas ,meta: {requiresAuth: true}},
       { path: '/clientes', component: Clientes ,meta: {requiresAuth: true}},
       { path: '/generar', component: Generar ,meta: {requiresAuth: true}},
+      { path: '/genreporte', component: GenerarReporte ,meta: {requiresAuth: true}},
       { path: '/cobrosrealizados', component: Cobrosrealizados ,meta: {requiresAuth: true}},
       { path: '/modifica', component: Modifica ,meta: {requiresAuth: true}},
       { path: '/pendientes', component: Pendientes ,meta: {requiresAuth: true}},

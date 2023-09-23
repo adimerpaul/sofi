@@ -149,6 +149,17 @@
             </q-item-label>
           </q-item-section>
         </q-item>
+        <q-item clickable exact to="genreporte" v-if="$store.getters['login/user'].ci=='7308976'">
+          <q-item-section avatar>
+            <q-icon name="receipt_long" />
+          </q-item-section>
+          <q-item-section>
+            <q-item-label>Exportar excel Pedidos</q-item-label>
+            <q-item-label caption>
+              Pedidos Rango Fecha
+            </q-item-label>
+          </q-item-section>
+        </q-item>
         <q-item clickable exact to="ruta" v-if="despachador.includes($store.getters['login/user'].ci)">
           <q-item-section avatar>
             <q-icon name="map" />

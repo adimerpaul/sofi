@@ -283,6 +283,30 @@ class ExcelController extends Controller
         }
 
     }
+
+    public function reporteEmbutido(Request $request){
+        return DB::SELECT("SELECT c.Id, c.Nombres, c.Direccion, c.Telf, p.NroPed, p.cod_prod, p.idCli , p.Cant , p.precio , p.fecha , p.Observaciones , p.subtotal, u.Producto, p.pago,p.fact
+         FROM tbpedidos p inner join tbclientes c on p.idCli=c.Cod_Aut inner join tbproductos u on u.cod_prod=p.cod_prod
+          where p.tipo='NORMAL' AND p.fecha>='$request->ini' and p.fecha<='$request->fin' and p.estado='ENVIADO' AND CIfunc='$request->codaut'");
+    }
+
+    public function reporteCerdo(Request $request){
+        return DB::SELECT("SELECT * from tbpedidos p, tbclientes c
+        where c.Cod_Aut=p.idCli and date(fecha)>='$request->ini' and date(fecha)<='$request->fin'
+        and tipo='CERDO' AND CIfunc='$request->codaut' AND estado='ENVIADO' ");
+    }
+
+    public function reportePollo(Request $request){
+        return DB::SELECT("SELECT * from tbpedidos p, tbclientes c
+        where c.Cod_Aut=p.idCli and date(fecha)>='$request->ini' and date(fecha)<='$request->fin'
+        and tipo='POLLO' AND CIfunc='$request->codaut' AND estado='ENVIADO' ");
+    }
+
+    public function listregistro(Request $request){
+        return DB::SELECT("SELECT pe.Nombre1,pe.App1,pe.CodAut
+        FROM tbpedidos p INNER JOIN personal pe ON pe.CodAut=p.CIfunc 
+        WHERE date(p.fecha)>='$request->ini' AND date(p.fecha)<='$request->fin' GROUP BY pe.Nombre1,pe.App1,pe.CodAut;");
+    }
     /**
      * Show the form for editing the specified resource.
      *
