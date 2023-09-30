@@ -86,9 +86,9 @@ export default {
     },
 
     generarConsulta(per){
-      this.getCerdo()
-      this.getEmbutido()
-      this.getPollo()
+      this.getCerdo(per)
+      this.getEmbutido(per)
+      this.getPollo(per)
       let datacaja = [
   {
     sheet: "Cerdo",
@@ -105,7 +105,7 @@ export default {
       { label: "pago", value: row=>row.pago=='CONTADO'?'si':'no' }, // Top level data
       { label: "fact", value: "fact" }, // Top level data
     ],
-    content: res.data
+    content: this.pedCerdo
   },
   {
     sheet: "Embutido",
@@ -123,7 +123,7 @@ export default {
       { label: "fact", value: "fact" }, // Top level data
        
     ],
-    content: res.data
+    content: this.pedido
   },
   {
     sheet: "Pollo",
@@ -161,7 +161,7 @@ export default {
       { label: "observaciones", value: "Observaciones" }, // Top level data
       { label: "fact", value: "fact" }, // Top level data
     ],
-    content: res.data
+    content: this.pedPollo
   },
     ]
 
@@ -209,6 +209,7 @@ export default {
     getPollo(per){
       this.$api.post('reportePollo',{ini:this.fecha,fin:this.fecha2,codaut:per.CodAut}).then(res=>{
         console.log(res.data)
+        this.pedPollo=res.data
         if(res.data.length==0)
         {
           this.$q.notify({
