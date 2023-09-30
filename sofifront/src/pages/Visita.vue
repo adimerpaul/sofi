@@ -532,9 +532,9 @@ export default {
       miproducto:{},
       producto:{label:''},
       userLocation:{},
-      pago:'CONTADO',
+      pago:'',
       comentario:{},
-      fact:'NO',
+      fact:'',
       columns:[
         {label:'Cod_Aut',name:'Cod_Aut',field:'Cod_Aut'},
         {label:'Nombres',name:'Nombres',field:'Nombres',align:'left'},
@@ -682,6 +682,22 @@ export default {
           })
           return false
         }
+        if ( this.fact!='SI' && this.fact!='NO' ){
+        this.$q.notify({
+          message:'Debe Marcar Factura',
+          color:'red',
+          icon:'error'
+        })
+        return false
+      }
+      if ( this.pago!='CONTADO' && this.pago!='CREDITO' ){
+        this.$q.notify({
+          message:'Debe Marcar Contado o Credito',
+          color:'red',
+          icon:'error'
+        })
+        return false
+      }
         this.$q.loading.show()
         var lat=0,lng=0
         if (navigator.geolocation) {
@@ -785,6 +801,22 @@ export default {
       if ( this.fecha==null || this.fecha==undefined || this.fecha==''){
         this.$q.notify({
           message:'Debes selecionar una fecha',
+          color:'red',
+          icon:'error'
+        })
+        return false
+      }
+      if ( this.fact!='SI' && this.fact!='NO' ){
+        this.$q.notify({
+          message:'Debe Marcar Factura',
+          color:'red',
+          icon:'error'
+        })
+        return false
+      }
+      if ( this.pago!='CONTADO' && this.pago!='CREDITO' ){
+        this.$q.notify({
+          message:'Debe Marcar Contado o Credito',
           color:'red',
           icon:'error'
         })

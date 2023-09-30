@@ -19,19 +19,9 @@
           </template>
         </q-input>
       </template>
-      <template v-slot:body-cell-pollo="props">
+      <template v-slot:body-cell-excel="props">
         <q-td :props="props">
-            <q-btn  color="green"  icon="list" size="xs" label="Excel Pollo" @click="excelexportpollo(props.row)" />
-        </q-td>
-      </template>
-      <template v-slot:body-cell-cerdo="props">
-        <q-td :props="props">
-            <q-btn  color="accent"  icon="list" size="xs" label="Excel cerdo"  @click="getCerdo(props.row)"/>
-        </q-td>
-      </template>
-      <template v-slot:body-cell-embutido="props">
-        <q-td :props="props">
-            <q-btn  color="teal" icon="list" size="xs" label="Excel embutido"  @click="getEmbutido(props.row)"/>
+            <q-btn  color="green"  icon="list" size="xs" label="Excel" @click="generarConsulta(props.row)" />
         </q-td>
       </template>
       <template v-slot:body-cell-vendedor="props">
@@ -71,9 +61,7 @@ export default {
       pedido:[],
       columspedido:[
         {label:'VENDEDOR',name:'vendedor',field:'vendedor',align:'left'},
-        {label:'POLLO',name:'pollo',field:'pollo',align:'left'},
-        {label:'CERDO',name:'cerdo',field:'cerdo',align:'left'},
-        {label:'EMBUTIDO',name:'embutido',field:'embutido',align:'left'},
+        {label:'EXCEL',name:'excel',field:'excel',align:'left'},
       ],
       fecha:date.formatDate(new Date(),'YYYY-MM-DD'),
       fecha1:date.formatDate(new Date(),'YYYY-MM-DD'),
@@ -96,19 +84,12 @@ export default {
         this.$q.loading.hide()
       })
     },
-    getCerdo(per){
-      this.$api.post('reporteCerdo',{ini:this.fecha,fin:this.fecha2,codaut:per.CodAut}).then(res=>{
-        this.pedCerdo=res.data
-        if(res.data.length==0)
-        {
-          this.$q.notify({
-            message:'No Ay pedido Cerdo',
-            color:'red',
-            icon:'info'
-          })
-          return false
-        }
-        let datacaja = [
+
+    generarConsulta(per){
+      this.getCerdo()
+      this.getEmbutido()
+      this.getPollo()
+      let datacaja = [
   {
     sheet: "Cerdo",
     columns: [
@@ -126,31 +107,6 @@ export default {
     ],
     content: res.data
   },
-    ]
-
-    let settings = {
-      fileName: "Embutido - Vendedor " + per.vendedor, // Name of the resulting spreadsheet
-      extraLength: 5, // A bigger number means that columns will be wider
-      writeOptions: {}, // Style options from https://github.com/SheetJS/sheetjs#writing-options
-    }
-
-    xlsx(datacaja, settings) // Will download the excel file
-  })
-    },
-
-    getEmbutido(per){
-      this.$api.post('reporteEmbutido',{ini:this.fecha,fin:this.fecha2,codaut:per.CodAut}).then(res=>{
-        this.pedido=res.data
-        if(res.data.length==0)
-        {
-          this.$q.notify({
-            message:'No Ay pedido ',
-            color:'red',
-            icon:'info'
-          })
-          return false
-        }
-             let datacaja = [
   {
     sheet: "Embutido",
     columns: [
@@ -169,30 +125,6 @@ export default {
     ],
     content: res.data
   },
-    ]
-
-    let settings = {
-      fileName: "CERDO - Vendedor " + per.vendedor, // Name of the resulting spreadsheet
-      extraLength: 5, // A bigger number means that columns will be wider
-      writeOptions: {}, // Style options from https://github.com/SheetJS/sheetjs#writing-options
-    }
-
-    xlsx(datacaja, settings) // Will download the excel file
-      })
-    },
-    excelexportpollo(per){
-      this.$api.post('reportePollo',{ini:this.fecha,fin:this.fecha2,codaut:per.CodAut}).then(res=>{
-        console.log(res.data)
-        if(res.data.length==0)
-        {
-          this.$q.notify({
-            message:'No Ay pedido Pollo ',
-            color:'red',
-            icon:'info'
-          })
-          return false
-        }
-      let datacaja = [
   {
     sheet: "Pollo",
     columns: [
@@ -234,12 +166,58 @@ export default {
     ]
 
     let settings = {
-      fileName: "POLLO - Vendedor " + per.vendedor, // Name of the resulting spreadsheet
+      fileName: "Embutido - Vendedor " + per.vendedor, // Name of the resulting spreadsheet
       extraLength: 5, // A bigger number means that columns will be wider
       writeOptions: {}, // Style options from https://github.com/SheetJS/sheetjs#writing-options
     }
 
     xlsx(datacaja, settings) // Will download the excel file
+  
+    },
+
+    getCerdo(per){
+      this.$api.post('reporteCerdo',{ini:this.fecha,fin:this.fecha2,codaut:per.CodAut}).then(res=>{
+        this.pedCerdo=res.data
+        if(res.data.length==0)
+        {
+          this.$q.notify({
+            message:'No Ay pedido Cerdo',
+            color:'red',
+            icon:'info'
+          })
+          return false
+        }
+      })
+
+    },
+
+    getEmbutido(per){
+      this.$api.post('reporteEmbutido',{ini:this.fecha,fin:this.fecha2,codaut:per.CodAut}).then(res=>{
+        this.pedido=res.data
+        if(res.data.length==0)
+        {
+          this.$q.notify({
+            message:'No Ay pedido ',
+            color:'red',
+            icon:'info'
+          })
+          return false
+        }
+      })
+    },
+
+    getPollo(per){
+      this.$api.post('reportePollo',{ini:this.fecha,fin:this.fecha2,codaut:per.CodAut}).then(res=>{
+        console.log(res.data)
+        if(res.data.length==0)
+        {
+          this.$q.notify({
+            message:'No Ay pedido Pollo ',
+            color:'red',
+            icon:'info'
+          })
+          return false
+        }
   })
       },
  
