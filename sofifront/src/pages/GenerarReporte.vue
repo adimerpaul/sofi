@@ -147,6 +147,7 @@ export default {
       { label: "u108", value: "u108" }, // Top level data
       { label: "c109", value: "c109" }, // Top level data
       { label: "u109", value: "u109" }, // Top level data
+      { label: "rango p", value: "rango" }, // Top level data
       { label: "ala", value: row=>row.ala==null?'':row.ala+' '+row.unidala }, // Top level data
       { label: "cadera", value: row=>row.cadera==null?'':row.cadera+' '+row.unidcadera  }, // Top level data
       { label: "pecho", value: row=>row.pecho==null?'':row.pecho+' '+row.unidpecho  }, // Top level data

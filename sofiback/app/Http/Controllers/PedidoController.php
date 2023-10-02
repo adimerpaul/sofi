@@ -295,7 +295,8 @@ class PedidoController extends Controller
                 "pfrial"=>$p['pfrial'],
                 "hora"=>date('H:i:s'),
                 "pago"=>$request->pago,
-                "fact"=>$request->fact
+                "fact"=>$request->fact,
+                "rango"=>$p['rango']
             ];
             array_push($data, $d);
         }
@@ -539,7 +540,8 @@ class PedidoController extends Controller
                 "pfrial"=>$p['pfrial'],
                 "hora"=>date('H:i:s'),
                 "pago"=>$request->pago,
-                "fact"=>$request->fact
+                "fact"=>$request->fact,
+                "rango"=>$p['rango']
             ]);
 //            var_dump($p);
         }
@@ -650,6 +652,7 @@ class PedidoController extends Controller
             hora	,
             pago,
             fact,
+            rango	
             tbproductos.Producto as nombre
             from tbpedidos,tbproductos where tbpedidos.cod_prod=tbproductos.cod_prod and  NroPed = '$row->NroPed'" );
 
@@ -770,6 +773,7 @@ class PedidoController extends Controller
                         "hora"=>$p->hora,
                         "pago"=>$p->pago,
                         "fact"=>$p->fact,
+                        "rango"=>$p->rango,
 
                     ]);
 //                }

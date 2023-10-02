@@ -113,7 +113,7 @@ class ExcelController extends Controller
             $sheet = $spreadsheet->getActiveSheet();
             $c=4;
             $sheet->setCellValue('E2', trim($persona->Nombre1).' '.trim($persona->App1));
-            $sheet->setCellValue('AA2', $f1);
+            $sheet->setCellValue('AB2', $f1);
             foreach ($query as $r){
 //                $t.=" ".$r->Nombres;git
                 $sheet->setCellValue('B'.$c, $r->Nombres);
@@ -133,19 +133,20 @@ class ExcelController extends Controller
                 $sheet->setCellValue('P'.$c, $r->u108);
                 $sheet->setCellValue('Q'.$c, $r->c109);
                 $sheet->setCellValue('R'.$c, $r->u109);
-                $sheet->setCellValue('S'.$c, $r->ala==''?'':$r->ala.''.$r->unidala);
-                $sheet->setCellValue('T'.$c, $r->cadera==''?'':$r->cadera.''.$r->unidcadera);
-                $sheet->setCellValue('U'.$c, $r->pecho==''?'':$r->pecho.''.$r->unidpecho);
-                $sheet->setCellValue('V'.$c, $r->pie==''?'':$r->pie.''.$r->unidpie);
-                $sheet->setCellValue('W'.$c, $r->filete==''?'':$r->filete.''.$r->unidfilete);
-                $sheet->setCellValue('X'.$c, $r->cuello==''?'':$r->cuello.''.$r->unidcuello);
-                $sheet->setCellValue('Y'.$c, $r->hueso==''?'':$r->hueso.''.$r->unidhueso);
-                $sheet->setCellValue('Z'.$c, $r->menu==''?'':$r->menu.''.$r->unidmenu);
-                $sheet->setCellValue('AA'.$c, $r->bs);
-                $sheet->setCellValue('AB'.$c, $r->bs2);
-                $sheet->setCellValue('AC'.$c, $r->pago=='CONTADO'?'si':'no');
-                $sheet->setCellValue('AD'.$c, $r->Observaciones);
-                $sheet->setCellValue('AE'.$c, $r->fact);
+                $sheet->setCellValue('S'.$c, $r->rango);
+                $sheet->setCellValue('T'.$c, $r->ala==''?'':$r->ala.''.$r->unidala);
+                $sheet->setCellValue('U'.$c, $r->cadera==''?'':$r->cadera.''.$r->unidcadera);
+                $sheet->setCellValue('V'.$c, $r->pecho==''?'':$r->pecho.''.$r->unidpecho);
+                $sheet->setCellValue('W'.$c, $r->pie==''?'':$r->pie.''.$r->unidpie);
+                $sheet->setCellValue('X'.$c, $r->filete==''?'':$r->filete.''.$r->unidfilete);
+                $sheet->setCellValue('Y'.$c, $r->cuello==''?'':$r->cuello.''.$r->unidcuello);
+                $sheet->setCellValue('Z'.$c, $r->hueso==''?'':$r->hueso.''.$r->unidhueso);
+                $sheet->setCellValue('AA'.$c, $r->menu==''?'':$r->menu.''.$r->unidmenu);
+                $sheet->setCellValue('AB'.$c, $r->bs);
+                $sheet->setCellValue('AC'.$c, $r->bs2);
+                $sheet->setCellValue('AD'.$c, $r->pago=='CONTADO'?'si':'no');
+                $sheet->setCellValue('AE'.$c, $r->Observaciones);
+                $sheet->setCellValue('AF'.$c, $r->fact);
                 $c++;
             }
 //            return $t;
@@ -306,6 +307,13 @@ class ExcelController extends Controller
         return DB::SELECT("SELECT pe.Nombre1,pe.App1,pe.CodAut
         FROM tbpedidos p INNER JOIN personal pe ON pe.CodAut=p.CIfunc 
         WHERE date(p.fecha)>='$request->ini' AND date(p.fecha)<='$request->fin' GROUP BY pe.Nombre1,pe.App1,pe.CodAut;");
+    }
+
+    public function reportePollo2(Request $request){
+        return DB::SELECT("SELECT concat(pe.Nombre1,' ',pe.App1,' ',pe.Apm) preventista,c.Nombres,p.fecha,p.Observaciones,'ubrasa5' producto,p.ubrasa5,p.bs,p.fact,p.pago 
+          FROM tbpedidos p INNER JOIN personal pe ON pe.CodAut=p.CIfunc inner join tbclientes c on p.idCli=c.Cod_Aut where date(p.fecha)>='2023-09-29' and date(p.fecha)<='2023-09-29' and p.tipo='POLLO' and p.ubrasa5 is NOT null;
+        ");
+
     }
     /**
      * Show the form for editing the specified resource.
