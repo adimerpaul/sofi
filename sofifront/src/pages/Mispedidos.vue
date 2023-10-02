@@ -167,6 +167,9 @@
             <div class="col-6" ><q-input type="number" dense outlined label="Cja-109" v-model="miproducto.c109"/></div>
             <div class="col-6" ><q-input type="number" dense outlined label="Unid-109" v-model="miproducto.u109"/></div>
 
+            <div class="col-6" ><q-input type="number" dense outlined label="Rango Po" v-model="miproducto.rango"/></div>
+            <div class="col-6" ></div>
+
             <div class="col-6" ><q-input type="number" dense outlined label="ala" v-model="miproducto.ala"/></div>
             <div class="col-6">
               <q-select dense outlined :options="['KG','CJA','U']" v-model="miproducto.unidala" label="Unidad" />
@@ -316,6 +319,7 @@
                     <th>U 109</th>
                     <th>BS</th>
                     <th>OBS</th>
+                    <th>RANGO</th>
                     <th>ALA</th>
                     <th>UNID</th>
                     <th>BS</th>
@@ -387,6 +391,7 @@
                     <td>{{v.u109}}</td>
                     <td>{{v.bs109}}</td>
                     <td>{{v.obs109}}</td>
+                    <td>{{v.rango}}</td>
                     <td>{{v.ala}}</td>
                     <td>{{v.unidala}}</td>
                     <td>{{v.bsala}}</td>
@@ -864,7 +869,7 @@ export default {
             header()
             y=1.5
           }
-                              if (r.bs109!=null){
+          if (r.bs109!=null){
             doc.setFont(undefined,'bold')
             doc.text(13.5, y, 'C 109')
             doc.text(15.5, y, 'U 109')
@@ -1534,6 +1539,7 @@ generarpollo(){
         u109:'',
         bs109:'',
         obs109:'',
+        rango:'',
         ala:'',
         bsala:'',
         obsala:'',
