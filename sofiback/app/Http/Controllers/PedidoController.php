@@ -652,7 +652,7 @@ class PedidoController extends Controller
             hora	,
             pago,
             fact,
-            rango	
+            rango,	
             tbproductos.Producto as nombre
             from tbpedidos,tbproductos where tbpedidos.cod_prod=tbproductos.cod_prod and  NroPed = '$row->NroPed'" );
 
