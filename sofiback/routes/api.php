@@ -16,7 +16,6 @@ use Illuminate\Support\Facades\Route;
 
 //Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
  //   return $request->user();
-    Route::get('/reportePollo2',[\App\Http\Controllers\ExcelController::class,'reportePollo2']);  
     //});
 Route::post('/login',[\App\Http\Controllers\UserController::class,'login']);
 Route::post('/ctacobrar',[\App\Http\Controllers\CobrarController::class,'ctacobrar']);
@@ -86,6 +85,7 @@ Route::get('/excel/{t}/{f1}/{f2}/{CodAut}',[\App\Http\Controllers\ExcelControlle
     Route::post('/reportePollo',[\App\Http\Controllers\ExcelController::class,'reportePollo']); 
     Route::post('/listregistro',[\App\Http\Controllers\ExcelController::class,'listregistro']);  
 
+    Route::post('/reportePollo2',[\App\Http\Controllers\ExcelController::class,'reportePollo2']);  
 
 });
 

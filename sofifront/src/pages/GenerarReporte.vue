@@ -4,9 +4,10 @@
   <div class="col-12">
     <q-form @submit="consultar">
       <div class="row">
-        <div class="col-4"><q-input type="date" dense outlined label="fecha" v-model="fecha"/></div>
-        <div class="col-4"><q-input type="date" dense outlined label="fecha" v-model="fecha2"/></div>
-        <div class="col-4 flex flex-center"><q-btn color="info" icon="search" label="Consultar" type="submit" /></div>
+        <div class="col-3"><q-input type="date" dense outlined label="fecha" v-model="fecha"/></div>
+        <div class="col-3"><q-input type="date" dense outlined label="fecha" v-model="fecha2"/></div>
+        <div class="col-3 flex flex-center"><q-btn color="info" icon="search" label="Consultar" type="submit" /></div>
+        <div class="col-3 flex flex-center"><q-btn color="green" icon="description" label="Pollo EXCEL" @click="exportPollo"/></div>
       </div>
     </q-form>
   </div>
@@ -72,6 +73,49 @@ export default {
     this.consultar()
   },
   methods:{
+    exportPollo(){
+      this.$q.loading.show()
+
+      this.$api.post('reportePollo2',{ini:this.fecha,fin:this.fecha2}).then(res=>{
+        if(res.data.length==0)
+        {
+          this.$q.notify({
+            message:'No Ay pedido Pollo',
+            color:'red',
+            icon:'info'
+          })
+          return false
+        }
+        let datacaja = [
+  {
+    sheet: "Pollo",
+    columns: [
+      { label: "preventista", value: "preventista" }, // Top level data
+      { label: "Cliente", value: "Nombres" }, // Top level data
+      { label: "fecha", value: "fecha" }, // Top level data
+      { label: "Observaciones", value: "Observaciones" }, // Top level data
+      { label: "producto", value: "producto" }, // Top level data
+      { label: "cantidad", value: "cantidad" }, // Top level data
+      { label: "precio", value: "precio" }, // Top level data
+      { label: "pago", value: row=>row.pago=='CONTADO'?'si':'no' }, // Top level data
+      { label: "fact", value: "fact" }, // Top level data
+    ],
+    content: res.data
+  },
+    ]
+
+    let settings = {
+      fileName: "Pollo Frial" , // Name of the resulting spreadsheet
+      extraLength: 5, // A bigger number means that columns will be wider
+      writeOptions: {}, // Style options from https://github.com/SheetJS/sheetjs#writing-options
+    }
+
+    xlsx(datacaja, settings) // Will download the excel file
+  
+      })
+      this.$q.loading.hide()
+
+    },
     consultar(){
       this.$q.loading.show()
       this.$api.post('listregistro',{ini:this.fecha,fin:this.fecha2}).then(res=>{
