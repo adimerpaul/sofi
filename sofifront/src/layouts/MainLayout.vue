@@ -149,7 +149,7 @@
             </q-item-label>
           </q-item-section>
         </q-item>
-        <q-item clickable exact to="genreporte" v-if="$store.getters['login/user'].ci=='7308976'">
+        <q-item clickable exact to="genreporte" v-if="supervisor.includes($store.getters['login/user'].ci)">
           <q-item-section avatar>
             <q-icon name="receipt_long" />
           </q-item-section>
@@ -182,7 +182,7 @@
             </q-item-label>
           </q-item-section>
         </q-item>
-        <q-item clickable exact to="modifica" v-if="$store.getters['login/user'].ci=='7308976'">
+        <q-item clickable exact to="modifica" v-if="supervisor.includes($store.getters['login/user'].ci)">
           <q-item-section avatar>
             <q-icon name="people" />
           </q-item-section>
@@ -194,7 +194,7 @@
           </q-item-section>
         </q-item>
 
-        <q-item clickable exact to="monitoreo" v-if="$store.getters['login/user'].ci=='7308976'">
+        <q-item clickable exact to="monitoreo" v-if="supervisor.includes($store.getters['login/user'].ci)">
           <q-item-section avatar>
             <q-icon name="computer" />
           </q-item-section>
@@ -279,10 +279,11 @@ export default {
   data(){
     return {
       leftDrawerOpen:false,
-      vendores:['12612870','1593578','33555433','3520335','5676554','7422201','9876785','7360035','5067737','7331330','7308976','7377278','5938578'],
+      vendores:['12612870','1593578','33555433','3520335','5676554','7422201','9876785','7360035','5067737','7331330','7308976','7377278','5938578','7351953'],
       encargados:['0' ,'123321' ,'22222222','7205489'],
       cobrador:['7424479'],
-      despachador:['7386961','9688418','7205489','7417239','12810781','7395208']
+      despachador:['7386961','9688418','7205489','7417239','12810781','7395208'],
+      supervisor:['7308976','7329688','7288817']
     }
   },
   methods:{
@@ -312,7 +313,7 @@ export default {
       }
   }
   // setup () {
-  //   const leftDrawerOpen = ref(false)
+  //   cons t leftDrawerOpen = ref(false)
   //
   //   return {
   //     essentialLinks: linksList,
