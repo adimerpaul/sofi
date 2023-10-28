@@ -7,7 +7,9 @@
         <div class="col-3"><q-input type="date" dense outlined label="fecha" v-model="fecha"/></div>
         <div class="col-3"><q-input type="date" dense outlined label="fecha" v-model="fecha2"/></div>
         <div class="col-3 flex flex-center"><q-btn color="info" icon="search" label="Consultar" type="submit" /></div>
-        <div class="col-3 flex flex-center"><q-btn color="green" icon="description" label="Pollo EXCEL" @click="exportPollo"/></div>
+        <div class="col-2 flex flex-center"><q-btn color="green" icon="description" label="Pollo EXCEL" @click="exportPollo" dense/></div>
+        <div class="col-2 flex flex-center"><q-btn color="accent" icon="description" label="Cerdo EXCEL" @click="exportCerdo" dense/></div>
+        <div class="col-2 flex flex-center"><q-btn color="orange-10" icon="description" label="Embut EXCEL" @click="exportEmbutido" dense/></div>
       </div>
     </q-form>
   </div>
@@ -106,6 +108,99 @@ export default {
 
     let settings = {
       fileName: "Pollo Frial" , // Name of the resulting spreadsheet
+      extraLength: 5, // A bigger number means that columns will be wider
+      writeOptions: {}, // Style options from https://github.com/SheetJS/sheetjs#writing-options
+    }
+
+    xlsx(datacaja, settings) // Will download the excel file
+  
+      })
+      this.$q.loading.hide()
+
+    },
+    exportCerdo(){
+      this.$q.loading.show()
+
+      this.$api.post('reporteCerdoTodo',{ini:this.fecha,fin:this.fecha2}).then(res=>{
+        if(res.data.length==0)
+        {
+          this.$q.notify({
+            message:'No Ay pedido Cerdo',
+            color:'red',
+            icon:'info'
+          })
+          return false
+        }
+        let datacaja = [
+  {
+    
+    sheet: "Cerdo",
+    columns: [
+      { label: "fecha", value: "fecha" }, // Top level data
+      { label: "preventista", value: row=>row.Nombre1 + ' ' +row.App1+' '+row.Apm }, // Top level data
+      { label: "CI/NIT", value: "Id" }, // Top level data
+      { label: "cliente", value: "Nombres" }, // Top level data
+      { label: "pfrial", value: "pfrial" }, // Top level data
+      { label: "entero", value: "entero" }, // Top level data
+      { label: "desmembre", value: "desmembre" }, // Top level data
+      { label: "corte", value: "corte" }, // Top level data
+      { label: "kilo", value: "kilo" }, // Top level data
+      { label: "observaciones", value: "Observaciones" }, // Top level data
+      { label: "pago", value: row=>row.pago=='CONTADO'?'si':'no' }, // Top level data
+      { label: "fact", value: "fact" }, // Top level data
+    ],
+    content: res.data
+  },
+    ]
+
+    let settings = {
+      fileName: "Cerdo Frial" , // Name of the resulting spreadsheet
+      extraLength: 5, // A bigger number means that columns will be wider
+      writeOptions: {}, // Style options from https://github.com/SheetJS/sheetjs#writing-options
+    }
+
+    xlsx(datacaja, settings) // Will download the excel file
+  
+      })
+      this.$q.loading.hide()
+
+    },
+    exportEmbutido(){
+      this.$q.loading.show()
+
+      this.$api.post('reporteEmbutidoTodo',{ini:this.fecha,fin:this.fecha2}).then(res=>{
+        if(res.data.length==0)
+        {
+          this.$q.notify({
+            message:'No Ay pedido Embutido',
+            color:'red',
+            icon:'info'
+          })
+          return false
+        }
+        let datacaja = [
+  {
+    sheet: "Embutido",
+    columns: [
+      { label: "fecha", value: "fecha" }, // Top level data
+      { label: "preventista", value: row=>row.Nombre1 + ' ' +row.App1+' '+row.Apm }, // Top level data
+      { label: "CI/NIT", value: "Id" }, // Top level data
+      { label: "cliente", value: "Nombres" }, // Top level data
+      { label: "NroPed", value: "NroPed" }, // Top level data
+      { label: "cod_prod", value: "cod_prod" }, // Top level data
+      { label: "Cant", value: "Cant" }, // Top level data
+      { label: "Producto", value: "Producto" }, // Top level data
+      { label: "precio", value: "precio" }, // Top level data
+      { label: "observaciones", value: "Observaciones" }, // Top level data
+      { label: "pago", value: row=>row.pago=='CONTADO'?'si':'no' }, // Top level data
+      { label: "fact", value: "fact" }, // Top level data
+    ],
+    content: res.data
+  },
+    ]
+
+    let settings = {
+      fileName: "Embutidos" , // Name of the resulting spreadsheet
       extraLength: 5, // A bigger number means that columns will be wider
       writeOptions: {}, // Style options from https://github.com/SheetJS/sheetjs#writing-options
     }

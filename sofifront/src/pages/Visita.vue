@@ -305,7 +305,7 @@
             <div class="col-6" ><q-input type="number" dense outlined label="Cja-109(2.8-2.9)" v-model="miproducto.c109"/></div>
             <div class="col-6" ><q-input type="number" dense outlined label="Unid-109" v-model="miproducto.u109"/></div>
 
-            <div class="col-6" ><q-input type="number" dense outlined label="Rango Pollo" v-model="miproducto.rango"/></div>
+            <div class="col-6" ><q-input type="number" dense outlined label="Rango Pollo (unidades)" v-model="miproducto.rango"/></div>
             <div class="col-6" ></div>
 
             <div class="col-6" ><q-input type="number" dense outlined label="ala" v-model="miproducto.ala"/></div>
