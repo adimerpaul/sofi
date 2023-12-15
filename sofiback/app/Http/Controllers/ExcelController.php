@@ -288,7 +288,7 @@ class ExcelController extends Controller
     public function reporteEmbutido(Request $request){
         return DB::SELECT("SELECT c.Id, c.Nombres, c.Direccion, c.Telf, p.NroPed, p.cod_prod, p.idCli , p.Cant , p.precio , p.fecha , p.Observaciones , p.subtotal, u.Producto, p.pago,p.fact
          FROM tbpedidos p inner join tbclientes c on p.idCli=c.Cod_Aut inner join tbproductos u on u.cod_prod=p.cod_prod
-          where p.tipo='NORMAL' AND p.fecha>='$request->ini' and p.fecha<='$request->fin' and p.estado='ENVIADO' AND CIfunc='$request->codaut'");
+          where p.tipo='NORMAL' AND date(p.fecha)>='$request->ini' and date(p.fecha)<='$request->fin' and p.estado='ENVIADO' AND CIfunc='$request->codaut'");
     }
 
     public function reporteCerdo(Request $request){
@@ -307,7 +307,7 @@ class ExcelController extends Controller
         return DB::SELECT("SELECT c.Id, c.Nombres, c.Direccion, c.Telf, p.NroPed, p.cod_prod, p.idCli , p.Cant , p.precio , p.fecha , p.Observaciones , p.subtotal,
          u.Producto, p.pago,p.fact, e.Nombre1,e.App1,e.Apm
          FROM tbpedidos p inner join tbclientes c on p.idCli=c.Cod_Aut inner join tbproductos u on u.cod_prod=p.cod_prod inner join personal e on p.CIfunc=e.CodAut
-          where p.tipo='NORMAL' AND p.fecha>='$request->ini' and p.fecha<='$request->fin' and p.estado='ENVIADO' ");
+          where p.tipo='NORMAL' AND date(p.fecha)>='$request->ini' and date(p.fecha)<='$request->fin' and p.estado='ENVIADO' ");
     }
 
     public function reportePollo(Request $request){
@@ -318,7 +318,7 @@ class ExcelController extends Controller
 
     public function listregistro(Request $request){
         return DB::SELECT("SELECT pe.Nombre1,pe.App1,pe.CodAut
-        FROM tbpedidos p INNER JOIN personal pe ON pe.CodAut=p.CIfunc 
+        FROM tbpedidos p INNER JOIN personal pe ON pe.CodAut=p.CIfunc
         WHERE date(p.fecha)>='$request->ini' AND date(p.fecha)<='$request->fin' GROUP BY pe.Nombre1,pe.App1,pe.CodAut;");
     }
 
@@ -348,7 +348,7 @@ class ExcelController extends Controller
           SELECT concat(pe.Nombre1,' ',pe.App1,' ',pe.Apm) preventista,c.Nombres,p.fecha,p.Observaciones,'filete' producto,concat(p.filete,' ',p.unidfilete) cantidad,p.bs2 precio,p.fact,p.pago FROM tbpedidos p INNER JOIN personal pe ON pe.CodAut=p.CIfunc inner join tbclientes c on p.idCli=c.Cod_Aut where date(p.fecha)>='$request->ini' and date(p.fecha)<='$request->fin' and p.tipo='POLLO' and p.filete is NOT null union
           SELECT concat(pe.Nombre1,' ',pe.App1,' ',pe.Apm) preventista,c.Nombres,p.fecha,p.Observaciones,'cuello' producto,concat(p.cuello,' ',p.unidcuello) cantidad,p.bs2 precio,p.fact,p.pago FROM tbpedidos p INNER JOIN personal pe ON pe.CodAut=p.CIfunc inner join tbclientes c on p.idCli=c.Cod_Aut where date(p.fecha)>='$request->ini' and date(p.fecha)<='$request->fin' and p.tipo='POLLO' and p.cuello is NOT null union
           SELECT concat(pe.Nombre1,' ',pe.App1,' ',pe.Apm) preventista,c.Nombres,p.fecha,p.Observaciones,'hueso' producto,concat(p.hueso,' ',p.unidhueso) cantidad,p.bs2 precio,p.fact,p.pago FROM tbpedidos p INNER JOIN personal pe ON pe.CodAut=p.CIfunc inner join tbclientes c on p.idCli=c.Cod_Aut where date(p.fecha)>='$request->ini' and date(p.fecha)<='$request->fin' and p.tipo='POLLO' and p.hueso is NOT null union
-          SELECT concat(pe.Nombre1,' ',pe.App1,' ',pe.Apm) preventista,c.Nombres,p.fecha,p.Observaciones,'menu' producto,concat(p.menu,' ',p.unidmenu) cantidad,p.bs2 precio,p.fact,p.pago FROM tbpedidos p INNER JOIN personal pe ON pe.CodAut=p.CIfunc inner join tbclientes c on p.idCli=c.Cod_Aut where date(p.fecha)>='$request->ini' and date(p.fecha)<='$request->fin' and p.tipo='POLLO' and p.menu is NOT null 
+          SELECT concat(pe.Nombre1,' ',pe.App1,' ',pe.Apm) preventista,c.Nombres,p.fecha,p.Observaciones,'menu' producto,concat(p.menu,' ',p.unidmenu) cantidad,p.bs2 precio,p.fact,p.pago FROM tbpedidos p INNER JOIN personal pe ON pe.CodAut=p.CIfunc inner join tbclientes c on p.idCli=c.Cod_Aut where date(p.fecha)>='$request->ini' and date(p.fecha)<='$request->fin' and p.tipo='POLLO' and p.menu is NOT null
 
           ");
 
