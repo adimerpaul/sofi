@@ -41,7 +41,10 @@ class RutaController extends Controller
             ->where('tipo','NORMAL')
             ->get();*/
         $resul=[];
-        $list= DB::SELECT("SELECT c.comanda,c.FechaEntreg,c.Importe,c.Tipago,c.Observacion FROM tbctascobrar c WHERE c.CINIT='$request->id' and c.FechaEntreg='$request->fecha'");
+        $list= DB::SELECT("SELECT c.comanda,c.FechaEntreg,c.Importe,c.Tipago,c.Observacion,
+        (SELECT e.estado from entregas e where e.cinit=c.CINIT and e.comanda=c.comanda ) estado  
+        FROM tbctascobrar c WHERE c.CINIT='$request->id' and c.FechaEntreg='$request->fecha'");       
+        
         //return $list;
         foreach ($list as $r) {
             # code...
@@ -70,11 +73,12 @@ INNER JOIN tbclientes c ON c.Cod_Aut=p.idCli
 WHERE date(p.fecha)='".$fecha."'
 GROUP BY p.idCli,c.Id,c.Nombres,c.Telf,c.Direccion,c.Latitud,c.longitud,p.estados;
 ");*/
-    return DB::select(" SELECT p.CINIT,c.Id,c.Nombres,c.Telf,c.Direccion,c.Latitud,c.longitud
+    return DB::select(" SELECT c.Cod_Aut,p.CINIT,c.Id,c.Nombres,c.Telf,c.Direccion,c.Latitud,c.longitud, 
+    (select e.estado from entregas e where e.cliente_id=c.Cod_Aut and e.fechaEntreg='$fecha' order by e.estado desc limit 1  ) estado
     FROM tbctascobrar p
     INNER JOIN tbclientes c ON c.Id=p.CINIT
     WHERE date(p.FechaEntreg)='".$fecha."'
-    GROUP BY p.CINIT,c.Id,c.Nombres,c.Telf,c.Direccion,c.Latitud,c.longitud
+    GROUP BY c.Cod_Aut,p.CINIT,c.Id,c.Nombres,c.Telf,c.Direccion,c.Latitud,c.longitud
     ");  
     }
 
