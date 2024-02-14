@@ -66,4 +66,23 @@ class AlmacenController extends Controller{
         $path = public_path('uploads/' . $file->getClientOriginalName());
         return $path;
     }
+    public function update(Request $request, $id){
+        $almacen = Almacen::find($id);
+        $almacen->codigo = $request->codigo;
+        $almacen->codigo_producto = $request->codigo_producto;
+        $almacen->producto = $request->producto;
+        $almacen->unidad = $request->unidad;
+        $almacen->saldo = $request->saldo;
+        $almacen->registro = $request->registro;
+        $almacen->vencimiento = $request->vencimiento;
+        $almacen->grupo = $request->grupo;
+        $almacen->fecha_registro = $request->fecha_registro;
+        $almacen->save();
+        return response()->json($almacen);
+    }
+    public function destroy($id){
+        $almacen = Almacen::find($id);
+        $almacen->delete();
+        return response()->json($almacen);
+    }
 }

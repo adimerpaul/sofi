@@ -18,9 +18,27 @@
           <template v-slot:top-right>
             <q-input placeholder="Buscar" dense outlined v-model="filter" />
           </template>
-          <template v-slot:body-cell-n="props">
+          <template v-slot:body-cell-opciones="props">
             <q-td :props="props">
               {{ props.pageIndex  + 1 }}
+              <q-btn-dropdown label="Opciones" no-caps dense color="primary">
+                <q-item clickable v-close-popup @click="clickEdit(props.row)">
+                  <q-item-section avatar>
+                    <q-icon name="visibility" />
+                  </q-item-section>
+                  <q-item-section>
+                    <q-item-label>Ver</q-item-label>
+                  </q-item-section>
+                </q-item>
+                <q-item clickable v-close-popup @click="eliminar(props.row.id)">
+                  <q-item-section avatar>
+                    <q-icon name="delete" />
+                  </q-item-section>
+                  <q-item-section>
+                    <q-item-label>Eliminar</q-item-label>
+                  </q-item-section>
+                </q-item>
+              </q-btn-dropdown>
             </q-td>
           </template>
           <template v-slot:body-cell-codigo="props">
@@ -57,6 +75,44 @@
         </q-card-section>
       </q-card>
     </q-dialog>
+    <q-dialog v-model="dialogAlmacen" persistent>
+      <q-card>
+        <q-card-section class="q-pa-md">
+          <div class="row">
+            <div class="col-12 q-pa-sm">
+              <q-input dense outlined v-model="almacen.codigo" label="Código" />
+            </div>
+            <div class="col-12 q-pa-sm">
+              <q-input dense outlined v-model="almacen.codigo_producto" label="Código Producto" />
+            </div>
+            <div class="col-12 q-pa-sm">
+              <q-input dense outlined v-model="almacen.producto" label="Producto" />
+            </div>
+            <div class="col-12 q-pa-sm">
+              <q-input dense outlined v-model="almacen.unidad" label="Unidad" />
+            </div>
+            <div class="col-12 q-pa-sm">
+              <q-input dense outlined v-model="almacen.saldo" label="Saldo" />
+            </div>
+            <div class="col-12 q-pa-sm">
+              <q-input dense outlined v-model="almacen.registro" label="Registro" />
+            </div>
+            <div class="col-12 q-pa-sm">
+              <q-input dense outlined v-model="almacen.vencimiento" label="Vencimiento" />
+            </div>
+            <div class="col-12 q-pa-sm">
+              <q-input dense outlined v-model="almacen.grupo" label="Grupo" />
+            </div>
+            <div class="col-12 q-pa-sm">
+              <q-input dense outlined v-model="almacen.fecha_registro" label="Fecha Registro" />
+            </div>
+            <div class="col-12 q-pa-sm">
+              <q-btn no-caps color="orange" class="full-width" label="Guardar" :loading="loading" @click="modficarAlmacen" icon="save" />
+            </div>
+          </div>
+        </q-card-section>
+      </q-card>
+    </q-dialog>
   </q-page>
 </template>
 <script>
@@ -82,11 +138,13 @@ export default {
       fecha: date.formatDate(new Date(), 'YYYY-MM-DD'),
       file: null,
       almacenes: [],
+      almacen: {},
       loading: false,
       filter: '',
       dialogFile: false,
+      dialogAlmacen: false,
       columns: [
-        {name: 'n', label: 'N', align: 'left', field: 'n', sortable: true},
+        {name: 'opciones', label: 'Opciones', align: 'left', field: 'opciones', sortable: true},
         {name: 'codigo', label: 'Código', align: 'left', field: 'codigo', sortable: true},
         // {name: 'codigo_producto', label: 'Código Producto', align: 'left', field: 'codigo_producto', sortable: true},
         {name: 'producto', label: 'Producto', align: 'left', field: 'producto', sortable: true},
@@ -96,6 +154,8 @@ export default {
         // {name: 'vencimiento', label: 'Vencimiento', align: 'left', field: 'vencimiento', sortable: true},
         {name: 'grupo', label: 'Grupo', align: 'left', field: 'grupo', sortable: true},
         // {name: 'fecha_registro', label: 'Fecha Registro', align: 'left', field: 'fecha_registro', sortable: true},
+        // se_descargo
+        {name: 'se_descargo', label: 'Se Descargo', align: 'left', field: 'se_descargo', sortable: true},
       ]
     }
   },
@@ -109,6 +169,38 @@ export default {
     },
     fileChange(event) {
       this.file = event.target.files[0];
+    },
+    clickEdit(almacen) {
+      this.dialogAlmacen = true;
+      this.almacen = almacen;
+    },
+    modficarAlmacen() {
+      this.loading = true;
+      this.$api.put('almacenes/' + this.almacen.id, this.almacen).then(res => {
+        this.dialogAlmacen = false;
+        this.getAlmacenes();
+      }).catch(err => {
+        console.error(err);
+      }).finally(() => {
+        this.loading = false;
+      });
+    },
+    eliminar(id) {
+      this.$q.dialog({
+        title: 'Eliminar',
+        message: '¿Está seguro de eliminar el registro?',
+        cancel: true,
+        persistent: true,
+      }).onOk(() => {
+        this.loading = true;
+        this.$api.delete('almacenes/' + id).then(res => {
+          this.getAlmacenes();
+        }).catch(err => {
+          console.error(err);
+        }).finally(() => {
+          // this.loading = false;
+        });
+      });
     },
     cargarExcel() {
       if (!this.file) return this.$q.notify({
