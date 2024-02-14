@@ -17,6 +17,7 @@ import Ruta from "pages/Ruta";
 import Reporte from "pages/Reporte";
 import Productos from "pages/Productos";
 import Nopedido from "pages/Nopedido";
+import AlmacenPage from "pages/AlmacenPage.vue";
 const routes = [
   {
     path: '/',
@@ -40,6 +41,7 @@ const routes = [
       { path: '/reporte', component: Reporte ,meta: {requiresAuth: true}},
       { path: '/productos', component: Productos ,meta: {requiresAuth: true}},
       { path: '/nopedido', component: Nopedido ,meta: {requiresAuth: true}},
+      { path: '/almacen', component: AlmacenPage ,meta: {requiresAuth: true}},
       { path: '/login', component: Login },
     ]
   },

@@ -11,12 +11,13 @@ class CreateAlmacensTable extends Migration
         Schema::create('almacenes', function (Blueprint $table) {
             $table->id();
             $table->string('codigo')->nullable();
+            $table->string('codigo_producto')->nullable();
+            $table->string('producto')->nullable();
             $table->string('unidad')->nullable();
             $table->integer('saldo')->nullable();
             $table->date('registro')->nullable();
             $table->date('vencimiento')->nullable();
             $table->string('grupo')->nullable();
-            $table->string('nombre')->nullable();
             $table->date('fecha_registro');
             $table->timestamps();
         });

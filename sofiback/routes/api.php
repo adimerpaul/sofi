@@ -89,6 +89,6 @@ Route::get('/excel/{t}/{f1}/{f2}/{CodAut}',[\App\Http\Controllers\ExcelControlle
 
     Route::post('/reportePollo2',[\App\Http\Controllers\ExcelController::class,'reportePollo2']);
     Route::get('/almacenes',[\App\Http\Controllers\AlmacenController::class,'index']);
-
 });
+Route::post('/cargarExcel',[\App\Http\Controllers\AlmacenController::class,'cargarExcel']);
 
