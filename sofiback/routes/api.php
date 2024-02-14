@@ -84,10 +84,11 @@ Route::get('/excel/{t}/{f1}/{f2}/{CodAut}',[\App\Http\Controllers\ExcelControlle
     Route::post('/reporteEmbutidoTodo',[\App\Http\Controllers\ExcelController::class,'reporteEmbutidoTodo']);
     Route::post('/reporteCerdo',[\App\Http\Controllers\ExcelController::class,'reporteCerdo']);
     Route::post('/reporteCerdoTodo',[\App\Http\Controllers\ExcelController::class,'reporteCerdoTodo']);
-    Route::post('/reportePollo',[\App\Http\Controllers\ExcelController::class,'reportePollo']); 
-    Route::post('/listregistro',[\App\Http\Controllers\ExcelController::class,'listregistro']);  
+    Route::post('/reportePollo',[\App\Http\Controllers\ExcelController::class,'reportePollo']);
+    Route::post('/listregistro',[\App\Http\Controllers\ExcelController::class,'listregistro']);
 
-    Route::post('/reportePollo2',[\App\Http\Controllers\ExcelController::class,'reportePollo2']);  
+    Route::post('/reportePollo2',[\App\Http\Controllers\ExcelController::class,'reportePollo2']);
+    Route::get('/almacenes',[\App\Http\Controllers\AlmacenController::class,'index']);
 
 });
 

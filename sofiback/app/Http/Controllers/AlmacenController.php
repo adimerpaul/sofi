@@ -5,60 +5,10 @@ namespace App\Http\Controllers;
 use App\Models\Almacen;
 use Illuminate\Http\Request;
 
-class AlmacenController extends Controller
-{
-    /**
-     * Display a listing of the resource.
-     *
-     * @return \Illuminate\Http\Response
-     */
-    public function index()
-    {
-        //
-    }
-
-    /**
-     * Store a newly created resource in storage.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @return \Illuminate\Http\Response
-     */
-    public function store(Request $request)
-    {
-        //
-    }
-
-    /**
-     * Display the specified resource.
-     *
-     * @param  \App\Models\Almacen  $almacen
-     * @return \Illuminate\Http\Response
-     */
-    public function show(Almacen $almacen)
-    {
-        //
-    }
-
-    /**
-     * Update the specified resource in storage.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @param  \App\Models\Almacen  $almacen
-     * @return \Illuminate\Http\Response
-     */
-    public function update(Request $request, Almacen $almacen)
-    {
-        //
-    }
-
-    /**
-     * Remove the specified resource from storage.
-     *
-     * @param  \App\Models\Almacen  $almacen
-     * @return \Illuminate\Http\Response
-     */
-    public function destroy(Almacen $almacen)
-    {
-        //
+class AlmacenController extends Controller{
+    public function index(Request $request){
+        $fecha = $request->fecha;
+        $almacenes = Almacen::whereBetween('fecha_registro',[$fecha.' 00:00:00',$fecha.' 23:59:59'])->get();
+        return response()->json($almacenes);
     }
 }

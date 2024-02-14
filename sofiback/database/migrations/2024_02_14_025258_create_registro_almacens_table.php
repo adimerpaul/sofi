@@ -4,7 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-class CreateRegitroAlmacensTable extends Migration
+class CreateRegistroAlmacensTable extends Migration
 {
     /**
      * Run the migrations.
@@ -13,12 +13,14 @@ class CreateRegitroAlmacensTable extends Migration
      */
     public function up()
     {
-        Schema::create('regitro_almacenes', function (Blueprint $table) {
+        Schema::create('registro_almacenes', function (Blueprint $table) {
             $table->id();
             $table->integer('cantidad');
             $table->date('fecha_vencimiento');
-            $table->unsignedBigInteger('id_producto');
-            $table->foreign('id_producto')->references('id')->on('productos');
+            $table->unsignedBigInteger('almacen_id');
+            $table->foreign('almacen_id')->references('id')->on('almacenes')->onDelete('cascade');
+            $table->unsignedBigInteger('user_id');
+            $table->dateTime('fecha_registro');
             $table->timestamps();
         });
     }
@@ -30,6 +32,6 @@ class CreateRegitroAlmacensTable extends Migration
      */
     public function down()
     {
-        Schema::dropIfExists('regitro_almacenes');
+        Schema::dropIfExists('registro_almacenes');
     }
 }
