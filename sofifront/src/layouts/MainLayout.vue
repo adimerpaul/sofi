@@ -17,7 +17,7 @@
     <q-drawer v-model="leftDrawerOpen" show-if-above bordered>
       <q-list>
         <q-item-label header>Opciones</q-item-label>
-        <q-item clickable exact to="/">
+        <q-item clickable active-class="bg-primary text-white" exact to="/">
           <q-item-section avatar>
             <q-icon name="home" />
           </q-item-section>
@@ -39,7 +39,7 @@
             </q-item-label>
           </q-item-section>
         </q-item>
-        <q-item clickable exact to="visita" v-if="vendores.includes($store.getters['login/user'].ci)">
+        <q-item clickable active-class="bg-primary text-white" exact to="visita" v-if="vendores.includes($store.getters['login/user'].ci)">
           <q-item-section avatar>
             <q-icon name="map" />
           </q-item-section>
@@ -50,7 +50,7 @@
             </q-item-label>
           </q-item-section>
         </q-item>
-        <q-item clickable exact to="mispedidos"  v-if="vendores.includes($store.getters['login/user'].ci)">
+        <q-item clickable active-class="bg-primary text-white" exact to="mispedidos"  v-if="vendores.includes($store.getters['login/user'].ci)">
           <q-item-section avatar>
             <q-icon name="list" />
           </q-item-section>
@@ -61,7 +61,7 @@
             </q-item-label>
           </q-item-section>
         </q-item>
-        <q-item clickable exact to="clientes" v-if="$store.getters['login/user'].ci=='7329536'">
+        <q-item clickable active-class="bg-primary text-white" exact to="clientes" v-if="$store.getters['login/user'].ci=='7329536'">
           <q-item-section avatar>
             <q-icon name="people" />
           </q-item-section>
@@ -72,7 +72,7 @@
             </q-item-label>
           </q-item-section>
         </q-item>
-                <q-item clickable exact to="pendientes" v-if="$store.getters['login/user'].ci=='7329536'">
+                <q-item clickable active-class="bg-primary text-white" exact to="pendientes" v-if="$store.getters['login/user'].ci=='7329536'">
           <q-item-section avatar>
             <q-icon name="local_grocery_store" />
           </q-item-section>
@@ -83,7 +83,7 @@
             </q-item-label>
           </q-item-section>
         </q-item>
-        <q-item clickable exact to="cobrosrealizados" v-if="vendores.includes($store.getters['login/user'].ci) || cobrador.includes($store.getters['login/user'].ci) || $store.getters['login/user'].ci=='7329536'">
+        <q-item clickable active-class="bg-primary text-white" exact to="cobrosrealizados" v-if="vendores.includes($store.getters['login/user'].ci) || cobrador.includes($store.getters['login/user'].ci) || $store.getters['login/user'].ci=='7329536'">
           <q-item-section avatar>
             <q-icon name="monetization_on" />
           </q-item-section>
@@ -94,7 +94,7 @@
             </q-item-label>
           </q-item-section>
         </q-item>
-        <q-item clickable exact to="cobranza"  v-if="vendores.includes($store.getters['login/user'].ci) || cobrador.includes($store.getters['login/user'].ci)">
+        <q-item clickable active-class="bg-primary text-white" exact to="cobranza"  v-if="vendores.includes($store.getters['login/user'].ci) || cobrador.includes($store.getters['login/user'].ci)">
           <q-item-section avatar>
             <q-icon name="receipt" />
           </q-item-section>
@@ -105,7 +105,7 @@
             </q-item-label>
           </q-item-section>
         </q-item>
-        <q-item clickable exact to="miscobranzas"  v-if="vendores.includes($store.getters['login/user'].ci) || cobrador.includes($store.getters['login/user'].ci)">
+        <q-item clickable active-class="bg-primary text-white" exact to="miscobranzas"  v-if="vendores.includes($store.getters['login/user'].ci) || cobrador.includes($store.getters['login/user'].ci)">
           <q-item-section avatar>
             <q-icon name="money" />
           </q-item-section>
@@ -116,7 +116,7 @@
             </q-item-label>
           </q-item-section>
         </q-item>
-        <q-item clickable exact to="productos"  v-if="vendores.includes($store.getters['login/user'].ci)">
+        <q-item clickable active-class="bg-primary text-white" exact to="productos"  v-if="vendores.includes($store.getters['login/user'].ci)">
           <q-item-section avatar>
             <q-icon name="list" />
           </q-item-section>
@@ -127,7 +127,7 @@
             </q-item-label>
           </q-item-section>
         </q-item>
-        <q-item clickable exact to="nopedido"  v-if="vendores.includes($store.getters['login/user'].ci)">
+        <q-item clickable active-class="bg-primary text-white" exact to="nopedido"  v-if="vendores.includes($store.getters['login/user'].ci)">
           <q-item-section avatar>
             <q-icon name="list" />
           </q-item-section>
@@ -138,7 +138,7 @@
             </q-item-label>
           </q-item-section>
         </q-item>
-        <q-item clickable exact to="generar" v-if="encargados.includes($store.getters['login/user'].ci)">
+        <q-item clickable active-class="bg-primary text-white" exact to="generar" v-if="encargados.includes($store.getters['login/user'].ci)">
           <q-item-section avatar>
             <q-icon name="money" />
           </q-item-section>
@@ -149,7 +149,7 @@
             </q-item-label>
           </q-item-section>
         </q-item>
-        <q-item clickable exact to="genreporte" v-if="supervisor.includes($store.getters['login/user'].ci) || encargados.includes($store.getters['login/user'].ci)">
+        <q-item clickable active-class="bg-primary text-white" exact to="genreporte" v-if="supervisor.includes($store.getters['login/user'].ci) || encargados.includes($store.getters['login/user'].ci)">
           <q-item-section avatar>
             <q-icon name="receipt_long" />
           </q-item-section>
@@ -160,7 +160,7 @@
             </q-item-label>
           </q-item-section>
         </q-item>
-        <q-item clickable exact to="ruta" v-if="despachador.includes($store.getters['login/user'].ci)">
+        <q-item clickable active-class="bg-primary text-white" exact to="ruta" v-if="despachador.includes($store.getters['login/user'].ci)">
           <q-item-section avatar>
             <q-icon name="map" />
           </q-item-section>
@@ -171,7 +171,7 @@
             </q-item-label>
           </q-item-section>
         </q-item>
-                <q-item clickable exact to="reporte" v-if="encargados.includes($store.getters['login/user'].ci)">
+        <q-item clickable active-class="bg-primary text-white" exact to="reporte" v-if="encargados.includes($store.getters['login/user'].ci)">
           <q-item-section avatar>
             <q-icon name="list" />
           </q-item-section>
@@ -182,7 +182,18 @@
             </q-item-label>
           </q-item-section>
         </q-item>
-        <q-item clickable exact to="modifica" v-if="supervisor.includes($store.getters['login/user'].ci)">
+        <q-item clickable active-class="bg-primary text-white" exact to="almacen" v-if="encargados.includes($store.getters['login/user'].ci)">
+          <q-item-section avatar>
+            <q-icon name="o_store" />
+          </q-item-section>
+          <q-item-section>
+            <q-item-label>Almacen</q-item-label>
+            <q-item-label caption>
+              Almacen
+            </q-item-label>
+          </q-item-section>
+        </q-item>
+        <q-item clickable active-class="bg-primary text-white" exact to="modifica" v-if="supervisor.includes($store.getters['login/user'].ci)">
           <q-item-section avatar>
             <q-icon name="people" />
           </q-item-section>
@@ -194,7 +205,7 @@
           </q-item-section>
         </q-item>
 
-        <q-item clickable exact to="monitoreo" v-if="supervisor.includes($store.getters['login/user'].ci)">
+        <q-item clickable active-class="bg-primary text-white" exact to="monitoreo" v-if="supervisor.includes($store.getters['login/user'].ci)">
           <q-item-section avatar>
             <q-icon name="computer" />
           </q-item-section>
@@ -205,7 +216,7 @@
             </q-item-label>
           </q-item-section>
         </q-item>
-        <q-item clickable exact  @click="irformulario" v-if="vendores.includes($store.getters['login/user'].ci) || cobrador.includes($store.getters['login/user'].ci)">
+        <q-item clickable active-class="bg-primary text-white" exact  @click="irformulario" v-if="vendores.includes($store.getters['login/user'].ci) || cobrador.includes($store.getters['login/user'].ci)">
           <q-item-section avatar>
             <q-icon name="people" />
           </q-item-section>
@@ -216,7 +227,7 @@
             </q-item-label>
           </q-item-section>
         </q-item>
-        <q-item clickable exact  @click="irformulario2" v-if="vendores.includes($store.getters['login/user'].ci) || cobrador.includes($store.getters['login/user'].ci)">
+        <q-item clickable active-class="bg-primary text-white" exact  @click="irformulario2" v-if="vendores.includes($store.getters['login/user'].ci) || cobrador.includes($store.getters['login/user'].ci)">
           <q-item-section avatar>
             <q-icon name="people" />
           </q-item-section>

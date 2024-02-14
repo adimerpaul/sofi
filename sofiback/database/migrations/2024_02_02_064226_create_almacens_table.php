@@ -1,0 +1,27 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+class CreateAlmacensTable extends Migration
+{
+    public function up()
+    {
+        Schema::create('almacenes', function (Blueprint $table) {
+            $table->id();
+            $table->string('codigo')->nullable();
+            $table->string('unidad')->nullable();
+            $table->integer('saldo')->nullable();
+            $table->date('registro')->nullable();
+            $table->date('vencimiento')->nullable();
+            $table->string('grupo')->nullable();
+            $table->string('nombre')->nullable();
+            $table->timestamps();
+        });
+    }
+   public function down()
+    {
+        Schema::dropIfExists('almacenes');
+    }
+}
