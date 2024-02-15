@@ -75,14 +75,14 @@ class PedidoController extends Controller
     {
 //        return $request->productos;
         //$max=DB::select("SELECT max(NroPed) as max FROM tbpedidos");
-        $max=DB::select("SELECT max(comanda) as max FROM comandas");
+        $cmdnum=DB::select("SELECT *  FROM comandas limit 1")[0];
         $cliente=DB::select("SELECT * FROM tbclientes WHERE Cod_Aut='".$request->idCli."'");
 //        echo ($cliente[0]->Latitud);
 //        return floatval( $request->lat)."   -   ".floatval($request->lng)."   -   ".$cliente[0]->Latitud."   -   ".$cliente[0]->longitud;
         $distancia=$this->distance( floatval( $request->lat),floatval($request->lng),floatval($cliente[0]->Latitud),floatval($cliente[0]->longitud));
 
-        $numpedido=$max[0]->max+1;
-        DB::select("INSERT INTO `comandas` (`comanda`) VALUES ($numpedido)");
+        $numpedido=$cmdnum->comanda+1;
+        DB::select("UPDATE `comandas` SET `comanda`='$numpedido' WHERE id=$cmdnum->id");
 //        return $numpedido;
 //        exit;
         DB::table('misvisitas')->insert([
