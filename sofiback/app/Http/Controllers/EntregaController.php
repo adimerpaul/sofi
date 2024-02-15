@@ -36,23 +36,28 @@ class EntregaController extends Controller
     public function store(Request $request)
     {
 //        return $request;
-         DB::table('tbpedidos')
+         /*DB::table('tbpedidos')
              ->where('idCli',$request->cliente_id)
              ->whereDate('fecha',$request->fecha)
              ->update([
                 "estados"=>$request->estado
-             ]);
+             ]);*/
 
         $cliente=DB::select("SELECT * FROM tbclientes WHERE Cod_Aut='".$request->cliente_id."'");
+        //return $cliente;
 
         $distancia=$this->distance( floatval( $request->lat),floatval($request->lng),floatval($cliente[0]->Latitud),floatval($cliente[0]->longitud));
         DB::table("entregas")->insert([
             "cliente_id"=>$request->cliente_id,
+            "cinit"=>$request->cinit,
+            "comanda"=>$request->comanda,
+            "monto"=>$request->monto,
             "despachador"=>$request->user()->Nombre1.' '.$request->user()->App1,
             "lat"=>$request->lat,
             "lng"=>$request->lng,
             "estado"=>$request->estado,
             "observacion"=>$request->observacion,
+            "fechaEntreg"=>$request->fechaEntreg,
             "fecha"=>date('Y-m-d'),
             "hora"=>date('H:i:s'),
             "distancia"=>$distancia,

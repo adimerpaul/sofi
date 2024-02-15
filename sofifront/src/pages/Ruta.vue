@@ -28,7 +28,7 @@
     ></l-tile-layer>
 <!--    @click="clickopciones(c)"-->
     <l-marker v-for="(c,i) in clientes" :key="c.Cod_Aut" :lat-lng="[c.Latitud, c.longitud]"  >
-      <l-icon><q-badge  :class="c.estados=='ENTREGADO'?'bg-green text-italic':c.estados=='NO ENTREGADO'?'bg-red text-italic':''"  class="q-pa-none" color="info" >{{i+1}}</q-badge></l-icon>
+      <l-icon><q-badge  :class="c.estados=='ENTREGADO'?'bg-green text-italic':c.estados=='NO ENTREGADO'?'bg-red text-italic':''"  class="q-pa-none" color="red" >{{i+1}}</q-badge></l-icon>
     </l-marker>
 
   </l-map>
@@ -42,14 +42,14 @@
 <!--          </q-td>-->
 <!--        </template>-->
         <template v-slot:body-cell-Nombres="props">
-          <q-td :class="props.row.estados=='ENTREGADO'?'bg-green text-italic':props.row.estados=='NO ENTREGADO'?'bg-red text-italic':''" @click="clickopciones(props.row)" :props="props">
+          <q-td :class="props.row.estado=='ENTREGADO'?'bg-green text-italic':props.row.estado=='NO ENTREGADO'?'bg-yellow text-italic':''" @click="clickopciones(props.row)" :props="props">
             <div class="text-weight-medium"> {{ props.pageIndex+1 }} {{ props.row.Nombres}}</div>
             <div class="text-caption" style="font-size: 8px">{{ props.row.Direccion}}</div>
           </q-td>
         </template>
         <template v-slot:body-cell-opcion="props">
-          <q-td :class="props.row.estados=='ENTREGADO'?'bg-green text-italic':props.row.estados=='NO ENTREGADO'?'bg-red text-italic':''">
-            <q-btn @click="clickclientes(props.row)" icon="my_location" size="xs" :color="props.row.estados=='ENTREGADO'?'positive':'negative'"  />
+          <q-td :class="props.row.estados=='ENTREGADO'?'bg-green text-italic':props.row.estado=='NO ENTREGADO'?'bg-yellow text-italic':''">
+            <q-btn @click="clickclientes(props.row)" icon="my_location" size="xs" :color="props.row.estado=='ENTREGADO'?'positive':'negative'"  />
           </q-td>
         </template>
         <template v-slot:top-right>
@@ -80,19 +80,56 @@
       <q-card-section class="text-center text-subtitle2">{{cliente.Nombres}} {{cliente.Direccion}} {{cliente.Telf}}</q-card-section>
       <q-separator></q-separator>
       <q-card-section>
-        <q-form @submit.prevent="createEntrega">
+        <q-form>
           <div class="row">
-            <div class="col-12">
+            <div class="col-12 q-pa-xs">
               <q-select dense outlined label="Estado" :options="['','ENTREGADO','NO ENTREGADO']" v-model="estado" required/>
             </div>
-            <div class="col-12">
+            <div class="col-12 q-pa-xs">
               <q-input type="textarea" dense outlined label="observacion" v-model="observacion"/>
             </div>
-            <div class="col-12">
+            <!--<div class="col-12">
               <q-btn type="submit" class="full-width" label="Confirmar" color="positive" icon="add_circle"/>
-            </div>
+            </div>-->
             <div class="col-12">
               <q-table dense lang="productos" :rows="pedidos" :columns="columspedido">
+                <template v-slot:header="props">
+                  <q-tr :props="props">
+                    <q-th auto-width />
+                    <q-th auto-width />
+                    <q-th
+                      v-for="col in props.cols"
+                      :key="col.name"
+                      :props="props"
+                    >
+                      {{ col.label }}
+                    </q-th>
+                  </q-tr>
+                </template>
+          
+                <template v-slot:body="props">
+                  <q-tr :props="props" :class="props.row.estado=='ENTREGADO'?'bg-green':props.row.estado=='NO ENTREGADO'?'bg-amber':''">
+                    <q-td auto-width>
+                      <q-btn size="sm" color="accent" round dense @click="props.expand = !props.expand" :icon="props.expand ? 'remove' : 'add'" />                                       
+                    </q-td>
+                    <td :props="props" key="op" >
+                      <q-btn color="green" dense icon="local_shipping" v-if="props.row.estado!='ENTREGADO'" @click="createEntrega(props.row)"/>    
+                    </td>
+                    <q-td
+                      v-for="col in props.cols"
+                      :key="col.name"
+                      :props="props"
+                    >
+                      {{ col.value }}
+                    </q-td>
+
+                  </q-tr>
+                  <q-tr v-show="props.expand" :props="props">
+                    <q-td colspan="100%">
+                      <div class="text-left" v-for="r in props.row.detalle " :key="r"> <b>Codigo:</b> {{r.cod_prod}} <b>Producto:</b> {{r.Producto}} <b>Cantidad:</b> {{r.cant}} <b>Precio:</b> {{ r.PVentUnit }} </div>
+                    </q-td>
+                  </q-tr>
+                </template>
               </q-table>
             </div>
           </div>
@@ -146,10 +183,12 @@ export default {
       pedidos:[],
       cliente:{},
       columspedido:[
-        {label:'NroPed',name:'NroPed',field:'NroPed'},
-        {label:'cod_prod',name:'cod_prod',field:'cod_prod'},
-        {label:'Cant',name:'Cant',field:'Cant'},
-        {label:'precio',name:'precio',field:'precio'},
+        {label:'comanda',name:'comanda',field:'comanda'},
+        {label:'Importe',name:'Importe',field:'Importe'},
+        {label:'Tipago',name:'Tipago',field:'Tipago'},
+        {label:'estado',name:'estado',field:'estado'},
+        {label:'Observacion',name:'Observacion',field:'Observacion'},
+        
       ],
       columns:[
         // {label:'Cod_Aut',name:'Cod_Aut',field:'Cod_Aut'},
@@ -164,7 +203,9 @@ export default {
     this.misclientes()
   },
   methods:{
-    createEntrega(){
+    createEntrega(ped){
+      if(this.estado=='')
+        return false
       this.$q.dialog({
         title:'Seguro de enviar',
         color:'green',
@@ -191,26 +232,32 @@ export default {
             // ]
             lat=pos.coords.latitude
             lng=pos.coords.longitude
-            this.insertarpedido(lat,lng)
+            this.insertarpedido(lat,lng,ped)
           });
         }else{
           lat=0
           lng=0
-          this.insertarpedido(lat,lng)
+          this.insertarpedido(lat,lng,ped)
         }
 
       })
     },
-    insertarpedido(lat,lng){
+    insertarpedido(lat,lng,ped){
       // console.log(this.cliente)
       this.$api.post('entrega',{
-        cliente_id:this.cliente.idCli,
+        cliente_id:this.cliente.Cod_Aut,
+        cinit:this.cliente.Id,
+        comanda:ped.comanda,
+        monto:ped.Importe,
+        fechaEntreg:ped.FechaEntreg,
         lat:lat,
         lng:lng,
         estado:this.estado,
         fecha:this.fecha,
         observacion:this.observacion
       }).then(res=>{
+        console.log(res.data)
+        //return false
         this.estado=''
         this.observacion=''
         console.log(res.data)
@@ -220,8 +267,9 @@ export default {
       })
     },
     clickopciones(c){
-      if(c.estados!='VAYA')
-       return false
+      
+      //if(c.estados!='VAYA')
+       //return false
       this.estado=''
       this.observacion=''
       this.cliente=c
@@ -229,10 +277,13 @@ export default {
       // return false
       this.$q.loading.show()
       this.$api.post('ruta',{
-        id:c.idCli,
+        id:c.Id,
         fecha:this.fecha
       }).then(res=>{
+        console.log(res.data)
+
         this.$q.loading.hide()
+        //return false
         this.dialogentrega=true
 
         this.pedidos=res.data
