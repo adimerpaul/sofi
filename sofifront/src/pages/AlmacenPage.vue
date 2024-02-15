@@ -75,9 +75,14 @@
         </q-card-section>
       </q-card>
     </q-dialog>
-    <q-dialog v-model="dialogAlmacen" persistent>
+    <q-dialog v-model="dialogAlmacen">
       <q-card>
-        <q-card-section class="q-pa-md">
+        <q-card-section class="q-pb-none row">
+          <div class="text-h6">Editar Almacen</div>
+          <q-space />
+          <q-btn icon="close" flat no-caps round @click="dialogAlmacen = false" />
+        </q-card-section>
+        <q-card-section class="q-pt-none">
           <div class="row">
             <div class="col-12 q-pa-sm">
               <q-input dense outlined v-model="almacen.codigo" label="Código" />
