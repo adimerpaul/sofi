@@ -65,7 +65,7 @@ class PedidoController extends Controller
     public function informeProducto(Request $request ){
         return DB::SELECT("SELECT o.cod_prod,o.Producto,count(*) as cantidad
         FROM tbpedidos p inner join tbproductos o on p.cod_prod=o.cod_prod
-        WHERE p.tipo='NORMAL' and date(p.fecha)>='$request->ini' and date(p.fecha)<='$request->fin' 
+        WHERE p.tipo='NORMAL' and date(p.fecha)>='$request->ini' and date(p.fecha)<='$request->fin'
         and p.CIfunc=$request->cod
         group by o.cod_prod,o.Producto;");
     }
@@ -74,13 +74,15 @@ class PedidoController extends Controller
     public function store(Request $request)
     {
 //        return $request->productos;
-        $max=DB::select("SELECT max(NroPed) as max FROM tbpedidos");
+        //$max=DB::select("SELECT max(NroPed) as max FROM tbpedidos");
+        $max=DB::select("SELECT max(comanda) as max FROM comandas");
         $cliente=DB::select("SELECT * FROM tbclientes WHERE Cod_Aut='".$request->idCli."'");
 //        echo ($cliente[0]->Latitud);
 //        return floatval( $request->lat)."   -   ".floatval($request->lng)."   -   ".$cliente[0]->Latitud."   -   ".$cliente[0]->longitud;
         $distancia=$this->distance( floatval( $request->lat),floatval($request->lng),floatval($cliente[0]->Latitud),floatval($cliente[0]->longitud));
 
         $numpedido=$max[0]->max+1;
+        DB::select("INSERT INTO `comandas` (`comanda`) VALUES ($numpedido)");
 //        return $numpedido;
 //        exit;
         DB::table('misvisitas')->insert([
@@ -340,7 +342,7 @@ class PedidoController extends Controller
     }
 
     public function reporteVenta(Request $request){
-         
+
         $fec= strtotime($request->fecha);
         $numdia= date('w',$fec);
         $filtro='';
@@ -365,19 +367,19 @@ class PedidoController extends Controller
                 break;
             case 6:
                 $filtro=" AND Sa=1 ";
-                break;            
+                break;
             default:
                 $filtro= '';
                 break;
         }
         return DB::SELECT("
         select p.CIfunc,l.ci,l.CodAut, l.Nombre1,l.App1,
-        (SELECT count(DISTINCT(p2.idCli)) from tbpedidos p2 where date(p2.fecha)='$request->fecha' and p.CIfunc=p2.CIfunc) as totclient, 
+        (SELECT count(DISTINCT(p2.idCli)) from tbpedidos p2 where date(p2.fecha)='$request->fecha' and p.CIfunc=p2.CIfunc) as totclient,
         (SELECT count(DISTINCT(p2.idCli)) from tbpedidos p2 inner join tbclientes c on p2.idCli=c.Cod_Aut where  date(p2.fecha)='$request->fecha' and p.CIfunc=p2.CIfunc ".$filtro.") as totvisita,
         (SELECT count(*) from tbclientes tc where tc.CiVend=l.ci ".$filtro.") as numcli ,
-        (SELECT count(*) from misvisitas v WHERE v  .fecha='$request->fecha' and v.personal_id=l.CodAut and v.estado='PEDIDO') as npedido,     
-        (SELECT count(*) from misvisitas v WHERE v.fecha='$request->fecha' and v.personal_id=l.CodAut and v.estado='NO PEDIDO') as nopedido,      
-        (SELECT count(*) from misvisitas v WHERE v.fecha='$request->fecha' and v.personal_id=l.CodAut and v.estado='PARADO') as nparado      
+        (SELECT count(*) from misvisitas v WHERE v  .fecha='$request->fecha' and v.personal_id=l.CodAut and v.estado='PEDIDO') as npedido,
+        (SELECT count(*) from misvisitas v WHERE v.fecha='$request->fecha' and v.personal_id=l.CodAut and v.estado='NO PEDIDO') as nopedido,
+        (SELECT count(*) from misvisitas v WHERE v.fecha='$request->fecha' and v.personal_id=l.CodAut and v.estado='PARADO') as nparado
         from tbpedidos p inner join personal l on p.CIfunc= l.CodAut where date(p.fecha)='$request->fecha' GROUP by p.CIfunc,l.ci, l.Nombre1,l.App1,l.CodAut
         ");
     }
@@ -652,7 +654,7 @@ class PedidoController extends Controller
             hora	,
             pago,
             fact,
-            rango,	
+            rango,
             tbproductos.Producto as nombre
             from tbpedidos,tbproductos where tbpedidos.cod_prod=tbproductos.cod_prod and  NroPed = '$row->NroPed'" );
 
