@@ -27,11 +27,12 @@
       url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
     ></l-tile-layer>
 <!--    @click="clickopciones(c)"-->
-    <l-marker v-for="(c,i) in clientes" :key="c.Cod_Aut" :lat-lng="[c.Latitud, c.longitud]"  >
-      <l-icon>
+    <l-marker v-for="(c,i) in clientes" :key="c.Cod_Aut" :lat-lng="[c.Latitud, c.longitud]"  @click="clickopciones(c)">
+      <l-icon >
         <q-badge
         :class="c.estados=='ENTREGADO'?'bg-green text-italic':c.estados=='NO ENTREGADO'?'bg-red text-italic':''"
         style="padding: 2px"
+        
         >{{i+1}}
         </q-badge>
       </l-icon>
@@ -143,6 +144,10 @@
             </div>
           </div>
         </q-form>
+      </q-card-section>
+      <q-card-section align="right">
+         <q-btn color="red" dense label="cerrar"  v-close-popup />
+        
       </q-card-section>
     </q-card>
   </q-dialog>
@@ -271,7 +276,8 @@ export default {
         this.observacion=''
         console.log(res.data)
         // return false
-        this.dialogentrega=false
+        //this.dialogentrega=false
+        this.clickopciones(this.cliente)
         this.misclientes()
       })
     },

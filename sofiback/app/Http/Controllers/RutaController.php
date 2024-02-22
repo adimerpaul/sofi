@@ -84,6 +84,19 @@ GROUP BY p.idCli,c.Id,c.Nombres,c.Telf,c.Direccion,c.Latitud,c.longitud,p.estado
     ");
     }
 
+
+    public function listRuta(Request $request)
+    {
+        $user= $request->user();
+    return DB::select(" SELECT c.Cod_Aut,p.CINIT,c.Id,c.Nombres,c.Telf,c.Direccion,c.Latitud,c.longitud,
+    (select e.estado from entregas e where e.cliente_id=c.Cod_Aut and e.fechaEntreg='$fecha' order by e.estado desc limit 1  ) estado
+    FROM tbctascobrar p
+    INNER JOIN tbclientes c ON c.Id=p.CINIT
+    inner join entregas e on e.comanda=p.comanda
+    WHERE date(p.FechaEntreg)='".$fecha."'
+    GROUP BY c.Cod_Aut,p.CINIT,c.Id,c.Nombres,c.Telf,c.Direccion,c.Latitud,c.longitud
+    ");
+    }
     /**
      * Show the form for editing the specified resource.
      *
