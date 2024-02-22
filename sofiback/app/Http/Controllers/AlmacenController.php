@@ -20,27 +20,58 @@ class AlmacenController extends Controller{
         $data = $spreadsheet->getActiveSheet()->toArray();
         $cantidad = count($data);
         $promedio = $cantidad/ $request->codigo;
+        $insertAlmacen = [];
         foreach ($data as $key => $value) {
             if ($key > 0) {
                 $codigo=$this->obtencionCodigo($promedio,$key);
-                $almacen = new Almacen();
-                $almacen->codigo = $codigo;
-                $almacen->codigo_producto = $value[0];
-                $almacen->producto = $value[1];
-                $almacen->unidad = $value[2];
-                $almacen->saldo = $value[3];
-                $almacen->registro = $this->convertfecha($value[4]);
-                $almacen->vencimiento = $this->convertfecha($value[5]);
-                $almacen->grupo = $value[6];
-                $almacen->fecha_registro = date('Y-m-d');
-                $almacen->save();
+                $insertAlmacen[] = [
+                    'codigo' => $codigo,
+                    'codigo_producto' => $value[0],
+                    'producto' => $value[1],
+                    'unidad' => $value[2],
+                    'saldo' => $value[3],
+                    'registro' => $this->convertfecha($value[4]),
+                    'vencimiento' => $this->convertfecha($value[5]),
+                    'grupo' => $value[6],
+                    'fecha_registro' => $request->fecha
+                ];
+//                $codigo=$this->obtencionCodigo($promedio,$key);
+//                $almacen = new Almacen();
+//                $almacen->codigo = $codigo;
+//                $almacen->codigo_producto = $value[0];
+//                $almacen->producto = $value[1];
+//                $almacen->unidad = $value[2];
+//                $almacen->saldo = $value[3];
+//                $almacen->registro = $this->convertfecha($value[4]);
+//                $almacen->vencimiento = $this->convertfecha($value[5]);
+//                $almacen->grupo = $value[6];
+//                $almacen->fecha_registro = $request->fecha
+//                $almacen->save();
             }
         }
+        Almacen::insert($insertAlmacen);
+    }
+    public function importData(Request $request)
+    {
+//        return $request->all();
+        $fecha = $this->convertDMY($request->fecha);
+//        error_log('fecha: ' . json_encode($fecha) . ' codigo: ' . $request->codigo);
+        $almacenes = Almacen::whereDate('fecha_registro', $fecha)
+            ->where('codigo', $request->codigo)
+            ->get();
+        return response()->json($almacenes);
+    }
+    public function convertDMY($fecha){
+        $fecha = explode('/', $fecha);
+        $dia = strlen($fecha[0]) == 1 ? '0' . $fecha[0] : $fecha[0];
+        $mes = strlen($fecha[1]) == 1 ? '0' . $fecha[1] : $fecha[1];
+        $fecha = $fecha[2] . '-' . $mes . '-' . $dia;
+        return $fecha;
     }
     public function convertfecha($fecha){
         $fecha = explode(' ', $fecha);
         $fecha = $fecha[0];
-        error_log('fecha: ' . json_encode($fecha));
+//        error_log('fecha: ' . json_encode($fecha));
         $fecha = explode('/', $fecha);
 //        error_log('fecha: ' . json_encode($fecha));
         $mes = strlen($fecha[0]) == 1 ? '0' . $fecha[0] : $fecha[0];

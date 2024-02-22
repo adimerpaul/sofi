@@ -7,18 +7,19 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
-class UserController extends Controller
-{
-    /**
-     * Display a listing of the resource.
-     *
-     * @return \Illuminate\Http\Response
-     */
+class UserController extends Controller{
 
     public function index()
     {
         //
         return DB::SELECT('SELECT CodAut,ci,Nombre1,Nombre2,App1,Apm from personal');
+    }
+    public function users(){
+        $sql='
+        SELECT CodAut id,
+            TRIM(CONCAT_WS(" ", NULLIF(TRIM(Nombre1), ""), NULLIF(TRIM(Nombre2), ""), NULLIF(TRIM(App1), ""), NULLIF(TRIM(Apm), ""))) nombre
+        FROM personal';
+        return DB::select($sql);
     }
 
     public function login(Request $request){

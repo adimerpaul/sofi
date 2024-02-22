@@ -28,7 +28,13 @@
     ></l-tile-layer>
 <!--    @click="clickopciones(c)"-->
     <l-marker v-for="(c,i) in clientes" :key="c.Cod_Aut" :lat-lng="[c.Latitud, c.longitud]"  >
-      <l-icon><q-badge  :class="c.estados=='ENTREGADO'?'bg-green text-italic':c.estados=='NO ENTREGADO'?'bg-red text-italic':''"  class="q-pa-none" color="red" >{{i+1}}</q-badge></l-icon>
+      <l-icon>
+        <q-badge
+        :class="c.estados=='ENTREGADO'?'bg-green text-italic':c.estados=='NO ENTREGADO'?'bg-red text-italic':''"
+        style="padding: 2px"
+        >{{i+1}}
+        </q-badge>
+      </l-icon>
     </l-marker>
 
   </l-map>
@@ -106,14 +112,17 @@
                     </q-th>
                   </q-tr>
                 </template>
-          
+
                 <template v-slot:body="props">
                   <q-tr :props="props" :class="props.row.estado=='ENTREGADO'?'bg-green':props.row.estado=='NO ENTREGADO'?'bg-amber':''">
                     <q-td auto-width>
-                      <q-btn size="sm" color="accent" round dense @click="props.expand = !props.expand" :icon="props.expand ? 'remove' : 'add'" />                                       
+                      <q-btn size="sm"
+                             :color="props.expand ? 'primary' : 'secondary'"
+                             :label="props.expand ? 'Ocul' : 'Ver'"
+                             no-caps dense @click="props.expand = !props.expand" :icon="props.expand ? 'visibility_off' : 'visibility'"/>
                     </q-td>
                     <td :props="props" key="op" >
-                      <q-btn color="green" dense icon="local_shipping" v-if="props.row.estado!='ENTREGADO'" @click="createEntrega(props.row)"/>    
+                      <q-btn color="green" dense icon="local_shipping" v-if="props.row.estado!='ENTREGADO'" @click="createEntrega(props.row)"/>
                     </td>
                     <q-td
                       v-for="col in props.cols"
@@ -188,7 +197,7 @@ export default {
         {label:'Tipago',name:'Tipago',field:'Tipago'},
         {label:'estado',name:'estado',field:'estado'},
         {label:'Observacion',name:'Observacion',field:'Observacion'},
-        
+
       ],
       columns:[
         // {label:'Cod_Aut',name:'Cod_Aut',field:'Cod_Aut'},
@@ -267,7 +276,7 @@ export default {
       })
     },
     clickopciones(c){
-      
+
       //if(c.estados!='VAYA')
        //return false
       this.estado=''

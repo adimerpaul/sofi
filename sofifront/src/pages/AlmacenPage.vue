@@ -51,7 +51,7 @@
         </q-table>
       </q-card-section>
     </q-card>
-    <q-dialog v-model="dialogFile" persistent>
+    <q-dialog v-model="dialogFile" >
       <q-card>
         <q-card-section class="q-pa-md">
           <div class="row">
