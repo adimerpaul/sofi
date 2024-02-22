@@ -48,6 +48,20 @@
               </q-chip>
             </q-td>
           </template>
+          <template v-slot:body-cell-se_descargo="props">
+            <q-td :props="props">
+              <q-chip :color="props.row.se_descargo=='IMPORTADO' ? 'orange' : 'green'" dense text-color="white">
+                {{ props.row.se_descargo }}
+              </q-chip>
+            </q-td>
+          </template>
+          <template v-slot:body-cell-cantidad="props">
+            <q-td :props="props">
+              <q-chip :color="props.row.cantidad==props.row.saldo ? 'green' : 'red'" dense text-color="white">
+                {{ props.row.cantidad }}
+              </q-chip>
+            </q-td>
+          </template>
         </q-table>
       </q-card-section>
     </q-card>
@@ -158,6 +172,7 @@ export default {
         {name: 'registro', label: 'Registro', align: 'left', field: 'registro', sortable: true},
         // {name: 'vencimiento', label: 'Vencimiento', align: 'left', field: 'vencimiento', sortable: true},
         {name: 'grupo', label: 'Grupo', align: 'left', field: 'grupo', sortable: true},
+        {name: 'cantidad', label: 'Cantidad', align: 'left', field: 'cantidad', sortable: true},
         // {name: 'fecha_registro', label: 'Fecha Registro', align: 'left', field: 'fecha_registro', sortable: true},
         // se_descargo
         {name: 'se_descargo', label: 'Se Descargo', align: 'left', field: 'se_descargo', sortable: true},

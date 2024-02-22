@@ -20,6 +20,7 @@ class CreateAlmacensTable extends Migration
             $table->string('grupo')->nullable();
             $table->string('se_descargo')->nullable();
             $table->date('fecha_registro');
+            $table->integer('cantidad')->nullable();
             $table->timestamps();
         });
     }

@@ -22,9 +22,9 @@ Route::post('/ctacobrar',[\App\Http\Controllers\CobrarController::class,'ctacobr
 Route::resource('/excel',\App\Http\Controllers\ExcelController::class);
 Route::get('/excel/{t}/{f1}/{f2}/{CodAut}',[\App\Http\Controllers\ExcelController::class,'consulta']);
 Route::get('users',[\App\Http\Controllers\UserController::class,'users']);
-//importData
 Route::post('/importData',[\App\Http\Controllers\AlmacenController::class,'importData']);
-    Route::group(['middleware'=>'auth:sanctum'],function (){
+Route::post('/exportData',[\App\Http\Controllers\AlmacenController::class,'exportData']);
+Route::group(['middleware'=>'auth:sanctum'],function (){
     Route::post('/me',[\App\Http\Controllers\UserController::class,'me']);
     Route::resource('/cliente',\App\Http\Controllers\ClienteController::class);
     Route::resource('/user',\App\Http\Controllers\UserController::class);

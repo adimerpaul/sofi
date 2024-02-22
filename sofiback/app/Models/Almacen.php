@@ -19,6 +19,7 @@ class Almacen extends Model
         'vencimiento',
         'grupo',
         'fecha_registro',
-        'se_descargo'
+        'se_descargo',
+        'cantidad',
     ];
 }

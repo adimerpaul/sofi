@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\Almacen;
+use App\Models\RegistroAlmacen;
+use App\Models\User;
 use Illuminate\Http\Request;
 
 class AlmacenController extends Controller{
@@ -53,13 +55,55 @@ class AlmacenController extends Controller{
     }
     public function importData(Request $request)
     {
-//        return $request->all();
         $fecha = $this->convertDMY($request->fecha);
-//        error_log('fecha: ' . json_encode($fecha) . ' codigo: ' . $request->codigo);
         $almacenes = Almacen::whereDate('fecha_registro', $fecha)
             ->where('codigo', $request->codigo)
             ->get();
+        foreach ($almacenes as $almacen) {
+            $almacen->se_descargo = 'IMPORTADO';
+            $almacen->save();
+        }
         return response()->json($almacenes);
+    }
+    public function exportData(Request $request)
+    {
+        $data = json_decode($request->input('almacen'));
+        $user_id = json_decode($request->input('user'));
+        $insertRegistroAlmacen = [];
+        $updateAlmacen = [];
+        foreach ($data as $almacenData) {
+            $detalle = $almacenData->detalle;
+            RegistroAlmacen::where('almacen_id', $almacenData->id)->delete();
+            $cantidad = 0;
+            foreach ($detalle as $item) {
+                error_log('almacenData: ' . json_encode($almacenData));
+                if ($almacenData->estado == 'REALIZADO') {
+                    $insertRegistroAlmacen[] = [
+                        'cantidad' => $item->cantidad==''?0:$item->cantidad,
+                        'fecha_vencimiento' => $item->vencimiento==''?null:substr($item->vencimiento,0,10),
+                        'almacen_id' => $almacenData->id,
+                        'user_id' => $user_id,
+                        'fecha_registro' => date('Y-m-d H:i:s')
+                    ];
+                    $cantidad += intval($item->cantidad==''?0:$item->cantidad);
+                }
+
+            }
+            if ($almacenData->estado == 'REALIZADO') {
+                $updateAlmacen[] = [
+                    'id' => $almacenData->id,
+                    'se_descargo' => 'EXPORTADO',
+                    'cantidad' => $cantidad
+                ];
+            }
+        }
+        RegistroAlmacen::insert($insertRegistroAlmacen);
+        foreach ($updateAlmacen as $almacen) {
+            Almacen::where('id', $almacen['id'])->update(['se_descargo' => $almacen['se_descargo'], 'cantidad' => $almacen['cantidad']]);
+        }
+
+        // Devuelve una respuesta de éxito
+        return response()->json("success");
     }
     public function convertDMY($fecha){
         $fecha = explode('/', $fecha);

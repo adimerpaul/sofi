@@ -16,7 +16,7 @@ class CreateRegistroAlmacensTable extends Migration
         Schema::create('registro_almacenes', function (Blueprint $table) {
             $table->id();
             $table->integer('cantidad');
-            $table->date('fecha_vencimiento');
+            $table->date('fecha_vencimiento')->nullable();
             $table->unsignedBigInteger('almacen_id');
             $table->foreign('almacen_id')->references('id')->on('almacenes')->onDelete('cascade');
             $table->unsignedBigInteger('user_id');
