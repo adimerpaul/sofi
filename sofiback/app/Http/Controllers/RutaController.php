@@ -88,14 +88,21 @@ GROUP BY p.idCli,c.Id,c.Nombres,c.Telf,c.Direccion,c.Latitud,c.longitud,p.estado
     public function listRuta(Request $request)
     {
         $user= $request->user();
-    return DB::select(" SELECT c.Cod_Aut,p.CINIT,c.Id,c.Nombres,c.Telf,c.Direccion,c.Latitud,c.longitud,
-    (select e.estado from entregas e where e.cliente_id=c.Cod_Aut and e.fechaEntreg='$fecha' order by e.estado desc limit 1  ) estado
-    FROM tbctascobrar p
-    INNER JOIN tbclientes c ON c.Id=p.CINIT
-    inner join entregas e on e.comanda=p.comanda
-    WHERE date(p.FechaEntreg)='".$fecha."'
-    GROUP BY c.Cod_Aut,p.CINIT,c.Id,c.Nombres,c.Telf,c.Direccion,c.Latitud,c.longitud
+    return DB::select(" SELECT c.CINIT,l.Nombres,c.comanda,e.despachador,e.placa,e.estado,e.observacion
+    from tbctascobrar c inner join tbclientes l on c.CINIT=l.Id
+    left join entregas e on e.comanda=c.comanda where c.FechaEntreg='$request->fecha'
+     GROUP by c.CINIT,l.Nombres,c.comanda order by c.comanda;
+
     ");
+    }
+
+    public function resumenEntrega(Request $request){
+        return DB::SELECT("SELECT c.placa, COUNT(*) total,
+        (select count(*) from entregas e
+            WHERE e.fechaEntreg=c.FechaEntreg and c.placa=e.placa and e.estado='ENTREGADO') ENTREG,
+        (select count(*) from entregas e
+            WHERE e.fechaEntreg=c.FechaEntreg and c.placa=e.placa and e.estado='NO ENTREGADO') NOENTREG
+         from tbctascobrar c where c.FechaEntreg='$request->fecha' and c.placa!='' GROUP by c.placa");
     }
     /**
      * Show the form for editing the specified resource.

@@ -53,6 +53,8 @@ class EntregaController extends Controller
             "comanda"=>$request->comanda,
             "monto"=>$request->monto,
             "despachador"=>$request->user()->Nombre1.' '.$request->user()->App1,
+            "personal_id"=>$request->user()->CodAut,
+            "placa"=>$request->user()->placa,
             "lat"=>$request->lat,
             "lng"=>$request->lng,
             "estado"=>$request->estado,
