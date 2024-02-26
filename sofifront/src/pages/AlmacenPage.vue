@@ -30,6 +30,14 @@
                     <q-item-label>Ver</q-item-label>
                   </q-item-section>
                 </q-item>
+                <q-item clickable v-close-popup @click="clickDatos(props.row)">
+                  <q-item-section avatar>
+                    <q-icon name="o_visibility" />
+                  </q-item-section>
+                  <q-item-section>
+                    <q-item-label>Ver Datos</q-item-label>
+                  </q-item-section>
+                </q-item>
                 <q-item clickable v-close-popup @click="eliminar(props.row.id)">
                   <q-item-section avatar>
                     <q-icon name="delete" />
@@ -132,6 +140,39 @@
         </q-card-section>
       </q-card>
     </q-dialog>
+    <q-dialog v-model="dialogDatos">
+      <q-card>
+        <q-card-section class="q-pb-none row">
+          <div class="text-h6">Datos Almacen</div>
+          <q-space />
+          <q-btn icon="close" flat no-caps round v-close-popup />
+        </q-card-section>
+        <q-card-section class="q-pt-none">
+          <div class="row">
+            <div class="col-3 text-bold">Cantidad</div>
+            <div class="col-3 text-bold">Vencimiento</div>
+            <div class="col-3 text-bold">Registro</div>
+            <div class="col-3 text-bold">Usuario</div>
+            <template v-for="registro in registros" :key="registro.id">
+              <div class="col-3">
+<!--                <pre>{{ registro}}</pre>-->
+                {{ registro.cantidad }}
+              </div>
+              <div class="col-3">
+                {{ registro.fecha_vencimiento }}
+              </div>
+              <div class="col-3">
+                {{ registro.fecha_registro }}
+              </div>
+              <div class="col-3 text-center">
+                {{ registro.user.Nombre1 }}
+              </div>
+            </template>
+<!--            <pre>{{ registros }}</pre>-->
+          </div>
+        </q-card-section>
+      </q-card>
+    </q-dialog>
   </q-page>
 </template>
 <script>
@@ -162,6 +203,8 @@ export default {
       filter: '',
       dialogFile: false,
       dialogAlmacen: false,
+      dialogDatos: false,
+      registros: [],
       columns: [
         {name: 'opciones', label: 'Opciones', align: 'left', field: 'opciones', sortable: true},
         {name: 'codigo', label: 'Código', align: 'left', field: 'codigo', sortable: true},
@@ -193,6 +236,19 @@ export default {
     clickEdit(almacen) {
       this.dialogAlmacen = true;
       this.almacen = almacen;
+    },
+    clickDatos(almacen) {
+      this.dialogDatos = true;
+      this.almacen = almacen;
+      this.$api.get('registros', {
+        params: {
+          almacen_id: almacen.id,
+        }
+      }).then(res => {
+        this.registros = res.data;
+      }).catch(err => {
+        console.error(err);
+      });
     },
     modficarAlmacen() {
       this.loading = true;

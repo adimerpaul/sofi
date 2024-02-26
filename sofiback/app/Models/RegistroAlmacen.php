@@ -9,4 +9,14 @@ class RegistroAlmacen extends Model
 {
     use HasFactory;
     protected $table = 'registro_almacenes';
+    protected $fillable = [
+        'cantidad',
+        'fecha_vencimiento',
+        'almacen_id',
+        'user_id',
+        'fecha_registro',
+    ];
+    public function user(){
+        return $this->belongsTo(User::class, 'user_id');
+    }
 }

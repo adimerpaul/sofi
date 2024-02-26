@@ -8,6 +8,12 @@ use App\Models\User;
 use Illuminate\Http\Request;
 
 class AlmacenController extends Controller{
+    public function registros(Request $request){
+        $almacenes = RegistroAlmacen::where('almacen_id', $request->almacen_id)
+            ->with('user')
+            ->get();
+        return response()->json($almacenes);
+    }
     public function index(Request $request){
         $fecha = $request->fecha;
         $almacenes = Almacen::whereDate('fecha_registro', $fecha)->get();
@@ -69,6 +75,8 @@ class AlmacenController extends Controller{
     {
         $data = json_decode($request->input('almacen'));
         $user_id = json_decode($request->input('user'));
+        error_log('user_id: ' . json_encode($user_id));
+        $user_id = json_encode($user_id);
         $insertRegistroAlmacen = [];
         $updateAlmacen = [];
         foreach ($data as $almacenData) {
@@ -76,8 +84,9 @@ class AlmacenController extends Controller{
             RegistroAlmacen::where('almacen_id', $almacenData->id)->delete();
             $cantidad = 0;
             foreach ($detalle as $item) {
-                error_log('almacenData: ' . json_encode($almacenData));
+//                error_log('almacenData: ' . json_encode($almacenData));
                 if ($almacenData->estado == 'REALIZADO') {
+//                    error_log('item: ' . json_encode($item));
                     $insertRegistroAlmacen[] = [
                         'cantidad' => $item->cantidad==''?0:$item->cantidad,
                         'fecha_vencimiento' => $item->vencimiento==''?null:substr($item->vencimiento,0,10),
