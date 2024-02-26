@@ -165,9 +165,20 @@
             <q-icon name="map" />
           </q-item-section>
           <q-item-section>
-            <q-item-label>Ruta de pedidos</q-item-label>
+            <q-item-label>Ruta de Entregas</q-item-label> 
             <q-item-label caption>
-              Ruta de pedidos
+              Ruta de Entregas
+            </q-item-label>
+          </q-item-section>
+        </q-item>
+        <q-item clickable active-class="bg-primary text-white" exact to="entrega" v-if="supervisor.includes($store.getters['login/user'].ci) || encargados.includes($store.getters['login/user'].ci)">
+          <q-item-section avatar>
+            <q-icon name="dvr" />
+          </q-item-section>
+          <q-item-section>
+            <q-item-label>Reporte Entrega</q-item-label>
+            <q-item-label caption>
+              Entregas
             </q-item-label>
           </q-item-section>
         </q-item>

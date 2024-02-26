@@ -18,6 +18,7 @@ import Reporte from "pages/Reporte";
 import Productos from "pages/Productos";
 import Nopedido from "pages/Nopedido";
 import AlmacenPage from "pages/AlmacenPage.vue";
+import Entregas from "pages/Entregas.vue";
 const routes = [
   {
     path: '/',
@@ -42,6 +43,7 @@ const routes = [
       { path: '/productos', component: Productos ,meta: {requiresAuth: true}},
       { path: '/nopedido', component: Nopedido ,meta: {requiresAuth: true}},
       { path: '/almacen', component: AlmacenPage ,meta: {requiresAuth: true}},
+      { path: '/entrega', component: Entregas ,meta: {requiresAuth: true}},
       { path: '/login', component: Login },
     ]
   },
