@@ -1,7 +1,7 @@
 import { boot } from 'quasar/wrappers'
 import axios from 'axios'
 import store from "src/store";
-
+// import HighchartsVue from 'highcharts-vue'
 // Be careful when using SSR for cross-request state pollution
 // due to creating a Singleton instance here;
 // If any client changes this (global) instance, it might be a
@@ -11,6 +11,7 @@ import store from "src/store";
 const api = axios.create({ baseURL: process.env.API })
 
 export default boot(({ app,store }) => {
+  // app.use(HighchartsVue)
   // for use inside Vue files (Options API) through this.$axios and this.$api
   // console.log(store.state.login.url)
   // app.config.globalProperties.$axios = axios

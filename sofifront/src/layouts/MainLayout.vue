@@ -165,7 +165,7 @@
             <q-icon name="map" />
           </q-item-section>
           <q-item-section>
-            <q-item-label>Ruta de Entregas</q-item-label> 
+            <q-item-label>Ruta de Entregas</q-item-label>
             <q-item-label caption>
               Ruta de Entregas
             </q-item-label>
@@ -193,7 +193,7 @@
             </q-item-label>
           </q-item-section>
         </q-item>
-        <q-item clickable active-class="bg-primary text-white" exact to="almacen" v-if="encargados.includes($store.getters['login/user'].ci)">
+        <q-item clickable active-class="bg-primary text-white" exact to="almacen" v-if="almacen.includes($store.getters['login/user'].ci)">
           <q-item-section avatar>
             <q-icon name="o_store" />
           </q-item-section>
@@ -303,6 +303,7 @@ export default {
       leftDrawerOpen:false,
       vendores:['12612870','1593578','33555433','3520335','5676554','7422201','9876785','7360035','5067737','7331330','7308976','7377278','5938578','7351953','7329688','7288817','7306963','5773491','3544875019','7312297'],
       encargados:['123321' ,'7205489'],
+      almacen:['7308976' ,'7377278'],
       cobrador:['7424479'],
       despachador:['7386961','9688418','7205489','7417239','12810781','7395208'],
       supervisor:['7308976','7329688','7288817','7312297']

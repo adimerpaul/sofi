@@ -14,13 +14,13 @@ class CreateAlmacensTable extends Migration
             $table->string('codigo_producto')->nullable();
             $table->string('producto')->nullable();
             $table->string('unidad')->nullable();
-            $table->integer('saldo')->nullable();
+            $table->double('saldo',11,2)->nullable();
             $table->date('registro')->nullable();
             $table->date('vencimiento')->nullable();
             $table->string('grupo')->nullable();
             $table->string('se_descargo')->nullable();
             $table->date('fecha_registro');
-            $table->integer('cantidad')->nullable();
+            $table->double('cantidad')->nullable();
             $table->timestamps();
         });
     }

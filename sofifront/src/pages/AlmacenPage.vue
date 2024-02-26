@@ -6,10 +6,15 @@
           <q-input dense outlined v-model="fecha" label="Fecha" type="date" />
         </div>
         <div class="col-2 flex flex-center">
-          <q-btn label="Buscar" no-caps color="primary" icon="search" :loading="loading" @click="getAlmacenes" />
+          <q-btn label="Consultar" no-caps color="primary" icon="search" :loading="loading" @click="getAlmacenes" />
         </div>
-        <div class="col-5"></div>
-        <div class="col-3 flex flex-center">
+        <div class="col-1">
+          <q-chip :color="porcentaje < 100 ? 'red' : 'green'" dense text-color="white">
+            {{ porcentaje }}%
+          </q-chip>
+        </div>
+        <div class="col-7  text-right">
+          <q-btn label="Exportar Excel" no-caps color="orange" icon="cloud_download" :loading="loading" @click="exportarExcel" />
           <q-btn label="Cargar Excel" no-caps color="green" icon="cloud_upload" :loading="loading" @click="dialogFile = true" />
         </div>
       </q-card-section>
@@ -75,6 +80,11 @@
     </q-card>
     <q-dialog v-model="dialogFile" >
       <q-card>
+        <q-card-section class="q-pb-none row">
+          <div class="text-h6">Cargar Excel</div>
+          <q-space />
+          <q-btn icon="close" flat no-caps round @click="dialogFile = false" />
+        </q-card-section>
         <q-card-section class="q-pa-md">
           <div class="row">
             <div class="col-12 q-pa-sm">
@@ -87,9 +97,9 @@
             <div class="col-12 q-pa-sm">
               <q-input dense outlined v-model="fecha" label="Fecha" type="date" />
             </div>
-            <div class="col-12 q-pa-sm">
-              <q-select v-model="codigo" label="Código" outlined :options="codigos" dense :emit-value="true" :map-options="true" />
-            </div>
+<!--            <div class="col-12 q-pa-sm">-->
+<!--              <q-select v-model="codigo" label="Código" outlined :options="codigos" dense :emit-value="true" :map-options="true" />-->
+<!--            </div>-->
             <div class="col-12 q-pa-sm">
               <q-btn no-caps color="primary" class="full-width" label="Subir" :loading="loading" @click="cargarExcel" icon="cloud_upload" />
             </div>
@@ -177,6 +187,7 @@
 </template>
 <script>
 import {date} from "quasar";
+import xlsx from "json-as-xlsx"
 
 export default {
   name: "AlmacenPage",
@@ -198,6 +209,7 @@ export default {
       fecha: date.formatDate(new Date(), 'YYYY-MM-DD'),
       file: null,
       almacenes: [],
+      porcentaje: 0,
       almacen: {},
       loading: false,
       filter: '',
@@ -212,7 +224,7 @@ export default {
         {name: 'producto', label: 'Producto', align: 'left', field: 'producto', sortable: true},
         // {name: 'unidad', label: 'Unidad', align: 'left', field: 'unidad', sortable: true},
         {name: 'saldo', label: 'Saldo', align: 'left', field: 'saldo', sortable: true},
-        {name: 'registro', label: 'Registro', align: 'left', field: 'registro', sortable: true},
+        // {name: 'registro', label: 'Registro', align: 'left', field: 'registro', sortable: true},
         // {name: 'vencimiento', label: 'Vencimiento', align: 'left', field: 'vencimiento', sortable: true},
         {name: 'grupo', label: 'Grupo', align: 'left', field: 'grupo', sortable: true},
         {name: 'cantidad', label: 'Cantidad', align: 'left', field: 'cantidad', sortable: true},
@@ -226,6 +238,33 @@ export default {
     this.getAlmacenes();
   },
   methods: {
+    exportarExcel() {
+      let data = [
+        {
+          sheet: "Adults",
+          columns: [
+            { label: "Codigo", value: "codigo" },
+            { label: "Producto", value: "producto" },
+            { label: "Saldo", value: "saldo" },
+            { label: "Grupo", value: "grupo" },
+            { label: "Cantidad", value: "cantidad" },
+            { label: "Se Descargo", value: "se_descargo" },
+            { label: "Cantidad", value: "cantidad" },
+          ],
+          content: this.almacenes
+        }
+      ]
+
+      let settings = {
+        fileName: "Almacenes", // The name of the file
+        // extraLength: 3, // A bigger number means that columns will be wider
+        // writeMode: "writeFile", // The available parameters are 'WriteFile' and 'write'. This setting is optional. Useful in such cases https://docs.sheetjs.com/docs/solutions/output#example-remote-file
+        // writeOptions: {}, // Style options from https://docs.sheetjs.com/docs/api/write-options
+        // RTL: true, // Display the columns from right-to-left (the default value is false)
+      }
+
+      xlsx(data, settings) // Will download the excel file
+    },
     getColor(codigo) {
       let color = this.codigos.find(c => c.label === codigo);
       return color ? color.color : 'grey';
@@ -323,7 +362,8 @@ export default {
           fecha: this.fecha,
         }
       }).then(res => {
-        this.almacenes = res.data;
+        this.almacenes = res.data.almacenes;
+        this.porcentaje = res.data.porcentaje;
       }).catch(err => {
         console.error(err);
       }).finally(() => {

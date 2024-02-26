@@ -16,8 +16,22 @@ class AlmacenController extends Controller{
     }
     public function index(Request $request){
         $fecha = $request->fecha;
+        $porcentaje = $this->porcentajeAvance($request);
         $almacenes = Almacen::whereDate('fecha_registro', $fecha)->get();
-        return response()->json($almacenes);
+        return response()->json(['almacenes' => $almacenes, 'porcentaje' => $porcentaje]);
+    }
+    public function porcentajeAvance(Request $request){
+        $fecha = $request->fecha;
+        $almacenes = Almacen::whereDate('fecha_registro', $fecha)->get();
+        $total = count($almacenes);
+        $realizado = 0;
+        foreach ($almacenes as $almacen) {
+            if ($almacen->se_descargo == 'REALIZADO') {
+                $realizado++;
+            }
+        }
+        $porcentaje = $total == 0 ? 0 : ($realizado / $total) * 100;
+        return $porcentaje;
     }
     public function cargarExcel(Request $request){
         //delete records date
@@ -26,14 +40,14 @@ class AlmacenController extends Controller{
         $path = $this->uploadFile($request);
         $spreadsheet = \PhpOffice\PhpSpreadsheet\IOFactory::load($path);
         $data = $spreadsheet->getActiveSheet()->toArray();
-        $cantidad = count($data);
-        $promedio = $cantidad/ $request->codigo;
+//        $cantidad = count($data);
+//        $promedio = $cantidad/ $request->codigo;
         $insertAlmacen = [];
         foreach ($data as $key => $value) {
             if ($key > 0) {
-                $codigo=$this->obtencionCodigo($promedio,$key);
+//                $codigo=$this->obtencionCodigo($promedio,$key);
                 $insertAlmacen[] = [
-                    'codigo' => $codigo,
+                    'codigo' =>  $value[7],
                     'codigo_producto' => $value[0],
                     'producto' => $value[1],
                     'unidad' => $value[2],
@@ -75,7 +89,7 @@ class AlmacenController extends Controller{
     {
         $data = json_decode($request->input('almacen'));
         $user_id = json_decode($request->input('user'));
-        error_log('user_id: ' . json_encode($user_id));
+        error_log('data: ' . json_encode($data));
         $user_id = json_encode($user_id);
         $insertRegistroAlmacen = [];
         $updateAlmacen = [];
@@ -94,7 +108,9 @@ class AlmacenController extends Controller{
                         'user_id' => $user_id,
                         'fecha_registro' => date('Y-m-d H:i:s')
                     ];
-                    $cantidad += intval($item->cantidad==''?0:$item->cantidad);
+//                    $cantidad += intval($item->cantidad==''?0:$item->cantidad); //para float
+                    $cantidad += $item->cantidad==''?0:$item->cantidad;
+                    error_log('cantidad: ' . json_encode($cantidad));
                 }
 
             }
@@ -106,9 +122,12 @@ class AlmacenController extends Controller{
                 ];
             }
         }
+        error_log('updateAlmacen: ' . json_encode($updateAlmacen));
         RegistroAlmacen::insert($insertRegistroAlmacen);
         foreach ($updateAlmacen as $almacen) {
             Almacen::where('id', $almacen['id'])->update(['se_descargo' => $almacen['se_descargo'], 'cantidad' => $almacen['cantidad']]);
+            $almacen = Almacen::find($almacen['id']);
+            error_log('almacen: ' . json_encode($almacen));
         }
 
         // Devuelve una respuesta de éxito
