@@ -90,7 +90,8 @@ class EntregaController extends Controller
     public function show($fecha)
     {
         //
-        return DB::SELECT("SELECT * from tbclientes c inner join entregas e on c.Cod_Aut=e.cliente_id where e.fecha='$fecha'");
+        return DB::SELECT("SELECT * from tbclientes c inner join entregas e on c.Cod_Aut=e.cliente_id
+         where e.fecha='$fecha'");
     }
 
     /**

@@ -30,9 +30,9 @@
     <l-marker v-for="(c,i) in clientes" :key="c.Cod_Aut" :lat-lng="[c.Latitud, c.longitud]"  @click="clickopciones(c)">
       <l-icon >
         <q-badge
-        :class="c.estados=='ENTREGADO'?'bg-green text-italic':c.estados=='NO ENTREGADO'?'bg-red text-italic':''"
+        :class="c.estado=='ENTREGADO'?'bg-green text-italic':c.estado=='NO ENTREGADO'?'bg-red text-italic':''"
         style="padding: 2px"
-        
+
         >{{i+1}}
         </q-badge>
       </l-icon>
@@ -55,7 +55,7 @@
           </q-td>
         </template>
         <template v-slot:body-cell-opcion="props">
-          <q-td :class="props.row.estados=='ENTREGADO'?'bg-green text-italic':props.row.estado=='NO ENTREGADO'?'bg-yellow text-italic':''">
+          <q-td :class="props.row.estado=='ENTREGADO'?'bg-green text-italic':props.row.estado=='NO ENTREGADO'?'bg-yellow text-italic':''">
             <q-btn @click="clickclientes(props.row)" icon="my_location" size="xs" :color="props.row.estado=='ENTREGADO'?'positive':'negative'"  />
           </q-td>
         </template>
@@ -147,7 +147,7 @@
       </q-card-section>
       <q-card-section align="right">
          <q-btn color="red" dense label="cerrar"  v-close-popup />
-        
+
       </q-card-section>
     </q-card>
   </q-dialog>
