@@ -45,7 +45,11 @@ class EntregaController extends Controller
 
         $cliente=DB::select("SELECT * FROM tbclientes WHERE Cod_Aut='".$request->cliente_id."'");
         //return $cliente;
-
+            $verif=DB::SELECT("SELECT * from entregas where comanda='$request->comanda'
+            and fechaEntreg='$request->fechaEntreg' and estado='ENTREGADO'");
+            if(sizeof($verif)>0){
+                return false;
+        }
         $distancia=$this->distance( floatval( $request->lat),floatval($request->lng),floatval($cliente[0]->Latitud),floatval($cliente[0]->longitud));
         DB::table("entregas")->insert([
             "cliente_id"=>$request->cliente_id,
@@ -65,6 +69,43 @@ class EntregaController extends Controller
             "distancia"=>$distancia,
         ]);
     }
+
+    public function regTodo(Request $request)
+    {
+
+        $cliente=DB::select("SELECT * FROM tbclientes WHERE Cod_Aut='".$request->cliente_id."'");
+        //return $cliente;
+
+        $distancia=$this->distance( floatval( $request->lat),floatval($request->lng),floatval($cliente[0]->Latitud),floatval($cliente[0]->longitud));
+
+        foreach ($request->lista as $value) {
+            # code...
+            $verif=DB::SELECT("SELECT * from entregas where comanda='$value->comanda'
+            and fechaEntreg='$value->fechaEntreg' and estado='ENTREGADO'");
+            if(sizeof($verif)>0){
+                return false;
+            }
+            DB::table("entregas")->insert([
+                "cliente_id"=>$value->cliente_id,
+                "cinit"=>$value->cinit,
+                "comanda"=>$value->comanda,
+                "monto"=>$value->monto,
+                "despachador"=>$request->user()->Nombre1.' '.$request->user()->App1,
+                "personal_id"=>$request->user()->CodAut,
+                "placa"=>$request->user()->placa,
+                "lat"=>$request->lat,
+                "lng"=>$request->lng,
+                "estado"=>$value->estado,
+                "observacion"=>$value->observacion,
+                "fechaEntreg"=>$value->fechaEntreg,
+                "fecha"=>date('Y-m-d'),
+                "hora"=>date('H:i:s'),
+                "distancia"=>$distancia,
+            ]);
+        }
+
+    }
+
     public function distance($lat1, $lon1, $lat2, $lon2) {
         $pi80 = M_PI / 180;
         $lat1 *= $pi80;
