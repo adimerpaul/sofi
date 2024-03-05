@@ -72,7 +72,6 @@ class EntregaController extends Controller
 
     public function regTodo(Request $request)
     {
-
         $cliente=DB::select("SELECT * FROM tbclientes WHERE Cod_Aut='".$request->cliente_id."'");
         //return $cliente;
 
@@ -80,24 +79,25 @@ class EntregaController extends Controller
 
         foreach ($request->listado as $value) {
             # code...
-            $verif=DB::SELECT("SELECT * from entregas where comanda='$value->comanda'
-            and fechaEntreg='$value->fechaEntreg' and estado='ENTREGADO'");
+            //return $value['comanda'];
+            $verif=DB::SELECT("SELECT * from entregas where comanda='".$value['comanda']."'
+            and fechaEntreg='".$value['FechaEntreg']."' and estado='ENTREGADO'");
             if(sizeof($verif)>0){
                 return false;
             }
             DB::table("entregas")->insert([
                 "cliente_id"=>$request->cliente_id,
                 "cinit"=>$request->cinit,
-                "comanda"=>$value->comanda,
-                "monto"=>$value->monto,
+                "comanda"=>$value['comanda'],
+                "monto"=>$value['Importe'],
                 "despachador"=>$request->user()->Nombre1.' '.$request->user()->App1,
                 "personal_id"=>$request->user()->CodAut,
                 "placa"=>$request->user()->placa,
                 "lat"=>$request->lat,
                 "lng"=>$request->lng,
                 "estado"=>$request->estado,
-                "observacion"=>$value->observacion,
-                "fechaEntreg"=>$value->fechaEntreg,
+                "observacion"=>$request->observacion,
+                "fechaEntreg"=>$value['FechaEntreg'],
                 "fecha"=>date('Y-m-d'),
                 "hora"=>date('H:i:s'),
                 "distancia"=>$distancia,

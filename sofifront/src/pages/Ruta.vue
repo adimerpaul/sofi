@@ -135,7 +135,7 @@
       </q-card-section>
       <q-card-section align="right" >
           <q-btn class="q-pa-xs" color="green" dense label="ENTREGADO"  @click="createEntrega('ENTREGADO')" />
-          <q-btn class="q-pa-xs" color="AMBER" dense label="NO ENTREGADO"  @click="createEntrega('NO ENTREGADO')"/>
+          <q-btn class="q-pa-xs" color="amber" dense label="NO ENTREGADO"  @click="createEntrega('NO ENTREGADO')"/>
           <q-btn class="q-pa-xs" color="red" dense label="CERRAR"  v-close-popup />
 
       </q-card-section>
@@ -201,7 +201,7 @@ export default {
         {label:'Nombres',name:'Nombres',field:'Nombres',align:'left'},
 
       ],
-      fecha:date.formatDate(addToDate(new Date(), { days: -1}),'YYYY-MM-DD'),
+      fecha:date.formatDate(new Date(),'YYYY-MM-DD'),
     }
   },
   created() {
@@ -209,8 +209,7 @@ export default {
   },
   methods:{
     createEntrega(estado){
-      if(this.estado=='')
-        return false
+
       this.$q.dialog({
         title:'Seguro de enviar',
         color:'green',
@@ -230,12 +229,12 @@ export default {
             // ]
             lat=pos.coords.latitude
             lng=pos.coords.longitude
-            this.insertarpedido(lat,lng)
+            this.insertarpedido(lat,lng,estado)
           });
         }else{
           lat=0
           lng=0
-          this.insertarpedido(lat,lng,ped)
+          this.insertarpedido(lat,lng,estado)
         }
 
       })
@@ -253,7 +252,6 @@ export default {
         observacion:this.observacion
       }).then(res=>{
         console.log(res.data)
-        //return false
         this.observacion=''
         console.log(res.data)
         // return false
