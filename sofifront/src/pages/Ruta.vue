@@ -99,32 +99,20 @@
               <q-btn type="submit" class="full-width" label="Confirmar" color="positive" icon="add_circle"/>
             </div>-->
             <div class="col-12">
-              <q-table dense lang="productos" :rows="pedidos" :columns="columspedido">
-                <template v-slot:header="props">
-                  <q-tr :props="props">
-                    <q-th auto-width />
-                    <q-th auto-width />
-                    <q-th
-                      v-for="col in props.cols"
-                      :key="col.name"
-                      :props="props"
-                    >
-                      {{ col.label }}
-                    </q-th>
-                  </q-tr>
-                </template>
+              <q-table dense lang="productos" :rows="pedidos" :columns="columspedido"
+              row-key="name"
+              selection="multiple"
+              v-model:selected="listado">
 
                 <template v-slot:body="props">
                   <q-tr :props="props" :class="props.row.estado=='ENTREGADO'?'bg-green':props.row.estado=='NO ENTREGADO'?'bg-amber':''">
                     <q-td auto-width>
+                    <q-checkbox v-model="props.selected" />{{ props.row }}
                       <q-btn size="sm"
                              :color="props.expand ? 'primary' : 'secondary'"
                              :label="props.expand ? 'Ocul' : 'Ver'"
                              no-caps dense @click="props.expand = !props.expand" :icon="props.expand ? 'visibility_off' : 'visibility'"/>
                     </q-td>
-                    <td :props="props" key="op" >
-                      <q-btn color="green" dense icon="local_shipping" v-if="props.row.estado!='ENTREGADO'" @click="createEntrega(props.row)"/>
-                    </td>
                     <q-td
                       v-for="col in props.cols"
                       :key="col.name"
@@ -136,7 +124,7 @@
                   </q-tr>
                   <q-tr v-show="props.expand" :props="props">
                     <q-td colspan="100%">
-                      <div class="text-left" v-for="r in props.row.detalle " :key="r"> <b>Codigo:</b> {{r.cod_prod}} <b>Producto:</b> {{r.Producto}} <b>Cantidad:</b> {{r.cant}} <b>Precio:</b> {{ r.PVentUnit }} </div>
+                      <div class="text-left" v-for="r in props.row.detalle " :key="r"> <b>Codigo:</b> {{r.cod_prod}} <b>Producto:</b> {{r.Producto}} <b>Cantidad:</b> {{r.cant}} </div>
                     </q-td>
                   </q-tr>
                 </template>
@@ -189,6 +177,7 @@ export default {
     return{
       estado:'',
       observacion:'',
+        listado:[],
       dialogentrega:false,
       center:[-17.970371, -67.112303],
       zoom:16,
