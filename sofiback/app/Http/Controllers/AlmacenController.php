@@ -16,9 +16,23 @@ class AlmacenController extends Controller{
     }
     public function index(Request $request){
         $fecha = $request->fecha;
-        $porcentaje = $this->porcentajeAvance($request);
+//        $porcentaje = $this->porcentajeAvance($request);
+        $porcentaje = $this->porcentajeImportado($request);
         $almacenes = Almacen::whereDate('fecha_registro', $fecha)->get();
         return response()->json(['almacenes' => $almacenes, 'porcentaje' => $porcentaje]);
+    }
+    public function porcentajeImportado(Request $request){
+        $fecha = $request->fecha;
+        $almacenes = Almacen::whereDate('fecha_registro', $fecha)->get();
+        $total = count($almacenes);
+        $importado = 0;
+        foreach ($almacenes as $almacen) {
+            if ($almacen->se_descargo == 'IMPORTADO') {
+                $importado++;
+            }
+        }
+        $porcentaje = $total == 0 ? 0 : ($importado / $total) * 100;
+        return round($porcentaje, 2);
     }
     public function porcentajeAvance(Request $request){
         $fecha = $request->fecha;
@@ -31,7 +45,7 @@ class AlmacenController extends Controller{
             }
         }
         $porcentaje = $total == 0 ? 0 : ($realizado / $total) * 100;
-        return $porcentaje;
+        return round($porcentaje, 2);
     }
     public function cargarExcel(Request $request){
         //delete records date

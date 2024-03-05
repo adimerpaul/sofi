@@ -19,6 +19,12 @@
         </div>
       </q-card-section>
       <q-card-section class="q-pa-md">
+        <div class="text-red">Porcentaje de carga</div>
+        <q-linear-progress size="25px" :value="parseFloat(porcentaje/100)" color="primary" track-color="grey-3" rounded>
+          <div class="absolute-full flex flex-center">
+            <q-badge color="white" text-color="accent" :label="porcentaje + '%'" />
+          </div>
+        </q-linear-progress>
         <q-table :rows-per-page-options="[0]" :loading="loading" :filter="filter" :columns="columns" :rows="almacenes" dense wrap-cells no-data-label="No hay datos" no-results-label="No hay resultados">
           <template v-slot:top-right>
             <q-input placeholder="Buscar" dense outlined v-model="filter" />
