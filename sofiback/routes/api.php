@@ -100,6 +100,7 @@ Route::group(['middleware'=>'auth:sanctum'],function (){
 
     Route::post('/listRuta',[\App\Http\Controllers\RutaController::class,'listRuta']);
     Route::post('/resumenEntrega',[\App\Http\Controllers\RutaController::class,'resumenEntrega']);
-
+    Route::post('/regTodo',[\App\Http\Controllers\EntregaController::class,'regTodo']);
+    
 });
 

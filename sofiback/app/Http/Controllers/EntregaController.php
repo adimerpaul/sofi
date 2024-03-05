@@ -78,7 +78,7 @@ class EntregaController extends Controller
 
         $distancia=$this->distance( floatval( $request->lat),floatval($request->lng),floatval($cliente[0]->Latitud),floatval($cliente[0]->longitud));
 
-        foreach ($request->lista as $value) {
+        foreach ($request->listado as $value) {
             # code...
             $verif=DB::SELECT("SELECT * from entregas where comanda='$value->comanda'
             and fechaEntreg='$value->fechaEntreg' and estado='ENTREGADO'");
@@ -86,8 +86,8 @@ class EntregaController extends Controller
                 return false;
             }
             DB::table("entregas")->insert([
-                "cliente_id"=>$value->cliente_id,
-                "cinit"=>$value->cinit,
+                "cliente_id"=>$request->cliente_id,
+                "cinit"=>$request->cinit,
                 "comanda"=>$value->comanda,
                 "monto"=>$value->monto,
                 "despachador"=>$request->user()->Nombre1.' '.$request->user()->App1,
@@ -95,7 +95,7 @@ class EntregaController extends Controller
                 "placa"=>$request->user()->placa,
                 "lat"=>$request->lat,
                 "lng"=>$request->lng,
-                "estado"=>$value->estado,
+                "estado"=>$request->estado,
                 "observacion"=>$value->observacion,
                 "fechaEntreg"=>$value->fechaEntreg,
                 "fecha"=>date('Y-m-d'),

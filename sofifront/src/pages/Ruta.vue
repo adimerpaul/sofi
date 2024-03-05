@@ -89,9 +89,9 @@
       <q-card-section>
         <q-form>
           <div class="row">
-            <div class="col-12 q-pa-xs">
+           <!-- <div class="col-12 q-pa-xs">
               <q-select dense outlined label="Estado" :options="['','ENTREGADO','NO ENTREGADO']" v-model="estado" required/>
-            </div>
+            </div>-->
             <div class="col-12 q-pa-xs">
               <q-input type="textarea" dense outlined label="observacion" v-model="observacion"/>
             </div>
@@ -100,14 +100,14 @@
             </div>-->
             <div class="col-12">
               <q-table dense lang="productos" :rows="pedidos" :columns="columspedido"
-              row-key="name"
+              row-key="comanda"
               selection="multiple"
               v-model:selected="listado">
 
                 <template v-slot:body="props">
                   <q-tr :props="props" :class="props.row.estado=='ENTREGADO'?'bg-green':props.row.estado=='NO ENTREGADO'?'bg-amber':''">
                     <q-td auto-width>
-                    <q-checkbox v-model="props.selected" />{{ props.row }}
+                    <q-checkbox v-model="props.selected" />
                       <q-btn size="sm"
                              :color="props.expand ? 'primary' : 'secondary'"
                              :label="props.expand ? 'Ocul' : 'Ver'"
@@ -133,8 +133,10 @@
           </div>
         </q-form>
       </q-card-section>
-      <q-card-section align="right">
-         <q-btn color="red" dense label="cerrar"  v-close-popup />
+      <q-card-section align="right" >
+          <q-btn class="q-pa-xs" color="green" dense label="ENTREGADO"  @click="createEntrega('ENTREGADO')" />
+          <q-btn class="q-pa-xs" color="AMBER" dense label="NO ENTREGADO"  @click="createEntrega('NO ENTREGADO')"/>
+          <q-btn class="q-pa-xs" color="red" dense label="CERRAR"  v-close-popup />
 
       </q-card-section>
     </q-card>
@@ -206,7 +208,7 @@ export default {
     this.misclientes()
   },
   methods:{
-    createEntrega(ped){
+    createEntrega(estado){
       if(this.estado=='')
         return false
       this.$q.dialog({
@@ -215,14 +217,7 @@ export default {
         icon:'send',
         cancel:true
       }).onOk(data=>{
-        // if (this.misproductos.length==0){
-        //   this.$q.notify({
-        //     message:'No tienes productos',
-        //     icon:'error',
-        //     color:'red'
-        //   })
-        //   return false
-        // }
+
         this.$q.loading.show()
         let lat=0,lng=0
         if (navigator.geolocation) {
@@ -235,7 +230,7 @@ export default {
             // ]
             lat=pos.coords.latitude
             lng=pos.coords.longitude
-            this.insertarpedido(lat,lng,ped)
+            this.insertarpedido(lat,lng)
           });
         }else{
           lat=0
@@ -245,23 +240,20 @@ export default {
 
       })
     },
-    insertarpedido(lat,lng,ped){
+    insertarpedido(lat,lng,esta){
       // console.log(this.cliente)
-      this.$api.post('entrega',{
+      this.$api.post('regTodo',{
         cliente_id:this.cliente.Cod_Aut,
         cinit:this.cliente.Id,
-        comanda:ped.comanda,
-        monto:ped.Importe,
-        fechaEntreg:ped.FechaEntreg,
+        listado:this.listado,
         lat:lat,
         lng:lng,
-        estado:this.estado,
+        estado:esta,
         fecha:this.fecha,
         observacion:this.observacion
       }).then(res=>{
         console.log(res.data)
         //return false
-        this.estado=''
         this.observacion=''
         console.log(res.data)
         // return false
