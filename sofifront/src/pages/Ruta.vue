@@ -89,6 +89,18 @@
       <q-card-section>
         <q-form>
           <div class="row">
+            <div class="col-12 text-h6">PRESTAMO / DEVOLUCION DE CESTOS</div>
+
+            <div class="col-4 q-pa-xs"><q-input dense outlined v-model="prestamo.ingreso" type="number" label="Prestamo" /></div>
+            <div class="col-4 q-pa-xs"><q-input dense outlined v-model="prestamo.salida" type="number" label="Devolucion" /></div>
+            <div class="col-4 q-pa-xs"><q-btn dense color="green" icon="unarchive" label="Registrar" @click="regPrestamo" /></div>
+          </div>
+            <q-separator>
+        </q-separator>
+
+          <div class="row">
+            <div class="col-12 text-h6">ENTREGA DE COMANDAS</div>
+
            <!-- <div class="col-12 q-pa-xs">
               <q-select dense outlined label="Estado" :options="['','ENTREGADO','NO ENTREGADO']" v-model="estado" required/>
             </div>-->
@@ -177,6 +189,7 @@ export default {
   },
   data(){
     return{
+      prestamo:{ingreso:0,salida:0},
       estado:'',
       observacion:'',
         listado:[],
@@ -208,6 +221,40 @@ export default {
     this.misclientes()
   },
   methods:{
+    regPrestamo(){
+      console.log(this.prestamo)
+      if(this.prestamo.ingreso < 0 || this.prestamo.salida < 0 || this.prestamo.ingreso=='' || this.prestamo.salida==''){
+        this.$q.notify({
+         message:'ingrese Valores correctos',
+         color:'red',
+         icon:'error'
+        })
+        return false
+      }
+      this.$q.dialog({
+        title:'Seguro de enviar',
+        color:'green',
+        icon:'send',
+        cancel:true
+      }).onOk(data=>{
+
+        this.$q.loading.show()
+        this.$api.post('prestamo',{
+        cliente_id:this.cliente.Cod_Aut,
+        cinit:this.cliente.Id,
+        ingreso:this.prestamo.ingreso,
+        salida:this.prestamo.salida
+      }).then(res=>{
+        this.$q.loading.hide()
+       this.$q.notify({
+         message:'Registrado Prestamo',
+         color:'green',
+         icon:'info'
+        })
+        this.prestamo={ingreso:0,salida:0}
+      })
+      })
+    },
     createEntrega(estado){
 
       this.$q.dialog({
