@@ -104,5 +104,7 @@ Route::group(['middleware'=>'auth:sanctum'],function (){
     Route::post('/regTodo',[\App\Http\Controllers\EntregaController::class,'regTodo']);
 
     Route::post('/rePrestamo',[\App\Http\Controllers\PrestamoController::class,'rePrestamo']);
+    Route::post('/reporteDes',[\App\Http\Controllers\RutaController::class,'reporteDes']);
+    
 });
 

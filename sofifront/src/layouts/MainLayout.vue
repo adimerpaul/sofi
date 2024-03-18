@@ -171,6 +171,17 @@
             </q-item-label>
           </q-item-section>
         </q-item>
+        <q-item clickable active-class="bg-primary text-white" exact to="despacho" v-if="despachador.includes($store.getters['login/user'].ci)">
+          <q-item-section avatar>
+            <q-icon name="description" />
+          </q-item-section>
+          <q-item-section>
+            <q-item-label>Reporte Entrega</q-item-label>
+            <q-item-label caption>
+               Entregas
+            </q-item-label>
+          </q-item-section>
+        </q-item>
         <q-item clickable active-class="bg-primary text-white" exact to="entrega" v-if="supervisor.includes($store.getters['login/user'].ci) || encargados.includes($store.getters['login/user'].ci)">
           <q-item-section avatar>
             <q-icon name="dvr" />
