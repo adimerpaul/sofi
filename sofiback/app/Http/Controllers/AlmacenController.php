@@ -173,6 +173,8 @@ class AlmacenController extends Controller{
                     $insertRegistroAlmacen[] = [
                         'cantidad' => $item->cantidad==''?0:$item->cantidad,
                         'fecha_vencimiento' => $item->vencimiento==''?null:substr($item->vencimiento,0,10),
+                        'lote' => $item->lote=='null'?'':$item->lote, //cambiar 'null' por '
+                        'comentario' => $item->comentario=='null'?'':$item->comentario, //cambiar 'null' por '
                         'almacen_id' => $almacenData->id,
                         'user_id' => $user_id,
                         'fecha_registro' => date('Y-m-d H:i:s')

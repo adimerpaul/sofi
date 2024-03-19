@@ -166,22 +166,30 @@
         </q-card-section>
         <q-card-section class="q-pt-none">
           <div class="row">
-            <div class="col-3 text-bold">Cantidad</div>
-            <div class="col-3 text-bold">Vencimiento</div>
-            <div class="col-3 text-bold">Registro</div>
-            <div class="col-3 text-bold">Usuario</div>
+            <div class="col-2 text-bold">Cantidad</div>
+            <div class="col-2 text-bold">Vencimiento</div>
+            <div class="col-2 text-bold">Fecha egistro</div>
+            <div class="col-2 text-bold">Lote</div>
+            <div class="col-2 text-bold">Comentario</div>
+            <div class="col-2 text-bold">Usuario</div>
             <template v-for="registro in registros" :key="registro.id">
-              <div class="col-3">
+              <div class="col-2">
 <!--                <pre>{{ registro}}</pre>-->
                 {{ registro.cantidad }}
               </div>
-              <div class="col-3">
+              <div class="col-2">
                 {{ registro.fecha_vencimiento }}
               </div>
-              <div class="col-3">
+              <div class="col-2">
                 {{ registro.fecha_registro }}
               </div>
-              <div class="col-3 text-center">
+              <div class="col-2">
+                {{ registro.lote }}
+              </div>
+              <div class="col-2">
+                {{ registro.comentario }}
+              </div>
+              <div class="col-2 text-center">
                 {{ registro.user.Nombre1 }}
               </div>
             </template>

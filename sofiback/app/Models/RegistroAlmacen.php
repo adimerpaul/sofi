@@ -15,6 +15,8 @@ class RegistroAlmacen extends Model
         'almacen_id',
         'user_id',
         'fecha_registro',
+        'lote',
+        'comentario',
     ];
     public function user(){
         return $this->belongsTo(User::class, 'user_id');

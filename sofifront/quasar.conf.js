@@ -75,7 +75,6 @@ module.exports = configure(function (ctx) {
       env: {
         API: ctx.dev
           ? 'http://192.168.1.7:8000/api/'
-          ? 'http://localhost:8000/api/'
           : 'https://bsofia.siscenter.org/api/'
       }
     },
