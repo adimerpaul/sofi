@@ -22,4 +22,7 @@ class Almacen extends Model
         'se_descargo',
         'cantidad',
     ];
+    public function registros(){
+        return $this->hasMany(RegistroAlmacen::class);
+    }
 }
