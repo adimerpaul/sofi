@@ -104,7 +104,6 @@ columns3 : [
        dom: 'Blfrtip',
        buttons: ['copy', 'csv', 'excel', 'pdf', 'print']
      } );
-    this.$q.loading.show()
     this.consula()
   },
   methods:{

@@ -171,6 +171,17 @@
             </q-item-label>
           </q-item-section>
         </q-item>
+        <q-item clickable active-class="bg-primary text-white" exact to="despacho" v-if="despachador.includes($store.getters['login/user'].ci)">
+          <q-item-section avatar>
+            <q-icon name="description" />
+          </q-item-section>
+          <q-item-section>
+            <q-item-label>Reporte Entrega</q-item-label>
+            <q-item-label caption>
+               Entregas
+            </q-item-label>
+          </q-item-section>
+        </q-item>
         <q-item clickable active-class="bg-primary text-white" exact to="entrega" v-if="supervisor.includes($store.getters['login/user'].ci) || encargados.includes($store.getters['login/user'].ci)">
           <q-item-section avatar>
             <q-icon name="dvr" />
@@ -301,7 +312,7 @@ export default {
   data(){
     return {
       leftDrawerOpen:false,
-      vendores:['12612870','1593578','33555433','3520335','5676554','7422201','9876785','7360035','5067737','7331330','7308976','7377278','5938578','7351953','7329688','7288817','7306963','5773491','3544875019','7312297'],
+      vendores:['3779602','12612870','1593578','33555433','3520335','5676554','7422201','9876785','7360035','5067737','7331330','7308976','7377278','5938578','7351953','7329688','7288817','7306963','5773491','3544875019','7312297'],
       encargados:['123321' ,'7205489'],
       almacen:['7308976' ,'7377278'],
       cobrador:['7424479'],

@@ -89,6 +89,18 @@
       <q-card-section>
         <q-form>
           <div class="row">
+            <div class="col-12 text-h6">PRESTAMO / DEVOLUCION DE CESTOS</div>
+
+            <div class="col-4 q-pa-xs"><q-input dense outlined v-model="prestamo.ingreso" type="number" label="Prestamo" /></div>
+            <div class="col-4 q-pa-xs"><q-input dense outlined v-model="prestamo.salida" type="number" label="Devolucion" /></div>
+            <div class="col-4 q-pa-xs"><q-btn dense color="green" icon="unarchive" label="Registrar" @click="regPrestamo" /></div>
+          </div>
+            <q-separator>
+        </q-separator>
+
+          <div class="row">
+            <div class="col-12 text-h6">ENTREGA DE COMANDAS</div>
+
            <!-- <div class="col-12 q-pa-xs">
               <q-select dense outlined label="Estado" :options="['','ENTREGADO','NO ENTREGADO']" v-model="estado" required/>
             </div>-->
@@ -135,7 +147,7 @@
       </q-card-section>
       <q-card-section align="right" >
           <q-btn class="q-pa-xs" color="green" dense label="ENTREGADO"  @click="createEntrega('ENTREGADO')" />
-          <q-btn class="q-pa-xs" color="AMBER" dense label="NO ENTREGADO"  @click="createEntrega('NO ENTREGADO')"/>
+          <q-btn class="q-pa-xs" color="amber" dense label="NO ENTREGADO"  @click="createEntrega('NO ENTREGADO')"/>
           <q-btn class="q-pa-xs" color="red" dense label="CERRAR"  v-close-popup />
 
       </q-card-section>
@@ -177,6 +189,7 @@ export default {
   },
   data(){
     return{
+      prestamo:{ingreso:0,salida:0},
       estado:'',
       observacion:'',
         listado:[],
@@ -201,16 +214,49 @@ export default {
         {label:'Nombres',name:'Nombres',field:'Nombres',align:'left'},
 
       ],
-      fecha:date.formatDate(addToDate(new Date(), { days: -1}),'YYYY-MM-DD'),
+      fecha:date.formatDate(new Date(),'YYYY-MM-DD'),
     }
   },
   created() {
     this.misclientes()
   },
   methods:{
-    createEntrega(estado){
-      if(this.estado=='')
+    regPrestamo(){
+      console.log(this.prestamo)
+      if(this.prestamo.ingreso < 0 || this.prestamo.salida < 0 || this.prestamo.ingreso=='' || this.prestamo.salida==''){
+        this.$q.notify({
+         message:'ingrese Valores correctos',
+         color:'red',
+         icon:'error'
+        })
         return false
+      }
+      this.$q.dialog({
+        title:'Seguro de enviar',
+        color:'green',
+        icon:'send',
+        cancel:true
+      }).onOk(data=>{
+
+        this.$q.loading.show()
+        this.$api.post('prestamo',{
+        cliente_id:this.cliente.Cod_Aut,
+        cinit:this.cliente.Id,
+        ingreso:this.prestamo.ingreso,
+        salida:this.prestamo.salida
+      }).then(res=>{
+        this.$q.loading.hide()
+       this.$q.notify({
+         message:'Registrado Prestamo',
+         color:'green',
+         icon:'info'
+        })
+        this.prestamo={ingreso:0,salida:0}
+      })
+      })
+    },
+    createEntrega(estado){
+
       this.$q.dialog({
         title:'Seguro de enviar',
         color:'green',
@@ -230,12 +276,12 @@ export default {
             // ]
             lat=pos.coords.latitude
             lng=pos.coords.longitude
-            this.insertarpedido(lat,lng)
+            this.insertarpedido(lat,lng,estado)
           });
         }else{
           lat=0
           lng=0
-          this.insertarpedido(lat,lng,ped)
+          this.insertarpedido(lat,lng,estado)
         }
 
       })
@@ -253,7 +299,6 @@ export default {
         observacion:this.observacion
       }).then(res=>{
         console.log(res.data)
-        //return false
         this.observacion=''
         console.log(res.data)
         // return false
