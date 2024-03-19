@@ -8,6 +8,27 @@ use App\Models\User;
 use Illuminate\Http\Request;
 
 class AlmacenController extends Controller{
+    public function porcentaje(Request $request){
+        $porcentajeAvancadoCodigo = $this->porcentajeAvanceCodigo($request);
+        return response()->json($porcentajeAvancadoCodigo);
+
+    }
+    public function porcentajeAvanceCodigo(Request $request){
+        $fecha = $request->fecha;
+        $almacenes = Almacen::selectRaw('codigo, count(*) as total')
+            ->whereDate('fecha_registro', $fecha)
+            ->groupBy('codigo')
+            ->get();
+        foreach ($almacenes as $almacen) {
+            $realizado = Almacen::whereDate('fecha_registro', $fecha)
+                ->where('codigo', $almacen->codigo)
+                ->where('se_descargo', 'EXPORTADO')
+                ->count();
+            $almacen->realizado = $realizado;
+            $almacen->porcentaje = round(($realizado / $almacen->total) * 100, 2);
+        }
+        return $almacenes;
+    }
     public function registros(Request $request){
         $almacenes = RegistroAlmacen::where('almacen_id', $request->almacen_id)
             ->with('user')

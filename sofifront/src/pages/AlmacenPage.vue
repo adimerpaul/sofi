@@ -8,23 +8,24 @@
         <div class="col-2 flex flex-center">
           <q-btn label="Consultar" no-caps color="primary" icon="search" :loading="loading" @click="getAlmacenes" />
         </div>
-        <div class="col-1">
-          <q-chip :color="porcentaje < 100 ? 'red' : 'green'" dense text-color="white">
-            {{ porcentaje }}%
-          </q-chip>
-        </div>
-        <div class="col-7  text-right">
+<!--        <div class="col-1">-->
+<!--&lt;!&ndash;          <q-chip :color="porcentaje < 100 ? 'red' : 'green'" dense text-color="white">&ndash;&gt;-->
+<!--&lt;!&ndash;            {{ porcentaje }}%&ndash;&gt;-->
+<!--&lt;!&ndash;          </q-chip>&ndash;&gt;-->
+<!--        </div>-->
+        <div class="col-8  text-right">
+          <q-btn label="Ver Porcentaje" no-caps color="indigo" icon="visibility" :loading="loading" @click="verPorcentajeClick()" />
           <q-btn label="Exportar Excel" no-caps color="orange" icon="cloud_download" :loading="loading" @click="exportarExcel" />
           <q-btn label="Cargar Excel" no-caps color="green" icon="cloud_upload" :loading="loading" @click="dialogFile = true" />
         </div>
       </q-card-section>
       <q-card-section class="q-pa-md">
-        <div class="text-red">Porcentaje de carga</div>
-        <q-linear-progress size="25px" :value="parseFloat(porcentaje/100)" color="primary" track-color="grey-3" rounded>
-          <div class="absolute-full flex flex-center">
-            <q-badge color="white" text-color="accent" :label="porcentaje + '%'" />
-          </div>
-        </q-linear-progress>
+<!--        <div class="text-red">Porcentaje de carga</div>-->
+<!--        <q-linear-progress size="25px" :value="parseFloat(porcentaje/100)" color="primary" track-color="grey-3" rounded>-->
+<!--          <div class="absolute-full flex flex-center">-->
+<!--            <q-badge color="white" text-color="accent" :label="porcentaje + '%'" />-->
+<!--          </div>-->
+<!--        </q-linear-progress>-->
         <q-table :rows-per-page-options="[0]" :loading="loading" :filter="filter" :columns="columns" :rows="almacenes" dense wrap-cells no-data-label="No hay datos" no-results-label="No hay resultados">
           <template v-slot:top-right>
             <q-input placeholder="Buscar" dense outlined v-model="filter" />
@@ -157,7 +158,7 @@
       </q-card>
     </q-dialog>
     <q-dialog v-model="dialogDatos">
-      <q-card>
+      <q-card style="min-width: 750px">
         <q-card-section class="q-pb-none row">
           <div class="text-h6">Datos Almacen</div>
           <q-space />
@@ -189,6 +190,53 @@
         </q-card-section>
       </q-card>
     </q-dialog>
+    <q-dialog v-model="dialogPorcentaje">
+      <q-card style="min-width: 750px">
+        <q-card-section class="q-pb-none row">
+          <div class="text-h6">Porcentaje de carga</div>
+          <q-space />
+          <q-btn icon="close" flat no-caps round v-close-popup />
+        </q-card-section>
+        <q-card-section class="q-pt-none">
+          <div class="row">
+            <div class="col-12">
+              <q-markup-table>
+                <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Codigo</th>
+                  <th>Total</th>
+                  <th>Cantidad</th>
+                  <th>Porcentaje</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr v-for="(porcentaje,i) in porcentajes" :key="porcentaje.id">
+                  <td>{{ i+1 }}</td>
+                  <td>{{ porcentaje.codigo }}</td>
+                  <td>{{ porcentaje.total }}</td>
+                  <td>{{ porcentaje.realizado }}</td>
+                  <td>
+                    <q-linear-progress size="25px" :value="parseFloat(porcentaje.porcentaje/100)" color="primary" track-color="grey-3" rounded>
+                      <div class="absolute-full flex flex-center">
+                        <q-badge color="white" text-color="accent" :label="porcentaje.porcentaje + '%'" />
+                      </div>
+                    </q-linear-progress>
+                  </td>
+                </tr>
+                </tbody>
+              </q-markup-table>
+<!--              <pre>{{porcentajes}}</pre>-->
+<!--              <q-linear-progress size="25px" :value="parseFloat(porcentaje/100)" color="primary" track-color="grey-3" rounded>-->
+<!--                <div class="absolute-full flex flex-center">-->
+<!--                  <q-badge color="white" text-color="accent" :label="porcentaje + '%'" />-->
+<!--                </div>-->
+<!--              </q-linear-progress>-->
+            </div>
+          </div>
+        </q-card-section>
+      </q-card>
+    </q-dialog>
   </q-page>
 </template>
 <script>
@@ -215,6 +263,8 @@ export default {
       fecha: date.formatDate(new Date(), 'YYYY-MM-DD'),
       file: null,
       almacenes: [],
+      dialogPorcentaje: false,
+      porcentajes: [],
       porcentaje: 0,
       almacen: {},
       loading: false,
@@ -244,6 +294,21 @@ export default {
     this.getAlmacenes();
   },
   methods: {
+    verPorcentajeClick() {
+      this.loading = true;
+      this.$api.get('porcentaje', {
+        params: {
+          fecha: this.fecha,
+        }
+      }).then(res => {
+        this.porcentajes = res.data;
+        this.dialogPorcentaje = true;
+      }).catch(err => {
+        console.error(err);
+      }).finally(() => {
+        this.loading = false;
+      });
+    },
     exportarExcel() {
       let data = [
         {

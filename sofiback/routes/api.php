@@ -95,12 +95,13 @@ Route::group(['middleware'=>'auth:sanctum'],function (){
     Route::put('/almacenes/{id}',[\App\Http\Controllers\AlmacenController::class,'update']);
     Route::delete('/almacenes/{id}',[\App\Http\Controllers\AlmacenController::class,'destroy']);
     Route::post('/cargarExcel',[\App\Http\Controllers\AlmacenController::class,'cargarExcel']);
+    Route::get('/porcentaje',[\App\Http\Controllers\AlmacenController::class,'porcentaje']);
 
     Route::get('/registros',[\App\Http\Controllers\AlmacenController::class,'registros']);
 
     Route::post('/listRuta',[\App\Http\Controllers\RutaController::class,'listRuta']);
     Route::post('/resumenEntrega',[\App\Http\Controllers\RutaController::class,'resumenEntrega']);
     Route::post('/regTodo',[\App\Http\Controllers\EntregaController::class,'regTodo']);
-    
+
 });
 
