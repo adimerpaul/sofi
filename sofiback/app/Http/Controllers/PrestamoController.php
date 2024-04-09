@@ -28,7 +28,7 @@ class PrestamoController extends Controller
     public function rePrestamo2(Request $request){
         return DB::SELECT("SELECT p.cinit,c.Nombres,p.placa,sum(p.ingreso) prestado,sum(p.salida) devuelto
         FROM prestamos p INNER join tbclientes c on p.id=c.Cod_Aut
-        WHERE p.fecha<='2024-03-12' and p.fecha>='2024-03-12'
+        WHERE p.fecha<='$request->ini' and p.fecha>='$request->fin'
         GROUP by p.cinit,p.placa,c.Nombres;");
     }
 

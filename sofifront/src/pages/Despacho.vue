@@ -1,7 +1,7 @@
 <template>
 <q-page class="q-pa-xs">
   <div class="col-6">
-    <q-input @change="consulta()" v-model="fecha" label="fecha" dense outlined type="date" />
+    <q-input @change="consulta(); reporte();" v-model="fecha" label="fecha" dense outlined type="date" />
   </div>
   <div class="row">
 
@@ -10,7 +10,10 @@
     <q-table title="ENTREGAS" :rows="listado" :columns="columns" row-key="name" />
       <div>Total Contado: {{totalEnt}} Bs.</div>
     </div>
-
+    <div>
+      <q-table title="PRESTAMOS" :rows="listreporte" :columns="colreport" row-key="name" />
+      
+    </div>
   </div>
 </q-page>
 </template>
@@ -34,16 +37,32 @@ export default {
   { name: 'despachador', align: 'center', label: 'DESPACHADOR', field: 'despachador', sortable: true },
   { name: 'Tipago', align: 'center', label: 'TIPO PAGO', field: 'Tipago', sortable: true },
   { name: 'observacion', label: 'OBSERVACION', field: 'observacion' },],
+  listreporte:[],
+  colreport:[
+    { name: 'fecha', label: 'fecha', field: 'fecha' },
+    { name: 'cinit', label: 'cinit', field: 'cinit' },
+    { name: 'nombres', label: 'Nombres', field: 'Nombres' },
+    { name: 'prestado', label: 'prestado', field: 'prestado' },
+    { name: 'devuelto', label: 'devuelto', field: 'devuelto' },
+
+  ]
 
     }
   },
   created(){
     this.consulta()
+    this.reporte()
   },
   methods:{
-
-    consulta(){
+    reporte(){
       this.$q.loading.show()
+      this.$api.post('rePrestamo',{fecha:this.fecha,placa:this.$store.getters['login/user'].placa}).then(res=>{
+        this.listreporte=res.data
+        this.$q.loading.hide()
+      })
+
+    },
+    consulta(){
       // console.log()
       this.listado=[]
       this.$q.loading.show()
