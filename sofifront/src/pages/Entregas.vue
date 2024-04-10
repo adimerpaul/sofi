@@ -6,7 +6,17 @@
   <div class="row">
 
     <div class="col-12">
-      <q-table title="Entregas Pedidos" :rows="resumen" :columns="columns2" row-key="name" />
+      <q-table title="Entregas Pedidos" :rows="resumen" :columns="columns2" row-key="name" >
+        <template v-slot:body-cell-entreg="props" >
+          <q-td :props="props">
+        <q-linear-progress size="18px" rounded :value="calcular(props.row.entreg,props.row.total)" :color="calcular(props.row.entreg,props.row.entreg)<1?'red-7':'green-7'" class="full-width">
+          <div class="absolute-full flex flex-center">
+            <q-badge color="white" :text-color="calcular(props.row.entreg,props.row.total)<1?'red-7':'green-7'" :label="props.row.entreg" />
+          </div>
+        </q-linear-progress>
+        </q-td>
+        </template>
+        </q-table>
     </div>
 
     <div class="col-12">
@@ -89,7 +99,6 @@ export default {
   { name: 'fecha', label: 'Fecha',    field: 'fechaEntreg' },
   { name: 'total',  label: 'Total', field: 'total' },
   { name: 'entreg', label: 'Entregado', field: 'entreg' },
-  { name: 'noentreg', label: 'No Entregado', field: 'noentreg' },
 ],
 columns3 : [
   { name: 'codigo',  label: 'CODIGO PROD', field: 'cod_prod', sortable: true },
@@ -107,6 +116,14 @@ columns3 : [
     this.consula()
   },
   methods:{
+    calcular(entrega,total){
+      let porcentaje=((entrega/total*100)/100)
+      if (porcentaje>1){
+        return 1
+      }else{
+        return porcentaje
+      }
+    },
     listvendedor(){
       this.$api.post('lispreventista').then(res=>{
           res.data.forEach(r=>{
