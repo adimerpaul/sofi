@@ -89,7 +89,7 @@
       <q-card-section>
         <q-form>
           <div class="row">
-            <div class="col-12 text-h6">PRESTAMO / DEVOLUCION DE CESTOS</div>
+            <div class="col-12 text-h6">PRESTAMO / DEVOLUCION DE CANASTILLOS</div>
 
             <div class="col-4 q-pa-xs"><q-input dense outlined v-model="prestamo.ingreso" type="number" label="Prestamo" /></div>
             <div class="col-4 q-pa-xs"><q-input dense outlined v-model="prestamo.salida" type="number" label="Devolucion" /></div>

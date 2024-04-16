@@ -46,6 +46,13 @@
         </tbody>
       </table>
     </div>
+      <div class="col-4 q-pa-xs"><q-input dense outlined v-model="fechareporte.ini" label="Fecha Ini" type="date"/></div>
+      <div class="col-4 q-pa-xs"><q-input dense outlined v-model="fechareporte.fin" label="Fecha Fin" type="date"/></div>
+      <div class="col-4 q-pa-xs"> <q-btn dense color="green" icon="search" @click="reportEnt"/></div>
+      <div class="col-12">
+        <q-table title="Reporte Canastillos" :rows="reporte" :columns="colrept" row-key="name" />
+        
+      </div>
 
   </div>
 </q-page>
@@ -82,7 +89,7 @@ export default {
       productos:[],
       resumen:[],
       listado:[],
-
+      reporte:[],
        columns : [
   {
     name: 'name',
@@ -104,6 +111,13 @@ columns3 : [
   { name: 'codigo',  label: 'CODIGO PROD', field: 'cod_prod', sortable: true },
   { name: 'producto', label: 'PRODUCTO',    field: 'Producto', },
   { name: 'cantidad',  label: 'CANTIDAD', field: 'cantidad', },
+],
+colrept:[
+  { name: 'cinit',  label: 'cinit', field: 'cinit', sortable: true },
+  { name: 'Nombres',  label: 'Nombres', field: 'Nombres', sortable: true },
+  { name: 'placa',  label: 'placa', field: 'placa', sortable: true },
+  { name: 'prestado',  label: 'prestado', field: 'prestado', sortable: true },
+  { name: 'devuelto',  label: 'devuelto', field: 'devuelto', sortable: true },
 ]
 
     }
@@ -133,12 +147,17 @@ columns3 : [
       })
 
     },
+    reportEnt(){
+      this.$api.post('rePrestamo2',this.fechareporte).then(res=>{
+        console.log(res.data)
+        this.reporte=res.data
+      })
+    },
     ventaProducto(){
       this.$api.post('informeProducto',{cod:this.preventista.CodAut,ini:this.fechareporte.ini,fin:this.fechareporte.fin}).then(res=>{
         console.log(res.data)
         this.productos=res.data
       })
-
     },
     controlvisita(){
       this.$api.post('reporteVenta',{fecha:this.fecha}).then(res=>{
