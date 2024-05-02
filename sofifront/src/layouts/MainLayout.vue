@@ -316,7 +316,7 @@ export default {
       encargados:['123321' ,'7205489'],
       almacen:['7308976' ,'7377278','7205489'],
       cobrador:['7424479'],
-      despachador:['7205489','1234DSO','4683GSN','2525KCK','4253ISP','5229ATE'],
+      despachador:['7205489','A1SUD','A2NORTE','A3CENTRO','A4BOLIVAR','A5APOYO','C1RECOGE'],
       supervisor:['7308976','7329688','7288817','7312297']
     }
   },

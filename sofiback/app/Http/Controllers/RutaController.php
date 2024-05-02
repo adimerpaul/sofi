@@ -96,6 +96,12 @@ GROUP BY p.idCli,c.Id,c.Nombres,c.Telf,c.Direccion,c.Latitud,c.longitud,p.estado
     ");
     }
 
+    public function listPedidos(Request $request){
+        return DB::SELECT("SELECT c.CINIT,l.Nombres,c.comanda,c.Tipago,p.Nombre1,p.App1
+          from tbctascobrar c inner join tbclientes l on c.CINIT=l.Id inner join personal p on p.ci=c.CIFunc 
+        where c.FechaEntreg='$request->fecha' order by c.comanda desc;");
+    }
+
     public function resumenEntrega(Request $request){
         return DB::SELECT("SELECT c.placa,c.fechaEntreg, COUNT(*) total,
         (select count(*) from entregas e
