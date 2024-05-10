@@ -316,7 +316,7 @@ export default {
       encargados:['123321' ,'7205489','7277481'],
       almacen:['7308976' ,'7377278','7205489','7277481'],
       cobrador:['7424479'],
-      despachador:['7205489','A1SUD','A2NORTE','A3CENTRO','A4BOLIVAR','A5APOYO','C1RECOGE','7277481'],
+      despachador:['7205489','A1SUD','A2NORTE','A3CENTRO','A4BOLIVAR','A5APOYO','C1RECOGE','7277481','B1HUANUNI'],
       supervisor:['7308976','7329688','7288817','7312297']
     }
   },
@@ -327,7 +327,7 @@ export default {
         win.focus();
     },
     irformulario2(){
-      var win = window.open('https://docs.google.com/forms/d/e/1FAIpQLScp_D8ihzdtAN5ZwuBYqIEAbHu8L6T7dFaZ6-m2YdagKUZIaA/viewform', '_blank');
+      var win = window.open('https://docs.google.com/forms/d/e/1FAIpQLSfkfb6iu-mdPgVXBlemyrwLi1RRblI15J_paQQV-siiIbPQgA/viewform', '_blank');
         // Cambiar el foco al nuevo tab (punto opcional)
         win.focus();
     },
