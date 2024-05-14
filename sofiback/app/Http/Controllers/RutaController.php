@@ -41,10 +41,10 @@ class RutaController extends Controller
             ->where('tipo','NORMAL')
             ->get();*/
         $resul=[];
-        $list= DB::SELECT("SELECT c.comanda,c.FechaEntreg,c.Importe,c.Tipago,c.Observacion,
+        $list= DB::SELECT("SELECT c.CINIT,c.comanda,c.FechaEntreg,c.Importe,c.Tipago,c.Observacion,
         (SELECT e.estado from entregas e where e.cinit=c.CINIT and e.comanda=c.comanda ) estado
         FROM tbctascobrar c WHERE c.CINIT='$request->id' and c.FechaEntreg='$request->fecha'
-        group by c.comanda,c.FechaEntreg,c.Importe,c.Tipago,c.Observacion");
+        group by c.CINIT,c.comanda,c.FechaEntreg,c.Importe,c.Tipago,c.Observacion");
 
         //return $list;
         foreach ($list as $r) {
