@@ -43,7 +43,8 @@ class RutaController extends Controller
         $resul=[];
         $list= DB::SELECT("SELECT c.comanda,c.FechaEntreg,c.Importe,c.Tipago,c.Observacion,
         (SELECT e.estado from entregas e where e.cinit=c.CINIT and e.comanda=c.comanda ) estado
-        FROM tbctascobrar c WHERE c.CINIT='$request->id' and c.FechaEntreg='$request->fecha'");
+        FROM tbctascobrar c WHERE c.CINIT='$request->id' and c.FechaEntreg='$request->fecha'
+        group by c.comanda,c.FechaEntreg,c.Importe,c.Tipago,c.Observacion");
 
         //return $list;
         foreach ($list as $r) {
@@ -98,7 +99,7 @@ GROUP BY p.idCli,c.Id,c.Nombres,c.Telf,c.Direccion,c.Latitud,c.longitud,p.estado
 
     public function listPedidos(Request $request){
         return DB::SELECT("SELECT c.CINIT,l.Nombres,c.comanda,c.Tipago,p.Nombre1,p.App1
-          from tbctascobrar c inner join tbclientes l on c.CINIT=l.Id inner join personal p on p.ci=c.CIFunc 
+          from tbctascobrar c inner join tbclientes l on c.CINIT=l.Id inner join personal p on p.ci=c.CIFunc
         where c.FechaEntreg='$request->fecha' order by c.comanda desc;");
     }
 
@@ -112,7 +113,7 @@ GROUP BY p.idCli,c.Id,c.Nombres,c.Telf,c.Direccion,c.Latitud,c.longitud,p.estado
     }
 
     public function reporteDes(Request $request){
-        return DB::SELECT("SELECT c.CINIT,l.Nombres,c.comanda,c.Importe,c.placa,e.despachador,c.Tipago,e.observacion 
+        return DB::SELECT("SELECT c.CINIT,l.Nombres,c.comanda,c.Importe,c.placa,e.despachador,c.Tipago,e.observacion
         from tbctascobrar c inner join tbclientes l on c.CINIT=l.Id inner join entregas e on e.comanda=c.comanda
          where c.FechaEntreg='$request->fecha' and e.estado='ENTREGADO' and e.placa='".$request->user()->placa."' order by c.CINIT");
     }
