@@ -104,7 +104,7 @@ GROUP BY p.idCli,c.Id,c.Nombres,c.Telf,c.Direccion,c.Latitud,c.longitud,p.estado
     }
 
     public function resumenEntrega(Request $request){
-        return DB::SELECT("SELECT c.placa,c.fechaEntreg, COUNT(*) total,
+        return DB::SELECT("SELECT c.placa,c.fechaEntreg, COUNT(DISTINCT(c.comanda)) total,
         (select count(*) from entregas e
             WHERE e.fechaEntreg=c.FechaEntreg and c.placa=e.placa and e.estado='ENTREGADO') entreg,
         (select count(*) from entregas e
