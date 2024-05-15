@@ -72,6 +72,7 @@ class AlmacenController extends Controller{
             $almacen->comentario8 = count($almacen->registros) > 7 ? $almacen->registros[7]->comentario : '';
             $almacen->comentario9 = count($almacen->registros) > 8 ? $almacen->registros[8]->comentario : '';
             $almacen->comentario10 = count($almacen->registros) > 9 ? $almacen->registros[9]->comentario : '';
+            $almacen->appCantidad = $almacen->cantidad1 + $almacen->cantidad2 + $almacen->cantidad3 + $almacen->cantidad4 + $almacen->cantidad5 + $almacen->cantidad6 + $almacen->cantidad7 + $almacen->cantidad8 + $almacen->cantidad9 + $almacen->cantidad10;
         }
         return response()->json(['almacenes' => $almacenes, 'porcentaje' => $porcentaje]);
     }
