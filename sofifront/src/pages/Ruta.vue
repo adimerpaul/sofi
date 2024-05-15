@@ -302,7 +302,7 @@ export default {
         this.observacion=''
         console.log(res.data)
         // return false
-        //this.dialogentrega=false
+        this.dialogentrega=false
         this.clickopciones(this.cliente)
         this.misclientes()
       })

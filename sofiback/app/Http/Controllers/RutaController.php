@@ -82,6 +82,7 @@ GROUP BY p.idCli,c.Id,c.Nombres,c.Telf,c.Direccion,c.Latitud,c.longitud,p.estado
     WHERE date(p.FechaEntreg)='".$fecha."'
     and p.placa='".$user->placa."'
     GROUP BY c.Cod_Aut,p.CINIT,c.Id,c.Nombres,c.Telf,c.Direccion,c.Latitud,c.longitud
+    order by estado asc
     ");
     }
 
