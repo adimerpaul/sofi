@@ -156,9 +156,10 @@ class AlmacenController extends Controller{
     }
     public function exportData(Request $request)
     {
+	error_log('dofiarequest'.json_encode($request->all()));
         $data = json_decode($request->input('almacen'));
         $user_id = json_decode($request->input('user'));
-        error_log('data: ' . json_encode($data));
+        error_log('dataSOfia: ' . json_encode($data));
         $user_id = json_encode($user_id);
         $insertRegistroAlmacen = [];
         $updateAlmacen = [];
