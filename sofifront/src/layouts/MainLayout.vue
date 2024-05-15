@@ -317,7 +317,7 @@ export default {
       almacen:['7308976' ,'7377278','7205489','7277481'],
       cobrador:['7424479'],
       despachador:['7205489','A1SUD','A2NORTE','A3CENTRO','A4BOLIVAR','A5APOYO','C1RECOGE','7277481','B1HUANUNI'],
-      supervisor:['7308976','7329688','7288817','7312297']
+      supervisor:['7308976','7329688','7288817','7312297', '7205489', '7277481' ]
     }
   },
   methods:{

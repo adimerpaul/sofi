@@ -40,18 +40,7 @@ class AlmacenController extends Controller{
 //        $porcentaje = $this->porcentajeImportado($request);
         $porcentaje = 0;
         $almacenes = Almacen::whereDate('fecha_registro', $fecha)->with('registros')->get();
-//        $almacenes = $almacenes->map(function ($almacen) {
-//            $almacen->cantidad1 = count($almacen->registros) > 0 ? $almacen->registros[0]->cantidad : 0;
-//            $almacen->cantidad2 = count($almacen->registros) > 1 ? $almacen->registros[1]->cantidad : 0;
-//            $almacen->cantidad3 = count($almacen->registros) > 2 ? $almacen->registros[2]->cantidad : 0;
-//            $almacen->cantidad4 = count($almacen->registros) > 3 ? $almacen->registros[3]->cantidad : 0;
-//            $almacen->cantidad5 = count($almacen->registros) > 4 ? $almacen->registros[4]->cantidad : 0;
-//            $almacen->cantidad6 = count($almacen->registros) > 5 ? $almacen->registros[5]->cantidad : 0;
-//            $almacen->cantidad7 = count($almacen->registros) > 6 ? $almacen->registros[6]->cantidad : 0;
-//            $almacen->cantidad8 = count($almacen->registros) > 7 ? $almacen->registros[7]->cantidad : 0;
-//            $almacen->cantidad9 = count($almacen->registros) > 8 ? $almacen->registros[8]->cantidad : 0;
-//            $almacen->cantidad10 = count($almacen->registros) > 9 ? $almacen->registros[9]->cantidad : 0;
-//        });
+
         foreach ($almacenes as $almacen) {
             $almacen->cantidad1 = count($almacen->registros) > 0 ? $almacen->registros[0]->cantidad : 0;
             $almacen->cantidad2 = count($almacen->registros) > 1 ? $almacen->registros[1]->cantidad : 0;
@@ -73,6 +62,16 @@ class AlmacenController extends Controller{
             $almacen->fechaVencimiento8 = count($almacen->registros) > 7 ? $almacen->registros[7]->fecha_vencimiento : null;
             $almacen->fechaVencimiento9 = count($almacen->registros) > 8 ? $almacen->registros[8]->fecha_vencimiento : null;
             $almacen->fechaVencimiento10 = count($almacen->registros) > 9 ? $almacen->registros[9]->fecha_vencimiento : null;
+            $almacen->comentario1 = count($almacen->registros) > 0 ? $almacen->registros[0]->comentario : '';
+            $almacen->comentario2 = count($almacen->registros) > 1 ? $almacen->registros[1]->comentario : '';
+            $almacen->comentario3 = count($almacen->registros) > 2 ? $almacen->registros[2]->comentario : '';
+            $almacen->comentario4 = count($almacen->registros) > 3 ? $almacen->registros[3]->comentario : '';
+            $almacen->comentario5 = count($almacen->registros) > 4 ? $almacen->registros[4]->comentario : '';
+            $almacen->comentario6 = count($almacen->registros) > 5 ? $almacen->registros[5]->comentario : '';
+            $almacen->comentario7 = count($almacen->registros) > 6 ? $almacen->registros[6]->comentario : '';
+            $almacen->comentario8 = count($almacen->registros) > 7 ? $almacen->registros[7]->comentario : '';
+            $almacen->comentario9 = count($almacen->registros) > 8 ? $almacen->registros[8]->comentario : '';
+            $almacen->comentario10 = count($almacen->registros) > 9 ? $almacen->registros[9]->comentario : '';
         }
         return response()->json(['almacenes' => $almacenes, 'porcentaje' => $porcentaje]);
     }

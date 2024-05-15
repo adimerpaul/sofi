@@ -323,6 +323,7 @@ export default {
           sheet: "Adults",
           columns: [
             { label: "Codigo", value: "codigo" },
+            { label: "Codigo Producto", value: "codigo_producto" },
             { label: "Producto", value: "producto" },
             { label: "Saldo", value: "saldo" },
             { label: "Grupo", value: "grupo" },
@@ -349,6 +350,16 @@ export default {
             { label: "Fecha Vencimi 9", value: "fechaVencimiento9" },
             { label: "Cantidad 10", value: "cantidad10" },
             { label: "Fecha Vencimi 10", value: "fechaVencimiento10" },
+            { label: "Comentario 1", value: "comentario1" },
+            { label: "Comentario 2", value: "comentario2" },
+            { label: "Comentario 3", value: "comentario3" },
+            { label: "Comentario 4", value: "comentario4" },
+            { label: "Comentario 5", value: "comentario5" },
+            { label: "Comentario 6", value: "comentario6" },
+            { label: "Comentario 7", value: "comentario7" },
+            { label: "Comentario 8", value: "comentario8" },
+            { label: "Comentario 9", value: "comentario9" },
+            { label: "Comentario 10", value: "comentario10" },
           ],
           content: this.almacenes
         }

@@ -92,7 +92,8 @@ GROUP BY p.idCli,c.Id,c.Nombres,c.Telf,c.Direccion,c.Latitud,c.longitud,p.estado
     return DB::select(" SELECT c.CINIT,l.Nombres,c.comanda,c.placa,e.despachador,e.estado,e.observacion
     from tbctascobrar c inner join tbclientes l on c.CINIT=l.Id
     left join entregas e on e.comanda=c.comanda where c.FechaEntreg='$request->fecha'
-     order by c.comanda;
+    group by c.comanda
+     order by c.comanda
 
     ");
     }
@@ -104,7 +105,7 @@ GROUP BY p.idCli,c.Id,c.Nombres,c.Telf,c.Direccion,c.Latitud,c.longitud,p.estado
     }
 
     public function resumenEntrega(Request $request){
-        return DB::SELECT("SELECT c.placa,c.fechaEntreg, COUNT(*) total,
+        return DB::SELECT("SELECT c.placa,c.fechaEntreg, COUNT(DISTINCT(c.comanda)) total,
         (select count(*) from entregas e
             WHERE e.fechaEntreg=c.FechaEntreg and c.placa=e.placa and e.estado='ENTREGADO') entreg,
         (select count(*) from entregas e
