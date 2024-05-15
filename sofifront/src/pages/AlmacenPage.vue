@@ -78,7 +78,10 @@
           <template v-slot:body-cell-cantidad="props">
             <q-td :props="props">
               <q-chip :color="props.row.cantidad==props.row.saldo ? 'green' : 'red'" dense text-color="white">
-                {{ props.row.cantidad }}
+                {{ props.row.cantidad=='' || props.row.cantidad==null ? (0).toFixed(2) : props.row.cantidad.toFixed(2) }}
+              </q-chip>
+              <q-chip :color="props.row.appCantidad==props.row.cantidad ? 'green' : 'red'" dense text-color="white">
+                {{ props.row.appCantidad.toFixed(2) }}
               </q-chip>
             </q-td>
           </template>
