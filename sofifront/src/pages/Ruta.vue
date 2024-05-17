@@ -288,6 +288,7 @@ export default {
     },
     insertarpedido(lat,lng,esta){
       // console.log(this.cliente)
+      this.$q.loading.show()
       this.$api.post('regTodo',{
         cliente_id:this.cliente.Cod_Aut,
         cinit:this.cliente.Id,
@@ -303,7 +304,7 @@ export default {
         console.log(res.data)
         // return false
         this.dialogentrega=false
-        this.clickopciones(this.cliente)
+        //this.clickopciones(this.cliente)
         this.misclientes()
       })
     },
@@ -366,7 +367,6 @@ export default {
       this.$q.loading.show()
       this.$api.get('ruta/'+this.fecha).then(res=>{
          console.log(res.data)
-        this.$q.loading.hide()
         // return false
         this.clientes=[]
         // this.clientes=res.data
