@@ -299,6 +299,7 @@ export default {
         fecha:this.fecha,
         observacion:this.observacion
       }).then(async res=>{
+        this.cliente={}
         console.log(res.data)
         this.observacion=''
         console.log(res.data)
