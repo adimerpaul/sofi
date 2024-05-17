@@ -300,6 +300,7 @@ export default {
         observacion:this.observacion
       }).then(async res=>{
         this.cliente={}
+        this.listado=[]
         console.log(res.data)
         this.observacion=''
         console.log(res.data)
