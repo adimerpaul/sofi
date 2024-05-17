@@ -217,8 +217,8 @@ export default {
       fecha:date.formatDate(new Date(),'YYYY-MM-DD'),
     }
   },
-  created() {
-    this.misclientes()
+  async created() {
+    await this.misclientes()
   },
   methods:{
     regPrestamo(){
@@ -298,14 +298,14 @@ export default {
         estado:esta,
         fecha:this.fecha,
         observacion:this.observacion
-      }).then(res=>{
+      }).then(async res=>{
         console.log(res.data)
         this.observacion=''
         console.log(res.data)
         // return false
         this.dialogentrega=false
         //this.clickopciones(this.cliente)
-        this.misclientes()
+        await this.misclientes()
       })
     },
     clickopciones(c){
@@ -324,11 +324,11 @@ export default {
       }).then(res=>{
         console.log(res.data)
 
-        this.$q.loading.hide()
         //return false
-        this.dialogentrega=true
-
         this.pedidos=res.data
+        this.dialogentrega=true
+        this.$q.loading.hide()
+
       })
     },
     async getCentro() {
@@ -363,18 +363,18 @@ export default {
       console.log(c)
       this.center = [c.Latitud, c.longitud]
     },
-    misclientes(){
+    async misclientes(){
       this.$q.loading.show()
       this.$api.get('ruta/'+this.fecha).then(res=>{
          console.log(res.data)
         // return false
         this.clientes=[]
         // this.clientes=res.data
-        res.data.forEach(r=>{
+        /*res.data.forEach(r=>{
           let d=r
           // if (r.Latitud)
           // console.log(r.Latitud)
-          if (parseFloat(r.Latitud)!=NaN && parseFloat(r.longitud)!=NaN && r.Latitud!='' && r.longitud!='' ){
+          //if (parseFloat(r.Latitud)!=NaN && parseFloat(r.longitud)!=NaN && r.Latitud!='' && r.longitud!='' ){
             // console.log( 'id='+r.Cod_Aut+'  '+(r.Latitud!='' && r.longitud!='' )+' R='+parseFloat(r.Latitud)+'---'+parseFloat(r.longitud))
             d.Latitud=parseFloat(r.Latitud)
             d.longitud=parseFloat(r.longitud)
@@ -385,7 +385,8 @@ export default {
           }
 
           this.clientes.push(d)
-        })
+        })/*/
+        this.clientes=res.data
         // console.log(this.clientes)
         this.$q.loading.hide()
       }).catch(err=>{
