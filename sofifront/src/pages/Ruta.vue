@@ -131,8 +131,9 @@
                       :props="props"
                     >
                       {{ col.value }}
-                    </q-td>
 
+                    </q-td >
+                    
                   </q-tr>
                   <q-tr v-show="props.expand" :props="props">
                     <q-td colspan="100%">
@@ -207,6 +208,7 @@ export default {
         {label:'Tipago',name:'Tipago',field:'Tipago',style: 'font-size:18px; font-weight:bold;',},
         {label:'estado',name:'estado',field:'estado'},
         {label:'Observacion',name:'Observacion',field:'observacion'},
+     //   {label:'monto',name:'monto',field:'monto'},
 
       ],
       columns:[
@@ -369,9 +371,9 @@ export default {
       this.center = [c.Latitud, c.longitud]
     },
     async misclientes(){
-      if(this.fecha<this.hoy)
-      {this.clientes=[]
-        return false}
+      //if(this.fecha<this.hoy)
+      //{this.clientes=[]
+       // return false}
 
       this.$q.loading.show()
       this.$api.get('ruta/'+this.fecha).then(res=>{
