@@ -80,11 +80,22 @@ class EntregaController extends Controller
         foreach ($request->listado as $value) {
             # code...
             //return $value['comanda'];
-            $verif=DB::SELECT("SELECT * from entregas where comanda='".$value['comanda']."'
-            and fechaEntreg='".$value['FechaEntreg']."' and estado='ENTREGADO'");
-            if(sizeof($verif)>0){
-                return false;
+
+            $verif=DB::SELECT("SELECT * from entregas where comanda='".$value['comanda']."' and fechaEntreg='".$value['FechaEntreg']."' and estado='ENTREGADO'");
+            $verif2=DB::SELECT("SELECT * from entregas where comanda='".$value['comanda']."' and fechaEntreg='".$value['FechaEntreg']."' and estado='NO ENTREGADO'");
+            $verif3=DB::SELECT("SELECT * from entregas where comanda='".$value['comanda']."' and fechaEntreg='".$value['FechaEntreg']."' and estado='RECHAZADO'");
+
+
+            if(sizeof($verif)>0 && $request->estado=='ENTREGADO'){
+
             }
+            elseif (sizeof($verif2)>0 && $request->estado=='NO ENTREGADO'){
+            
+            }
+            elseif(sizeof($verif3)>0 && $request->estado=='RECHAZADO'){
+                
+            }
+            else{
             DB::table("entregas")->insert([
                 "cliente_id"=>$request->cliente_id,
                 "cinit"=>$request->cinit,
@@ -101,7 +112,7 @@ class EntregaController extends Controller
                 "fecha"=>date('Y-m-d'),
                 "hora"=>date('H:i:s'),
                 "distancia"=>$distancia,
-            ]);
+            ]);}
         }
 
     }
