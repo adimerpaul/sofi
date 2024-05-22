@@ -41,8 +41,9 @@ class RutaController extends Controller
             ->where('tipo','NORMAL')
             ->get();*/
         $resul=[];
-        $list= DB::SELECT("SELECT c.CINIT,c.comanda,c.FechaEntreg,c.Importe,c.Tipago,c.Observacion,
-        (SELECT e.estado from entregas e where e.cinit=c.CINIT and e.comanda=c.comanda ) estado
+        $list= DB::SELECT("SELECT c.CINIT,c.comanda,c.FechaEntreg,c.Importe,c.Tipago,
+        (SELECT e.observacion from entregas e where e.cinit=c.CINIT and e.comanda=c.comanda order by e.estado asc limit 1 ) observacion,
+        (SELECT e.estado from entregas e where e.cinit=c.CINIT and e.comanda=c.comanda order by e.estado asc limit 1 ) estado
         FROM tbctascobrar c WHERE c.CINIT='$request->id' and c.FechaEntreg='$request->fecha'
         group by c.CINIT,c.comanda,c.FechaEntreg,c.Importe,c.Tipago,c.Observacion");
 

@@ -30,7 +30,7 @@
     <l-marker v-for="(c,i) in clientes" :key="c.Cod_Aut" :lat-lng="[c.Latitud, c.longitud]"  @click="clickopciones(c)">
       <l-icon >
         <q-badge
-        :class="c.estado=='ENTREGADO'?'bg-green text-italic':c.estado=='NO ENTREGADO'?'bg-red text-italic':''"
+        :class="c.estado=='ENTREGADO'?'bg-green text-italic':c.estado=='NO ENTREGADO'?'bg-yellow text-italic':'bg-red'"
         style="padding: 2px"
 
         >{{i+1}}
@@ -56,7 +56,7 @@
         </template>
         <template v-slot:body-cell-opcion="props">
           <q-td :class="props.row.estado=='ENTREGADO'?'bg-green text-italic':props.row.estado=='NO ENTREGADO'?'bg-yellow text-italic':''">
-            <q-btn @click="clickclientes(props.row)" icon="my_location" size="xs" :color="props.row.estado=='ENTREGADO'?'positive':'negative'"  />
+            <q-btn @click="clickclientes(props.row)" icon="my_location" size="xs" :color="props.row.estado=='ENTREGADO'?'green':props.row.estado=='NO ENTREGADO'?'yellow-10':'red-10'"  />
           </q-td>
         </template>
         <template v-slot:top-right>
@@ -84,7 +84,7 @@
   </div>
   <q-dialog full-width full-height v-model="dialogentrega">
     <q-card>
-      <q-card-section class="text-center text-subtitle2">{{cliente.Nombres}} {{cliente.Direccion}} {{cliente.Telf}}</q-card-section>
+      <q-card-section class="text-center text-subtitle2"><q-btn class="q-ma-xs"  icon="map" color="accent" size="sm" type="a" target="_blank" :href="'https://www.google.com.bo/maps/place/'+cliente.Latitud+','+cliente.longitud+'/@'+cliente.Latitud+','+cliente.longitud+',17z/data=!3m1!4b1!4m6!3m5!1s0x0:0xeda9371aeb8c1574!7e2!8m2!3d-17.981432!4d-67.1061122?hl=es'"/>{{cliente.Nombres}} {{cliente.Direccion}} {{cliente.Telf}}</q-card-section>
       <q-separator></q-separator>
       <q-card-section>
         <q-form>
@@ -148,6 +148,7 @@
       <q-card-section align="right" >
           <q-btn class="q-pa-xs" color="green" dense label="ENTREGADO"  @click="createEntrega('ENTREGADO')" />
           <q-btn class="q-pa-xs" color="amber" dense label="NO ENTREGADO"  @click="createEntrega('NO ENTREGADO')"/>
+          <q-btn class="q-pa-xs" color="red-10" dense label="RECHAZADO"  @click="createEntrega('RECHAZADO')"/>
           <q-btn class="q-pa-xs" color="red" dense label="CERRAR"  v-close-popup />
 
       </q-card-section>
@@ -203,9 +204,9 @@ export default {
       columspedido:[
         {label:'comanda',name:'comanda',field:'comanda'},
         {label:'Importe',name:'Importe',field:'Importe'},
-        {label:'Tipago',name:'Tipago',field:'Tipago'},
+        {label:'Tipago',name:'Tipago',field:'Tipago',style: 'font-size:18px; font-weight:bold;',},
         {label:'estado',name:'estado',field:'estado'},
-        {label:'Observacion',name:'Observacion',field:'Observacion'},
+        {label:'Observacion',name:'Observacion',field:'observacion'},
 
       ],
       columns:[
@@ -215,6 +216,7 @@ export default {
 
       ],
       fecha:date.formatDate(new Date(),'YYYY-MM-DD'),
+      hoy:date.formatDate(new Date(),'YYYY-MM-DD'),
     }
   },
   async created() {
@@ -317,6 +319,7 @@ export default {
       this.estado=''
       this.observacion=''
       this.cliente=c
+      this.listado=[]
       // console.log(c)
       // return false
       this.$q.loading.show()
@@ -366,6 +369,10 @@ export default {
       this.center = [c.Latitud, c.longitud]
     },
     async misclientes(){
+      if(this.fecha<this.hoy)
+      {this.clientes=[]
+        return false}
+
       this.$q.loading.show()
       this.$api.get('ruta/'+this.fecha).then(res=>{
          console.log(res.data)
