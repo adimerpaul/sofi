@@ -112,6 +112,7 @@ class EntregaController extends Controller
                 "fecha"=>date('Y-m-d'),
                 "hora"=>date('H:i:s'),
                 "distancia"=>$distancia,
+                "pago"=>$value['pago']
             ]);}
         }
 
