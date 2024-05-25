@@ -133,6 +133,7 @@
                       {{ col.value }}
 
                     </q-td >
+                    <td :props="props" :key="pago"><q-input square outlined v-model="props.row.pago" dense type="number" step="0.01" style="background-color:white; width:100px;"/></td>
                     
                   </q-tr>
                   <q-tr v-show="props.expand" :props="props">
@@ -208,6 +209,7 @@ export default {
         {label:'Tipago',name:'Tipago',field:'Tipago',style: 'font-size:18px; font-weight:bold;',},
         {label:'estado',name:'estado',field:'estado'},
         {label:'Observacion',name:'Observacion',field:'observacion'},
+        {label:'pago',name:'pago'},
      //   {label:'monto',name:'monto',field:'monto'},
 
       ],
@@ -329,10 +331,14 @@ export default {
         id:c.Id,
         fecha:this.fecha
       }).then(res=>{
+        this.pedidos=[]
         console.log(res.data)
-
+        res.data.forEach(r => {
+          r.pago=0
+          this.pedidos.push(r)
+        });
         //return false
-        this.pedidos=res.data
+       
         this.dialogentrega=true
         this.$q.loading.hide()
 
