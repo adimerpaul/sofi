@@ -80,8 +80,19 @@
               <q-chip :color="props.row.cantidad==props.row.saldo ? 'green' : 'red'" dense text-color="white">
                 {{ props.row.cantidad=='' || props.row.cantidad==null ? (0).toFixed(2) : props.row.cantidad.toFixed(2) }}
               </q-chip>
+            </q-td>
+          </template>
+          <template v-slot:body-cell-appCantidad="props">
+            <q-td :props="props">
               <q-chip :color="props.row.appCantidad==props.row.cantidad ? 'green' : 'red'" dense text-color="white">
                 {{ props.row.appCantidad.toFixed(2) }}
+              </q-chip>
+            </q-td>
+          </template>
+          <template v-slot:body-cell-diferencia="props">
+            <q-td :props="props">
+              <q-chip :color="parseFloat(props.row.cantidad - props.row.appCantidad) > 0 ? 'red' : 'indigo'" dense text-color="white">
+                {{ (props.row.cantidad - props.row.appCantidad).toFixed(2) }}
               </q-chip>
             </q-td>
           </template>
@@ -295,6 +306,9 @@ export default {
         // {name: 'vencimiento', label: 'Vencimiento', align: 'left', field: 'vencimiento', sortable: true},
         {name: 'grupo', label: 'Grupo', align: 'left', field: 'grupo', sortable: true},
         {name: 'cantidad', label: 'Cantidad', align: 'left', field: 'cantidad', sortable: true},
+        // appCantidad
+        {name: 'appCantidad', label: 'App Cantidad', align: 'left', field: 'appCantidad', sortable: true},
+        {name: 'diferencia', label: 'Diferencia', align: 'left', field: 'diferencia', sortable: true},
         // {name: 'fecha_registro', label: 'Fecha Registro', align: 'left', field: 'fecha_registro', sortable: true},
         // se_descargo
         {name: 'se_descargo', label: 'Se Descargo', align: 'left', field: 'se_descargo', sortable: true},
@@ -331,6 +345,8 @@ export default {
             { label: "Saldo", value: "saldo" },
             { label: "Grupo", value: "grupo" },
             { label: "Cantidad", value: "cantidad" },
+            { label: "App Cantidad", value: "appCantidad" },
+            { label: "Diferencia", value: (row) => row.cantidad - row.appCantidad },
             { label: "Se Descargo", value: "se_descargo" },
             { label: "Cantidad", value: "cantidad" },
             { label: "Cantidad 1", value: "cantidad1" },
