@@ -107,6 +107,8 @@ Route::group(['middleware'=>'auth:sanctum'],function (){
     Route::post('/rePrestamo',[\App\Http\Controllers\PrestamoController::class,'rePrestamo']);
     Route::post('/rePrestamo2',[\App\Http\Controllers\PrestamoController::class,'rePrestamo2']);
     Route::post('/reporteDes',[\App\Http\Controllers\RutaController::class,'reporteDes']);
+    Route::get('/reportContable/{fecha}',[\App\Http\Controllers\RutaController::class,'reportContable']);
+    
     
 });
 

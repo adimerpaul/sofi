@@ -579,7 +579,7 @@ export default {
     },
     listhoy(){
       this.$q.loading.show()
-      this.$api.post('filtrarlista',{filtradia:1}).then(res=>{
+      this.$api.post('filtrarlista',{filtradia:8}).then(res=>{
          console.log(res.data)
         this.clientes=[]
         // this.clientes=res.data
@@ -789,7 +789,8 @@ export default {
         // console.log(res.data)
         // return false
         this.modalopciones=false
-        this.misclientes()
+        this.listhoy()
+        //this.misclientes()
       }).catch(err=>{
         // console.log(err.response)
         this.$q.loading.hide()
@@ -830,7 +831,8 @@ export default {
         // return false
         this.modalpedido=false
         this.fecha=date.formatDate(new Date(),'YYYY-MM-DD')
-        this.misclientes()
+        this.listhoy()
+        //this.misclientes()
       }).catch(err=>{
         // console.log(err.response)
         this.$q.loading.hide()

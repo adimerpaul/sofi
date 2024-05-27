@@ -91,13 +91,17 @@ GROUP BY p.idCli,c.Id,c.Nombres,c.Telf,c.Direccion,c.Latitud,c.longitud,p.estado
     public function listRuta(Request $request)
     {
         $user= $request->user();
-    return DB::select(" SELECT c.CINIT,l.Nombres,c.comanda,c.placa,e.despachador,e.estado,e.observacion
+    return DB::select(" SELECT c.CINIT,l.Nombres,c.comanda,c.placa,e.despachador,e.estado,e.distancia,e.pago,e.observacion
     from tbctascobrar c inner join tbclientes l on c.CINIT=l.Id
     left join entregas e on e.comanda=c.comanda where c.FechaEntreg='$request->fecha'
-    group by c.comanda
-     order by c.comanda
-
+    order by c.comanda
     ");
+    }
+
+    public function reportContable($fecha){
+        return DB::SELECT("SELECT e.despachador,sum(pago) cobro,(select sum(monto) from entregas e2 where e2.despachador=e.despachador and e2.tipago='CONTADO') tcontado,
+        (select sum(monto) from entregas e2 where e2.despachador=e.despachador and e2.tipago='CRÉDITO') tcredito
+        from entregas e where fechaEntreg='$fecha' and estado='ENTREGADO' group by e.despachador;");
     }
 
     public function listPedidos(Request $request){
@@ -111,7 +115,9 @@ GROUP BY p.idCli,c.Id,c.Nombres,c.Telf,c.Direccion,c.Latitud,c.longitud,p.estado
         (select count(*) from entregas e
             WHERE e.fechaEntreg=c.FechaEntreg and c.placa=e.placa and e.estado='ENTREGADO') entreg,
         (select count(*) from entregas e
-            WHERE e.fechaEntreg=c.FechaEntreg and c.placa=e.placa and e.estado='NO ENTREGADO') noentreg
+            WHERE e.fechaEntreg=c.FechaEntreg and c.placa=e.placa and e.estado='NO ENTREGADO') noentreg,
+        (select count(*) from entregas e
+            WHERE e.fechaEntreg=c.FechaEntreg and c.placa=e.placa and e.estado='RECHAZDO') rechazado
          from tbctascobrar c where c.FechaEntreg='$request->fecha' and c.placa!='' GROUP by c.placa,c.fechaEntreg ");
     }
 

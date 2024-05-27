@@ -101,6 +101,7 @@ class EntregaController extends Controller
                 "cinit"=>$request->cinit,
                 "comanda"=>$value['comanda'],
                 "monto"=>$value['Importe'],
+                "tipago"=>$value['Tipago'],
                 "despachador"=>$request->user()->Nombre1.' '.$request->user()->App1,
                 "personal_id"=>$request->user()->CodAut,
                 "placa"=>$request->user()->placa,

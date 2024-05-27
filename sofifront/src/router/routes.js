@@ -20,6 +20,7 @@ import Nopedido from "pages/Nopedido";
 import AlmacenPage from "pages/AlmacenPage.vue";
 import Entregas from "pages/Entregas.vue";
 import Despacho from "pages/Despacho.vue";
+import Clientevisita from "pages/Clientevisita.vue";
 const routes = [
   {
     path: '/',
@@ -46,6 +47,7 @@ const routes = [
       { path: '/almacen', component: AlmacenPage ,meta: {requiresAuth: true}},
       { path: '/entrega', component: Entregas ,meta: {requiresAuth: true}},
       { path: '/despacho', component: Despacho ,meta: {requiresAuth: true}},
+      { path: '/clientevisita', component: Clientevisita ,meta: {requiresAuth: true}},
       { path: '/login', component: Login },
     ]
   },

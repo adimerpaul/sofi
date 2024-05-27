@@ -50,6 +50,17 @@
             </q-item-label>
           </q-item-section>
         </q-item>
+        <q-item clickable active-class="bg-primary text-white" exact to="clientevisita" v-if="vendores.includes($store.getters['login/user'].ci)">
+          <q-item-section avatar>
+            <q-icon name="map" />
+          </q-item-section>
+          <q-item-section>
+            <q-item-label>Ver Clientes Dia</q-item-label>
+            <q-item-label caption>
+              ver la semana
+            </q-item-label>
+          </q-item-section>
+        </q-item>
         <q-item clickable active-class="bg-primary text-white" exact to="mispedidos"  v-if="vendores.includes($store.getters['login/user'].ci)">
           <q-item-section avatar>
             <q-icon name="list" />

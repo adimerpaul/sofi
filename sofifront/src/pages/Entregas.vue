@@ -9,11 +9,27 @@
       <q-table title="Entregas Pedidos" :rows="resumen" :columns="columns2" row-key="name" >
         <template v-slot:body-cell-entreg="props" >
           <q-td :props="props">
-        <q-linear-progress size="18px" rounded :value="calcular(props.row.entreg,props.row.total)" :color="calcular(props.row.entreg,props.row.entreg)<1?'red-7':'green-7'" class="full-width">
+            <div class="q-pa-xs">
+        <q-linear-progress size="16px" rounded :value="calcular(props.row.entreg,props.row.total)" :color="'green-7'" class="full-width ">
           <div class="absolute-full flex flex-center">
-            <q-badge color="white" :text-color="calcular(props.row.entreg,props.row.total)<1?'red-7':'green-7'" :label="props.row.entreg" />
+            <q-badge color="white" :text-color="'green-7'" :label="props.row.entreg" />
           </div>
         </q-linear-progress>
+      </div>
+            <div class="q-pa-xs">
+              <q-linear-progress size="16px" rounded :value="calcular(props.row.noentreg,props.row.total)" :color="'yellow-10'" class="full-width q-pa-xs">
+          <div class="absolute-full flex flex-center">
+            <q-badge color="white" :text-color="'yellow-10'" :label="props.row.noentreg" />
+          </div>
+        </q-linear-progress>
+          </div>
+          <div class="q-pa-xs">
+              <q-linear-progress size="16px" rounded :value="calcular(props.row.rechazado,props.row.total)" :color="'red-7'" class="full-width q-pa-xs">
+          <div class="absolute-full flex flex-center">
+            <q-badge color="white" :text-color="'red-7'" :label="props.row.rechazado" />
+          </div>
+        </q-linear-progress>
+          </div>
         </q-td>
         </template>
         </q-table>
@@ -30,6 +46,8 @@
           <th>PLACA</th>
           <th>DEPACHADOR</th>
           <th>ESTADO</th>
+          <th>DISTANCIA</th>
+          <th>PAGO</th>
           <th>OBSERVACION</th>
         </tr>
         </thead>
@@ -41,10 +59,16 @@
           <td>{{v.placa}} </td>
           <td>{{v.despachador}} </td>
           <td>{{v.estado}}</td>
+          <td>{{v.distancia}}</td>
+          <td>{{v.pago}}</td>
           <td>{{v.observacion}}</td>
         </tr>
         </tbody>
       </table>
+    </div>
+    <div class="col-12">
+      <q-table title="Entrega" :rows="rcontable"  row-key="name" />
+      
     </div>
       <div class="col-4 q-pa-xs"><q-input dense outlined v-model="fechareporte.ini" label="Fecha Ini" type="date"/></div>
       <div class="col-4 q-pa-xs"><q-input dense outlined v-model="fechareporte.fin" label="Fecha Fin" type="date"/></div>
@@ -90,6 +114,7 @@ export default {
       resumen:[],
       listado:[],
       reporte:[],
+      rcontable:[],
        columns : [
   {
     name: 'name',
@@ -137,6 +162,12 @@ colrept:[
       }else{
         return porcentaje
       }
+    },
+    contable(){
+      this.$api.get('reportContable/'+this.fecha).then(res=>{
+        this.rcontable=res.data
+      })
+
     },
     listvendedor(){
       this.$api.post('lispreventista').then(res=>{
@@ -191,6 +222,7 @@ colrept:[
                    'copy', 'csv', 'excel', 'pdf', 'print'
                  ],
                   "lengthMenu": [[10, 25, 50, -1], [10, 25, 50, "All"]]     } )})
+              this.contable()
 
         })
         this.$q.loading.hide()
