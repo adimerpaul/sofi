@@ -65,8 +65,8 @@ class ClienteController extends Controller
     }
 
     public function filtrarlista(Request $request){
-        if($request->filtradia==1) $numdia=date('w');
-        else $numdia=9;
+        if($request->filtradia==8) $numdia=date('w');
+        else $numdia=$request->filtradia;
 
         $filtro='';
         switch ($numdia) {
