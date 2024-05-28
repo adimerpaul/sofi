@@ -888,4 +888,13 @@ class PedidoController extends Controller
 //            }
 //                $conn->close();
     }
+
+    public function  resumenPedidos($fecha){
+        return DB::SELECT("SELECT c.Id,c.Nombres,p.NroPed,p.pago,p.fact,CONCAT(e.Nombre1,' ',e.App1)  personal
+        from tbpedidos p inner join personal e on p.CIfunc=e.CodAut inner join tbclientes c on p.idCli=c.Cod_Aut 
+        where date(p.fecha)='$fecha' and p.tipo='NORMAL' 
+        GROUP by c.Id,c.Nombres,p.NroPed,p.pago,p.fact,personal
+        order by c.Id, p.NroPed
+        ");
+    }
 }
