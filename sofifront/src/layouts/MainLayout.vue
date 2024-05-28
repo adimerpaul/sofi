@@ -94,6 +94,17 @@
             </q-item-label>
           </q-item-section>
         </q-item>
+        <q-item clickable active-class="bg-primary text-white" exact to="clientepedido" v-if="$store.getters['login/user'].ci=='7329536'">
+          <q-item-section avatar>
+            <q-icon name="local_mall" />
+          </q-item-section>
+          <q-item-section>
+            <q-item-label>Pedidos  </q-item-label>
+            <q-item-label caption>
+              Registrados
+            </q-item-label>
+          </q-item-section>
+        </q-item>
         <q-item clickable active-class="bg-primary text-white" exact to="cobrosrealizados" v-if="vendores.includes($store.getters['login/user'].ci) || cobrador.includes($store.getters['login/user'].ci) || $store.getters['login/user'].ci=='7329536'">
           <q-item-section avatar>
             <q-icon name="monetization_on" />
