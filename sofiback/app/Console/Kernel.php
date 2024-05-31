@@ -18,11 +18,6 @@ class Kernel extends ConsoleKernel
     {
 //         $schedule->command('inspire')->hourly();
         $schedule->call(function () {
-
-            $fecha1 = date('Y-m-d');
-
-            $fecha1 = date('Y-m-d', strtotime($fecha1 . ' -1 day'));
-            error_log($fecha1);
             DB::SELECT("UPDATE tbclientes set venta='ACTIVO'");
 
             DB::SELECT("UPDATE tbclientes set venta='INACTIVO'
@@ -31,6 +26,15 @@ class Kernel extends ConsoleKernel
                 FROM tbctascobrar c WHERE c.CINIT=tbclientes.Id and c.Nrocierre=0 and Acuenta=0 and (c.Importe-(SELECT sum(c2.Acuenta) from tbctascobrar c2 where c2.comanda=c.comanda))>5 )>7000
             or (SELECT DATEDIFF( curdate(), (select min(c.FechaEntreg) from tbctascobrar c where c.CINIT =tbclientes.Id and c.Nrocierre=0 and Acuenta=0 and (c.Importe-(SELECT sum(c2.Acuenta) from tbctascobrar c2 where c2.comanda=c.comanda))>=5)))>7 )");
        
+        })->dailyAt('14:00');
+
+        $schedule->call(function () {
+
+            $fecha1 = date('Y-m-d');
+
+            $fecha1 = date('Y-m-d', strtotime($fecha1 . ' -1 day'));
+            error_log($fecha1);
+
             $sql="UPDATE tbctascow c set c.estado='ENVIADO' WHERE c.estado='CREADO' and date(c.fecha)='$fecha1' and (SELECT cl.venta from tbclientes cl where cl.Id=c.idCli)='ACTIVO'";
             error_log($sql);
         DB::SELECT($sql);
@@ -43,6 +47,7 @@ class Kernel extends ConsoleKernel
     WHERE c.CINIT=tbclientes.Id and c.Nrocierre=0 and Acuenta=0 and (c.Importe-(SELECT sum(c2.Acuenta) from $cont c2 where c2.comanda=c.comanda))>5 )<7000
          ");*/
         })->daily();
+
     }
 
     /**
