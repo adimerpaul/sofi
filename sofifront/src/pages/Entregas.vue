@@ -7,6 +7,12 @@
 
     <div class="col-12">
       <q-table title="Entregas Pedidos" :rows="resumen" :columns="columns2" row-key="name" >
+        <template v-slot:body-cell-op="props" >
+          <q-td :props="props">
+             <q-btn color="info" icon="print" dense @click="impresion(props.row)"/>
+            
+          </q-td>
+        </template>
         <template v-slot:body-cell-entreg="props" >
           <q-td :props="props">
             <div class="q-pa-xs">
@@ -84,6 +90,7 @@
 
 <script>
 import {date} from "quasar";
+
 var $  = require( 'jquery' );
 require( 'datatables.net-buttons/js/buttons.html5.js' )();
 require( 'datatables.net-buttons/js/buttons.print.js' )();
@@ -100,6 +107,7 @@ export default {
   data(){
     return{
       usuarios:[],
+
       fecha:date.formatDate(new Date(),'YYYY-MM-DD'),
       fechareporte:{ini:date.formatDate(new Date(),'YYYY-MM-DD'),fin:date.formatDate(new Date(),'YYYY-MM-DD')},
       user:{},
@@ -127,6 +135,7 @@ export default {
   { name: 'personal', align: 'center', label: 'PERSONAL', field: row=> row.Nombre1 + ' ' +row.App1, sortable: true },
   { name: 'observacion', label: 'OBSERVACION', field: 'observacion' },],
   columns2 : [
+  { name: 'op',  label: 'OP', field: 'op' },
   { name: 'placa',  label: 'placa', field: 'placa', sortable: true },
   { name: 'fecha', label: 'Fecha',    field: 'fechaEntreg' },
   { name: 'total',  label: 'Total', field: 'total' },
@@ -155,6 +164,35 @@ colrept:[
     this.consula()
   },
   methods:{
+    impresion(r){
+      console.log(r)
+      this.$api.post('reportEntImp',{fecha:this.fecha,placa:r.placa}).then(res=>{
+        let contenido=''
+        let num=1
+        let total=0
+        res.data.forEach(r => {
+            contenido+='<tr><td>'+num+'</td><td>'+r.comanda+'</td><td>'+r.Nombres+'</td><td>'+r.Importe+'</td></tr>'
+            num++
+            total+=r.Importe
+        });
+        let cadena=`<style>
+        .titulo1{font-size:18px;}
+        .tab1{width:100%}</style>
+        <table class='tab1'>
+          <tr><td><img src="logo.png" alt="logo" width="150" height="100"></td>
+            <td class='titulo1' style='color:red; font-weight:bold; font-size:20px;'>ENTREGAS DEL DIA <br> <span style="color:blue">`+date.formatDate(this.fecha,'dddd, DD MMMM YYYY')+`</span></td></tr>
+          </table>
+          <table class='tab1'
+            <tr><th>No</th><th>Comanda</th><th>Cliente</th><th>Monto</th></tr>
+            `+contenido+`
+          </table>`
+        let myWindow = window.open("", "Imprimir", "width=1000,height=1000");
+        myWindow.document.write(cadena);
+        myWindow.document.close();
+        myWindow.print();
+        myWindow.close();
+      })
+      },
     calcular(entrega,total){
       let porcentaje=((entrega/total*100)/100)
       if (porcentaje>1){
