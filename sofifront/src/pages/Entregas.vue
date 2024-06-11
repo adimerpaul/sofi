@@ -10,7 +10,7 @@
         <template v-slot:body-cell-op="props" >
           <q-td :props="props">
              <q-btn color="info" icon="print" dense @click="impresion(props.row)"/>
-            
+
           </q-td>
         </template>
         <template v-slot:body-cell-entreg="props" >
@@ -74,14 +74,14 @@
     </div>
     <div class="col-12">
       <q-table title="Entrega" :rows="rcontable"  row-key="name" />
-      
+
     </div>
       <div class="col-4 q-pa-xs"><q-input dense outlined v-model="fechareporte.ini" label="Fecha Ini" type="date"/></div>
       <div class="col-4 q-pa-xs"><q-input dense outlined v-model="fechareporte.fin" label="Fecha Fin" type="date"/></div>
       <div class="col-4 q-pa-xs"> <q-btn dense color="green" icon="search" @click="reportEnt"/></div>
       <div class="col-12">
         <q-table title="Reporte Canastillos" :rows="reporte" :columns="colrept" row-key="name" />
-        
+
       </div>
       <div id="myelement" class="hidden"></div>
 
@@ -172,11 +172,13 @@ colrept:[
         let contenido=''
         let num=1
         let total=0
+        let totalpago=0
         res.data.forEach(r => {
             if (r.estado ==null) r.estado=''
-            contenido+='<tr><td>'+num+'</td><td>'+r.comanda+'</td><td>'+r.Nombres+'</td><td>'+r.Importe+'</td><td>'+r.estado+'</td></tr>'
+            contenido+='<tr><td>'+num+'</td><td>'+r.comanda+'</td><td>'+r.Nombres+'</td><td>'+r.Importe+'</td><td>'+Tipago+'</td><td>'+r.estado+'</td><td>'+r.pago+'</td</tr>'
             num++
             total+=parseFloat(r.Importe)
+            totalpago+=parseFloat(r.pago)
         });
         let cadena=`<style>
         .titulo1{font-size:18px;}
@@ -186,10 +188,11 @@ colrept:[
             <td class='titulo1' style='color:red; font-weight:bold; font-size:20px;'>ENTREGAS DEL DIA <br> <span style="color:blue">`+date.formatDate(this.fecha,'dddd, DD MMMM YYYY')+`</span></td></tr>
           </table>
           <table class='tab1'
-            <tr><th>No</th><th>Comanda</th><th>Cliente</th><th>Monto</th><th>Estado</th></tr>
+            <tr><th>No</th><th>Comanda</th><th>Cliente</th><th>Monto</th><th>Tipo</th><th>Estado</th><th>Pago</th></tr>
             `+contenido+`
           </table>
-          <div><b>TOTAL: </b> `+total+`</div>`
+          <div><b>TOTAL Comanda: </b> `+total.toFixed(2)+` Bs</div>
+          <div><b>TOTAL Pagos: </b> `+totalpago.toFixed(2)+` Bs</div>`
           document.getElementById('myelement').innerHTML = cadena
           const d = new Printd()
           d.print( document.getElementById('myelement') )
