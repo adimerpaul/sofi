@@ -175,7 +175,7 @@ colrept:[
         let totalpago=0
         res.data.forEach(r => {
             if (r.estado ==null) r.estado=''
-            contenido+='<tr><td>'+num+'</td><td>'+r.comanda+'</td><td>'+r.Nombres+'</td><td>'+r.Importe+'</td><td>'+Tipago+'</td><td>'+r.estado+'</td><td>'+r.pago+'</td</tr>'
+            contenido+='<tr><td>'+num+'</td><td>'+r.comanda+'</td><td>'+r.Nombres+'</td><td>'+r.Importe+'</td><td>'+r.Tipago+'</td><td>'+r.estado+'</td><td>'+r.pago+'</td</tr>'
             num++
             total+=parseFloat(r.Importe)
             totalpago+=parseFloat(r.pago)
