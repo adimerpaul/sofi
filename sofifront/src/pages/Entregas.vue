@@ -83,6 +83,7 @@
         <q-table title="Reporte Canastillos" :rows="reporte" :columns="colrept" row-key="name" />
         
       </div>
+      <div id="myelement" class="hidden"></div>
 
   </div>
 </q-page>
@@ -90,6 +91,7 @@
 
 <script>
 import {date} from "quasar";
+import { Printd } from 'printd'
 
 var $  = require( 'jquery' );
 require( 'datatables.net-buttons/js/buttons.html5.js' )();
@@ -171,9 +173,10 @@ colrept:[
         let num=1
         let total=0
         res.data.forEach(r => {
-            contenido+='<tr><td>'+num+'</td><td>'+r.comanda+'</td><td>'+r.Nombres+'</td><td>'+r.Importe+'</td></tr>'
+            if (r.estado ==null) r.estado=''
+            contenido+='<tr><td>'+num+'</td><td>'+r.comanda+'</td><td>'+r.Nombres+'</td><td>'+r.Importe+'</td><td>'+r.estado+'</td></tr>'
             num++
-            total+=r.Importe
+            total+=parseFloat(r.Importe)
         });
         let cadena=`<style>
         .titulo1{font-size:18px;}
@@ -183,15 +186,14 @@ colrept:[
             <td class='titulo1' style='color:red; font-weight:bold; font-size:20px;'>ENTREGAS DEL DIA <br> <span style="color:blue">`+date.formatDate(this.fecha,'dddd, DD MMMM YYYY')+`</span></td></tr>
           </table>
           <table class='tab1'
-            <tr><th>No</th><th>Comanda</th><th>Cliente</th><th>Monto</th></tr>
+            <tr><th>No</th><th>Comanda</th><th>Cliente</th><th>Monto</th><th>Estado</th></tr>
             `+contenido+`
-          </table>`
-        let myWindow = window.open("", "Imprimir", "width=1000,height=1000");
-        myWindow.document.write(cadena);
-        myWindow.document.close();
-        myWindow.print();
-        myWindow.close();
-      })
+          </table>
+          <div><b>TOTAL: </b> `+total+`</div>`
+          document.getElementById('myelement').innerHTML = cadena
+          const d = new Printd()
+          d.print( document.getElementById('myelement') )
+          })
       },
     calcular(entrega,total){
       let porcentaje=((entrega/total*100)/100)
