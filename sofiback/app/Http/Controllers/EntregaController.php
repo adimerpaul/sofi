@@ -148,9 +148,16 @@ class EntregaController extends Controller
          where e.fecha='$fecha'");
     }
 
+    public function reportEntImp(Request $request){
+        return DB::SELECT("SELECT c.comanda,e.Nombres,c.Importe,n.estado,c.Tipago,n.pago 
+        from tbclientes e inner join tbctascobrar c on e.Id=c.CINIT LEFT JOIN entregas n on n.comanda=c.comanda 
+        where date(c.FechaEntreg)='$request->fecha' and c.placa='$request->placa' 
+        group by c.comanda,e.Nombres,c.Importe,n.estado,c.Tipago,n.pago  order by c.comanda,n.estado asc;");
+    }
+
     /**
      * Show the form for editing the specified resource.
-     *
+     * 
      * @param  int  $id
      * @return \Illuminate\Http\Response
      */

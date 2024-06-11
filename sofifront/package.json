@@ -26,6 +26,7 @@
     "jszip": "^3.7.1",
     "leaflet": "^1.7.1",
     "pdfmake": "^0.2.4",
+    "printd": "^1.6.0",
     "quasar": "^2.0.0",
     "vue2-leaflet": "^2.7.1",
     "vuex": "^4.0.1"
