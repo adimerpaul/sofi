@@ -40,7 +40,8 @@
             </q-td>
           </template>
           <template v-slot:body-cell-Nombres="props">
-            <q-td :class="props.row.tipo=='PEDIDO'?'bg-green-3  text-italic':props.row.tipo=='PARADO'?'bg-yellow-3  text-italic':props.row.tipo=='NO PEDIDO'?'bg-red-3 text-italic':''"  :props="props">
+            <q-td :class="props.row.tipo=='PEDIDO'?'bg-green-3  text-italic':props.row.tipo=='PARADO'?'bg-yellow-3  text-italic':props.row.tipo=='NO PEDIDO'?'bg-red-3 text-italic':''"  :props="props"
+                  @click="clickopciones(props.row)">
               <div class="text-weight-medium">{{ props.row.Nombres}}</div>
               <div class="text-caption" style="font-size: 8px">{{ props.row.Direccion}}</div>
             </q-td>
@@ -487,6 +488,7 @@ export default {
         {label:'Jueves',value:'4'},
         {label:'Viernes',value:'5'},
         {label:'Sabado',value:'6'},
+        {label: 'Todos',value: '9'}
       ],
       dia:{label:'HOY',value:'8'},
       fact:'',
