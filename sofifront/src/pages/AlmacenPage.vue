@@ -346,7 +346,7 @@ export default {
             { label: "Grupo", value: "grupo" },
             { label: "Cantidad", value: "cantidad" },
             { label: "App Cantidad", value: "appCantidad" },
-            { label: "Diferencia", value: (row) => row.cantidad - row.appCantidad },
+            { label: "Diferencia", value: (row) => row.saldo - row.appCantidad },
             { label: "Se Descargo", value: "se_descargo" },
             { label: "Cantidad", value: "cantidad" },
             { label: "Cantidad 1", value: "cantidad1" },
