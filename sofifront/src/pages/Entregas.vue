@@ -172,7 +172,7 @@ colrept:[
         let contenido=''
         let contenido2=''
         let num=1
-        let num0=1
+        let num2=1
         let totalcred=0
         let totalcont=0
         let totalpago=0
