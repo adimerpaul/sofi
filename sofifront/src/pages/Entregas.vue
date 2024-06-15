@@ -170,29 +170,48 @@ colrept:[
       console.log(r)
       this.$api.post('reportEntImp',{fecha:this.fecha,placa:r.placa}).then(res=>{
         let contenido=''
+        let contenido2=''
         let num=1
-        let total=0
+        let num0=1
+        let totalcred=0
+        let totalcont=0
         let totalpago=0
         res.data.forEach(r => {
             if (r.estado ==null) r.estado=''
             if (r.pago ==null) r.pago=0
-            contenido+='<tr><td>'+num+'</td><td>'+r.comanda+'</td><td>'+r.Nombres+'</td><td>'+r.Importe+'</td><td>'+r.Tipago+'</td><td>'+r.estado+'</td><td>'+r.pago+'</td</tr>'
-            num++
-            total+=parseFloat(r.Importe)
+            if(r.Tipago=='CONTADO'){
+              contenido+='<tr><td>'+num+'</td><td>'+r.comanda+'</td><td>'+r.Nombres+'</td><td>'+r.Importe+'</td><td>'+r.estado+'</td><td>'+r.pago+'</td</tr>'
+                num++
+                totalcred+=parseFloat(r.Importe)
+
+              }
+              else{
+              contenido2+='<tr><td>'+num2+'</td><td>'+r.comanda+'</td><td>'+r.Nombres+'</td><td>'+r.Importe+'</td><td>'+r.estado+'</td><td>'+r.pago+'</td</tr>'
+                num2++
+                totalcont+=parseFloat(r.Importe)
+              }
             totalpago+=parseFloat(r.pago)
         });
         let cadena=`<style>
         .titulo1{font-size:18px;}
+        .titulo2{font-size:14px; text-align:center; font-weight:bold;}
         .tab1{width:100%}</style>
         <table class='tab1'>
           <tr><td><img src="logo.png" alt="logo" width="150" height="100"></td>
             <td class='titulo1' style='color:red; font-weight:bold; font-size:20px;'>ENTREGAS DEL DIA <br> <span style="color:blue">`+date.formatDate(this.fecha,'dddd, DD MMMM YYYY')+`</span></td></tr>
           </table>
+          <div class='titulo2'>PEDIDOS AL CONTADO</div>
           <table class='tab1'
-            <tr><th>No</th><th>Comanda</th><th>Cliente</th><th>Monto</th><th>Tipo</th><th>Estado</th><th>Pago</th></tr>
+            <tr><th>No</th><th>Comanda</th><th>Cliente</th><th>Monto</th><th>Estado</th><th>Pago</th></tr>
             `+contenido+`
+          </table><br>
+          <div class='titulo2'>PEDIDOS AL CREDITO</div>
+          <table class='tab1'
+            <tr><th>No</th><th>Comanda</th><th>Cliente</th><th>Monto</th><th>Estado</th><th>Pago</th></tr>
+            `+contenido2+`
           </table>
-          <div><b>TOTAL Comanda: </b> `+total.toFixed(2)+` Bs</div>
+          <div><b>TOTAL CREDITO: </b> `+totalcred.toFixed(2)+` Bs</div>
+          <div><b>TOTAL CONTADO: </b> `+totalcont.toFixed(2)+` Bs</div>
           <div><b>TOTAL Pagos: </b> `+totalpago.toFixed(2)+` Bs</div>`
           document.getElementById('myelement').innerHTML = cadena
           const d = new Printd()

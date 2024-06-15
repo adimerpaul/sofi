@@ -30,7 +30,7 @@
     <l-marker v-for="(c,i) in clientes" :key="c.Cod_Aut" :lat-lng="[c.Latitud, c.longitud]"  @click="clickopciones(c)">
       <l-icon >
         <q-badge
-        :class="c.estado=='ENTREGADO'?'bg-green text-italic':c.estado=='NO ENTREGADO'?'bg-yellow text-italic':'bg-red'"
+        :class="c.estado=='ENTREGADO'?'bg-green text-italic':c.estado=='NO ENTREGADO'?'bg-yellow text-italic':c.estado=='RECHAZADO'?'bg-red text-italic':'bg-blue'"
         style="padding: 2px"
 
         >{{i+1}}
@@ -49,13 +49,13 @@
 <!--          </q-td>-->
 <!--        </template>-->
         <template v-slot:body-cell-Nombres="props">
-          <q-td :class="props.row.estado=='ENTREGADO'?'bg-green text-italic':props.row.estado=='NO ENTREGADO'?'bg-yellow text-italic':''" @click="clickopciones(props.row)" :props="props">
+          <q-td :class="props.row.estado=='ENTREGADO'?'bg-green text-italic':props.row.estado=='NO ENTREGADO'?'bg-yellow text-italic':props.row.estado=='RECHAZADO'?'bg-red text-italic':''" @click="clickopciones(props.row)" :props="props">
             <div class="text-weight-medium"> {{ props.pageIndex+1 }} {{ props.row.Nombres}}</div>
             <div class="text-caption" style="font-size: 8px">{{ props.row.Direccion}}</div>
           </q-td>
         </template>
         <template v-slot:body-cell-opcion="props">
-          <q-td :class="props.row.estado=='ENTREGADO'?'bg-green text-italic':props.row.estado=='NO ENTREGADO'?'bg-yellow text-italic':''">
+          <q-td :class="props.row.estado=='ENTREGADO'?'bg-green text-italic':props.row.estado=='NO ENTREGADO'?'bg-yellow text-italic':props.row.estado=='RECHAZADO'?'bg-red text-italic':''">
             <q-btn @click="clickclientes(props.row)" icon="my_location" size="xs" :color="props.row.estado=='ENTREGADO'?'green':props.row.estado=='NO ENTREGADO'?'yellow-10':'red-10'"  />
           </q-td>
         </template>
@@ -134,7 +134,7 @@
 
                     </q-td >
                     <td :props="props" :key="pago"><q-input square outlined v-model="props.row.pago" dense type="number" step="0.01" style="background-color:white; width:100px;"/></td>
-                    
+
                   </q-tr>
                   <q-tr v-show="props.expand" :props="props">
                     <q-td colspan="100%">
@@ -338,7 +338,7 @@ export default {
           this.pedidos.push(r)
         });
         //return false
-       
+
         this.dialogentrega=true
         this.$q.loading.hide()
 
