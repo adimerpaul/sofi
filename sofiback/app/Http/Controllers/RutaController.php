@@ -99,8 +99,8 @@ GROUP BY p.idCli,c.Id,c.Nombres,c.Telf,c.Direccion,c.Latitud,c.longitud,p.estado
     }
 
     public function reportContable($fecha){
-        return DB::SELECT("SELECT e.despachador,sum(pago) cobro,(select sum(monto) from entregas e2 where e2.despachador=e.despachador and e2.tipago='CONTADO') tcontado,
-        (select sum(monto) from entregas e2 where e2.despachador=e.despachador and e2.tipago='CRÉDITO') tcredito
+        return DB::SELECT("SELECT e.despachador,sum(pago) cobro,(select sum(monto) from entregas e2 where e2.despachador=e.despachador and e2.tipago='CONTADO' and e2.fechaEntreg='$fecha') tcontado,
+        (select sum(monto) from entregas e2 where e2.despachador=e.despachador and e2.tipago='CRÉDITO' and e2.fechaEntreg='$fecha') tcredito
         from entregas e where fechaEntreg='$fecha' and estado='ENTREGADO' group by e.despachador;");
     }
 
