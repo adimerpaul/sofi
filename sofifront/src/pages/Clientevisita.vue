@@ -29,7 +29,7 @@
       <div class="col-1 q-pa-xs" @click="listhoy" >
        <q-btn icon="today" size="xs" color="cyan" />
       </div>
-      <div class="col-4 q-pa-xs"><q-select dense square outlined v-model="dia" :options="semana" label="DIA SEMANA" /></div>
+      <div class="col-4 q-pa-xs"><q-select dense square outlined v-model="dia" :options="semana" label="DIA SEMANA" @update:modelValue="diaChange"/></div>
     </div>
     <div class="row">
       <div class="col-12">
@@ -502,11 +502,15 @@ export default {
         {label:'cod_prod',name:'cod_prod',field:'cod_prod',align:'left'},
         {label:'nombre',name:'nombre',field:'nombre',align:'left'},
         {label:'observacion',name:'observacion',field:'observacion',align:'left'},
-      ]
+      ],
+      valueDia : JSON.parse(localStorage.getItem('dia'))
     };
   },
 
   created() {
+    if (this.valueDia != undefined){
+      this.dia = this.valueDia
+    }
     this.listhoy()
     //this.misclientes()
     this.consultamisproductos()
@@ -517,6 +521,9 @@ export default {
     // })
   },
   methods: {
+    diaChange(value){
+      localStorage.setItem('dia', JSON.stringify(value))
+    },
     modcomentario(){
       console.log(this.comentario)
       this.$api.post('updateComentario',this.comentario).then(res=>{
