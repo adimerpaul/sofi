@@ -37,7 +37,6 @@
         </q-badge>
       </l-icon>
     </l-marker>
-
   </l-map>
   </div>
   <div class="row">
@@ -111,7 +110,7 @@
               <q-btn type="submit" class="full-width" label="Confirmar" color="positive" icon="add_circle"/>
             </div>-->
             <div class="col-12">
-              <q-table dense lang="productos" :rows="pedidos" :columns="columspedido"
+              <q-table dense lang="productos" :rows="pedidos" :columns="columspedido" 
               row-key="comanda"
               selection="multiple"
               v-model:selected="listado">
@@ -149,7 +148,7 @@
       </q-card-section>
       <q-card-section align="right" >
           <q-btn class="q-pa-xs" color="green" dense label="ENTREGADO"  @click="createEntrega('ENTREGADO')" />
-          <q-btn class="q-pa-xs" color="amber" dense label="NO ENTREGADO"  @click="createEntrega('NO ENTREGADO')"/>
+          <q-btn class="q-pa-xs" color="amber" dense label="VOLVER MAS TARDE"  @click="createEntrega('NO ENTREGADO')"/>
           <q-btn class="q-pa-xs" color="red-10" dense label="RECHAZADO"  @click="createEntrega('RECHAZADO')"/>
           <q-btn class="q-pa-xs" color="red" dense label="CERRAR"  v-close-popup />
 
