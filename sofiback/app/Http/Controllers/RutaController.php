@@ -87,6 +87,30 @@ GROUP BY p.idCli,c.Id,c.Nombres,c.Telf,c.Direccion,c.Latitud,c.longitud,p.estado
     ");
     }
 
+    public function listClienteComanda(Request $request)
+    {
+
+        $user= $request->user();
+    return DB::select(" SELECT c.Cod_Aut,p.CINIT,c.Id,c.Nombres,c.Telf,c.Direccion,c.Latitud,c.longitud,
+    (select e.estado from entregas e where e.cliente_id=c.Cod_Aut and e.fechaEntreg='$request->fecha' order by e.estado asc limit 1  ) estado
+    FROM tbctascobrar p
+    INNER JOIN tbclientes c ON c.Id=p.CINIT
+    WHERE date(p.FechaEntreg)='".$request->fecha."'
+    GROUP BY c.Cod_Aut,p.CINIT,c.Id,c.Nombres,c.Telf,c.Direccion,c.Latitud,c.longitud
+    order by estado asc
+    ");
+    }
+
+    public function listEntrega(){
+        return DB::select(" SELECT c.Cod_Aut,p.CINIT,c.Id,c.Nombres,c.Telf,c.Direccion,c.Latitud,c.longitud,
+        (select e.estado from entregas e where e.cliente_id=c.Cod_Aut and e.fechaEntreg='$fecha' order by e.estado asc limit 1  ) estado
+        FROM tbctascobrar p
+        INNER JOIN tbclientes c ON c.Id=p.CINIT
+        WHERE date(p.FechaEntreg)='".$fecha."'
+        GROUP BY c.Cod_Aut,p.CINIT,c.Id,c.Nombres,c.Telf,c.Direccion,c.Latitud,c.longitud
+        order by estado asc
+        "); 
+    }
 
     public function listRuta(Request $request)
     {
@@ -99,7 +123,8 @@ GROUP BY p.idCli,c.Id,c.Nombres,c.Telf,c.Direccion,c.Latitud,c.longitud,p.estado
     }
 
     public function reportContable($fecha){
-        return DB::SELECT("SELECT e.despachador,sum(pago) cobro,(select sum(monto) from entregas e2 where e2.despachador=e.despachador and e2.tipago='CONTADO' and e2.fechaEntreg='$fecha') tcontado,
+        return DB::SELECT("SELECT e.despachador,sum(pago) cobro,
+        (select sum(monto) from entregas e2 where e2.despachador=e.despachador and e2.tipago='CONTADO' and e2.fechaEntreg='$fecha') tcontado,
         (select sum(monto) from entregas e2 where e2.despachador=e.despachador and e2.tipago='CRÉDITO' and e2.fechaEntreg='$fecha') tcredito
         from entregas e where fechaEntreg='$fecha' and estado='ENTREGADO' group by e.despachador;");
     }
@@ -117,7 +142,7 @@ GROUP BY p.idCli,c.Id,c.Nombres,c.Telf,c.Direccion,c.Latitud,c.longitud,p.estado
         (select count(*) from entregas e
             WHERE e.fechaEntreg=c.FechaEntreg and c.placa=e.placa and e.estado='NO ENTREGADO') noentreg,
         (select count(*) from entregas e
-            WHERE e.fechaEntreg=c.FechaEntreg and c.placa=e.placa and e.estado='RECHAZDO') rechazado
+            WHERE e.fechaEntreg=c.FechaEntreg and c.placa=e.placa and e.estado='RECHAZADO') rechazado
          from tbctascobrar c where c.FechaEntreg='$request->fecha' and c.placa!='' GROUP by c.placa,c.fechaEntreg ");
     }
 

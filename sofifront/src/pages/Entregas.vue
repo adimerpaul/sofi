@@ -3,7 +3,6 @@
   <div class="col-6">
     <q-input @change="consula()" v-model="fecha" label="fecha" dense outlined type="date" />
   </div>
-  <div class="row">
 
     <div class="col-12">
       <q-table title="Entregas Pedidos" :rows="resumen" :columns="columns2" row-key="name" >
@@ -40,37 +39,77 @@
         </template>
         </q-table>
     </div>
+    <div class="row">
+      <div class="col-md-6 col-xs-12">
+        <div style="height: 350px; width: 100%;">
+          <l-map
+            @ready="onReady"
+            @locationfound="onLocationFound"
+            v-model="zoom"
+            :zoom="zoom"
+            :center="center"
+            @move="log('move')"
+          >
+            <LTileLayer
+              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            ></LTileLayer>
+        <!--    @click="clickopciones(c)"-->
+            <l-marker v-for="(c,i) in clientes" :key="c.Cod_Aut" :lat-lng="[c.Latitud, c.longitud]" @click="getPedidos(c)" >
+              <l-tooltip :content="c.Nombres"></l-tooltip>
+              <l-icon >
+                <q-badge
+                :class="c.estado=='ENTREGADO'?'bg-green text-italic':c.estado=='NO ENTREGADO'?'bg-yellow text-italic':c.estado=='RECHAZADO'?'bg-red text-italic':'bg-blue'"
+                style="padding: 2px"
+        
+                >{{i+1}}
+                </q-badge>
+              </l-icon>
+            </l-marker>
+          </l-map>
+          </div>
+      </div>
+      <div class="col-md-6 col-xs-12">
+        <q-table title="COMANDAS" :rows="pedidos" :columns="colPed"  dense lang="productos" row-key="name">
 
+          <template v-slot:body="props">
+            <q-tr :props="props" :class="props.row.estado=='ENTREGADO'?'bg-green':props.row.estado=='NO ENTREGADO'?'bg-amber':props.row.estado=='RECHAZADO'?'bg-red':''">
+
+              <q-td
+                v-for="col in props.cols"
+                :key="col.name"
+                :props="props"
+              >
+                {{ col.value }}
+
+              </q-td >
+              <q-td auto-width>
+                <q-btn size="sm"
+                       :color="props.expand ? 'primary' : 'secondary'"
+                       :label="props.expand ? 'Ocul' : 'Ver'"
+                       no-caps dense @click="props.expand = !props.expand" :icon="props.expand ? 'visibility_off' : 'visibility'"/>
+              </q-td>
+            </q-tr>
+            <q-tr v-show="props.expand" :props="props">
+              <q-td colspan="100%">
+                <div class="text-left" v-for="r in props.row.detalle " :key="r"> <b>Codigo:</b> {{r.cod_prod}} <b>Producto:</b> {{r.Producto}} <b>Cantidad:</b> {{r.cant}} </div>
+              </q-td>
+            </q-tr>
+          </template>
+        </q-table>
+      </div>
+    </div>
     <div class="col-12">
 <!--      <pre>{{datos}}</pre>-->
-      <table id="example" class="display" style="width:100%">
-        <thead>
-        <tr>
-          <th>CINIT</th>
-          <th>NOMBRE</th>
-          <th>COMANDA</th>
-          <th>PLACA</th>
-          <th>DEPACHADOR</th>
-          <th>ESTADO</th>
-          <th>DISTANCIA</th>
-          <th>PAGO</th>
-          <th>OBSERVACION</th>
-        </tr>
-        </thead>
-        <tbody>
-        <tr v-for="(v,index) in listado" :key="index">
-          <td>{{v.CINIT}}</td>
-          <td>{{v.Nombres}}</td>
-          <td>{{v.comanda}}</td>
-          <td>{{v.placa}} </td>
-          <td>{{v.despachador}} </td>
-          <td>{{v.estado}}</td>
-          <td>{{v.distancia}}</td>
-          <td>{{v.pago}}</td>
-          <td>{{v.observacion}}</td>
-        </tr>
-        </tbody>
-      </table>
+      <q-table title="LISTA ENTREGA COMANDA" :rows="listado"  row-key="name" :filter="filter">
+        <template v-slot:top-right>
+          <q-input outlined dense debounce="300" v-model="filter" placeholder="Buscar">
+            <template v-slot:append>
+              <q-icon name="search" />
+            </template>
+          </q-input>
+        </template>
+        </q-table>
+      
     </div>
     <div class="col-12">
       <q-table title="Entrega" :rows="rcontable"  row-key="name" />
@@ -85,31 +124,42 @@
       </div>
       <div id="myelement" class="hidden"></div>
 
-  </div>
 </q-page>
 </template>
 
 <script>
 import {date} from "quasar";
 import { Printd } from 'printd'
+import {
+  LMap,
+  LIcon,
+  LTileLayer,
+  LMarker,
+  LControlLayers,
+  LTooltip,
+  LPopup,
+  LPolyline,
+  LPolygon,
+  LRectangle,
+} from "@vue-leaflet/vue-leaflet";
+import "leaflet/dist/leaflet.css";
 
-var $  = require( 'jquery' );
-require( 'datatables.net-buttons/js/buttons.html5.js' )();
-require( 'datatables.net-buttons/js/buttons.print.js' )();
-require('datatables.net-buttons/js/dataTables.buttons');
-require('datatables.net-dt/css/jquery.dataTables.min.css');
-import print from 'datatables.net-buttons/js/buttons.print';
-import jszip from 'jszip/dist/jszip';
-import pdfMake from 'pdfmake/build/pdfmake';
-import pdfFonts from 'pdfmake/build/vfs_fonts';
-pdfMake.vfs=pdfFonts.pdfMake.vfs;
-window.JSZip=jszip;
 export default {
+  components: {
+    LMap,
+    LIcon,
+    LTileLayer,
+    LMarker,
+    LTooltip
+  },
   name: `Entrega`,
   data(){
     return{
       usuarios:[],
-
+      filter:'',
+      clientes:[],
+      pedidos:[],
+      zoom:16,
       fecha:date.formatDate(new Date(),'YYYY-MM-DD'),
       fechareporte:{ini:date.formatDate(new Date(),'YYYY-MM-DD'),fin:date.formatDate(new Date(),'YYYY-MM-DD')},
       user:{},
@@ -125,6 +175,7 @@ export default {
       listado:[],
       reporte:[],
       rcontable:[],
+      center:[-17.970371, -67.112303],
        columns : [
   {
     name: 'name',
@@ -154,18 +205,49 @@ colrept:[
   { name: 'placa',  label: 'placa', field: 'placa', sortable: true },
   { name: 'prestado',  label: 'prestado', field: 'prestado', sortable: true },
   { name: 'devuelto',  label: 'devuelto', field: 'devuelto', sortable: true },
+],
+colPed:[
+        {label:'comanda',name:'comanda',field:'comanda'},
+        {label:'Importe',name:'Importe',field:'Importe'},
+        {label:'Tipago',name:'Tipago',field:'Tipago',style: 'font-size:16px; font-weight:bold;',},
+        {label:'estado',name:'estado',field:'estado'},
+        {label:'Observacion',name:'Observacion',field:'observacion'},
+        {label:'op',name:'op',field:'op'},
 ]
 
     }
   },
   created(){
-           $('#example').DataTable( {
-       dom: 'Blfrtip',
-       buttons: ['copy', 'csv', 'excel', 'pdf', 'print']
-     } );
     this.consula()
   },
   methods:{
+    getPedidos(c){
+      this.$api.post('ruta',{id:c.Id, fecha:this.fecha} ).then(res=>{
+          this.pedidos=res.data
+      })
+    },
+    async misclientes(){
+      this.$q.loading.show()
+      this.$api.post('listClienteComanda',{fecha:this.fecha} ).then(res=>{
+         console.log(res.data)
+         this.clientes=res.data
+        this.$q.loading.hide()
+      }).catch(err=>{
+        this.$q.loading.hide()
+        this.$q.notify({
+          message:'Error al conectarse al server',
+          color:'red',
+          icon:'error'
+        })
+      })
+    },
+    onReady (mapObject) {
+      mapObject.locate();
+    },
+    onLocationFound(location){
+      // console.log(location)
+      this.center=[location.latlng.lat,location.latlng.lng]
+    },
     impresion(r){
       console.log(r)
       this.$api.post('reportEntImp',{fecha:this.fecha,placa:r.placa}).then(res=>{
@@ -228,9 +310,13 @@ colrept:[
     },
     contable(){
       this.$api.get('reportContable/'+this.fecha).then(res=>{
+        res.data.forEach(r => {
+            r.tcontado=r.tcontado.toFixed(1)
+            r.tcredito=r.tcredito.toFixed(1)
+            r.cobro=r.cobro.toFixed(1)
+        });
         this.rcontable=res.data
       })
-
     },
     listvendedor(){
       this.$api.post('lispreventista').then(res=>{
@@ -265,7 +351,6 @@ colrept:[
       // console.log()
       this.resumen=[]
       this.listado=[]
-      $('#example').DataTable().destroy()
       this.$q.loading.show()
 
       this.$api.post('resumenEntrega',{
@@ -276,22 +361,17 @@ colrept:[
 
         this.$api.post('listRuta',{fecha:this.fecha }).then(res=>{
           console.log(res.data)
-          $('#example').DataTable().destroy();
           this.listado=res.data;
-          this.$nextTick(()=>{
-               $('#example').DataTable( {
-                 dom: 'Blfrtip',
-                 buttons: [
-                   'copy', 'csv', 'excel', 'pdf', 'print'
-                 ],
-                  "lengthMenu": [[10, 25, 50, -1], [10, 25, 50, "All"]]     } )})
               this.contable()
+              this.misclientes()
 
         })
         this.$q.loading.hide()
       })
     },
-
+    log(a) {
+      // console.log(a);
+    },
   }
 }
 </script>

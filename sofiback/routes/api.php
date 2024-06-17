@@ -112,5 +112,7 @@ Route::group(['middleware'=>'auth:sanctum'],function (){
     Route::get('/resumenPedidos/{fecha}',[\App\Http\Controllers\PedidoController::class,'resumenPedidos']);
     Route::post('/reportEntImp',[\App\Http\Controllers\EntregaController::class,'reportEntImp']);
     
+    Route::post('/listClienteComanda',[\App\Http\Controllers\RutaController::class,'listClienteComanda']);
+    
 });
 
