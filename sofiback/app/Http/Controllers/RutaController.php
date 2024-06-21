@@ -41,11 +41,15 @@ class RutaController extends Controller
             ->where('tipo','NORMAL')
             ->get();*/
         $resul=[];
-        $list= DB::SELECT("SELECT c.CINIT,c.comanda,c.FechaEntreg,c.Importe,c.Tipago,
+        $list= DB::SELECT("SELECT c.CodAuto,c.CINIT,c.comanda,c.FechaEntreg,c.Importe,c.Tipago,
         (SELECT e.observacion from entregas e where e.cinit=c.CINIT and e.comanda=c.comanda order by e.estado asc limit 1 ) observacion,
         (SELECT e.estado from entregas e where e.cinit=c.CINIT and e.comanda=c.comanda order by e.estado asc limit 1 ) estado
         FROM tbctascobrar c WHERE c.CINIT='$request->id' and c.FechaEntreg='$request->fecha'
-        group by c.CINIT,c.comanda,c.FechaEntreg,c.Importe,c.Tipago,c.Observacion");
+            and (c.CodAuto, c.comanda) in 
+                    (SELECT min(c2.CodAuto) ,c2.comanda
+                          from tbctascobrar c2
+                          WHERE date(c2.FechaEntreg)='$request->fecha' and c2.CINIT='$request->id' group by c2.comanda)
+        group by c.CodAuto,c.CINIT,c.comanda,c.FechaEntreg,c.Importe,c.Tipago,c.Observacion");
 
         //return $list;
         foreach ($list as $r) {
@@ -77,7 +81,8 @@ GROUP BY p.idCli,c.Id,c.Nombres,c.Telf,c.Direccion,c.Latitud,c.longitud,p.estado
 ");*/
         $user= $request->user();
     return DB::select(" SELECT c.Cod_Aut,p.CINIT,c.Id,c.Nombres,c.Telf,c.Direccion,c.Latitud,c.longitud,
-    (select e.estado from entregas e where e.cliente_id=c.Cod_Aut and e.fechaEntreg='$fecha' order by e.estado asc limit 1  ) estado
+        (select e.estado from entregas e 
+            where e.cliente_id=c.Cod_Aut and e.fechaEntreg='$fecha' order by e.estado asc limit 1  ) estado
     FROM tbctascobrar p
     INNER JOIN tbclientes c ON c.Id=p.CINIT
     WHERE date(p.FechaEntreg)='".$fecha."'
@@ -118,6 +123,10 @@ GROUP BY p.idCli,c.Id,c.Nombres,c.Telf,c.Direccion,c.Latitud,c.longitud,p.estado
     return DB::select(" SELECT c.CINIT,l.Nombres,c.comanda,c.placa,e.despachador,e.estado,e.distancia,e.pago,e.observacion
     from tbctascobrar c inner join tbclientes l on c.CINIT=l.Id
     left join entregas e on e.comanda=c.comanda where c.FechaEntreg='$request->fecha'
+    and (c.CodAuto, c.comanda) in 
+                    (SELECT min(c2.CodAuto) ,c2.comanda
+                          from tbctascobrar c2
+                          WHERE date(c2.FechaEntreg)='$request->fecha' group by c2.comanda)
     order by c.comanda
     ");
     }

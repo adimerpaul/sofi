@@ -8,6 +8,7 @@
       <q-table title="Entregas Pedidos" :rows="resumen" :columns="columns2" row-key="name" >
         <template v-slot:body-cell-op="props" >
           <q-td :props="props">
+             <q-btn color="green" icon="download" dense @click="excel(props.row)"/>
              <q-btn color="info" icon="print" dense @click="impresion(props.row)"/>
 
           </q-td>
@@ -143,6 +144,7 @@ import {
   LRectangle,
 } from "@vue-leaflet/vue-leaflet";
 import "leaflet/dist/leaflet.css";
+import xlsx from "json-as-xlsx"
 
 export default {
   components: {
@@ -248,6 +250,77 @@ colPed:[
       // console.log(location)
       this.center=[location.latlng.lat,location.latlng.lng]
     },
+    excel(r){
+      console.log(r)
+      this.$api.post('reportEntImp',{fecha:this.fecha,placa:r.placa}).then(res=>{
+        let datCredito=[]
+        let datContado=[]
+        let datRechazado=[]
+        console.log(res.data)
+        res.data.forEach(p => {
+            p.fecha=this.fecha
+            p.placa=r.placa
+            if(p.estado=='RECHAZADO')
+              datRechazado.push(p)
+            else{
+              if(p.Tipago=='CONTADO')
+                datContado.push(p)
+              else
+                datCredito.push(p)
+            }
+        });
+        let datacaja = [
+              {
+                sheet: "CREDITO",
+                columns: [
+                  { label: "fecha", value: "fecha" }, // Top level data
+                  { label: "placa", value: "placa" }, // Top level data
+                  { label: "comanda", value: "comanda" }, // Top level data
+                  { label: "Cliente", value: "Nombres" }, // Top level data
+                  { label: "monto", value: "monto" }, // Top level data
+                  { label: "estado", value: "estado" }, // Top level data
+                  { label: "pago", value: "pago" }, // Top level data
+                ],
+                content: datCredito
+              },
+              {
+                sheet: "CONTADO",
+                columns: [
+                  { label: "fecha", value: "fecha" }, // Top level data
+                  { label: "placa", value: "placa" }, // Top level data
+                  { label: "comanda", value: "comanda" }, // Top level data
+                  { label: "Cliente", value: "Nombres" }, // Top level data
+                  { label: "monto", value: "monto" }, // Top level data
+                  { label: "estado", value: "estado" }, // Top level data
+                  { label: "pago", value: "pago" }, // Top level data
+                ],
+                content: datContado
+              },
+              {
+                sheet: "RECHAZADO",
+                columns: [
+                  { label: "fecha", value: "fecha" }, // Top level data
+                  { label: "placa", value: "placa" }, // Top level data
+                  { label: "comanda", value: "comanda" }, // Top level data
+                  { label: "Cliente", value: "Nombres" }, // Top level data
+                  { label: "monto", value: "monto" }, // Top level data
+                  { label: "estado", value: "estado" }, // Top level data
+                  { label: "pago", value: "pago" }, // Top level data
+                ],
+                content: datRechazado
+              },
+                ]
+
+                let settings = {
+                  fileName: "Reporte Entregas" , // Name of the resulting spreadsheet
+                  extraLength: 5, // A bigger number means that columns will be wider
+                  writeOptions: {}, // Style options from https://github.com/SheetJS/sheetjs#writing-options
+                }
+
+                xlsx(datacaja, settings) // Will download the excel file
+  
+      })
+      },
     impresion(r){
       console.log(r)
       this.$api.post('reportEntImp',{fecha:this.fecha,placa:r.placa}).then(res=>{
