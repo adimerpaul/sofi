@@ -93,4 +93,55 @@ class MisvisitasController extends Controller
     {
         //
     }
+
+    public function listClientePrev(Request $request){
+        $user=
+        $numdia=date('w',strtotime($request->fecha));
+
+        $filtro='';
+        switch ($numdia) {
+            case 0:
+                $filtro=" AND do=1 ";
+                break;
+            case 1:
+                $filtro=" AND lu=1 ";
+                break;
+            case 2:
+                $filtro=" AND Ma=1 ";
+                break;
+            case 3:
+                $filtro= " AND Mi=1 ";
+                break;
+            case 4:
+                $filtro= " AND Ju=1 ";
+                break;
+            case 5:
+                $filtro=" AND Vi=1 ";
+                break;
+            case 6:
+                $filtro=" AND Sa=1 ";
+                break;
+            default:
+                $filtro= '';
+                break;
+        }
+        return  DB::select(
+            "SELECT *,
+            (SELECT m.estado from misvisitas m where m.id=(SELECT max(m2.id) from misvisitas m2 where m2.cliente_id=c.Cod_Aut AND m2.fecha='".$request->fecha."' )) as tipo
+             FROM tbclientes c
+             WHERE TRIM(c.CiVend)='".$request->user()->ci."' " .$filtro." Order by tipo desc");
+    }
+
+    public function pedidoVenta(Request $request)
+    {
+        
+        return DB::select("SELECT estado,COUNT(*) cantidad FROM misvisitas WHERE date(fecha)='".$request->fecha."' AND personal_id='".$request->user()->CodAut."' GROUP BY estado ORDER BY estado");
+    }
+
+    public function reportEntregVend(Request $request){
+        return DB::SELECT("SELECT p.CINIT,c.Id,c.Nombres,p.comanda, 
+            (select e.estado from entregas e where e.cliente_id=c.Cod_Aut and e.fechaEntreg='$request->fecha' order by e.estado asc limit 1 ) estado
+             FROM tbctascobrar p INNER JOIN tbclientes c ON c.Id=p.CINIT 
+        WHERE date(p.FechaEntreg)='$request->fecha' and p.CIFunc='".$request->user()->ci."' GROUP BY c.Cod_Aut,p.CINIT,c.Id,c.Nombres,p.comanda order by c.Id asc,estado asc;");
+    }
 }

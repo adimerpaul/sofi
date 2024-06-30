@@ -204,6 +204,17 @@
             </q-item-label>
           </q-item-section>
         </q-item>
+        <q-item clickable active-class="bg-primary text-white" exact to="avance" v-if="vendores.includes($store.getters['login/user'].ci)">
+          <q-item-section avatar>
+            <q-icon name="summarize" />
+          </q-item-section>
+          <q-item-section>
+            <q-item-label>Reporte Pedidos / Entregas</q-item-label>
+            <q-item-label caption>
+               Resumen 
+            </q-item-label>
+          </q-item-section>
+        </q-item>
         <q-item clickable active-class="bg-primary text-white" exact to="entrega" v-if="supervisor.includes($store.getters['login/user'].ci) || encargados.includes($store.getters['login/user'].ci)">
           <q-item-section avatar>
             <q-icon name="dvr" />
