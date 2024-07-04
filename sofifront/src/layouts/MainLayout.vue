@@ -211,7 +211,7 @@
           <q-item-section>
             <q-item-label>Reporte Pedidos / Entregas</q-item-label>
             <q-item-label caption>
-               Resumen 
+               Resumen
             </q-item-label>
           </q-item-section>
         </q-item>
@@ -355,7 +355,7 @@ export default {
   },
   methods:{
     irformulario(){
-      var win = window.open('https://form.jotform.com/241557052634657', '_blank');
+      var win = window.open('https://form.jotform.com/241854586596070', '_blank');
         // Cambiar el foco al nuevo tab (punto opcional)
         win.focus();
     },
