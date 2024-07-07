@@ -1,16 +1,21 @@
 <template>
 <q-page class="q-pa-xs">
   <div class="col-6">
-    <q-input @change="consula()" v-model="fecha" label="fecha" dense outlined type="date" />
+    <q-input @change="consulta('TODOS')" v-model="fecha" label="fecha" dense outlined type="date" />
   </div>
 
     <div class="col-12">
       <q-table title="Entregas Pedidos" :rows="resumen" :columns="columns2" row-key="name" >
+        <template v-slot:top-right>
+           <q-btn  color="indigo" label="Reporte Todos" dense @click="consulta('TODOS')"/>
+          
+        </template>
         <template v-slot:body-cell-op="props" >
           <q-td :props="props">
+            
+             <q-btn color="indigo" icon="assignment" dense @click="consulta(props.row.placa)"/>
              <q-btn color="green" icon="download" dense @click="excel(props.row)"/>
              <q-btn color="info" icon="print" dense @click="impresion(props.row)"/>
-
           </q-td>
         </template>
         <template v-slot:body-cell-entreg="props" >
@@ -71,7 +76,9 @@
       </div>
       <div class="col-md-6 col-xs-12">
         <q-table title="COMANDAS" :rows="pedidos" :columns="colPed"  dense lang="productos" row-key="name">
-
+          <template v-slot:top-right>
+            <div>{{cliente.Nombres}}</div>           
+         </template>
           <template v-slot:body="props">
             <q-tr :props="props" :class="props.row.estado=='ENTREGADO'?'bg-green':props.row.estado=='NO ENTREGADO'?'bg-amber':props.row.estado=='RECHAZADO'?'bg-red':''">
 
@@ -160,6 +167,7 @@ export default {
       usuarios:[],
       filter:'',
       clientes:[],
+      cliente:{},
       pedidos:[],
       zoom:16,
       fecha:date.formatDate(new Date(),'YYYY-MM-DD'),
@@ -220,17 +228,21 @@ colPed:[
     }
   },
   created(){
-    this.consula()
+    this.consulta('TODOS')
   },
   methods:{
     getPedidos(c){
-      this.$api.post('ruta',{id:c.Id, fecha:this.fecha} ).then(res=>{
+      this.cliente=c
+      this.$api.post('repComanda',{id:c.Id, fecha:this.fecha} ).then(res=>{
+          console.log(res.data)
           this.pedidos=res.data
       })
     },
-    async misclientes(){
+    async misclientes(pl){
       this.$q.loading.show()
-      this.$api.post('listClienteComanda',{fecha:this.fecha} ).then(res=>{
+      this.pedidos=[]
+      this.cliente={}
+      this.$api.post('listClienteComanda',{fecha:this.fecha,placa:pl} ).then(res=>{
          console.log(res.data)
          this.clientes=res.data
         this.$q.loading.hide()
@@ -277,7 +289,7 @@ colPed:[
                   { label: "placa", value: "placa" }, // Top level data
                   { label: "comanda", value: "comanda" }, // Top level data
                   { label: "Cliente", value: "Nombres" }, // Top level data
-                  { label: "monto", value: "monto" }, // Top level data
+                  { label: "monto", value: "Importe" }, // Top level data
                   { label: "estado", value: "estado" }, // Top level data
                   { label: "pago", value: "pago" }, // Top level data
                 ],
@@ -290,7 +302,7 @@ colPed:[
                   { label: "placa", value: "placa" }, // Top level data
                   { label: "comanda", value: "comanda" }, // Top level data
                   { label: "Cliente", value: "Nombres" }, // Top level data
-                  { label: "monto", value: "monto" }, // Top level data
+                  { label: "monto", value: "Importe" }, // Top level data
                   { label: "estado", value: "estado" }, // Top level data
                   { label: "pago", value: "pago" }, // Top level data
                 ],
@@ -303,7 +315,7 @@ colPed:[
                   { label: "placa", value: "placa" }, // Top level data
                   { label: "comanda", value: "comanda" }, // Top level data
                   { label: "Cliente", value: "Nombres" }, // Top level data
-                  { label: "monto", value: "monto" }, // Top level data
+                  { label: "monto", value: "Importe" }, // Top level data
                   { label: "estado", value: "estado" }, // Top level data
                   { label: "pago", value: "pago" }, // Top level data
                 ],
@@ -326,26 +338,32 @@ colPed:[
       this.$api.post('reportEntImp',{fecha:this.fecha,placa:r.placa}).then(res=>{
         let contenido=''
         let contenido2=''
+        let contenido3=''
         let num=1
         let num2=1
+        let num3=1
         let totalcred=0
         let totalcont=0
         let totalpago=0
         res.data.forEach(r => {
             if (r.estado ==null) r.estado=''
             if (r.pago ==null) r.pago=0
-            if(r.Tipago=='CONTADO'){
+            if (r.estado=='ENTREGADO' || r.estado=='NO ENTREGADO'){
+            if (r.Tipago=='CONTADO'){
               contenido+='<tr><td>'+num+'</td><td>'+r.comanda+'</td><td>'+r.Nombres+'</td><td>'+r.Importe+'</td><td>'+r.estado+'</td><td>'+r.pago+'</td</tr>'
                 num++
                 totalcred+=parseFloat(r.Importe)
-
               }
               else{
               contenido2+='<tr><td>'+num2+'</td><td>'+r.comanda+'</td><td>'+r.Nombres+'</td><td>'+r.Importe+'</td><td>'+r.estado+'</td><td>'+r.pago+'</td</tr>'
                 num2++
                 totalcont+=parseFloat(r.Importe)
               }
-            totalpago+=parseFloat(r.pago)
+            totalpago+=parseFloat(r.pago)}
+            else{
+              contenido3+='<tr><td>'+num3+'</td><td>'+r.comanda+'</td><td>'+r.Nombres+'</td><td>'+r.Importe+'</td><td>'+r.estado+'</td><td>'+r.pago+'</td</tr>'
+                num3++
+            }
         });
         let cadena=`<style>
         .titulo1{font-size:18px;}
@@ -364,6 +382,11 @@ colPed:[
           <table class='tab1'
             <tr><th>No</th><th>Comanda</th><th>Cliente</th><th>Monto</th><th>Estado</th><th>Pago</th></tr>
             `+contenido2+`
+          </table><br>
+          <div class='titulo2'>PEDIDOS AL RECHAZADOS</div>
+          <table class='tab1'
+            <tr><th>No</th><th>Comanda</th><th>Cliente</th><th>Monto</th><th>Estado</th><th>Pago</th></tr>
+            `+contenido3+`
           </table>
           <div><b>TOTAL CREDITO: </b> `+totalcred.toFixed(2)+` Bs</div>
           <div><b>TOTAL CONTADO: </b> `+totalcont.toFixed(2)+` Bs</div>
@@ -419,7 +442,7 @@ colPed:[
         this.preventista=this.preventistas[0]
       })
     },
-    consula(){
+    consulta(pl){
       this.$q.loading.show()
       // console.log()
       this.resumen=[]
@@ -432,11 +455,11 @@ colPed:[
         console.log(res.data)
         this.resumen=res.data
 
-        this.$api.post('listRuta',{fecha:this.fecha }).then(res=>{
+        this.$api.post('listRuta',{fecha:this.fecha,placa:pl }).then(res=>{
           console.log(res.data)
           this.listado=res.data;
               this.contable()
-              this.misclientes()
+              this.misclientes(pl)
 
         })
         this.$q.loading.hide()

@@ -192,4 +192,14 @@ class EntregaController extends Controller
     {
         //
     }
+
+    public function reporteGrupo(){
+        "SELECT gs.Descripcion, count(DISTINCT(cb.CINIT))
+FROM tbgrupos gs inner join tbgrupopadre gp on gs.Cod_pdr=gp.cod_grup
+inner join tbproductos pr on gp.cod_grup=pr.cod_grup
+inner join tbventas vt on vt.cod_pro=pr.cod_prod
+inner join tbctascobrar cb on cb.comanda=vt.Comanda
+WHERE cb.FechaEntreg='2024-07-06'
+group by gs.Descripcion;";
+    }
 }
