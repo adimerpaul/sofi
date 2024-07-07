@@ -37,7 +37,7 @@
 <script>
 import {date} from "quasar";
 export default {
-  name: `avance`,
+  name: 'avancePage',
   data(){
     return{
       usuarios:[],
