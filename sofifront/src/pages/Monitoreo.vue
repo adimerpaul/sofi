@@ -37,6 +37,7 @@
           <th>CLIENTE</th>
           <th>ESTADO</th>
           <th>PERSONAL</th>
+          <th>DISTANCIA</th>
           <th>OBSERVACION</th>
         </tr>
         </thead>
@@ -47,6 +48,7 @@
           <td>{{v.Nombres}}</td>
           <td>{{v.estado}}</td>
           <td>{{v.Nombre1}} {{v.App1}}</td>
+          <td>{{v.distancia}}</td>
           <td>{{v.observacion}}</td>
         </tr>
         </tbody>
