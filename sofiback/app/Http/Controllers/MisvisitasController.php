@@ -139,9 +139,20 @@ class MisvisitasController extends Controller
     }
 
     public function reportEntregVend(Request $request){
-        return DB::SELECT("SELECT p.CINIT,c.Id,c.Nombres,p.comanda, 
+        $resul=[];
+        $list= DB::SELECT("SELECT p.CINIT,c.Id,c.Nombres,p.comanda, 
             (select e.estado from entregas e where e.cliente_id=c.Cod_Aut and e.fechaEntreg='$request->fecha' order by e.estado asc limit 1 ) estado
              FROM tbctascobrar p INNER JOIN tbclientes c ON c.Id=p.CINIT 
         WHERE date(p.FechaEntreg)='$request->fecha' and p.CIFunc='".$request->user()->ci."' GROUP BY c.Cod_Aut,p.CINIT,c.Id,c.Nombres,p.comanda order by c.Id asc,estado asc;");
+
+        foreach ($list as $r) {
+            # code...
+            $prod=DB::SELECT("SELECT p.cod_prod,p.Producto,v.PVentUnit,v.cant,v.Monto from tbventas v inner join tbproductos p on v.cod_pro=p.cod_prod
+            where v.Comanda=".$r->comanda);
+            $r->detalle=$prod;
+            array_push($resul,$r);
+        }
+
+        return json_encode($resul);
     }
 }
