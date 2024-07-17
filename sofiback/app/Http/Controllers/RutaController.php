@@ -202,9 +202,20 @@ GROUP BY p.idCli,c.Id,c.Nombres,c.Telf,c.Direccion,c.Latitud,c.longitud,p.estado
     }
 
     public function reporteDes(Request $request){
-        return DB::SELECT("SELECT c.CINIT,l.Nombres,c.comanda,c.Importe,c.placa,e.despachador,c.Tipago,e.observacion
+        $resul=[];
+        $list= DB::SELECT("SELECT c.CINIT,l.Nombres,c.comanda,c.Importe,c.placa,e.despachador,c.Tipago,e.observacion
         from tbctascobrar c inner join tbclientes l on c.CINIT=l.Id inner join entregas e on e.comanda=c.comanda
          where c.FechaEntreg='$request->fecha' and e.estado='ENTREGADO' and e.placa='".$request->user()->placa."' order by c.CINIT");
+
+        foreach ($list as $r) {
+            # code...
+            $prod=DB::SELECT("SELECT p.cod_prod,p.Producto,v.PVentUnit,v.cant,v.Monto from tbventas v inner join tbproductos p on v.cod_pro=p.cod_prod
+            where v.Comanda=".$r->comanda);
+            $r->detalle=$prod;
+            array_push($resul,$r);
+        }
+
+        return json_encode($resul);
     }
     /**
      * Show the form for editing the specified resource.
