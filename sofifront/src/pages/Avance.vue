@@ -27,7 +27,34 @@
 
     </div>
     <div class="col-12">
-      <q-table title="Listado de Entregas" :rows="pedidos" :columns="colped" row-key="name" dense/>
+      <q-table title="Listado de Entregas" :rows="pedidos" :columns="colped" row-key="name" dense lang="producto">
+        <template v-slot:body="props">
+          <q-tr :props="props" :class="props.row.estado=='ENTREGADO'?'bg-green':props.row.estado=='NO ENTREGADO'?'bg-amber':props.row.estado=='RECHAZADO'?'bg-red':''">
+            <q-td
+              v-for="col in props.cols"
+              :key="col.name"
+              :props="props"
+            >
+              {{ col.value }}
+  
+            </q-td >
+            <q-td auto-width >
+              <q-btn size="sm"
+                     :color="props.expand ? 'primary' : 'secondary'"
+                     :label="props.expand ? 'Ocul' : 'Ver'"
+                     no-caps dense @click="props.expand = !props.expand" :icon="props.expand ? 'visibility_off' : 'visibility'"/>
+            </q-td>
+            
+  
+          </q-tr>
+          
+          <q-tr v-show="props.expand" :props="props">
+            <q-td colspan="100%">
+              <div class="text-left" v-for="r in props.row.detalle " :key="r"> <b>Codigo:</b> {{r.cod_prod}} <b>Producto:</b> {{r.Producto}} <b>Cantidad:</b> {{r.cant}} </div>
+            </q-td>
+          </q-tr>
+        </template>
+      </q-table>  
       
     </div>
   </div>
