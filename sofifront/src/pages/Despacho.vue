@@ -7,7 +7,34 @@
 
     <div class="col-12">
 <!--      <pre>{{datos}}</pre>-->
-    <q-table title="ENTREGAS" :rows="listado" :columns="columns" row-key="name" />
+    <q-table title="ENTREGAS" :rows="listado" :columns="columns" row-key="name" lang="productos">
+      <template v-slot:body="props">
+        <q-tr :props="props" :class="props.row.estado=='ENTREGADO'?'bg-green':props.row.estado=='NO ENTREGADO'?'bg-amber':props.row.estado=='RECHAZADO'?'bg-red':''">
+          <q-td
+            v-for="col in props.cols"
+            :key="col.name"
+            :props="props"
+          >
+            {{ col.value }}
+
+          </q-td >
+          <q-td auto-width >
+            <q-btn size="sm"
+                   :color="props.expand ? 'primary' : 'secondary'"
+                   :label="props.expand ? 'Ocul' : 'Ver'"
+                   no-caps dense @click="props.expand = !props.expand" :icon="props.expand ? 'visibility_off' : 'visibility'"/>
+          </q-td>
+          
+
+        </q-tr>
+        
+        <q-tr v-show="props.expand" :props="props">
+          <q-td colspan="100%">
+            <div class="text-left" v-for="r in props.row.detalle " :key="r"> <b>Codigo:</b> {{r.cod_prod}} <b>Producto:</b> {{r.Producto}} <b>Cantidad:</b> {{r.cant}} </div>
+          </q-td>
+        </q-tr>
+      </template>
+      </q-table>
       <div>Total Contado: {{totalEnt}} Bs.</div>
     </div>
     <div>
@@ -21,13 +48,12 @@
 <script>
 import {date} from "quasar";
 export default {
-  name: `Despacho`,
+  name: 'despachoPage',
   data(){
     return{
       fecha:date.formatDate(new Date(),'YYYY-MM-DD'),
+      entrega:{},
       fechareporte:{ini:date.formatDate(new Date(),'YYYY-MM-DD'),fin:date.formatDate(new Date(),'YYYY-MM-DD')},
-      listado:[],
-
        columns : [
         { name: 'CINIT',label: 'CINIT',align: 'left',field: 'CINIT',   sortable: true},
         { name: 'CLIENTE', label: 'CLIENTE',align: 'left',field: 'Nombres',sortable: true},
@@ -84,7 +110,7 @@ export default {
             res+=parseFloat(r.Importe)
          }
       })
-      return res
+      return res.toFixed(2)
     }
   }
 }
