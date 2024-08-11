@@ -161,7 +161,7 @@ export default {
     LMarker,
     LTooltip
   },
-  name: `Entrega`,
+  name: `entregaPage`,
   data(){
     return{
       usuarios:[],

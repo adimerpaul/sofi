@@ -52,6 +52,7 @@ export default {
   data(){
     return{
       fecha:date.formatDate(new Date(),'YYYY-MM-DD'),
+      listado:[],
       entrega:{},
       fechareporte:{ini:date.formatDate(new Date(),'YYYY-MM-DD'),fin:date.formatDate(new Date(),'YYYY-MM-DD')},
        columns : [
