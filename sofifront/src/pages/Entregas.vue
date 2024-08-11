@@ -1,83 +1,94 @@
 <template>
 <q-page class="q-pa-xs">
-  <div class="col-6">
-    <q-input @change="consulta('TODOS')" v-model="fecha" label="fecha" dense outlined type="date" />
-  </div>
-
-    <div class="col-12">
-      <q-table title="Entregas Pedidos" :rows="resumen" :columns="columns2" row-key="name" >
+  <div class="row">
+    <div class="col-6">
+      <q-input @change="consulta('TODOS')" v-model="fecha" label="fecha" dense outlined type="date" />
+    </div>
+    <div class="col-6">
+    </div>
+    <div class="col-12 col-md-6">
+      <q-table title="Entregas Pedidos" :rows="resumen" :columns="columns2" row-key="name" dense @rowClick="consultaRow">
         <template v-slot:top-right>
-           <q-btn  color="indigo" label="Reporte Todos" dense @click="consulta('TODOS')"/>
-          
+          <q-btn  color="indigo" label="Reporte Todos" dense @click="consulta('TODOS')"/>
         </template>
         <template v-slot:body-cell-op="props" >
-          <q-td :props="props">
-            
-             <q-btn color="indigo" icon="assignment" dense @click="consulta(props.row.placa)"/>
-             <q-btn color="green" icon="download" dense @click="excel(props.row)"/>
-             <q-btn color="info" icon="print" dense @click="impresion(props.row)"/>
+          <q-td :props="props" auto-width>
+
+            <q-btn color="indigo" icon="assignment" dense @click="consulta(props.row.placa);$event.stopPropagation()"/>
+            <q-btn color="green" icon="download" dense @click="excel(props.row);$event.stopPropagation()"/>
+            <q-btn color="info" icon="print" dense @click="impresion(props.row);$event.stopPropagation()"/>
+          </q-td>
+        </template>
+        <template v-slot:body-cell-total="props" >
+          <q-td :props="props" auto-width>
+            {{ ( props.row.entreg+props.row.noentreg+props.row.rechazado)>props.row.total?props.row.total:( props.row.entreg+props.row.noentreg+props.row.rechazado) }}
+            / {{props.row.total}}
+            ({{( calcular(((props.row.entreg+props.row.noentreg+props.row.rechazado)>props.row.total?props.row.total:( props.row.entreg+props.row.noentreg+props.row.rechazado)),props.row.total)*100).toFixed(0)}}%)
           </q-td>
         </template>
         <template v-slot:body-cell-entreg="props" >
           <q-td :props="props">
-            <div class="q-pa-xs">
-        <q-linear-progress size="16px" rounded :value="calcular(props.row.entreg,props.row.total)" :color="'green-7'" class="full-width ">
-          <div class="absolute-full flex flex-center">
-            <q-badge color="white" :text-color="'green-7'" :label="props.row.entreg" />
-          </div>
-        </q-linear-progress>
-      </div>
-            <div class="q-pa-xs">
-              <q-linear-progress size="16px" rounded :value="calcular(props.row.noentreg,props.row.total)" :color="'yellow-10'" class="full-width q-pa-xs">
-          <div class="absolute-full flex flex-center">
-            <q-badge color="white" :text-color="'yellow-10'" :label="props.row.noentreg" />
-          </div>
-        </q-linear-progress>
-          </div>
-          <div class="q-pa-xs">
+            <div class="q-pa-none">
+              <q-linear-progress size="16px" rounded :value="calcular(props.row.entreg,props.row.total)" :color="'green-7'" class="full-width ">
+                <div class="absolute-full flex flex-center">
+                  <q-badge color="white" :text-color="'green-7'" :label="props.row.entreg" />
+                </div>
+              </q-linear-progress>
+            </div>
+            <div class="q-pa-none">
+              <q-linear-progress size="16px" rounded :value="calcular(props.row.noentreg,props.row.total)" :color="'yellow-10'" class="full-width q-pa-none">
+                <div class="absolute-full flex flex-center">
+                  <q-badge color="white" :text-color="'yellow-10'" :label="props.row.noentreg" />
+                </div>
+              </q-linear-progress>
+            </div>
+            <div class="q-pa-none">
               <q-linear-progress size="16px" rounded :value="calcular(props.row.rechazado,props.row.total)" :color="'red-7'" class="full-width q-pa-xs">
-          <div class="absolute-full flex flex-center">
-            <q-badge color="white" :text-color="'red-7'" :label="props.row.rechazado" />
-          </div>
-        </q-linear-progress>
-          </div>
-        </q-td>
+                <div class="absolute-full flex flex-center">
+                  <q-badge color="white" :text-color="'red-7'" :label="props.row.rechazado" />
+                </div>
+              </q-linear-progress>
+            </div>
+          </q-td>
         </template>
-        </q-table>
+      </q-table>
     </div>
-    <div class="row">
-      <div class="col-md-6 col-xs-12">
-        <div style="height: 350px; width: 100%;">
-          <l-map
-            @ready="onReady"
-            @locationfound="onLocationFound"
-            v-model="zoom"
-            :zoom="zoom"
-            :center="center"
-            @move="log('move')"
-          >
-            <LTileLayer
-              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            ></LTileLayer>
-        <!--    @click="clickopciones(c)"-->
-            <l-marker v-for="(c,i) in clientes" :key="c.Cod_Aut" :lat-lng="[c.Latitud, c.longitud]" @click="getPedidos(c)" >
-              <l-tooltip :content="c.Nombres"></l-tooltip>
-              <l-icon >
-                <q-badge
+    <div class="col-12 col-md-6">
+      <!--      <div class="col-md-6 col-xs-12">-->
+      <div style="height: 350px; width: 100%;">
+        <!--          @ready="onReady"-->
+        <!--          @locationfound="onLocationFound"-->
+        <l-map
+          v-model="zoom"
+          :zoom="zoom"
+          :center="center"
+          @move="log('move')"
+        >
+          <LTileLayer
+            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          ></LTileLayer>
+          <!--    @click="clickopciones(c)"-->
+          <l-marker v-for="(c,i) in clientes" :key="c.Cod_Aut" :lat-lng="[c.Latitud, c.longitud]" @click="getPedidos(c)" >
+            <l-tooltip :content="c.Nombres"></l-tooltip>
+            <l-icon >
+              <q-badge
                 :class="c.estado=='ENTREGADO'?'bg-green text-italic':c.estado=='NO ENTREGADO'?'bg-yellow text-italic':c.estado=='RECHAZADO'?'bg-red text-italic':'bg-blue'"
                 style="padding: 2px"
-        
-                >{{i+1}}
-                </q-badge>
-              </l-icon>
-            </l-marker>
-          </l-map>
-          </div>
+
+              >{{i+1}}
+              </q-badge>
+            </l-icon>
+          </l-marker>
+        </l-map>
       </div>
-      <div class="col-md-6 col-xs-12">
+      <!--      </div>-->
+    </div>
+  </div>
+    <div class="row">
+      <div class="col-12 col-md-12">
         <q-table title="COMANDAS" :rows="pedidos" :columns="colPed"  dense lang="productos" row-key="name">
           <template v-slot:top-right>
-            <div>{{cliente.Nombres}}</div>           
+            <div>{{cliente.Nombres}}</div>
          </template>
           <template v-slot:body="props">
             <q-tr :props="props" :class="props.row.estado=='ENTREGADO'?'bg-green':props.row.estado=='NO ENTREGADO'?'bg-amber':props.row.estado=='RECHAZADO'?'bg-red':''">
@@ -117,7 +128,7 @@
           </q-input>
         </template>
         </q-table>
-      
+
     </div>
     <div class="col-12">
       <q-table title="Entrega" :rows="rcontable"  row-key="name" />
@@ -169,7 +180,7 @@ export default {
       clientes:[],
       cliente:{},
       pedidos:[],
-      zoom:16,
+      zoom:13,
       fecha:date.formatDate(new Date(),'YYYY-MM-DD'),
       fechareporte:{ini:date.formatDate(new Date(),'YYYY-MM-DD'),fin:date.formatDate(new Date(),'YYYY-MM-DD')},
       user:{},
@@ -185,7 +196,7 @@ export default {
       listado:[],
       reporte:[],
       rcontable:[],
-      center:[-17.970371, -67.112303],
+      center:[-17.969721, -67.114493],
        columns : [
   {
     name: 'name',
@@ -263,6 +274,7 @@ colPed:[
       this.center=[location.latlng.lat,location.latlng.lng]
     },
     excel(r){
+      //stop propagation
       console.log(r)
       this.$api.post('reportEntImp',{fecha:this.fecha,placa:r.placa}).then(res=>{
         let datCredito=[]
@@ -330,7 +342,7 @@ colPed:[
                 }
 
                 xlsx(datacaja, settings) // Will download the excel file
-  
+
       })
       },
     impresion(r){
@@ -441,6 +453,9 @@ colPed:[
         this.infoventa=res.data
         this.preventista=this.preventistas[0]
       })
+    },
+    consultaRow(event,row){
+      this.consulta(row.placa)
     },
     consulta(pl){
       this.$q.loading.show()
