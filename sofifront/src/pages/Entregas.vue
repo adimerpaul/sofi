@@ -1,10 +1,15 @@
 <template>
 <q-page class="q-pa-xs">
   <div class="row">
-    <div class="col-6">
+    <div class="cols-12 col-md-6">
       <q-input @change="consulta('TODOS')" v-model="fecha" label="fecha" dense outlined type="date" />
     </div>
-    <div class="col-6">
+    <div class="col-12 col-md-3"></div>
+    <div class="col-12 col-md-3">
+      <q-select v-model="grupos" label="Grupo" dense outlined :options="['TODOS','CARNE POLLO','CARNE CERDO','PODIUM','DEMAS','POLLO CERDO']"
+                @update:model-value="misclientes"
+      />
+<!--      <pre>{{grupos}}</pre>-->
     </div>
     <div class="col-12 col-md-6">
       <q-table title="Entregas Pedidos" :rows="resumen" :columns="columns2" row-key="name" dense @rowClick="consultaRow">
@@ -175,6 +180,7 @@ export default {
   name: `entregaPage`,
   data(){
     return{
+      grupos: 'TODOS',
       usuarios:[],
       filter:'',
       clientes:[],
@@ -253,7 +259,11 @@ colPed:[
       this.$q.loading.show()
       this.pedidos=[]
       this.cliente={}
-      this.$api.post('listClienteComanda',{fecha:this.fecha,placa:pl} ).then(res=>{
+      this.$api.post('listClienteComanda',{
+        fecha:this.fecha,
+        placa:pl,
+        grupo:this.grupos
+      } ).then(res=>{
          console.log(res.data)
          this.clientes=res.data
         this.$q.loading.hide()
