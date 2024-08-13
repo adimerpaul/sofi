@@ -22,10 +22,10 @@
       <div class="text-h3 text-bold text-red " >{{nopedido}}</div>
     </div>
 
-    <div class="col-12">
+    <!--<div class="col-12">
     <q-table title="Listado de Clientes Pedido" :rows="visitas" :columns="columns" row-key="name" dense/>
 
-    </div>
+    </div>-->
     <div class="col-12">
       <q-table title="Listado de Entregas" :rows="pedidos" :columns="colped" row-key="name" dense lang="producto">
         <template v-slot:body="props">
@@ -92,6 +92,8 @@ export default {
   { name: 'estado', align: 'center', label: 'ESTADO', field: 'tipo', sortable: true }],
 
 colped : [
+  { name: 'hora',  label: 'hora', field: 'hora', sortable: true,align:'left' },
+  { name: 'placa',  label: 'placa', field: 'placa', sortable: true,align:'left' },
   { name: 'CI',  label: 'ci', field: 'Id', sortable: true,align:'left' },
   { name: 'CLIENTE', label: 'nombre',    field: 'Nombres', sortable: true,align:'left'  },
   { name: 'COMANDA',  label: 'comanda', field: 'comanda', sortable: true  },
@@ -104,7 +106,7 @@ colped : [
     this.user=this.$store.getters['login/user'].ci
     console.log(this.user)
     this.consulta()
-    this.clientes()
+    //this.clientes()
     this.entregas()
     //this.controlvisita()
 
@@ -112,7 +114,7 @@ colped : [
   methods:{
     generar(){
       this.consulta()
-      this.clientes()
+      //this.clientes()
       this.entregas()
     },
     consulta(){

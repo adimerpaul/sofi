@@ -140,10 +140,18 @@ class MisvisitasController extends Controller
 
     public function reportEntregVend(Request $request){
         $resul=[];
-        $list= DB::SELECT("SELECT p.CINIT,c.Id,c.Nombres,p.comanda, 
+        $list= DB::SELECT("SELECT e.hora,e.placa,p.CINIT,c.Id,c.Nombres,p.comanda, 
             (select e.estado from entregas e where e.cliente_id=c.Cod_Aut and e.fechaEntreg='$request->fecha' order by e.estado asc limit 1 ) estado
              FROM tbctascobrar p INNER JOIN tbclientes c ON c.Id=p.CINIT 
-        WHERE date(p.FechaEntreg)='$request->fecha' and p.CIFunc='".$request->user()->ci."' GROUP BY c.Cod_Aut,p.CINIT,c.Id,c.Nombres,p.comanda order by c.Id asc,estado asc;");
+             left join entregas e on e.comanda=p.comanda 
+        WHERE date(p.FechaEntreg)='$request->fecha' and p.CIFunc='".$request->user()->ci."' 
+        GROUP BY e.hora,e.placa,c.Cod_Aut,p.CINIT,c.Id,c.Nombres,p.comanda 
+        ORDER BY 
+    CASE 
+        WHEN e.hora IS NULL OR e.hora = '' THEN 1
+        ELSE 0
+    END, 
+    e.hora ASC;");
 
         foreach ($list as $r) {
             # code...

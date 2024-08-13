@@ -220,7 +220,12 @@ GROUP BY p.idCli,c.Id,c.Nombres,c.Telf,c.Direccion,c.Latitud,c.longitud,p.estado
                     (SELECT min(c2.CodAuto) ,c2.comanda
                           from tbctascobrar c2
                           WHERE date(c2.FechaEntreg)='$request->fecha' $consulta group by c2.comanda)
-    order by c.comanda
+   ORDER BY 
+    CASE 
+        WHEN e.hora IS NULL OR e.hora = '' THEN 1
+        ELSE 0
+    END, 
+    e.hora ASC;
     ");
     }
 

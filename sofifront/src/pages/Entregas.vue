@@ -92,9 +92,6 @@
     <div class="row">
       <div class="col-12 col-md-12">
         <q-table title="COMANDAS" :rows="pedidos" :columns="colPed"  dense lang="productos" row-key="name">
-          <template v-slot:top-right>
-            <div>{{cliente.Nombres}}</div>
-         </template>
           <template v-slot:body="props">
             <q-tr :props="props" :class="props.row.estado=='ENTREGADO'?'bg-green':props.row.estado=='NO ENTREGADO'?'bg-amber':props.row.estado=='RECHAZADO'?'bg-red':''">
 
@@ -114,11 +111,15 @@
               </q-td>
             </q-tr>
             <q-tr v-show="props.expand" :props="props">
-              <q-td colspan="100%">
+              <q-td colspan="100%" >
                 <div class="text-left" v-for="r in props.row.detalle " :key="r"> <b>Codigo:</b> {{r.cod_prod}} <b>Producto:</b> {{r.Producto}} <b>Cantidad:</b> {{r.cant}} </div>
               </q-td>
             </q-tr>
           </template>
+          <template v-slot:top-right>
+            <div>{{cliente.Nombres}}</div>
+         </template>
+
         </q-table>
       </div>
     </div>
@@ -132,6 +133,19 @@
             </template>
           </q-input>
         </template>
+        <template v-slot:body="props">
+          <q-tr :props="props" :class="props.row.estado=='ENTREGADO'?'bg-green':props.row.estado=='NO ENTREGADO'?'bg-amber':props.row.estado=='RECHAZADO'?'bg-red':''">
+
+            <q-td
+              v-for="col in props.cols"
+              :key="col.name"
+              :props="props"
+            >
+              {{ col.value }}
+
+            </q-td >
+            </q-tr>
+           </template>
         </q-table>
 
     </div>
@@ -203,14 +217,8 @@ export default {
       reporte:[],
       rcontable:[],
       center:[-17.969721, -67.114493],
-       columns : [
-  {
-    name: 'name',
-    label: 'CLIENTE',
-    align: 'left',
-    field: 'Nombres',
-    sortable: true
-  },
+      columns : [
+  { name: 'cliente',    label: 'CLIENTE',    align: 'left',    field: 'Nombres',    sortable: true  },
   { name: 'estado', align: 'center', label: 'ESTADO', field: 'estado', sortable: true },
   { name: 'personal', align: 'center', label: 'PERSONAL', field: row=> row.Nombre1 + ' ' +row.App1, sortable: true },
   { name: 'observacion', label: 'OBSERVACION', field: 'observacion' },],
@@ -238,7 +246,7 @@ colPed:[
         {label:'Importe',name:'Importe',field:'Importe'},
         {label:'Tipago',name:'Tipago',field:'Tipago',style: 'font-size:16px; font-weight:bold;',},
         {label:'estado',name:'estado',field:'estado'},
-        {label:'Observacion',name:'Observacion',field:'observacion'},
+        {label:'Observacion',name:'observacion',field:'observacion'},
         {label:'op',name:'op',field:'op'},
 ]
 
