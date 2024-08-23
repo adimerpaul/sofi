@@ -833,7 +833,8 @@ export default {
       this.$api.post('pedido',{idCli:this.cliente.Cod_Aut,lat:lat,lng:lng,productos:this.misproductos,pago:this.pago,fact:this.fact,fecha:this.fecha,horario:this.horario,comentario:this.coment}).then(res=>{
          // console.log(res.data)
         // return false
-        this.horario=this.coment=''
+        this.horario=''
+        this.coment=''
         this.modalpedido=false
         this.fecha=date.formatDate(new Date(),'YYYY-MM-DD')
         this.listhoy()
@@ -1011,6 +1012,8 @@ export default {
       this.producto={label:''} //comentarpedido
     },
     clickpedido(){
+      this.coment=''
+      this.horario=''
       this.modalopciones=false
       this.modalpedido=true
       this.misproductos=[]
@@ -1019,6 +1022,7 @@ export default {
       this.modalopciones=true
       this.cliente=cliente
       this.comentario={}
+
       this.$api.post('comentario',{ci:this.cliente.Id}).then(res=>{
           //console.log(res.data)
           this.comentario=res.data
