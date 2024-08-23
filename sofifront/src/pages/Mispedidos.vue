@@ -559,7 +559,7 @@ const { addToDate } = date
 export default {
   data(){
     return{
-      horarios:['06:00-07:30','07:30-09:00','09:00-10:30','10:30-12:00'],
+      horarios:['06:00-07:30','07:30-09:00','09:00-10:30','10:30-12:00','SEGUNDA VUELTA'],
       horario:'',
       coment:'',
       url:process.env.API,
