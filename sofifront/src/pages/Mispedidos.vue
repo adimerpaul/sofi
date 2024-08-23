@@ -48,6 +48,8 @@
           <div class="text-subtitle2">{{cliente.Cod_Aut}} {{cliente.Nombres}}</div>
         </q-card-section>
         <q-card-section class="q-pt-none">
+          <div class="row">
+
           <div class="text-bold col-6 flex flex-center">
 <!--               <div class="q-gutter-sm col-md-6 col-sm-12" >-->
                 <q-radio  dense v-model="pago" val="CONTADO" label="Contado" />
@@ -65,6 +67,13 @@
           <div class="col-6">
               <q-input label="Fecha" v-model="fecha" type="date" dense outlined :min="fechamenos" />
             </div>
+            <div class="col-6">
+              <q-select label="Horario" v-model="horario"  dense outlined :options="horarios"/>
+            </div>
+            <div class="col-12">
+              <q-input square outlined dense v-model="coment" label="Comentario" />
+            </div>
+          </div>
           <div class="row">
             <div class="col-10">
               <q-select label="Productos" dense outlined class="q-ma-xs" use-input input-debounce="0"  @filter="filterFn" :options="productos" v-model="producto">
@@ -550,6 +559,9 @@ const { addToDate } = date
 export default {
   data(){
     return{
+      horarios:['06:00-07:30','07:30-09:00','09:00-10:30','10:30-12:00'],
+      horario:'',
+      coment:'',
       url:process.env.API,
       filter:'',
       pedestado:'',
@@ -1623,6 +1635,8 @@ generarpollo(){
           // return false
           this.pago=res.data[0].pago
           this.fact=res.data[0].fact
+          this.horario=res.data[0].horario
+          this.coment=res.data[0].comentario
           this.fecha=date.formatDate(res.data[0].fecha,'YYYY-MM-DD')
           this.misproductos=res.data[0].pedidos
 

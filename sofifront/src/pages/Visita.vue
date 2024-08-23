@@ -198,10 +198,11 @@
             <div class="col-6">
               <q-input label="Fecha" v-model="fecha" type="date" dense outlined :min="fechamenos" />
             </div>
+            <div class="col-6"><q-select dense outlined v-model="horario" :options="horarios" label="Horario" /></div>
+            <div class="col-12"><q-input dense outlined v-model="coment" label="Comentario" /></div>
           </div>
         </q-card-section>
         <q-card-section class="q-pt-none">
-
           <div class="row">
             <div class="col-10">
               <q-select label="Productos" dense outlined class="q-ma-xs" use-input input-debounce="0"  @filter="filterFn" :options="productos" v-model="producto">
@@ -513,6 +514,9 @@ export default {
   },
   data() {
     return {
+      horarios:['06:00-07:30','07:30-09:00','09:00-10:30','10:30-12:00'],
+      horario:'',
+      coment:'',
       fecha:date.formatDate(new Date(),'YYYY-MM-DD'),
       fechamenos:date.formatDate(addToDate(new Date(), { days: 0}),'YYYY-MM-DD'),
       filteproducto:'',
@@ -826,9 +830,10 @@ export default {
         })
         return false
       }
-      this.$api.post('pedido',{idCli:this.cliente.Cod_Aut,lat:lat,lng:lng,productos:this.misproductos,pago:this.pago,fact:this.fact,fecha:this.fecha}).then(res=>{
+      this.$api.post('pedido',{idCli:this.cliente.Cod_Aut,lat:lat,lng:lng,productos:this.misproductos,pago:this.pago,fact:this.fact,fecha:this.fecha,horario:this.horario,comentario:this.coment}).then(res=>{
          // console.log(res.data)
         // return false
+        this.horario=this.coment=''
         this.modalpedido=false
         this.fecha=date.formatDate(new Date(),'YYYY-MM-DD')
         this.listhoy()

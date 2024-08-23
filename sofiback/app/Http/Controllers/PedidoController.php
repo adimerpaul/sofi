@@ -299,7 +299,9 @@ class PedidoController extends Controller
                 "hora"=>date('H:i:s'),
                 "pago"=>$request->pago,
                 "fact"=>$request->fact,
-                "rango"=>$p['rango']
+                "rango"=>$p['rango'],
+                "horario"=>$request->horario,
+                "comentario"=>$request->comentario,
             ];
             array_push($data, $d);
         }
@@ -544,7 +546,9 @@ class PedidoController extends Controller
                 "hora"=>date('H:i:s'),
                 "pago"=>$request->pago,
                 "fact"=>$request->fact,
-                "rango"=>$p['rango']
+                "rango"=>$p['rango'],
+                "horario"=>$request->horario,
+                "comentario"=>$request->comentario,
             ]);
 //            var_dump($p);
         }
@@ -555,7 +559,7 @@ class PedidoController extends Controller
                 DB::select("DELETE FROM tbpedidos where NroPed='$numpedido'");
     }
     public function listpedido(Request $request){
-        $pedido= DB::SELECT("SELECT NroPed,CIfunc,idCli,fecha,estado,pago,fact from tbpedidos where NroPed='$request->NroPed'  group by NroPed,CIfunc,idCli,fecha,estado,pago,fact ");
+        $pedido= DB::SELECT("SELECT NroPed,CIfunc,idCli,fecha,estado,pago,fact,horario,comentario from tbpedidos where NroPed='$request->NroPed'  group by NroPed,CIfunc,idCli,fecha,estado,pago,fact,horario,comentario ");
 //        return $pedido;
         foreach ($pedido as $row) {
             $lisrped=DB::SELECT("SELECT
@@ -656,6 +660,8 @@ class PedidoController extends Controller
             pago,
             fact,
             rango,
+            horario,
+            comentario,
             tbproductos.Producto as nombre
             from tbpedidos,tbproductos where tbpedidos.cod_prod=tbproductos.cod_prod and  NroPed = '$row->NroPed'" );
 

@@ -135,7 +135,10 @@ class MisvisitasController extends Controller
     public function pedidoVenta(Request $request)
     {
         
-        return DB::select("SELECT estado,COUNT(*) cantidad FROM misvisitas WHERE date(fecha)='".$request->fecha."' AND personal_id='".$request->user()->CodAut."' GROUP BY estado ORDER BY estado");
+        return DB::select("SELECT estado,COUNT(*) cantidad
+        FROM misvisitas 
+        WHERE date(fecha)='".$request->fecha."' AND personal_id='".$request->user()->CodAut."' 
+        GROUP BY estado ORDER BY estado");
     }
 
     public function reportEntregVend(Request $request){

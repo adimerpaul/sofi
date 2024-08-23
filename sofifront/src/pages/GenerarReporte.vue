@@ -101,6 +101,8 @@ export default {
       { label: "precio", value: "precio" }, // Top level data
       { label: "pago", value: row=>row.pago=='CONTADO'?'si':'no' }, // Top level data
       { label: "fact", value: "fact" }, // Top level data
+      { label: "horario", value: "horario" }, // Top level data
+      { label: "comentario", value: "comentario" }, // Top level data
     ],
     content: res.data
   },
@@ -148,6 +150,8 @@ export default {
       { label: "observaciones", value: "Observaciones" }, // Top level data
       { label: "pago", value: row=>row.pago=='CONTADO'?'si':'no' }, // Top level data
       { label: "fact", value: "fact" }, // Top level data
+      { label: "horario", value: "horario" }, // Top level data
+      { label: "comentario", value: "comentario" }, // Top level data
     ],
     content: res.data
   },
@@ -194,6 +198,8 @@ export default {
       { label: "observaciones", value: "Observaciones" }, // Top level data
       { label: "pago", value: row=>row.pago=='CONTADO'?'si':'no' }, // Top level data
       { label: "fact", value: "fact" }, // Top level data
+      { label: "horario", value: "horario" }, // Top level data
+      { label: "comentario", value: "comentario" }, // Top level data
     ],
     content: res.data
   },
@@ -243,6 +249,8 @@ export default {
       { label: "observaciones", value: "Observaciones" }, // Top level data
       { label: "pago", value: row=>row.pago=='CONTADO'?'si':'no' }, // Top level data
       { label: "fact", value: "fact" }, // Top level data
+      { label: "horario", value: "horario" }, // Top level data
+      { label: "comentario", value: "comentario" }, // Top level data
     ],
     content: this.pedCerdo
   },
@@ -260,6 +268,8 @@ export default {
       { label: "observaciones", value: "Observaciones" }, // Top level data
       { label: "pago", value: row=>row.pago=='CONTADO'?'si':'no' }, // Top level data
       { label: "fact", value: "fact" }, // Top level data
+      { label: "horario", value: "horario" }, // Top level data
+      { label: "comentario", value: "comentario" }, // Top level data
        
     ],
     content: this.pedido
@@ -300,6 +310,8 @@ export default {
       { label: "pago", value: row=>row.pago=='CONTADO'?'si':'no' }, // Top level data
       { label: "observaciones", value: "Observaciones" }, // Top level data
       { label: "fact", value: "fact" }, // Top level data
+      { label: "horario", value: "horario" }, // Top level data
+      { label: "comentario", value: "comentario" }, // Top level data
     ],
     content: this.pedPollo
   },
