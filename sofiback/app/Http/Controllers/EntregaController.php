@@ -202,4 +202,39 @@ inner join tbctascobrar cb on cb.comanda=vt.Comanda
 WHERE cb.FechaEntreg='2024-07-06'
 group by gs.Descripcion;";
     }
+
+    public function boletaentrega($comanda){
+        $pedido=DB::SELECT("SELECT * from tbctascobrar where comanda ='$comanda'")[0];
+        $detalle=DB::SELECT("SELECT * from tbventas v inner join tbproductos p on v.cod_pro=p.cod_prod where v.Comanda='$comanda' ");
+        $cliente= DB::SELECT("SELECT * from tbclientes where Id=".$pedido->CINIT)[0];
+        $personal=DB::SELECT("SELECT * from personal where ci='$pedido->CIFunc'")[0];
+        $contenido='';
+        foreach ($detalle as $value) {
+            $contenido="<tr><th>$value->cant</th><th>$value->cod_prod</th><th>$value->Producto</th><th>$value->codUnid</th><th>P.BRUTO</th><th>CJS</th><th>KG</th><th>P.NETO</th><th>P.UNIT</th><th>TOTAL</th></tr>";
+
+            # code...
+        }
+        $cadena="<style>
+        .titulo{
+        text-align:center;
+        font-weight: bold;
+        }
+        </style>
+        <div class='titulo'>BOLETA DE ENTREGA</div>
+        <hr>
+        <table>
+        <tr><th>NIT</th><td>".$cliente->Id."</td><th>Telefono</th><td>".$cliente->Telf."</td></tr>
+        <tr><th>Cliente</th><td>".$cliente->Nombres."</td><th>FEmision</th><td>".$pedido->FechaCan."</td></tr>
+        <tr><th>DIreccion</th><td>".$cliente->Direccion."</td><th></th><td></td></tr>
+        <tr><th>Vendedor</th><td>".$personal->Nombre1." ".$personal->Nombre2 ." ".$personal->App1." ". $personal->Apm."</td><th>Nro Pedido</th><td>$comanda</td></tr>
+        </table>
+        <hr>
+        <table>
+        <tr><th>CANT</th><th>CODIGO</th><th>CONCEPTO</th><th>UNID</th><th>P.BRUTO</th><th>CJS</th><th>KG</th><th>P.NETO</th><th>P.UNIT</th><th>TOTAL</th></tr>
+        </table>
+        ";
+
+        return $cadena;
+
+    }
 }

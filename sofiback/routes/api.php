@@ -24,6 +24,8 @@ Route::get('/excel/{t}/{f1}/{f2}/{CodAut}',[\App\Http\Controllers\ExcelControlle
 Route::get('users',[\App\Http\Controllers\UserController::class,'users']);
 Route::post('/importData',[\App\Http\Controllers\AlmacenController::class,'importData']);
 Route::post('/exportData',[\App\Http\Controllers\AlmacenController::class,'exportData']);
+Route::get('/boletaentrega/{comanda}',[\App\Http\Controllers\EntregaController::class,'boletaentrega']);
+
 Route::group(['middleware'=>'auth:sanctum'],function (){
     Route::post('/me',[\App\Http\Controllers\UserController::class,'me']);
     Route::resource('/cliente',\App\Http\Controllers\ClienteController::class);
