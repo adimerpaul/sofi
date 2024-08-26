@@ -8,24 +8,16 @@
         <div class="col-2 flex flex-center">
           <q-btn label="Consultar" no-caps color="primary" icon="search" :loading="loading" @click="getAlmacenes" />
         </div>
-<!--        <div class="col-1">-->
-<!--&lt;!&ndash;          <q-chip :color="porcentaje < 100 ? 'red' : 'green'" dense text-color="white">&ndash;&gt;-->
-<!--&lt;!&ndash;            {{ porcentaje }}%&ndash;&gt;-->
-<!--&lt;!&ndash;          </q-chip>&ndash;&gt;-->
-<!--        </div>-->
-        <div class="col-8  text-right">
+        <div class="col-2">
+          <q-select v-model="codigoSelect" outlined dense label="Codigos" :options="codigos" @update:modelValue="filtarCodigo"/>
+        </div>
+        <div class="col-6  text-right">
           <q-btn label="Ver Porcentaje" no-caps color="indigo" icon="visibility" :loading="loading" @click="verPorcentajeClick()" />
           <q-btn label="Exportar Excel" no-caps color="orange" icon="cloud_download" :loading="loading" @click="exportarExcel" />
           <q-btn label="Cargar Excel" no-caps color="green" icon="cloud_upload" :loading="loading" @click="dialogFile = true" />
         </div>
       </q-card-section>
       <q-card-section class="q-pa-md">
-<!--        <div class="text-red">Porcentaje de carga</div>-->
-<!--        <q-linear-progress size="25px" :value="parseFloat(porcentaje/100)" color="primary" track-color="grey-3" rounded>-->
-<!--          <div class="absolute-full flex flex-center">-->
-<!--            <q-badge color="white" text-color="accent" :label="porcentaje + '%'" />-->
-<!--          </div>-->
-<!--        </q-linear-progress>-->
         <q-table :rows-per-page-options="[0]" :loading="loading" :filter="filter" :columns="columns" :rows="almacenes" dense wrap-cells no-data-label="No hay datos" no-results-label="No hay resultados">
           <template v-slot:top-right>
             <q-input placeholder="Buscar" dense outlined v-model="filter" />
@@ -118,9 +110,6 @@
             <div class="col-12 q-pa-sm">
               <q-input dense outlined v-model="fecha" label="Fecha" type="date" />
             </div>
-<!--            <div class="col-12 q-pa-sm">-->
-<!--              <q-select v-model="codigo" label="Código" outlined :options="codigos" dense :emit-value="true" :map-options="true" />-->
-<!--            </div>-->
             <div class="col-12 q-pa-sm">
               <q-btn no-caps color="primary" class="full-width" label="Subir" :loading="loading" @click="cargarExcel" icon="cloud_upload" />
             </div>
@@ -188,7 +177,6 @@
             <div class="col-2 text-bold">Usuario</div>
             <template v-for="registro in registros" :key="registro.id">
               <div class="col-2">
-<!--                <pre>{{ registro}}</pre>-->
                 {{ registro.cantidad }}
               </div>
               <div class="col-2">
@@ -207,7 +195,6 @@
                 {{ registro.user.Nombre1 }}
               </div>
             </template>
-<!--            <pre>{{ registros }}</pre>-->
           </div>
         </q-card-section>
       </q-card>
@@ -248,12 +235,6 @@
                 </tr>
                 </tbody>
               </q-markup-table>
-<!--              <pre>{{porcentajes}}</pre>-->
-<!--              <q-linear-progress size="25px" :value="parseFloat(porcentaje/100)" color="primary" track-color="grey-3" rounded>-->
-<!--                <div class="absolute-full flex flex-center">-->
-<!--                  <q-badge color="white" text-color="accent" :label="porcentaje + '%'" />-->
-<!--                </div>-->
-<!--              </q-linear-progress>-->
             </div>
           </div>
         </q-card-section>
@@ -285,6 +266,8 @@ export default {
       fecha: date.formatDate(new Date(), 'YYYY-MM-DD'),
       file: null,
       almacenes: [],
+      almacenesAll: [],
+      codigoSelect: '',
       dialogPorcentaje: false,
       porcentajes: [],
       porcentaje: 0,
@@ -305,7 +288,7 @@ export default {
         // {name: 'registro', label: 'Registro', align: 'left', field: 'registro', sortable: true},
         // {name: 'vencimiento', label: 'Vencimiento', align: 'left', field: 'vencimiento', sortable: true},
         {name: 'grupo', label: 'Grupo', align: 'left', field: 'grupo', sortable: true},
-        {name: 'cantidad', label: 'Cantidad', align: 'left', field: 'cantidad', sortable: true},
+        // {name: 'cantidad', label: 'Cantidad', align: 'left', field: 'cantidad', sortable: true},
         // appCantidad
         {name: 'appCantidad', label: 'App Cantidad', align: 'left', field: 'appCantidad', sortable: true},
         {name: 'diferencia', label: 'Diferencia', align: 'left', field: 'diferencia', sortable: true},
@@ -319,6 +302,34 @@ export default {
     this.getAlmacenes();
   },
   methods: {
+    // filtarCodigo(val, update) {
+    //   if (val === '') {
+    //     update(() => {
+    //       this.almacenes = this.almacenesAll
+    //
+    //       // here you have access to "ref" which
+    //       // is the Vue reference of the QSelect
+    //     })
+    //     return
+    //   }
+    //
+    //   update(() => {
+    //     const needle = val.toLowerCase()
+    //     // this.almacenes = this.almacenesAll.filter(v => v.codigo.toLowerCase().indexOf(needle) > -1)
+    //   })
+    // },
+    filtarCodigo (val) {
+      // console.log(val)
+      const filter = val.label
+      if (filter === '') {
+          this.almacenes = this.almacenesAll
+        return
+      }
+      // update(() => {
+        const needle = val.label.toLowerCase()
+        this.almacenes = this.almacenesAll.filter(v => v.codigo.toLowerCase().indexOf(needle) > -1)
+      // })
+    },
     verPorcentajeClick() {
       this.loading = true;
       this.$api.get('porcentaje', {
@@ -492,6 +503,7 @@ export default {
         }
       }).then(res => {
         this.almacenes = res.data.almacenes;
+        this.almacenesAll = res.data.almacenes;
         this.porcentaje = res.data.porcentaje;
       }).catch(err => {
         console.error(err);
