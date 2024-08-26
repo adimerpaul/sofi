@@ -84,7 +84,7 @@
           <template v-slot:body-cell-diferencia="props">
             <q-td :props="props">
               <q-chip :color="parseFloat(props.row.cantidad - props.row.appCantidad) > 0 ? 'red' : 'indigo'" dense text-color="white">
-                {{ (props.row.cantidad - props.row.appCantidad).toFixed(2) }}
+                {{ (props.row.saldo - props.row.appCantidad).toFixed(2) }}
               </q-chip>
             </q-td>
           </template>
