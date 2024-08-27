@@ -179,7 +179,7 @@ GROUP BY p.idCli,c.Id,c.Nombres,c.Telf,c.Direccion,c.Latitud,c.longitud,p.estado
                 inner join tbventas v on c.comanda = v.comanda
                 inner join tbproductos p on v.cod_pro = p.cod_prod
                 inner join tbgrupos g on p.cod_grup = g.cod_grup
-                where c.CINIT=$CINIT
+                where c.CINIT='$CINIT'
                 AND c.FechaEntreg = '$fecha'
                 AND g.Cod_pdr $in
                 limit 1
@@ -220,11 +220,11 @@ GROUP BY p.idCli,c.Id,c.Nombres,c.Telf,c.Direccion,c.Latitud,c.longitud,p.estado
                     (SELECT min(c2.CodAuto) ,c2.comanda
                           from tbctascobrar c2
                           WHERE date(c2.FechaEntreg)='$request->fecha' $consulta group by c2.comanda)
-   ORDER BY 
-    CASE 
+   ORDER BY
+    CASE
         WHEN e.hora IS NULL OR e.hora = '' THEN 1
         ELSE 0
-    END, 
+    END,
     e.hora ASC;
     ");
     }
