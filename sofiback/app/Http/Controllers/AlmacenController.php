@@ -8,18 +8,30 @@ use App\Models\User;
 use Illuminate\Http\Request;
 
 class AlmacenController extends Controller{
+    function almacenRegistroVerificar($id, Request $request){
+        error_log('id: ' . json_encode($id));
+        error_log('request: ' . json_encode($request->all()));
+        $almacen = RegistroAlmacen::find($id);
+        $almacen->verificado = $request->verificado;
+        $almacen->save();
+        return response()->json($almacen);
+    }
     function almacenPendientes(Request $request){
         $fecha_registro = $request->fecha;
-        error_log('fecha_registro: ' . json_encode($fecha_registro));
-        $almacenes = Almacen::with('registros')
-            ->whereHas('registros', function ($query) {
-                $query->where('verificado', 'Pendiente')
-                    ->where('fecha_vencimiento', '<', date('Y-m-d')) // Fecha anterior a hoy
-                    ->whereNotNull('fecha_vencimiento'); // Fecha de vencimiento no nula
-            })
-            ->where('fecha_registro', $fecha_registro)
-            ->get();
 
+        $almacenes = Almacen::with('registros')
+            ->where('fecha_registro', $fecha_registro) // Filtra almacenes por fecha_registro proporcionada
+            ->whereHas('registros', function ($query) {
+                $query->whereNull('fecha_vencimiento'); // Filtra los registros relacionados donde fecha_vencimiento es NULL
+            })
+            ->get();
+        foreach ($almacenes as $almacen) {
+            $now = date('Y-m-d');
+            $almacen->registros->map(function ($registro) use ($now) {
+                $registro->dias_vencimiento = $registro->fecha_vencimiento ? (strtotime($registro->fecha_vencimiento) - strtotime($now)) / (60 * 60 * 24) : null;
+                return $registro;
+            });
+        }
         return response()->json($almacenes);
     }
     public function porcentaje(Request $request){

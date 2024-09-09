@@ -17,8 +17,13 @@ class RegistroAlmacen extends Model
         'fecha_registro',
         'lote',
         'comentario',
+        'estado',
     ];
     public function user(){
         return $this->belongsTo(User::class, 'user_id');
+    }
+    protected $appends = ['verificadoBool'];
+    public function getVerificadoBoolAttribute(){
+        return $this->verificado == 'Pendiente' ? false : true;
     }
 }
