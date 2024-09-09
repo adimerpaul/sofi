@@ -73,8 +73,8 @@ export default {
   name: "AlmacenVerificarPage",
   data() {
     return {
-      // fecha: moment().format("YYYY-MM-DD"),
-      fecha: '2024-08-24',
+      fecha: moment().format("YYYY-MM-DD"),
+      // fecha: '2024-08-24',
       almacenes: [],
       almacen: {},
       loading: false,
