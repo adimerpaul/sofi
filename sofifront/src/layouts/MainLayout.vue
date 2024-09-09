@@ -250,12 +250,24 @@
         </q-item>
         <q-item clickable active-class="bg-primary text-white" exact to="almacenVerificar" v-if="almacen.includes($store.getters['login/user'].ci)">
           <q-item-section avatar>
+<!--            icono pendiente-->
             <q-icon name="o_store" />
           </q-item-section>
           <q-item-section>
             <q-item-label>Verificar Almacen</q-item-label>
             <q-item-label caption>
               Verificar Almacen
+            </q-item-label>
+          </q-item-section>
+        </q-item>
+        <q-item clickable active-class="bg-primary text-white" exact to="almacenVerificado" v-if="almacen.includes($store.getters['login/user'].ci)">
+          <q-item-section avatar>
+            <q-icon name="o_store" />
+          </q-item-section>
+          <q-item-section>
+            <q-item-label>Verificado Almacen</q-item-label>
+            <q-item-label caption>
+              Verificado Almacen
             </q-item-label>
           </q-item-section>
         </q-item>
