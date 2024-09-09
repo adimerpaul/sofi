@@ -8,6 +8,20 @@ use App\Models\User;
 use Illuminate\Http\Request;
 
 class AlmacenController extends Controller{
+    function almacenPendientes(Request $request){
+        $fecha_registro = $request->fecha;
+        error_log('fecha_registro: ' . json_encode($fecha_registro));
+        $almacenes = Almacen::with('registros')
+            ->whereHas('registros', function ($query) {
+                $query->where('verificado', 'Pendiente')
+                    ->where('fecha_vencimiento', '<', date('Y-m-d')) // Fecha anterior a hoy
+                    ->whereNotNull('fecha_vencimiento'); // Fecha de vencimiento no nula
+            })
+            ->where('fecha_registro', $fecha_registro)
+            ->get();
+
+        return response()->json($almacenes);
+    }
     public function porcentaje(Request $request){
         $porcentajeAvancadoCodigo = $this->porcentajeAvanceCodigo($request);
         return response()->json($porcentajeAvancadoCodigo);

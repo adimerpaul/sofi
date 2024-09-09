@@ -95,6 +95,7 @@ Route::group(['middleware'=>'auth:sanctum'],function (){
 
     Route::post('/reportePollo2',[\App\Http\Controllers\ExcelController::class,'reportePollo2']);
     Route::get('/almacenes',[\App\Http\Controllers\AlmacenController::class,'index']);
+    Route::get('/almacenPendientes',[\App\Http\Controllers\AlmacenController::class,'almacenPendientes']);
     Route::put('/almacenes/{id}',[\App\Http\Controllers\AlmacenController::class,'update']);
     Route::delete('/almacenes/{id}',[\App\Http\Controllers\AlmacenController::class,'destroy']);
     Route::post('/cargarExcel',[\App\Http\Controllers\AlmacenController::class,'cargarExcel']);

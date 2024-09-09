@@ -23,6 +23,7 @@ import Despacho from "pages/Despacho.vue";
 import Clientevisita from "pages/Clientevisita.vue";
 import Pedidoresumen from "pages/Pedidoresumen.vue";
 import Avance from "pages/Avance.vue";
+import AlmacenVerificar from "pages/AlmacenVerificar.vue";
 const routes = [
   {
     path: '/',
@@ -47,6 +48,7 @@ const routes = [
       { path: '/productos', component: Productos ,meta: {requiresAuth: true}},
       { path: '/nopedido', component: Nopedido ,meta: {requiresAuth: true}},
       { path: '/almacen', component: AlmacenPage ,meta: {requiresAuth: true}},
+      { path: '/almacenVerificar', component: AlmacenVerificar ,meta: {requiresAuth: true}},
       { path: '/entrega', component: Entregas ,meta: {requiresAuth: true}},
       { path: '/despacho', component: Despacho ,meta: {requiresAuth: true}},
       { path: '/clientevisita', component: Clientevisita ,meta: {requiresAuth: true}},
