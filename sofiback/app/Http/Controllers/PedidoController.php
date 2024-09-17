@@ -73,6 +73,88 @@ class PedidoController extends Controller
 
     public function store(Request $request)
     {
+
+        foreach ($request->productos as $p){
+            if ($p['tipo'] == 'POLLO') {
+                $cbrasa5 = isset($p['cbrasa5']) ? $p['cbrasa5'] : 0;
+                $ubrasa5 = isset($p['ubrasa5']) ? $p['ubrasa5'] : 0;
+                $cbrasa6 = isset($p['cbrasa6']) ? $p['cbrasa6'] : 0;
+                $cubrasa6 = isset($p['cubrasa6']) ? $p['cubrasa6'] : 0;
+                $c104 = isset($p['c104']) ? $p['c104'] : 0;
+                $u104 = isset($p['u104']) ? $p['u104'] : 0;
+                $c105 = isset($p['c105']) ? $p['c105'] : 0;
+                $u105 = isset($p['u105']) ? $p['u105'] : 0;
+                $c106 = isset($p['c106']) ? $p['c106'] : 0;
+                $u106 = isset($p['u106']) ? $p['u106'] : 0;
+                $c107 = isset($p['c107']) ? $p['c107'] : 0;
+                $u107 = isset($p['u107']) ? $p['u107'] : 0;
+                $c108 = isset($p['c108']) ? $p['c108'] : 0;
+                $u108 = isset($p['u108']) ? $p['u108'] : 0;
+                $c109 = isset($p['c109']) ? $p['c109'] : 0;
+                $u109 = isset($p['u109']) ? $p['u109'] : 0;
+
+                $ala = isset($p['ala']) ? $p['ala'] : 0;
+                $cadera = isset($p['cadera']) ? $p['cadera'] : 0;
+                $pecho = isset($p['pecho']) ? $p['pecho'] : 0;
+                $pie = isset($p['pie']) ? $p['pie'] : 0;
+                $filete = isset($p['filete']) ? $p['filete'] : 0;
+                $cuello = isset($p['cuello']) ? $p['cuello'] : 0;
+                $hueso = isset($p['hueso']) ? $p['hueso'] : 0;
+                $menu = isset($p['menu']) ? $p['menu'] : 0;
+                $rango = isset($p['rango']) ? $p['rango'] : 0;
+
+                $sumTotal = $cbrasa5 + $ubrasa5 + $cbrasa6 + $cubrasa6 + $c104 + $u104 + $c105 + $u105 + $c106 + $u106 + $c107 + $u107 + $c108 + $u108 + $c109 + $u109 + $ala + $cadera + $pecho + $pie + $filete + $cuello + $hueso + $menu+$rango;
+                if ($sumTotal == 0) {
+                    return response()->json(['message' => 'Debes ingresar al menos un producto frial pollo'], 500);
+                    exit();
+                }
+                $sum1 =  $cbrasa5 + $ubrasa5 + $cbrasa6 + $cubrasa6 + $c104 + $u104 + $c105 + $u105 + $c106 + $u106 + $c107 + $u107 + $c108 + $u108 + $c109 + $u109;
+                error_log('sum1: '.$sum1);
+                $bs = isset($p['bs']) ? $p['bs'] : 0;
+                error_log('bs: '.$bs);
+                if ($sum1 >0 && $bs == 0) {
+                    return response()->json(['message' => 'Debes ingresar el total de bs en pollo'], 500);
+                    exit();
+                }
+                $sum2 = $ala + $cadera + $pecho + $pie + $filete + $cuello + $hueso + $menu;
+                error_log('sum2: '.$sum2);
+                $bs2 = isset($p['bs2']) ? $p['bs2'] : 0;
+                error_log('bs2: '.$bs2);
+                if ($sum2 >0 && $bs2 == 0) {
+                    return response()->json(['message' => 'Debes ingresar el total de bs2 en pollo'], 500);
+                    exit();
+                }
+
+
+                $sum3 =  $cbrasa5 + $ubrasa5 + $cbrasa6 + $cubrasa6 + $rango;
+                $observacion = isset($p['observacion']) ? $p['observacion'] : '';
+                if ($sum3 >0 && $observacion == '') {
+                    return response()->json(['message' => 'Debes ingresar la observacion frial pollo'], 500);
+                    exit();
+                }
+
+
+            }
+            if($p['tipo']=='CERDO'){
+                $pfrial = isset($p['pfrial']) ? $p['pfrial'] : 0;
+                $total = isset($p['total']) ? $p['total'] : 0;
+                $entero = isset($p['entero']) ? $p['entero'] : 0;
+                $desmembre = isset($p['desmembre']) ? $p['desmembre'] : 0;
+                $corte = isset($p['corte']) ? $p['corte'] : 0;
+                $kilo = isset($p['kilo']) ? $p['kilo'] : 0;
+                $sumTotal = $total + $entero + $desmembre + $corte + $kilo;
+                if ($sumTotal == 0) {
+                    return response()->json(['message' => 'Debes ingresar al menos un producto frial cerdo'], 500);
+                    exit();
+                }
+                if ($pfrial == 0) {
+                    return response()->json(['message' => 'Debes ingresar el total de bs en cerdo'], 500);
+                    exit();
+                }
+            }
+        }
+//        return response()->json(['message' => 'DEVERIA INSERTAR'], 500);
+//        exit();
 //        return $request->productos;
         //$max=DB::select("SELECT max(NroPed) as max FROM tbpedidos");
         $cmdnum=DB::select("SELECT *  FROM comandas limit 1")[0];
@@ -99,105 +181,6 @@ class PedidoController extends Controller
         ]);
         $data=[];
         foreach ($request->productos as $p){
-//            echo $p['idCli'].'--';
-
-//            DB::table('tbpedidos')->insert([
-//                'NroPed' => $numpedido,
-//                'cod_prod'=>$p['cod_prod'],
-//                'CIfunc'=>$request->user()->CodAut,
-//                'idCli'=>$request->idCli,
-//                'Cant'=>$p['cantidad'],
-//                'precio'=>$p['precio'],
-//                'fecha'=>date('Y-m-d H:i:s'),
-//                'subtotal'=>$p['subtotal'],
-////                'cod_prod'=>$p['cod_prod'],
-//                "cbrasa5"=>$p['cbrasa5'],
-//                "ubrasa5"=>$p['ubrasa5'],
-//                "bsbrasa5"=>$p['bsbrasa5'],
-//                "obsbrasa5"=>$p['obsbrasa5'],
-//                "cbrasa6"=>$p['cbrasa6'],
-//                "cubrasa6"=>$p['cubrasa6'],
-//                "bsbrasa6"=>$p['bsbrasa6'],
-//                "obsbrasa6"=>$p['obsbrasa6'],
-//                "Observaciones"=>$p['observacion'],
-//                "Canttxt"=>$p['observacion']!=null?$p['observacion']:'',
-//                "impreso"=>0,
-//                "pagado"=>0,
-//                "Tipo1"=>0,
-//                "Tipo2"=>0,
-//                "c104"=>$p['c104'],
-//                "u104"=>$p['u104'],
-//                "bs104"=>$p['bs104'],
-//                "obs104"=>$p['obs104'],
-//                "c105"=>$p['c105'],
-//                "u105"=>$p['u105'],
-//                "bs105"=>$p['bs105'],
-//                "obs105"=>$p['obs105'],
-//                "c106"=>$p['c106'],
-//                "u106"=>$p['u106'],
-//                "bs106"=>$p['bs106'],
-//                "obs106"=>$p['obs106'],
-//                "c107"=>$p['c107'],
-//                "u107"=>$p['u107'],
-//                "bs107"=>$p['bs107'],
-//                "obs107"=>$p['obs107'],
-//                "c108"=>$p['c108'],
-//                "u108"=>$p['u108'],
-//                "bs108"=>$p['bs108'],
-//                "obs108"=>$p['obs108'],
-//                "c109"=>$p['c109'],
-//                "u109"=>$p['u109'],
-//                "bs109"=>$p['bs109'],
-//                "obs109"=>$p['obs109'],
-//                "ala"=>$p['ala'],
-//                "cadera"=>$p['cadera'],
-//                "pecho"=>$p['pecho'],
-//                "pie"=>$p['pie'],
-//                "filete"=>$p['filete'],
-//                "cuello"=>$p['cuello'],
-//                "hueso"=>$p['hueso'],
-//                "menu"=>$p['menu'],
-//                "unidala"=>$p['unidala'],
-//                "bsala"=>$p['bsala'],
-//                "obsala"=>$p['obsala'],
-//                "unidcadera"=>$p['unidcadera'],
-//                "bscadera"=>$p['bscadera'],
-//                "obscadera"=>$p['obscadera'],
-//                "unidpecho"=>$p['unidpecho'],
-//                "bspecho"=>$p['bspecho'],
-//                "obspecho"=>$p['obspecho'],
-//                "unidpie"=>$p['unidpie'],
-//                "bspie"=>$p['bspie'],
-//                "obspie"=>$p['obspie'],
-//                "unidfilete"=>$p['unidfilete'],
-//                "bsfilete"=>$p['bsfilete'],
-//                "obsfilete"=>$p['obsfilete'],
-//                "unidcuello"=>$p['unidcuello'],
-//                "bscuello"=>$p['bscuello'],
-//                "obscuello"=>$p['obscuello'],
-//                "unidhueso"=>$p['unidhueso'],
-//                "bshueso"=>$p['bshueso'],
-//                "obshueso"=>$p['obshueso'],
-//                "unidmenu"=>$p['unidmenu'],
-//                "bsmenu"=>$p['bsmenu'],
-//                "obsmenu"=>$p['obsmenu'],
-//                "bs"=>$p['bs'],
-//                "bs2"=>$p['bs2'],
-//                "contado"=>$p['contado'],
-//                "tipo"=>$p['tipo'],
-//                "total"=>$p['total'],
-//                "entero"=>$p['entero'],
-//                "desmembre"=>$p['desmembre'],
-//                "corte"=>$p['corte'],
-//                "kilo"=>$p['kilo'],
-//                "trozado"=>$p['trozado'],
-//                "pierna"=>$p['pierna'],
-//                "brazo"=>$p['brazo'],
-//                "pfrial"=>$p['pfrial'],
-//                "hora"=>date('H:i:s'),
-//                "pago"=>$request->pago
-//            ]);
-// //            var_dump($p);
         if($p['tipo']=='POLLO' || $p['tipo']=='RES' || $p['tipo']=='CERDO')
             $imp=1;
         else
