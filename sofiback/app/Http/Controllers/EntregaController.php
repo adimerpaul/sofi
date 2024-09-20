@@ -205,21 +205,27 @@ group by gs.Descripcion;";
 
     public function boletaentrega($comanda){
         $pedido=DB::SELECT("SELECT * from tbctascobrar where comanda ='$comanda'")[0];
-        $detalle=DB::SELECT("SELECT * from tbventas v inner join tbproductos p on v.cod_pro=p.cod_prod where v.Comanda='$comanda' ");
+        $detalle=DB::SELECT("SELECT * from tbventas v inner join tbproductos p on v.cod_pro=p.cod_prod where v.Comanda=$comanda");
         $cliente= DB::SELECT("SELECT * from tbclientes where Id=".$pedido->CINIT)[0];
         $personal=DB::SELECT("SELECT * from personal where ci='$pedido->CIFunc'")[0];
         $contenido='';
+        //return $detalle;
         foreach ($detalle as $value) {
-            $contenido="<tr><th>$value->cant</th><th>$value->cod_prod</th><th>$value->Producto</th><th>$value->codUnid</th><th>P.BRUTO</th><th>CJS</th><th>KG</th><th>P.NETO</th><th>P.UNIT</th><th>TOTAL</th></tr>";
+            $contenido.="<tr><td>$value->cant</td><td>$value->cod_prod</td><td>$value->Producto</td><td>$value->codUnid</td><td>P.BRUTO</td><td>$value->CantCaja</td><td>$value->codUnid</td><td>P.NETO</td><td>$value->PVentUnit</td><td>$value->Monto</td></tr>";
 
             # code...
         }
         $cadena="<style>
+        cuerpo{ padding:5px;}
         .titulo{
         text-align:center;
         font-weight: bold;
         }
+        table{
+        width:100%;
+        }
         </style>
+        <div class='cuerpo'>
         <div class='titulo'>BOLETA DE ENTREGA</div>
         <hr>
         <table>
@@ -231,7 +237,9 @@ group by gs.Descripcion;";
         <hr>
         <table>
         <tr><th>CANT</th><th>CODIGO</th><th>CONCEPTO</th><th>UNID</th><th>P.BRUTO</th><th>CJS</th><th>KG</th><th>P.NETO</th><th>P.UNIT</th><th>TOTAL</th></tr>
+        $contenido
         </table>
+        </div>
         ";
 
         return $cadena;
