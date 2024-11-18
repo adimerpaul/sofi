@@ -313,8 +313,8 @@ class ExcelController extends Controller
         return DB::SELECT("SELECT c.Id, c.Nombres, c.Direccion, c.Telf, p.NroPed, p.cod_prod, p.idCli , p.Cant , p.precio , p.fecha , p.Observaciones , p.subtotal,
          u.Producto, p.pago,p.fact, e.Nombre1,e.App1,e.Apm,p.horario,p.comentario
          FROM tbpedidos p inner join tbclientes c on p.idCli=c.Cod_Aut inner join tbproductos u on u.cod_prod=p.cod_prod inner join personal e on p.CIfunc=e.CodAut
-          where p.tipo='NORMAL' AND date(p.fecha)>='$request->ini' and date(p.fecha)<='$request->fin' and p.estado='ENVIADO' ");
-    }
+          where p.tipo='NORMAL' AND date(p.fecha)>='$request->ini' and date(p.fecha)<='$request->fin'  ");
+    }// and p.estado='ENVIADO'
 
     public function reportePollo(Request $request){
         return DB::SELECT("SELECT * from tbpedidos p, tbclientes c
