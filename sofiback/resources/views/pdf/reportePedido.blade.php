@@ -4,174 +4,102 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Reporte de Pedido</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            border: 0;
+        }
+        .page {
+            page-break-after: always;
+            padding: 10px;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 10px;
+        }
+        .header h1 {
+            font-size: 24px;
+            margin: 0;
+        }
+        .header p {
+            margin: 0;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        table th, table td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        table th {
+            background-color: #f4f4f4;
+        }
+    </style>
 </head>
 <body>
-{{--[--}}
-{{--{--}}
-{{--codAut: 305732,--}}
-{{--NroPed: 103512,--}}
-{{--cod_prod: "540304",--}}
-{{--CIfunc: "28",--}}
-{{--idCli: "92",--}}
-{{--Cant: "36.00",--}}
-{{--Tipo1: "0.00",--}}
-{{--Tipo2: "0.00",--}}
-{{--Canttxt: "",--}}
-{{--precio: "8.00",--}}
-{{--fecha: "2024-11-20 09:47:43",--}}
-{{--estado: "ENVIADO",--}}
-{{--estados: "VAYA",--}}
-{{--impreso: 0,--}}
-{{--Observaciones: null,--}}
-{{--pagado: 0,--}}
-{{--subtotal: "288.00",--}}
-{{--cbrasa5: null,--}}
-{{--ubrasa5: null,--}}
-{{--cbrasa6: null,--}}
-{{--cubrasa6: null,--}}
-{{--c104: null,--}}
-{{--u104: null,--}}
-{{--c105: null,--}}
-{{--u105: null,--}}
-{{--c106: null,--}}
-{{--u106: null,--}}
-{{--c107: null,--}}
-{{--u107: null,--}}
-{{--c108: null,--}}
-{{--u108: null,--}}
-{{--c109: null,--}}
-{{--u109: null,--}}
-{{--rango: null,--}}
-{{--ala: null,--}}
-{{--unidala: "KG",--}}
-{{--cadera: null,--}}
-{{--unidcadera: "KG",--}}
-{{--pecho: null,--}}
-{{--unidpecho: "KG",--}}
-{{--pie: null,--}}
-{{--unidpie: "KG",--}}
-{{--filete: null,--}}
-{{--unidfilete: "KG",--}}
-{{--cuello: null,--}}
-{{--unidcuello: "KG",--}}
-{{--hueso: null,--}}
-{{--unidhueso: "KG",--}}
-{{--menu: null,--}}
-{{--unidmenu: "KG",--}}
-{{--bs: null,--}}
-{{--bs2: null,--}}
-{{--contado: null,--}}
-{{--tipo: "NORMAL",--}}
-{{--total: null,--}}
-{{--entero: null,--}}
-{{--desmembre: null,--}}
-{{--corte: null,--}}
-{{--kilo: null,--}}
-{{--trozado: null,--}}
-{{--pierna: null,--}}
-{{--brazo: null,--}}
-{{--hora: "09:47:43",--}}
-{{--pago: "CONTADO",--}}
-{{--bsala: null,--}}
-{{--obsala: null,--}}
-{{--bscadera: null,--}}
-{{--obscadera: null,--}}
-{{--bspecho: null,--}}
-{{--obspecho: null,--}}
-{{--bspie: null,--}}
-{{--obspie: null,--}}
-{{--bsfilete: null,--}}
-{{--obsfilete: null,--}}
-{{--bscuello: null,--}}
-{{--obscuello: null,--}}
-{{--bshueso: null,--}}
-{{--obshueso: null,--}}
-{{--bsmenu: null,--}}
-{{--obsmenu: null,--}}
-{{--bs104: null,--}}
-{{--obs104: null,--}}
-{{--bs105: null,--}}
-{{--obs105: null,--}}
-{{--bs106: null,--}}
-{{--obs106: null,--}}
-{{--bs107: null,--}}
-{{--obs107: null,--}}
-{{--bs108: null,--}}
-{{--obs108: null,--}}
-{{--bs109: null,--}}
-{{--obs109: null,--}}
-{{--bsbrasa5: null,--}}
-{{--obsbrasa5: null,--}}
-{{--bsbrasa6: null,--}}
-{{--obsbrasa6: null,--}}
-{{--pfrial: null,--}}
-{{--fact: "SI",--}}
-{{--Impreso2: 1,--}}
-{{--horario: null,--}}
-{{--comentario: null,--}}
-{{--Cod_Aut: 92,--}}
-{{--Id: "3131257018",--}}
-{{--Cod_ciudad: "",--}}
-{{--Cod_Nacio: "",--}}
-{{--cod_car: 1,--}}
-{{--Nombres: "CARMELA XIMENA GUTIERREZ GARECA",--}}
-{{--Telf: "72393439",--}}
-{{--Direccion: "POTOSI ESQ. ADOLFO MIER (TULIPAS)",--}}
-{{--EstCiv: "",--}}
-{{--edad: "",--}}
-{{--Empresa: "",--}}
-{{--Categoria: 0,--}}
-{{--Imp_pieza: "0.00",--}}
-{{--CiVend: "7360035",--}}
-{{--ListBlanck: 0,--}}
-{{--MotivoListBlack: "",--}}
-{{--ListBlack: 0,--}}
-{{--TipoPaciente: "",--}}
-{{--SupraCanal: "ON",--}}
-{{--Canal: "RESTAURANT",--}}
-{{--subcanal: "EMBUTIDO",--}}
-{{--zona: "CENTRO",--}}
-{{--Latitud: "-17.9700815",--}}
-{{--longitud: "-67.1113872",--}}
-{{--transporte: "CON TRANSPORTE INTERDEPARTAMEN",--}}
-{{--territorio: "103-CENTRO",--}}
-{{--codcli: 10279,--}}
-{{--clinew: "REV",--}}
-{{--venta: "ACTIVO",--}}
-{{--complto: "",--}}
-{{--Tipodocu: 5,--}}
-{{--lu: 0,--}}
-{{--Ma: 0,--}}
-{{--Mi: 1,--}}
-{{--Ju: 0,--}}
-{{--Vi: 0,--}}
-{{--Sa: 0,--}}
-{{--do: 0,--}}
-{{--Correcli: "",--}}
-{{--canmayni: 0,--}}
-{{--baja: 0,--}}
-{{--profecion: "",--}}
-{{--waths: 0,--}}
-{{--ctasActivo: 0,--}}
-{{--ctasMont: "0.00",--}}
-{{--ctasdias: 0,--}}
-{{--sexo: "",--}}
-{{--CodAut: 28,--}}
-{{--Fech_naci: "2021-09-15",--}}
-{{--ci: "7360035",--}}
-{{--pasw: "736",--}}
-{{--cod_Prof: 0,--}}
-{{--App1: "RIOS",--}}
-{{--Apm: "COCA",--}}
-{{--Nombre1: "JUAN",--}}
-{{--Nombre2: "CARLOS",--}}
-{{--correo: "                    ",--}}
-{{--Salario: "0",--}}
-{{--direccion: " ",--}}
-{{--Nro: 0,--}}
-{{--NroAlm: 0,--}}
-{{--AccesoEmp: 0,--}}
-{{--placa: null--}}
-{{--},--}}
+@foreach ($pedidos as $pedido)
+    <div class="page">
+        <div class="header">
+            <h1 style="font-size: 20px; margin-bottom: 10px;">Solicitud de Pedido</h1>
+            <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+                <tr>
+                    <td colspan="2" style="padding: 4px; font-weight: bold;">Número de Pedido: {{ $pedido['pedido']->NroPed }}</td>
+                    <td colspan="2" style="padding: 4px;"></td>
+                </tr>
+                <tr>
+                    <td style="padding: 4px; font-weight: bold;">Cliente:</td>
+                    <td style="padding: 4px;">{{ $pedido['pedido']->cliente->Nombres }}</td>
+{{--                </tr>--}}
+{{--                <tr>--}}
+                    <td style="padding: 4px; font-weight: bold;">Fecha de Pedido:</td>
+                    <td style="padding: 4px;">{{ $pedido['pedido']->fecha }}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 4px; font-weight: bold;">Dirección:</td>
+                    <td style="padding: 4px;">{{ $pedido['pedido']->cliente->Direccion }}</td>
+{{--                </tr>--}}
+{{--                <tr>--}}
+                    <td style="padding: 4px; font-weight: bold;">Zona:</td>
+                    <td style="padding: 4px;">{{ $pedido['pedido']->cliente->zona }}</td>
+                </tr>
+                <tr>
+                    <td colspan="4" style="padding: 4px; font-weight: bold;">
+                        Encargado:
+                        {{ $pedido['pedido']->user->Nombre1 }}
+                        {{ $pedido['pedido']->user->App1 }}
+                    </td>
+{{--                    <td style="padding: 4px;">{{ $pedido['pedido']->CIfunc }}</td>--}}
+                </tr>
+            </table>
+        </div>
+        <table>
+            <thead>
+            <tr>
+                <th>Código</th>
+                <th>Producto</th>
+                <th>Cantidad</th>
+                <th>Precio</th>
+                <th>Subtotal</th>
+            </tr>
+            </thead>
+            <tbody>
+            @foreach ($pedido['productos'] as $producto)
+                <tr>
+                    <td>{{ $producto->cod_prod }}</td>
+                    <td>{{ isset($producto->producto) ? $producto->producto->Producto : '' }}</td>
+                    <td>{{ $producto->Cant }}</td>
+                    <td>{{ $producto->precio }}</td>
+                    <td>{{ $producto->subtotal }}</td>
+                </tr>
+            @endforeach
+            </tbody>
+        </table>
+    </div>
+@endforeach
 </body>
 </html>

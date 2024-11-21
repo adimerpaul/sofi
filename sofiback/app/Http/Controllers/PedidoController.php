@@ -2,19 +2,59 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Pedido;
+use App\Models\Producto;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Barryvdh\DomPDF\Facade\Pdf;
 class PedidoController extends Controller{
     function reportePedido(Request $request,$fecha){
-        $query = "SELECT *
-        FROM tbpedidos p
-        INNER JOIN tbclientes c ON c.Cod_Aut = p.idCli
-        INNER JOIN personal l ON p.CIfunc = l.CodAut
-        WHERE DATE(fecha) = ? AND estado = 'ENVIADO'";
-        $pedidos= DB::select($query, [$fecha]);
-        return $pedidos;
-        $pdf = PDF::loadView('pdf.reportePedido', $pedidos);
+        $pedidos = Pedido::whereDate('fecha', $fecha)
+            ->select('NroPed', 'fecha', 'idCli', 'CIfunc', 'estado','fact')
+            ->where('estado', 'ENVIADO')
+            ->with(['cliente' => function ($query) {
+                $query->select('Cod_Aut', 'Nombres', 'Direccion', 'Telf','zona');
+            }])
+            ->with(['user' => function ($query) {
+                $query->select('CodAut', 'Nombre1', 'App1');
+            }])
+            ->groupBy('NroPed', 'fecha', 'idCli', 'CIfunc', 'estado','fact')
+            ->orderBy('NroPed')
+            ->where('tipo','NORMAL')
+            ->get();
+        $pedidosAll = Pedido::whereDate('fecha', $fecha)
+            ->select('NroPed','cod_prod','precio','Cant','subtotal')
+            ->with(['producto' => function ($query) {
+                $query->select('cod_prod', 'Producto');
+            }])
+            ->where('tipo','NORMAL')
+            ->get();
+        $resPedido=[];
+        foreach ($pedidos as $p){
+            $productos=$pedidosAll->where('NroPed',$p->NroPed);
+            $resProducto=[];
+            foreach ($productos as $pro){
+//                error_log(isset($pro->producto->Producto)?$pro->producto->Producto:'');
+                $resProducto[]=[
+                    'Nroped'=>$pro->NroPed,
+                    'cod_prod'=>$pro->cod_prod,
+                    'producto'=>isset($pro->producto->Producto)?$pro->producto->Producto:'',
+                    'precio'=>$pro->precio,
+                    'Cant'=>$pro->Cant,
+                    'subtotal'=>$pro->subtotal
+                ];
+            }
+            $resPedido[]=[
+                'pedido'=>$p,
+                'productos'=>$productos
+            ];
+        }
+//        return $resPedido;
+        $data = [
+            'pedidos' => $resPedido,
+            'fecha' => $fecha
+        ];
+        $pdf = PDF::loadView('pdf.reportePedido', $data);
         return $pdf->stream('document.pdf');
     }
     public function index()
@@ -884,10 +924,10 @@ class PedidoController extends Controller{
     }
 
     public function  resumenPedidos($fecha){
-        return DB::SELECT("SELECT c.Id,c.Nombres,p.NroPed,p.pago,p.fact,CONCAT(e.Nombre1,' ',e.App1)  personal
+        return DB::SELECT("SELECT c.Id,c.Nombres,p.NroPed,p.pago,p.fact,CONCAT(e.Nombre1,' ',e.App1)  personal,p.fecha
         from tbpedidos p inner join personal e on p.CIfunc=e.CodAut inner join tbclientes c on p.idCli=c.Cod_Aut
         where date(p.fecha)='$fecha' and p.tipo='NORMAL'
-        GROUP by c.Id,c.Nombres,p.NroPed,p.pago,p.fact,personal
+        GROUP by c.Id,c.Nombres,p.NroPed,p.pago,p.fact,personal,p.fecha
         order by c.Id, p.NroPed
         ");
     }

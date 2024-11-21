@@ -25,6 +25,8 @@ import Pedidoresumen from "pages/Pedidoresumen.vue";
 import Avance from "pages/Avance.vue";
 import AlmacenVerificar from "pages/AlmacenVerificar.vue";
 import AlmacenVerificado from "pages/AlmacenVerificado.vue";
+import Despachoresumen from "pages/Despachoresumen.vue";
+
 const routes = [
   {
     path: '/',
@@ -55,6 +57,7 @@ const routes = [
       { path: '/despacho', component: Despacho ,meta: {requiresAuth: true}},
       { path: '/clientevisita', component: Clientevisita ,meta: {requiresAuth: true}},
       { path: '/clientepedido', component: Pedidoresumen ,meta: {requiresAuth: true}},
+      { path: '/listpedido', component: Despachoresumen ,meta: {requiresAuth: true}},
       { path: '/avance', component: Avance ,meta: {requiresAuth: true}},
       { path: '/login', component: Login },
     ]
