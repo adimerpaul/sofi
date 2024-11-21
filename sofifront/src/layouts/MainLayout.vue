@@ -105,6 +105,17 @@
             </q-item-label>
           </q-item-section>
         </q-item>
+        <q-item clickable active-class="bg-primary text-white" exact to="listpedido" v-if="digitador.includes($store.getters['login/user'].ci)">
+          <q-item-section avatar>
+            <q-icon name="shopping_cart" />
+          </q-item-section>
+          <q-item-section>
+            <q-item-label>Listado Pedidos  </q-item-label>
+            <q-item-label caption>
+              Registrados
+            </q-item-label>
+          </q-item-section>
+        </q-item>
         <q-item clickable active-class="bg-primary text-white" exact to="cobrosrealizados" v-if="vendores.includes($store.getters['login/user'].ci) || cobrador.includes($store.getters['login/user'].ci) || $store.getters['login/user'].ci=='7329536'">
           <q-item-section avatar>
             <q-icon name="monetization_on" />
@@ -373,7 +384,8 @@ export default {
       almacen:['7308976' ,'7377278','7205489','7277481'],
       cobrador:['7424479'],
       despachador:['7205489','A1SUD','A2NORTE','A3CENTRO','A4BOLIVAR','A5APOYO','C1RECOGE','B3LLALLAGUA','7277481','B1HUANUNI','MOTO1','MOTO2'],
-      supervisor:['7308976','7329688','7288817','7312297', '7205489', '7277481' ]
+      supervisor:['7308976','7329688','7288817','7312297', '7205489', '7277481' ],
+      digitador:['1223334444' ]
     }
   },
   methods:{
