@@ -4,7 +4,7 @@
   <div class="col-6 q-pa-xs">
     <q-input dense outlined v-model="fecha1" label="Fecha Ini" type="date" @update:model-value="mispendiente"/>
   </div>
-  <div class="col-3 q-pa-xs"> <q-btn dense color="red"  label="PDF" />
+  <div class="col-3 q-pa-xs"> <q-btn dense color="red"  label="PDF" :href="`${url}reportePedido/${fecha1}`" target="_blank"/>
   </div>
   <div class="col-12 q-pa-xs">
     <q-table :rows-per-page-options="[0]" dense title="LISTADO DE PEDIDOS " :columns="columns" :rows="clientes" :filter="filter" >
@@ -64,6 +64,9 @@ export default {
     this.mispendiente()
   },
   methods:{
+    generarPdf(){
+
+    },
     filtrarPago(pago){
       console.log(pago)
       if(pago.value=='CONTADO'){
