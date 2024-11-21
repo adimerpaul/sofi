@@ -113,18 +113,18 @@ Route::group(['middleware'=>'auth:sanctum'],function (){
     Route::post('/rePrestamo2',[\App\Http\Controllers\PrestamoController::class,'rePrestamo2']);
     Route::post('/reporteDes',[\App\Http\Controllers\RutaController::class,'reporteDes']);
     Route::get('/reportContable/{fecha}',[\App\Http\Controllers\RutaController::class,'reportContable']);
-    
+
     Route::get('/resumenPedidos/{fecha}',[\App\Http\Controllers\PedidoController::class,'resumenPedidos']);
     Route::post('/reportEntImp',[\App\Http\Controllers\EntregaController::class,'reportEntImp']);
-    
+
     Route::post('/listClienteComanda',[\App\Http\Controllers\RutaController::class,'listClienteComanda']);
-    
+
     Route::post('/listClientePrev',[\App\Http\Controllers\MisvisitasController::class,'listClientePrev']);
     Route::post('/pedidoVenta',[\App\Http\Controllers\MisvisitasController::class,'pedidoVenta']);
     Route::post('/reportEntregVend',[\App\Http\Controllers\MisvisitasController::class,'reportEntregVend']);
 
     Route::post('/repComanda',[\App\Http\Controllers\RutaController::class,'repComanda']);
-    
-    
-});
 
+
+});
+Route::get('/reportePedido/{fecha}',[\App\Http\Controllers\PedidoController::class,'reportePedido']);

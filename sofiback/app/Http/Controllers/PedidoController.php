@@ -4,14 +4,19 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-
-class PedidoController extends Controller
-{
-    /**
-     * Display a listing of the resource.
-     *
-     * @return \Illuminate\Http\Response
-     */
+use Barryvdh\DomPDF\Facade\Pdf;
+class PedidoController extends Controller{
+    function reportePedido(Request $request,$fecha){
+        $query = "SELECT *
+        FROM tbpedidos p
+        INNER JOIN tbclientes c ON c.Cod_Aut = p.idCli
+        INNER JOIN personal l ON p.CIfunc = l.CodAut
+        WHERE DATE(fecha) = ? AND estado = 'ENVIADO'";
+        $pedidos= DB::select($query, [$fecha]);
+        return $pedidos;
+        $pdf = PDF::loadView('pdf.reportePedido', $pedidos);
+        return $pdf->stream('document.pdf');
+    }
     public function index()
     {
         //
@@ -880,8 +885,8 @@ class PedidoController extends Controller
 
     public function  resumenPedidos($fecha){
         return DB::SELECT("SELECT c.Id,c.Nombres,p.NroPed,p.pago,p.fact,CONCAT(e.Nombre1,' ',e.App1)  personal
-        from tbpedidos p inner join personal e on p.CIfunc=e.CodAut inner join tbclientes c on p.idCli=c.Cod_Aut 
-        where date(p.fecha)='$fecha' and p.tipo='NORMAL' 
+        from tbpedidos p inner join personal e on p.CIfunc=e.CodAut inner join tbclientes c on p.idCli=c.Cod_Aut
+        where date(p.fecha)='$fecha' and p.tipo='NORMAL'
         GROUP by c.Id,c.Nombres,p.NroPed,p.pago,p.fact,personal
         order by c.Id, p.NroPed
         ");

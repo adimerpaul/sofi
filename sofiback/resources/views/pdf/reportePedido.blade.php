@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Reporte de Pedido</title>
+</head>
+<body>
+{{--[--}}
+{{--{--}}
+{{--codAut: 305732,--}}
+{{--NroPed: 103512,--}}
+{{--cod_prod: "540304",--}}
+{{--CIfunc: "28",--}}
+{{--idCli: "92",--}}
+{{--Cant: "36.00",--}}
+{{--Tipo1: "0.00",--}}
+{{--Tipo2: "0.00",--}}
+{{--Canttxt: "",--}}
+{{--precio: "8.00",--}}
+{{--fecha: "2024-11-20 09:47:43",--}}
+{{--estado: "ENVIADO",--}}
+{{--estados: "VAYA",--}}
+{{--impreso: 0,--}}
+{{--Observaciones: null,--}}
+{{--pagado: 0,--}}
+{{--subtotal: "288.00",--}}
+{{--cbrasa5: null,--}}
+{{--ubrasa5: null,--}}
+{{--cbrasa6: null,--}}
+{{--cubrasa6: null,--}}
+{{--c104: null,--}}
+{{--u104: null,--}}
+{{--c105: null,--}}
+{{--u105: null,--}}
+{{--c106: null,--}}
+{{--u106: null,--}}
+{{--c107: null,--}}
+{{--u107: null,--}}
+{{--c108: null,--}}
+{{--u108: null,--}}
+{{--c109: null,--}}
+{{--u109: null,--}}
+{{--rango: null,--}}
+{{--ala: null,--}}
+{{--unidala: "KG",--}}
+{{--cadera: null,--}}
+{{--unidcadera: "KG",--}}
+{{--pecho: null,--}}
+{{--unidpecho: "KG",--}}
+{{--pie: null,--}}
+{{--unidpie: "KG",--}}
+{{--filete: null,--}}
+{{--unidfilete: "KG",--}}
+{{--cuello: null,--}}
+{{--unidcuello: "KG",--}}
+{{--hueso: null,--}}
+{{--unidhueso: "KG",--}}
+{{--menu: null,--}}
+{{--unidmenu: "KG",--}}
+{{--bs: null,--}}
+{{--bs2: null,--}}
+{{--contado: null,--}}
+{{--tipo: "NORMAL",--}}
+{{--total: null,--}}
+{{--entero: null,--}}
+{{--desmembre: null,--}}
+{{--corte: null,--}}
+{{--kilo: null,--}}
+{{--trozado: null,--}}
+{{--pierna: null,--}}
+{{--brazo: null,--}}
+{{--hora: "09:47:43",--}}
+{{--pago: "CONTADO",--}}
+{{--bsala: null,--}}
+{{--obsala: null,--}}
+{{--bscadera: null,--}}
+{{--obscadera: null,--}}
+{{--bspecho: null,--}}
+{{--obspecho: null,--}}
+{{--bspie: null,--}}
+{{--obspie: null,--}}
+{{--bsfilete: null,--}}
+{{--obsfilete: null,--}}
+{{--bscuello: null,--}}
+{{--obscuello: null,--}}
+{{--bshueso: null,--}}
+{{--obshueso: null,--}}
+{{--bsmenu: null,--}}
+{{--obsmenu: null,--}}
+{{--bs104: null,--}}
+{{--obs104: null,--}}
+{{--bs105: null,--}}
+{{--obs105: null,--}}
+{{--bs106: null,--}}
+{{--obs106: null,--}}
+{{--bs107: null,--}}
+{{--obs107: null,--}}
+{{--bs108: null,--}}
+{{--obs108: null,--}}
+{{--bs109: null,--}}
+{{--obs109: null,--}}
+{{--bsbrasa5: null,--}}
+{{--obsbrasa5: null,--}}
+{{--bsbrasa6: null,--}}
+{{--obsbrasa6: null,--}}
+{{--pfrial: null,--}}
+{{--fact: "SI",--}}
+{{--Impreso2: 1,--}}
+{{--horario: null,--}}
+{{--comentario: null,--}}
+{{--Cod_Aut: 92,--}}
+{{--Id: "3131257018",--}}
+{{--Cod_ciudad: "",--}}
+{{--Cod_Nacio: "",--}}
+{{--cod_car: 1,--}}
+{{--Nombres: "CARMELA XIMENA GUTIERREZ GARECA",--}}
+{{--Telf: "72393439",--}}
+{{--Direccion: "POTOSI ESQ. ADOLFO MIER (TULIPAS)",--}}
+{{--EstCiv: "",--}}
+{{--edad: "",--}}
+{{--Empresa: "",--}}
+{{--Categoria: 0,--}}
+{{--Imp_pieza: "0.00",--}}
+{{--CiVend: "7360035",--}}
+{{--ListBlanck: 0,--}}
+{{--MotivoListBlack: "",--}}
+{{--ListBlack: 0,--}}
+{{--TipoPaciente: "",--}}
+{{--SupraCanal: "ON",--}}
+{{--Canal: "RESTAURANT",--}}
+{{--subcanal: "EMBUTIDO",--}}
+{{--zona: "CENTRO",--}}
+{{--Latitud: "-17.9700815",--}}
+{{--longitud: "-67.1113872",--}}
+{{--transporte: "CON TRANSPORTE INTERDEPARTAMEN",--}}
+{{--territorio: "103-CENTRO",--}}
+{{--codcli: 10279,--}}
+{{--clinew: "REV",--}}
+{{--venta: "ACTIVO",--}}
+{{--complto: "",--}}
+{{--Tipodocu: 5,--}}
+{{--lu: 0,--}}
+{{--Ma: 0,--}}
+{{--Mi: 1,--}}
+{{--Ju: 0,--}}
+{{--Vi: 0,--}}
+{{--Sa: 0,--}}
+{{--do: 0,--}}
+{{--Correcli: "",--}}
+{{--canmayni: 0,--}}
+{{--baja: 0,--}}
+{{--profecion: "",--}}
+{{--waths: 0,--}}
+{{--ctasActivo: 0,--}}
+{{--ctasMont: "0.00",--}}
+{{--ctasdias: 0,--}}
+{{--sexo: "",--}}
+{{--CodAut: 28,--}}
+{{--Fech_naci: "2021-09-15",--}}
+{{--ci: "7360035",--}}
+{{--pasw: "736",--}}
+{{--cod_Prof: 0,--}}
+{{--App1: "RIOS",--}}
+{{--Apm: "COCA",--}}
+{{--Nombre1: "JUAN",--}}
+{{--Nombre2: "CARLOS",--}}
+{{--correo: "                    ",--}}
+{{--Salario: "0",--}}
+{{--direccion: " ",--}}
+{{--Nro: 0,--}}
+{{--NroAlm: 0,--}}
+{{--AccesoEmp: 0,--}}
+{{--placa: null--}}
+{{--},--}}
+</body>
+</html>
