@@ -1,10 +1,14 @@
 <template>
 <q-page class="q-pa-xs">
 <div class="row">
-  <div class="col-6 q-pa-xs">
+  <div class="col-2 q-pa-xs">
     <q-input dense outlined v-model="fecha1" label="Fecha Ini" type="date" @update:model-value="mispendiente"/>
   </div>
-  <div class="col-3 q-pa-xs"> <q-btn dense color="red"  label="PDF" :href="`${url}reportePedido/${fecha1}`" target="_blank"/>
+  <div class="col-2 q-pa-xs">
+    <q-btn dense color="green" label="Buscar" @click="mispendiente" no-caps icon="search"/>
+  </div>
+  <div class="col-8 q-pa-xs text-right">
+    <q-btn dense color="positive"  label="Descargar" :href="`${url}reportePedido/${fecha1}`" target="_blank" icon="picture_as_pdf" no-caps/>
   </div>
   <div class="col-12 q-pa-xs">
     <q-table :rows-per-page-options="[0]" dense title="LISTADO DE PEDIDOS " :columns="columns" :rows="clientes" :filter="filter" >
