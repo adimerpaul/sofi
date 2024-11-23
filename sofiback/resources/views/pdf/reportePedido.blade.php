@@ -91,9 +91,15 @@
                 </tr>
                 <tr>
                     <td colspan="4" style="padding: 4px; font-weight: bold;">
-                        Encargado:
-                        {{ $pedido['pedido']->user->Nombre1 }}
-                        {{ $pedido['pedido']->user->App1 }}
+                        <div>
+                            Encargado:
+                            {{ $pedido['pedido']->user->Nombre1 }}
+                            {{ $pedido['pedido']->user->App1 }}
+                        </div>
+                        <div>
+                            Observaciones:
+                            {{ $pedido['pedido']->Observaciones }}
+                        </div>
                     </td>
                 </tr>
             </table>

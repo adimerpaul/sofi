@@ -30,11 +30,14 @@ class PedidoController extends Controller{
             ->where('tipo','NORMAL')
             ->get();
         $resPedido=[];
+
+        $pedidosIds = $pedidos->pluck('NroPed');
+        Pedido::whereIn('NroPed',$pedidosIds)->update(['impreso'=>1]);
+
         foreach ($pedidos as $p){
             $productos=$pedidosAll->where('NroPed',$p->NroPed);
             $resProducto=[];
             foreach ($productos as $pro){
-//                error_log(isset($pro->producto->Producto)?$pro->producto->Producto:'');
                 $resProducto[]=[
                     'Nroped'=>$pro->NroPed,
                     'cod_prod'=>$pro->cod_prod,
