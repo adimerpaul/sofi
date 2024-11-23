@@ -8,29 +8,59 @@
     <q-btn dense color="green" label="Buscar" @click="mispendiente" no-caps icon="search"/>
   </div>
   <div class="col-8 q-pa-xs text-right">
-    <q-btn dense color="positive"  label="Descargar" :href="`${url}reportePedido/${fecha1}`" target="_blank" icon="picture_as_pdf" no-caps/>
+    <q-btn dense color="positive"  label="Descargar"  icon="picture_as_pdf" no-caps @click="generarPdf"/>
   </div>
   <div class="col-12 q-pa-xs">
     <q-table :rows-per-page-options="[0]" dense title="Listado de pedidos " :columns="columns" :rows="clientes" :filter="filter" >
-            <template v-slot:top-right>
+      <template v-slot:top-right>
         <q-input outlined dense debounce="300" v-model="filter" placeholder="Buscar">
           <template v-slot:append>
             <q-icon name="search" />
           </template>
         </q-input>
       </template>
-      <template v-slot:body-cell-pago="props">
-        <q-td :props="props">
-          <q-chip :color="props.row.pago=='CONTADO'?'red-7':'indigo'" dense text-color="white">
-            {{props.row.pago}}
-          </q-chip>
-        </q-td>
+      <template v-slot:body="props">
+        <q-tr :props="props" :class="{'bg-blue-3':props.row.impreso==1}">
+          <q-td key="op" :props="props">
+            <q-btn color="positive" dense flat icon="print" size="12px" style="height: 0" @click="generarPdfOnly(props.row)"/>
+          </q-td>
+          <q-td key="NroPed" :props="props">
+            {{props.row.NroPed}}
+          </q-td>
+          <q-td key="Id" :props="props">
+            {{props.row.Id}}
+          </q-td>
+          <q-td key="Nombres" :props="props">
+            {{props.row.Nombres}}
+          </q-td>
+          <q-td key="fecha" :props="props">
+            {{props.row.fecha}}
+          </q-td>
+          <q-td key="pago" :props="props">
+            <q-chip :color="props.row.pago=='CONTADO'?'red-7':'indigo'" dense text-color="white">
+              {{props.row.pago}}
+            </q-chip>
+          </q-td>
+          <q-td key="fact" :props="props">
+            {{props.row.fact}}
+          </q-td>
+          <q-td key="personal" :props="props">
+            {{props.row.personal}}
+          </q-td>
+        </q-tr>
       </template>
-      <template v-slot:body-cell-op="props">
-        <q-td :props="props">
-           <q-btn color="info" dense flat icon="print" size="9"/>
-        </q-td>
-      </template>
+<!--      <template v-slot:body-cell-pago="props">-->
+<!--        <q-td :props="props">-->
+<!--          <q-chip :color="props.row.pago=='CONTADO'?'red-7':'indigo'" dense text-color="white">-->
+<!--            {{props.row.pago}}-->
+<!--          </q-chip>-->
+<!--        </q-td>-->
+<!--      </template>-->
+<!--      <template v-slot:body-cell-op="props">-->
+<!--        <q-td :props="props">-->
+<!--           <q-btn color="info" dense flat icon="print" size="9"/>-->
+<!--        </q-td>-->
+<!--      </template>-->
     </q-table>
   </div>
 
@@ -68,8 +98,16 @@ export default {
     this.mispendiente()
   },
   methods:{
+    generarPdfOnly(row){
+      const url = `${this.url}reportePedidoOnly/${row.NroPed}`
+      window.open(url, '_blank')
+      this.mispendiente()
+    },
     generarPdf(){
-
+    // :href="`${url}reportePedido/${fecha1}`" target="_blank"
+      const url = `${this.url}reportePedido/${this.fecha1}`
+      window.open(url, '_blank')
+      this.mispendiente()
     },
     filtrarPago(pago){
       console.log(pago)

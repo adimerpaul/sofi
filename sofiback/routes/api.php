@@ -128,3 +128,4 @@ Route::group(['middleware'=>'auth:sanctum'],function (){
 
 });
 Route::get('/reportePedido/{fecha}',[\App\Http\Controllers\PedidoController::class,'reportePedido']);
+Route::get('/reportePedidoOnly/{id}',[\App\Http\Controllers\PedidoController::class,'reportePedidoOnly']);
