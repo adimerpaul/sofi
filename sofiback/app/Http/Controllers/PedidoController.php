@@ -8,9 +8,9 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Barryvdh\DomPDF\Facade\Pdf;
 class PedidoController extends Controller{
-    function reportePedido(Request $request,$fecha){
-        $pedidos = Pedido::whereDate('fecha', $fecha)
-            ->select('NroPed', 'fecha', 'idCli', 'CIfunc', 'estado','fact')
+    function reportePedidoOnly($id){
+        $pedidos = Pedido::where('NroPed', $id)
+            ->select('NroPed', 'fecha', 'idCli', 'CIfunc', 'estado','fact','Observaciones')
             ->where('estado', 'ENVIADO')
             ->with(['cliente' => function ($query) {
                 $query->select('Cod_Aut', 'Nombres', 'Direccion', 'Telf','zona');
@@ -18,7 +18,57 @@ class PedidoController extends Controller{
             ->with(['user' => function ($query) {
                 $query->select('CodAut', 'Nombre1', 'App1');
             }])
-            ->groupBy('NroPed', 'fecha', 'idCli', 'CIfunc', 'estado','fact')
+            ->groupBy('NroPed', 'fecha', 'idCli', 'CIfunc', 'estado','fact','Observaciones')
+            ->orderBy('NroPed')
+            ->where('tipo','NORMAL')
+            ->get();
+        $pedidosAll = Pedido::where('NroPed', $id)
+            ->select('NroPed','cod_prod','precio','Cant','subtotal')
+            ->with(['producto' => function ($query) {
+                $query->select('cod_prod', 'Producto');
+            }])
+            ->where('tipo','NORMAL')
+            ->get();
+        $resPedido=[];
+
+        $pedidosIds = $pedidos->pluck('NroPed');
+        Pedido::whereIn('NroPed',$pedidosIds)->update(['impreso'=>1]);
+
+        foreach ($pedidos as $p){
+            $productos=$pedidosAll->where('NroPed',$p->NroPed);
+            $resProducto=[];
+            foreach ($productos as $pro){
+                $resProducto[]=[
+                    'Nroped'=>$pro->NroPed,
+                    'cod_prod'=>$pro->cod_prod,
+                    'producto'=>isset($pro->producto->Producto)?$pro->producto->Producto:'',
+                    'precio'=>$pro->precio,
+                    'Cant'=>$pro->Cant,
+                    'subtotal'=>$pro->subtotal
+                ];
+            }
+            $resPedido[]=[
+                'pedido'=>$p,
+                'productos'=>$productos
+            ];
+        }
+        $data = [
+            'pedidos' => $resPedido,
+        ];
+        $pdf = PDF::loadView('pdf.reportePedido', $data);
+        return $pdf->stream('document.pdf');
+    }
+    function reportePedido(Request $request,$fecha){
+        $pedidos = Pedido::whereDate('fecha', $fecha)
+            ->select('NroPed', 'fecha', 'idCli', 'CIfunc', 'estado','fact','Observaciones')
+            ->where('estado', 'ENVIADO')
+            ->with(['cliente' => function ($query) {
+                $query->select('Cod_Aut', 'Nombres', 'Direccion', 'Telf','zona');
+            }])
+            ->with(['user' => function ($query) {
+                $query->select('CodAut', 'Nombre1', 'App1');
+            }])
+            ->groupBy('NroPed', 'fecha', 'idCli', 'CIfunc', 'estado','fact','Observaciones')
             ->orderBy('NroPed')
             ->where('tipo','NORMAL')
             ->get();
@@ -30,11 +80,14 @@ class PedidoController extends Controller{
             ->where('tipo','NORMAL')
             ->get();
         $resPedido=[];
+
+        $pedidosIds = $pedidos->pluck('NroPed');
+        Pedido::whereIn('NroPed',$pedidosIds)->update(['impreso'=>1]);
+
         foreach ($pedidos as $p){
             $productos=$pedidosAll->where('NroPed',$p->NroPed);
             $resProducto=[];
             foreach ($productos as $pro){
-//                error_log(isset($pro->producto->Producto)?$pro->producto->Producto:'');
                 $resProducto[]=[
                     'Nroped'=>$pro->NroPed,
                     'cod_prod'=>$pro->cod_prod,
@@ -52,7 +105,7 @@ class PedidoController extends Controller{
 //        return $resPedido;
         $data = [
             'pedidos' => $resPedido,
-            'fecha' => $fecha
+//            'fecha' => $fecha
         ];
         $pdf = PDF::loadView('pdf.reportePedido', $data);
         return $pdf->stream('document.pdf');
@@ -924,11 +977,13 @@ class PedidoController extends Controller{
     }
 
     public function  resumenPedidos($fecha){
-        return DB::SELECT("SELECT c.Id,c.Nombres,p.NroPed,p.pago,p.fact,CONCAT(e.Nombre1,' ',e.App1)  personal,p.fecha
+
+        $sql="SELECT c.Id,c.Nombres,p.NroPed,p.pago,p.fact,CONCAT(e.Nombre1,' ',e.App1)  personal,p.fecha,impreso
         from tbpedidos p inner join personal e on p.CIfunc=e.CodAut inner join tbclientes c on p.idCli=c.Cod_Aut
         where date(p.fecha)='$fecha' and p.tipo='NORMAL' and estado='ENVIADO'
-        GROUP by c.Id,c.Nombres,p.NroPed,p.pago,p.fact,personal,p.fecha
-        order by c.Id, p.NroPed
-        ");
+        GROUP by c.Id,c.Nombres,p.NroPed,p.pago,p.fact,personal,p.fecha,impreso
+        order by c.Id, p.NroPed";
+//        error_log($sql);
+        return DB::SELECT($sql);
     }
 }
