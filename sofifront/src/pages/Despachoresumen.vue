@@ -11,7 +11,7 @@
     <q-btn dense color="positive"  label="Descargar" :href="`${url}reportePedido/${fecha1}`" target="_blank" icon="picture_as_pdf" no-caps/>
   </div>
   <div class="col-12 q-pa-xs">
-    <q-table :rows-per-page-options="[0]" dense title="LISTADO DE PEDIDOS " :columns="columns" :rows="clientes" :filter="filter" >
+    <q-table :rows-per-page-options="[0]" dense title="Listado de pedidos " :columns="columns" :rows="clientes" :filter="filter" >
             <template v-slot:top-right>
         <q-input outlined dense debounce="300" v-model="filter" placeholder="Buscar">
           <template v-slot:append>
@@ -52,14 +52,14 @@ export default {
       clientes:[],
       clientesAll:[],
       columns:[
-        {label:'op',name:'op',field:'op'},
-        {label:'COMANDA',name:'NroPed',field:'NroPed', sortable: true},
+        {label:'Opcion',name:'op',field:'op'},
+        {label:'Comanda',name:'NroPed',field:'NroPed', sortable: true},
         {label:'CI',name:'Id',field:'Id',align:'left', sortable: true},
-        {label:'NOMBRE',name:'Nombres',field:'Nombres',align:'left', sortable: true},
-        {label:'FECHA',name:'fecha',field:'fecha',align:'left', sortable: true},
-        {label:'PAGO',name:'pago',field:'pago',align:'left'},
-        {label:'FACTURA',name:'fact',field:'fact',align:'left'},
-        {label:'PEdido POR',name:'personal',field:'personal',align:'left', sortable: true},
+        {label:'Nombre',name:'Nombres',field:'Nombres',align:'left', sortable: true},
+        {label:'Fecha',name:'fecha',field:'fecha',align:'left', sortable: true},
+        {label:'Pago',name:'pago',field:'pago',align:'left'},
+        {label:'Factura',name:'fact',field:'fact',align:'left'},
+        {label:'Pedido por',name:'personal',field:'personal',align:'left', sortable: true},
       ],
       fecha:date.formatDate(Date.now(),'YYYY-MM-DD')
     }

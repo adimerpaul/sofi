@@ -10,7 +10,7 @@ use Barryvdh\DomPDF\Facade\Pdf;
 class PedidoController extends Controller{
     function reportePedido(Request $request,$fecha){
         $pedidos = Pedido::whereDate('fecha', $fecha)
-            ->select('NroPed', 'fecha', 'idCli', 'CIfunc', 'estado','fact')
+            ->select('NroPed', 'fecha', 'idCli', 'CIfunc', 'estado','fact','Observaciones')
             ->where('estado', 'ENVIADO')
             ->with(['cliente' => function ($query) {
                 $query->select('Cod_Aut', 'Nombres', 'Direccion', 'Telf','zona');
@@ -18,7 +18,7 @@ class PedidoController extends Controller{
             ->with(['user' => function ($query) {
                 $query->select('CodAut', 'Nombre1', 'App1');
             }])
-            ->groupBy('NroPed', 'fecha', 'idCli', 'CIfunc', 'estado','fact')
+            ->groupBy('NroPed', 'fecha', 'idCli', 'CIfunc', 'estado','fact','Observaciones')
             ->orderBy('NroPed')
             ->where('tipo','NORMAL')
             ->get();

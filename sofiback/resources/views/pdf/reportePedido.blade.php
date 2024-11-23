@@ -7,20 +7,21 @@
     <style>
         body {
             font-family: Arial, sans-serif;
+            font-size: 9px;
             margin: 0;
             padding: 0;
             border: 0;
         }
         .page {
             page-break-after: always;
-            padding: 10px;
+            /*padding: 10px;*/
         }
         .header {
-            text-align: center;
-            margin-bottom: 10px;
+            /*text-align: center;*/
+            /*margin-bottom: 10px;*/
         }
         .header h1 {
-            font-size: 24px;
+            /*font-size: 24px;*/
             margin: 0;
         }
         .header p {
@@ -33,37 +34,58 @@
         }
         table th, table td {
             border: 1px solid #ddd;
-            padding: 8px;
+            padding: 4px;
             text-align: left;
         }
         table th {
             background-color: #f4f4f4;
         }
+        .bold {
+            font-weight: bold;
+        }
+        .f-20 {
+            font-size: 20px;
+        }
+        .center {
+            text-align: center;
+        }
     </style>
 </head>
 <body>
-@foreach ($pedidos as $pedido)
-    <div class="page">
+@foreach ($pedidos as $index => $pedido)
+    <div class="@if ($index < count($pedidos) - 1) page @endif">
         <div class="header">
-            <h1 style="font-size: 20px; margin-bottom: 10px;">Solicitud de Pedido</h1>
-            <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+            <table style="width: 100%;">
+                <tr>
+                <td>
+                    <span class="bold">Cliente:</span>
+                    <span class="bold f-20">{{ $pedido['pedido']->cliente->Nombres }}</span>
+                </td>
+                    <td style="text-align: right;">
+                        <span class="bold">Nro pedido:</span>
+                        <span class="bold f-20">{{ $pedido['pedido']->NroPed }}</span>
+                    </td>
+                </tr>
+            </table>
+            <hr>
+            <div class="f-20 bold center">SOLICITUD DE PEDIDO</div>
+            <table style="width: 100%; border-collapse: collapse; font-size: 10px;">
                 <tr>
                     <td colspan="2" style="padding: 4px; font-weight: bold;">Número de Pedido: {{ $pedido['pedido']->NroPed }}</td>
-                    <td colspan="2" style="padding: 4px;"></td>
+                    <td colspan="2" style="padding: 4px;">
+                        <span class="bold">Facturado:</span>
+                        {{ $pedido['pedido']->fact}}
+                    </td>
                 </tr>
                 <tr>
                     <td style="padding: 4px; font-weight: bold;">Cliente:</td>
                     <td style="padding: 4px;">{{ $pedido['pedido']->cliente->Nombres }}</td>
-{{--                </tr>--}}
-{{--                <tr>--}}
                     <td style="padding: 4px; font-weight: bold;">Fecha de Pedido:</td>
                     <td style="padding: 4px;">{{ $pedido['pedido']->fecha }}</td>
                 </tr>
                 <tr>
                     <td style="padding: 4px; font-weight: bold;">Dirección:</td>
                     <td style="padding: 4px;">{{ $pedido['pedido']->cliente->Direccion }}</td>
-{{--                </tr>--}}
-{{--                <tr>--}}
                     <td style="padding: 4px; font-weight: bold;">Zona:</td>
                     <td style="padding: 4px;">{{ $pedido['pedido']->cliente->zona }}</td>
                 </tr>
@@ -73,7 +95,6 @@
                         {{ $pedido['pedido']->user->Nombre1 }}
                         {{ $pedido['pedido']->user->App1 }}
                     </td>
-{{--                    <td style="padding: 4px;">{{ $pedido['pedido']->CIfunc }}</td>--}}
                 </tr>
             </table>
         </div>
@@ -83,6 +104,9 @@
                 <th>Código</th>
                 <th>Producto</th>
                 <th>Cantidad</th>
+                <th>
+                    Cant. complementaria
+                </th>
                 <th>Precio</th>
                 <th>Subtotal</th>
             </tr>
@@ -93,6 +117,7 @@
                     <td>{{ $producto->cod_prod }}</td>
                     <td>{{ isset($producto->producto) ? $producto->producto->Producto : '' }}</td>
                     <td>{{ $producto->Cant }}</td>
+                    <td></td>
                     <td>{{ $producto->precio }}</td>
                     <td>{{ $producto->subtotal }}</td>
                 </tr>
