@@ -46,6 +46,9 @@
         .f-20 {
             font-size: 20px;
         }
+        .f-30 {
+            font-size: 30px;
+        }
         .center {
             text-align: center;
         }
@@ -59,11 +62,11 @@
                 <tr>
                 <td>
                     <span class="bold">Cliente:</span>
-                    <span class="bold f-20">{{ $pedido['pedido']->cliente->Nombres }}</span>
+                    <span class="bold f-30">{{ $pedido['pedido']->cliente->Nombres }}</span>
                 </td>
                     <td style="text-align: right;">
                         <span class="bold">Nro pedido:</span>
-                        <span class="bold f-20">{{ $pedido['pedido']->NroPed }}</span>
+                        <span class="bold f-30">{{ $pedido['pedido']->NroPed }}</span>
                     </td>
                 </tr>
             </table>
