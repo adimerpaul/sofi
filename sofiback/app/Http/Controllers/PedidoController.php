@@ -10,7 +10,7 @@ use Barryvdh\DomPDF\Facade\Pdf;
 class PedidoController extends Controller{
     function reportePedidoOnly($id){
         $pedidos = Pedido::where('NroPed', $id)
-            ->select('NroPed', 'fecha', 'idCli', 'CIfunc', 'estado','fact','Observaciones')
+            ->select('NroPed', 'fecha', 'idCli', 'CIfunc', 'estado','fact','Observaciones','pago')
             ->where('estado', 'ENVIADO')
             ->with(['cliente' => function ($query) {
                 $query->select('Cod_Aut', 'Nombres', 'Direccion', 'Telf','zona');
@@ -18,7 +18,7 @@ class PedidoController extends Controller{
             ->with(['user' => function ($query) {
                 $query->select('CodAut', 'Nombre1', 'App1');
             }])
-            ->groupBy('NroPed', 'fecha', 'idCli', 'CIfunc', 'estado','fact','Observaciones')
+            ->groupBy('NroPed', 'fecha', 'idCli', 'CIfunc', 'estado','fact','Observaciones','pago')
             ->orderBy('NroPed')
             ->where('tipo','NORMAL')
             ->get();
@@ -32,7 +32,9 @@ class PedidoController extends Controller{
         $resPedido=[];
 
         $pedidosIds = $pedidos->pluck('NroPed');
-        Pedido::whereIn('NroPed',$pedidosIds)->update(['impreso'=>1]);
+        Pedido::whereIn('NroPed',$pedidosIds)
+            ->where('impreso',0)
+            ->update(['impreso'=>1]);
 
         foreach ($pedidos as $p){
             $productos=$pedidosAll->where('NroPed',$p->NroPed);
@@ -60,7 +62,7 @@ class PedidoController extends Controller{
     }
     function reportePedido(Request $request,$fecha){
         $pedidos = Pedido::whereDate('fecha', $fecha)
-            ->select('NroPed', 'fecha', 'idCli', 'CIfunc', 'estado','fact','Observaciones')
+            ->select('NroPed', 'fecha', 'idCli', 'CIfunc', 'estado','fact','Observaciones','pago')
             ->where('estado', 'ENVIADO')
             ->with(['cliente' => function ($query) {
                 $query->select('Cod_Aut', 'Nombres', 'Direccion', 'Telf','zona');
@@ -68,7 +70,7 @@ class PedidoController extends Controller{
             ->with(['user' => function ($query) {
                 $query->select('CodAut', 'Nombre1', 'App1');
             }])
-            ->groupBy('NroPed', 'fecha', 'idCli', 'CIfunc', 'estado','fact','Observaciones')
+            ->groupBy('NroPed', 'fecha', 'idCli', 'CIfunc', 'estado','fact','Observaciones','pago')
             ->orderBy('NroPed')
             ->where('tipo','NORMAL')
             ->get();
@@ -82,7 +84,9 @@ class PedidoController extends Controller{
         $resPedido=[];
 
         $pedidosIds = $pedidos->pluck('NroPed');
-        Pedido::whereIn('NroPed',$pedidosIds)->update(['impreso'=>1]);
+        Pedido::whereIn('NroPed',$pedidosIds)
+            ->where('impreso',0)
+            ->update(['impreso'=>1]);
 
         foreach ($pedidos as $p){
             $productos=$pedidosAll->where('NroPed',$p->NroPed);
