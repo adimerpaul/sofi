@@ -46,8 +46,8 @@
         .f-20 {
             font-size: 20px;
         }
-        .f-30 {
-            font-size: 30px;
+        .f-28 {
+            font-size: 28px;
         }
         .center {
             text-align: center;
@@ -61,12 +61,12 @@
             <table style="width: 100%;">
                 <tr>
                 <td>
-                    <span class="bold">Cliente:</span>
-                    <span class="bold f-30">{{ $pedido['pedido']->cliente->Nombres }}</span>
+                    <span class="bold"></span>
+                    <span class="bold f-28">{{ $pedido['pedido']->cliente->Nombres }}</span>
                 </td>
                     <td style="text-align: right;">
                         <span class="bold">Nro pedido:</span>
-                        <span class="bold f-30">{{ $pedido['pedido']->NroPed }}</span>
+                        <span class="bold f-28">{{ $pedido['pedido']->NroPed }}</span>
                     </td>
                 </tr>
             </table>
@@ -75,9 +75,13 @@
             <table style="width: 100%; border-collapse: collapse; font-size: 10px;">
                 <tr>
                     <td colspan="2" style="padding: 4px; font-weight: bold;">Número de Pedido: {{ $pedido['pedido']->NroPed }}</td>
-                    <td colspan="2" style="padding: 4px;">
+                    <td style="padding: 4px;">
                         <span class="bold">Facturado:</span>
                         {{ $pedido['pedido']->fact}}
+                    </td>
+                    <td>
+                        <span class="bold">Pago:</span>
+                        {{ $pedido['pedido']->pago}}
                     </td>
                 </tr>
                 <tr>
