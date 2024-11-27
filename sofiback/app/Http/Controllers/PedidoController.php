@@ -10,7 +10,7 @@ use Barryvdh\DomPDF\Facade\Pdf;
 class PedidoController extends Controller{
     function reportePedidoOnly($id){
         $pedidos = Pedido::where('NroPed', $id)
-            ->select('NroPed', 'fecha', 'idCli', 'CIfunc', 'estado','fact','Observaciones','pago')
+            ->select('NroPed', 'fecha', 'idCli', 'CIfunc', 'estado','fact','comentario','pago')
             ->where('estado', 'ENVIADO')
             ->with(['cliente' => function ($query) {
                 $query->select('Cod_Aut', 'Nombres', 'Direccion', 'Telf','zona');
@@ -18,12 +18,12 @@ class PedidoController extends Controller{
             ->with(['user' => function ($query) {
                 $query->select('CodAut', 'Nombre1', 'App1');
             }])
-            ->groupBy('NroPed', 'fecha', 'idCli', 'CIfunc', 'estado','fact','Observaciones','pago')
+            ->groupBy('NroPed', 'fecha', 'idCli', 'CIfunc', 'estado','fact','comentario','pago')
             ->orderBy('NroPed')
             ->where('tipo','NORMAL')
             ->get();
         $pedidosAll = Pedido::where('NroPed', $id)
-            ->select('NroPed','cod_prod','precio','Cant','subtotal')
+            ->select('NroPed','cod_prod','precio','Cant','Canttxt','subtotal')
             ->with(['producto' => function ($query) {
                 $query->select('cod_prod', 'Producto');
             }])
@@ -46,6 +46,7 @@ class PedidoController extends Controller{
                     'producto'=>isset($pro->producto->Producto)?$pro->producto->Producto:'',
                     'precio'=>$pro->precio,
                     'Cant'=>$pro->Cant,
+                    'Canttxt'=>$pro->Canttxt,
                     'subtotal'=>$pro->subtotal
                 ];
             }
@@ -62,7 +63,7 @@ class PedidoController extends Controller{
     }
     function reportePedido(Request $request,$fecha){
         $pedidos = Pedido::whereDate('fecha', $fecha)
-            ->select('NroPed', 'fecha', 'idCli', 'CIfunc', 'estado','fact','Observaciones','pago')
+            ->select('NroPed', 'fecha', 'idCli', 'CIfunc', 'estado','fact','comentario','pago')
             ->where('estado', 'ENVIADO')
             ->with(['cliente' => function ($query) {
                 $query->select('Cod_Aut', 'Nombres', 'Direccion', 'Telf','zona');
@@ -70,12 +71,12 @@ class PedidoController extends Controller{
             ->with(['user' => function ($query) {
                 $query->select('CodAut', 'Nombre1', 'App1');
             }])
-            ->groupBy('NroPed', 'fecha', 'idCli', 'CIfunc', 'estado','fact','Observaciones','pago')
+            ->groupBy('NroPed', 'fecha', 'idCli', 'CIfunc', 'estado','fact','comentario','pago')
             ->orderBy('NroPed')
             ->where('tipo','NORMAL')
             ->get();
         $pedidosAll = Pedido::whereDate('fecha', $fecha)
-            ->select('NroPed','cod_prod','precio','Cant','subtotal')
+            ->select('NroPed','cod_prod','precio','Cant','Canttxt','subtotal')
             ->with(['producto' => function ($query) {
                 $query->select('cod_prod', 'Producto');
             }])
@@ -98,6 +99,7 @@ class PedidoController extends Controller{
                     'producto'=>isset($pro->producto->Producto)?$pro->producto->Producto:'',
                     'precio'=>$pro->precio,
                     'Cant'=>$pro->Cant,
+                    'Canttxt'=>$pro->Canttxt,
                     'subtotal'=>$pro->subtotal
                 ];
             }
