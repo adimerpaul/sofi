@@ -123,7 +123,7 @@ class Pedido extends Model{
     function producto()
     {
         return $this->belongsTo(Producto::class, 'cod_prod', 'cod_prod')
-            ->whereRaw('TRIM(productos.cod_prod) = TRIM(?)', [$this->cod_prod]);
+            ->whereRaw('TRIM(tbproductos.cod_prod) = TRIM(?)', [$this->cod_prod]);
     }
     public function detalles()
     {
