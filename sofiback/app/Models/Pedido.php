@@ -120,8 +120,10 @@ class Pedido extends Model{
     function cliente(){
         return $this->belongsTo(Cliente::class,'idCli','Cod_Aut');
     }
-    function producto(){
-        return $this->belongsTo(Producto::class,'cod_prod','cod_prod');
+    function producto()
+    {
+        return $this->belongsTo(Producto::class, 'cod_prod', 'cod_prod')
+            ->whereRaw('TRIM(productos.cod_prod) = TRIM(?)', [$this->cod_prod]);
     }
     public function detalles()
     {
