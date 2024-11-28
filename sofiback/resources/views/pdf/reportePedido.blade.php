@@ -105,7 +105,7 @@
                         </div>
                         <div>
                             Observaciones:
-                            {{ $pedido['pedido']->Observaciones }}
+                            {{ $pedido['pedido']->comentario }}
                         </div>
                     </td>
                 </tr>
@@ -130,7 +130,7 @@
                     <td>{{ $producto->cod_prod }}</td>
                     <td>{{ isset($producto->producto) ? $producto->producto->Producto : '' }}</td>
                     <td>{{ $producto->Cant }}</td>
-                    <td></td>
+                    <td>{{ $producto->Canttxt }}</td>
                     <td>{{ $producto->precio }}</td>
                     <td>{{ $producto->subtotal }}</td>
                 </tr>
