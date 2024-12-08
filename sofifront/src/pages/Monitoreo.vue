@@ -60,7 +60,14 @@
           <q-select dense outlined v-model="prev" :options="prevent" label="Pre Ventista" /> 
           <q-btn color="info" icon="search" dense flat @click="listmap" />
         
-          <q-table title="Entregas Pedidos" :rows="clientes" :columns="colmap" row-key="name" dense >
+          <q-table title="Entregas Pedidos" :rows="clientes" :columns="colmap" row-key="name" dense :filter="filter">
+            <template v-slot:top-right>
+              <q-input borderless dense debounce="300" v-model="filter" placeholder="Search">
+                <template v-slot:append>
+                  <q-icon name="search" />
+                </template>
+              </q-input>
+            </template>
             <template v-slot:body-cell-op="props" >
               <q-td :props="props" auto-width >
                  <q-btn icon="place" color="blue" @click="consultaRow(props.row)"  dense flat/>
@@ -134,6 +141,7 @@ import print from 'datatables.net-buttons/js/buttons.print';
 import jszip from 'jszip/dist/jszip';
 import pdfMake from 'pdfmake/build/pdfmake';
 import pdfFonts from 'pdfmake/build/vfs_fonts';
+import { filter } from "jszip";
 pdfMake.vfs=pdfFonts.pdfMake.vfs;
 window.JSZip=jszip;
 export default {
@@ -149,6 +157,7 @@ export default {
     return{
       center:[-17.969721, -67.114493],
       clientes:[],
+      filter:'',
       zoom:13,  
       usuarios:[],
       fecha:date.formatDate(new Date(),'YYYY-MM-DD'),
