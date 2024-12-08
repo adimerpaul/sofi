@@ -56,6 +56,55 @@
     </div>
     <div class="col-12">
       <div class="row">
+        <div class="col-6">
+          <q-select dense outlined v-model="prev" :options="prevent" label="Pre Ventista" /> 
+          <q-btn color="info" icon="search" dense flat @click="listmap" />
+        
+          <q-table title="Entregas Pedidos" :rows="clientes" :columns="colmap" row-key="name" dense :filter="filter">
+            <template v-slot:top-right>
+              <q-input borderless dense debounce="300" v-model="filter" placeholder="Search">
+                <template v-slot:append>
+                  <q-icon name="search" />
+                </template>
+              </q-input>
+            </template>
+            <template v-slot:body-cell-op="props" >
+              <q-td :props="props" auto-width >
+                 <q-btn icon="place" color="blue" @click="consultaRow(props.row)"  dense flat/>
+                
+              </q-td>
+            </template>
+          </q-table>
+        </div>
+        <div class="col-12 col-md-6">
+          <!--      <div class="col-md-6 col-xs-12">-->
+          <div style="height: 350px; width: 100%;">
+    
+            <l-map
+              v-model="zoom"
+              :zoom="zoom"
+              :center="center"
+            >
+              <LTileLayer
+                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              ></LTileLayer>
+              <!--    @click="clickopciones(c)"-->
+              <l-marker v-for="(c) in clientes" :key="c.Cod_Aut" :lat-lng="[c.Latitud, c.longitud]"  >
+                <l-tooltip :content="c.Nombres"></l-tooltip>
+                <l-icon >
+                  <q-badge style="padding: 2px" >{{c.idCli}}
+                  </q-badge>
+                </l-icon>
+              </l-marker>
+            </l-map>
+          </div>
+          <!--      </div>-->
+        </div>
+      </div>
+      </div>
+    </div>
+    <div class="col-12">
+      <div class="row">
         <div class="col-3"><q-select dense outlined v-model="preventista" :options="preventistas" label="Pre Ventista" /></div>
         <div class="col-3"><q-input dense outlined v-model="fechareporte.ini" label="Inicio" type="date" /></div>
         <div class="col-3"><q-input dense outlined v-model="fechareporte.fin" label="Fin" type="date" /></div>
@@ -64,12 +113,24 @@
       </div>
       <q-table title="Productos Vendidos" :rows="productos" :columns="columns3" row-key="name" />
       
-    </div>
   </div>
 </q-page>
 </template>
 
 <script>
+import {
+  LMap,
+  LIcon,
+  LTileLayer,
+  LMarker,
+  LControlLayers,
+  LTooltip,
+  LPopup,
+  LPolyline,
+  LPolygon,
+  LRectangle,
+} from "@vue-leaflet/vue-leaflet";
+import "leaflet/dist/leaflet.css";
 import {date} from "quasar";
 var $  = require( 'jquery' );
 require( 'datatables.net-buttons/js/buttons.html5.js' )();
@@ -80,12 +141,24 @@ import print from 'datatables.net-buttons/js/buttons.print';
 import jszip from 'jszip/dist/jszip';
 import pdfMake from 'pdfmake/build/pdfmake';
 import pdfFonts from 'pdfmake/build/vfs_fonts';
+import { filter } from "jszip";
 pdfMake.vfs=pdfFonts.pdfMake.vfs;
 window.JSZip=jszip;
 export default {
   name: `Monitoreo`,
+  components: {
+    LMap,
+    LIcon,
+    LTileLayer,
+    LMarker,
+    LTooltip
+  },
   data(){
     return{
+      center:[-17.969721, -67.114493],
+      clientes:[],
+      filter:'',
+      zoom:13,  
       usuarios:[],
       fecha:date.formatDate(new Date(),'YYYY-MM-DD'),
       fechareporte:{ini:date.formatDate(new Date(),'YYYY-MM-DD'),fin:date.formatDate(new Date(),'YYYY-MM-DD')},
@@ -96,6 +169,8 @@ export default {
       visitas:[],
       infoventa:[],
       preventistas:[],
+      prevent:[],
+      prev:{},
       preventista:{},
       productos:[],
 
@@ -124,6 +199,13 @@ columns3 : [
   { name: 'codigo',  label: 'CODIGO PROD', field: 'cod_prod', sortable: true },
   { name: 'producto', label: 'PRODUCTO',    field: 'Producto', },
   { name: 'cantidad',  label: 'CANTIDAD', field: 'cantidad', },
+],
+colmap:[
+  { name: 'op',  label: 'op', field: 'op', },
+  { name: 'codaut',  label: 'id', field: 'idCli', },
+  { name: 'id',  label: 'CiNIT', field: 'Id', },
+  { name: 'nombre',  label: 'Nombre', field: 'Nombres', },
+
 ]
 
     }
@@ -138,16 +220,29 @@ columns3 : [
     this.consula(this.user)
     this.controlvisita()
     this.listvendedor()
+    this.listmap()
   },
   methods:{
+    consultaRow(r){
+        this.zoom=16
+        this.center=[r.Latitud,r.longitud]
+    },
+    listmap(){
+      this.$api.post('mapClient',{'fecha':this.fecha,'id':this.prev.CodAut}).then(res=>{
+        console.log(res.data)
+        this.clientes=res.data
+      })
+    },
     listvendedor(){
+      this.prevent=[{CodAut:0,label:'TODOS'}]
       this.$api.post('lispreventista').then(res=>{
           res.data.forEach(r=>{
             r.label=r.Nombre1+' '+r.App1;
+            this.prevent.push(r)
           })
           this.preventistas=res.data
       })
-
+      this.prev=this.prevent[0]
     },
     ventaProducto(){
       this.$api.post('informeProducto',{cod:this.preventista.CodAut,ini:this.fechareporte.ini,fin:this.fechareporte.fin}).then(res=>{
@@ -195,6 +290,7 @@ columns3 : [
 
         // console.log(res.data)
         this.$api.post('listvisita',{id:user.CodAut,fecha:this.fecha }).then(res=>{
+        console.log(res.data)
           $('#example').DataTable().destroy();
           this.visitas=res.data;
           this.$nextTick(()=>{

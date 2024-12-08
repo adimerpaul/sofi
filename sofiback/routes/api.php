@@ -124,7 +124,8 @@ Route::group(['middleware'=>'auth:sanctum'],function (){
     Route::post('/reportEntregVend',[\App\Http\Controllers\MisvisitasController::class,'reportEntregVend']);
 
     Route::post('/repComanda',[\App\Http\Controllers\RutaController::class,'repComanda']);
-
+    Route::post('/mapClient',[\App\Http\Controllers\PedidoController::class,'mapClient']);
+    
 
 });
 Route::get('/reportePedido/{fecha}',[\App\Http\Controllers\PedidoController::class,'reportePedido']);

@@ -61,8 +61,7 @@
     <div class="col-12 col-md-6">
       <!--      <div class="col-md-6 col-xs-12">-->
       <div style="height: 350px; width: 100%;">
-        <!--          @ready="onReady"-->
-        <!--          @locationfound="onLocationFound"-->
+
         <l-map
           v-model="zoom"
           :zoom="zoom"
