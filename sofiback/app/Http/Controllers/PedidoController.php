@@ -992,4 +992,15 @@ class PedidoController extends Controller{
 //        error_log($sql);
         return DB::SELECT($sql);
     }
+
+    public function mapClient(Request $request){
+        if($request->id==0)
+            return DB::select("SELECT p.idCli,c.Id,c.Nombres,c.Latitud,c.longitud 
+            from tbpedidos p inner join tbclientes c on p.idCli=c.Cod_Aut 
+            where date(p.fecha)='$request->fecha' group by p.idCli,c.Id,c.Nombres,c.Latitud,c.longitud");
+        else
+            return DB::select("SELECT p.idCli,c.Id,c.Nombres,c.Latitud,c.longitud
+            from tbpedidos p inner join tbclientes c on p.idCli=c.Cod_Aut 
+            where date(p.fecha)='$request->fecha' and  trim(p.CIfunc)=$request->id group by p.idCli,c.Id,c.Nombres,c.Latitud,c.longitud");
+    }
 }
