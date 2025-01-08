@@ -54,6 +54,37 @@
               </tfoot>
             </q-markup-table>
           </div>
+          <div class="col-12 col-md-8">
+            <div style="height: 350px; width: 100%;">
+              <l-map
+                v-model="zoom"
+                :zoom="zoom"
+                :center="center"
+              >
+                <LTileLayer
+                  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                ></LTileLayer>
+<!--                <l-marker v-for="(c,i) in pedidos?.users" :key="i" :lat-lng="[c.cliente?.Latitud, c.cliente?.longitud]">-->
+<!--                  <l-tooltip :content="c.Nombres"></l-tooltip>-->
+<!--                  <l-icon >-->
+<!--                    <q-badge style="padding: 2px" >{{c.idCli}}-->
+<!--                    </q-badge>-->
+<!--                  </l-icon>-->
+<!--                </l-marker>-->
+                <template v-for="(user) in pedidos?.users">
+                  <l-marker v-for="(pedido,i) in user?.pedidos?.pedidos" :key="i" :lat-lng="[pedido.pedido.cliente.Latitud, pedido.pedido.cliente.longitud]">
+                    <l-tooltip :content="pedido.pedido.cliente.Nombres">
+                    </l-tooltip>
+                    <l-icon >
+                      <q-badge style="padding: 2px" :color="pedido.pedido.estado === 'CREADO' ? 'green' : 'blue'">
+                        {{pedido.pedido.idCli}}
+                      </q-badge>
+                    </l-icon>
+                  </l-marker>
+                </template>
+              </l-map>
+            </div>
+          </div>
           <div class="col-12 col-md-12 ">
             <pre>{{pedidos}}</pre>
 <!--            {-->
@@ -253,11 +284,21 @@
 </template>
 <script>
 import moment from "moment";
+import {LIcon, LMap, LMarker, LTileLayer, LTooltip} from "@vue-leaflet/vue-leaflet";
 
 export default {
   name: "MapaVendedor",
+  components: {
+    LMap,
+    LIcon,
+    LTileLayer,
+    LMarker,
+    LTooltip
+  },
   data() {
     return {
+      center:[-17.969721, -67.114493],
+      zoom: 13,
       fecha: moment().format("YYYY-MM-DD"),
       loading: false,
       pedidos: [],
