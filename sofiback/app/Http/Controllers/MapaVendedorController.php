@@ -69,7 +69,13 @@ class MapaVendedorController extends Controller{
                     'nombreCompleto' => trim($p['pedido']['user']['Nombre1']) . ' ' . trim($p['pedido']['user']['App1']),
                     'pedidos' => [
                         'cantidad' => count($pedidosAllUser),
-                        'pedidos' => array_values($pedidosAllUser) // Asegúrate de usar array_values
+                        'enviados' => count(array_filter($pedidosAllUser, function ($pedido) {
+                            return $pedido['pedido']['estado'] == 'ENVIADO';
+                        })),
+                        'creados' => count(array_filter($pedidosAllUser, function ($pedido) {
+                            return $pedido['pedido']['estado'] == 'CREADO';
+                        })),
+                        'pedidos' => array_values($pedidosAllUser),
                     ]
                 ];
             }
