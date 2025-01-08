@@ -29,6 +29,9 @@ export default {
       pedidos: [],
     };
   },
+  mounted() {
+    this.buscar();
+  },
   methods: {
     buscar() {
       this.loading = true;
