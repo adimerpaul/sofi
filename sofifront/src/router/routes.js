@@ -59,6 +59,7 @@ const routes = [
       { path: '/clientepedido', component: Pedidoresumen ,meta: {requiresAuth: true}},
       { path: '/listpedido', component: Despachoresumen ,meta: {requiresAuth: true}},
       { path: '/avance', component: Avance ,meta: {requiresAuth: true}},
+      { path: '/mapavendedor', component: () => import('pages/MapaVendedor/MapaVendedor.vue') ,meta: {requiresAuth: true}},
       { path: '/login', component: Login },
     ]
   },
