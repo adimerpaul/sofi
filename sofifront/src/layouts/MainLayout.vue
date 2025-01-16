@@ -330,7 +330,7 @@
           </q-item-section>
         </q-item>
         <q-item clickable active-class="bg-primary text-white" exact to="mapavendedor"
-                v-if="supervisor.includes($store.getters['login/user'].ci)">
+                v-if="supervisor.includes($store.getters['login/user'].ci) || $store.getters['login/user'].ci=='123321'">
           <q-item-section avatar>
             <q-icon name="computer"/>
           </q-item-section>
