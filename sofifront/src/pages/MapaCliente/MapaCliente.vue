@@ -9,7 +9,7 @@
           </div><br>
 
           <div class="col-xs-12 col-md-4">
-            <q-markup-table flat bordered dense wrap-cells>
+            <q-markup-table flat bordered dense wrap-cells class="bg-primary text-white cursor-pointer" >
               <thead>
                 <tr>
                   <th>#</th>
@@ -21,7 +21,11 @@
                 <tr v-for="(user, index) in clientes" :key="index" @click="toggleSeleccion(user)" :class="'bg-'+user.color">
                   <td>{{ index + 1 }}</td>
                   <td>{{ user.Id }} </td>
-                  <td>{{ user.Nombres }}</td>
+                  <td>
+                    <div style="text-transform: lowercase; line-height: 0.9;">
+                      {{ user.Nombres }}
+                    </div>
+                  </td>
                 </tr>
               </tbody>
             </q-markup-table>
@@ -54,18 +58,25 @@
                   </l-icon>
                 </l-marker>
               </l-map>
+<!--              <pre>{{ clientes }}</pre>-->
             </div>
             <br>
             <div class="col-12 col-md-4">
-              <q-select
-                dense
-                outlined
-                v-model="auto"
-                :options="vehiculos"
-                option-label="placa"
-                label="Camion Asignar"
-              />
-              <q-btn color="info" icon="local_shipping" @click="cambiar"/>
+              <div class="row">
+                <div class="col-12 col-md-6">
+                  <q-select
+                    dense
+                    outlined
+                    v-model="auto"
+                    :options="vehiculos"
+                    option-label="placa"
+                    label="Camion Asignar"
+                  />
+                </div>
+                <div class="col-12 col-md-6">
+                  <q-btn color="green" icon="local_shipping" @click="cambiar" no-caps label="Asignar" :loading="loading" />
+                </div>
+              </div>
             </div>
         </div>
         </div>
@@ -113,17 +124,19 @@ export default {
     },
     buscar() {
       this.loading = true;
+      this.clientes = [];
       this.$api.post("mapClientes", { fecha: this.fecha }).then((res) => {
-        console.log(res.data)
+        // console.log(res.data)
         this.clientes = res.data.map((cliente) => ({
           ...cliente,
-          selected: false // Agregar estado de selección a cada cliente
+          selected: false
         }));
       }).finally(() => {
         this.loading = false;
       });
     },
     toggleSeleccion(cliente) {
+      // console.log(cliente)
       // Cambiar el estado seleccionado
       cliente.selected = !cliente.selected;
 
@@ -136,11 +149,10 @@ export default {
       }
     },
     cambiar(){
-      console.log(this.seleccionados)
+      this.loading = true;
       this.$api.post("updaVehiPed", { fecha: this.fecha,placa:this.auto.placa,listado:this.seleccionados }).then((res) => {
         this.buscar()
       })
-      
 
     }
   }

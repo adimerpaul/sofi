@@ -55,6 +55,20 @@
     </style>
 </head>
 <body>
+@php
+    function colorPlaca($placa,$vehiculos) {
+        $color = '';
+        if (isset($vehiculos)) {
+            foreach ($vehiculos as $vehiculo) {
+                if ($vehiculo->placa == $placa) {
+                    $color = $vehiculo->colorStyle;
+                    break;
+                }
+            }
+        }
+        return $color;
+    }
+@endphp
 @foreach ($pedidos as $index => $pedido)
     <div class="@if ($index < count($pedidos) - 1) page @endif">
         <div class="header">
@@ -93,8 +107,11 @@
                 <tr>
                     <td style="padding: 4px; font-weight: bold;">Dirección:</td>
                     <td style="padding: 4px;">{{ $pedido['pedido']->cliente->Direccion }}</td>
-                    <td style="padding: 4px; font-weight: bold;">Zona:</td>
-                    <td style="padding: 4px;">{{ $pedido['pedido']->cliente->zona }}</td>
+                    <td style="padding: 4px; font-weight: bold;">Zona: {{ $pedido['pedido']->cliente->zona }}</td>
+                    <td style="padding: 4px; {{ colorPlaca($pedido['pedido']->placa,$vehiculos) }}">
+                        Placa:
+                        {{ $pedido['pedido']->placa }}
+                    </td>
                 </tr>
                 <tr>
                     <td colspan="4" style="padding: 4px; font-weight: bold;">
