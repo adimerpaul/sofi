@@ -10,7 +10,7 @@ use Barryvdh\DomPDF\Facade\Pdf;
 class PedidoController extends Controller{
     function reportePedidoOnly($id){
         $pedidos = Pedido::where('NroPed', $id)
-            ->select('NroPed', 'fecha', 'idCli', 'CIfunc', 'estado','fact','comentario','pago')
+            ->select('NroPed', 'fecha', 'idCli', 'CIfunc', 'estado','fact','comentario','pago','placa')
             ->where('estado', 'ENVIADO')
             ->with(['cliente' => function ($query) {
                 $query->select('Cod_Aut', 'Nombres', 'Direccion', 'Telf','zona');
@@ -18,7 +18,7 @@ class PedidoController extends Controller{
             ->with(['user' => function ($query) {
                 $query->select('CodAut', 'Nombre1', 'App1');
             }])
-            ->groupBy('NroPed', 'fecha', 'idCli', 'CIfunc', 'estado','fact','comentario','pago')
+            ->groupBy('NroPed', 'fecha', 'idCli', 'CIfunc', 'estado','fact','comentario','pago','placa')
             ->orderBy('NroPed')
             ->where('tipo','NORMAL')
             ->get();
@@ -55,15 +55,18 @@ class PedidoController extends Controller{
                 'productos'=>$productos
             ];
         }
+        $vehiculos = DB::table('vehiculo')->get();
         $data = [
             'pedidos' => $resPedido,
+            'vehiculos' => $vehiculos
         ];
+//        return $data;
         $pdf = PDF::loadView('pdf.reportePedido', $data);
         return $pdf->stream('document.pdf');
     }
     function reportePedido(Request $request,$fecha){
         $pedidos = Pedido::whereDate('fecha', $fecha)
-            ->select('NroPed', 'fecha', 'idCli', 'CIfunc', 'estado','fact','comentario','pago')
+            ->select('NroPed', 'fecha', 'idCli', 'CIfunc', 'estado','fact','comentario','pago','placa')
             ->where('estado', 'ENVIADO')
             ->with(['cliente' => function ($query) {
                 $query->select('Cod_Aut', 'Nombres', 'Direccion', 'Telf','zona');
@@ -71,7 +74,7 @@ class PedidoController extends Controller{
             ->with(['user' => function ($query) {
                 $query->select('CodAut', 'Nombre1', 'App1');
             }])
-            ->groupBy('NroPed', 'fecha', 'idCli', 'CIfunc', 'estado','fact','comentario','pago')
+            ->groupBy('NroPed', 'fecha', 'idCli', 'CIfunc', 'estado','fact','comentario','pago','placa')
             ->orderBy('NroPed')
             ->where('tipo','NORMAL')
             ->get();
@@ -108,9 +111,10 @@ class PedidoController extends Controller{
                 'productos'=>$productos
             ];
         }
-//        return $resPedido;
+        $vehiculos = DB::table('vehiculo')->get();
         $data = [
             'pedidos' => $resPedido,
+            'vehiculos' => $vehiculos
 //            'fecha' => $fecha
         ];
         $pdf = PDF::loadView('pdf.reportePedido', $data);
@@ -995,12 +999,44 @@ class PedidoController extends Controller{
 
     public function mapClient(Request $request){
         if($request->id==0)
-            return DB::select("SELECT p.idCli,c.Id,c.Nombres,c.Latitud,c.longitud 
-            from tbpedidos p inner join tbclientes c on p.idCli=c.Cod_Aut 
-            where date(p.fecha)='$request->fecha' group by p.idCli,c.Id,c.Nombres,c.Latitud,c.longitud");
+            return DB::select("SELECT p.idCli,c.Id,c.Nombres,c.Latitud,c.longitud
+            from tbpedidos p inner join tbclientes c on p.idCli=c.Cod_Aut
+            where date(p.fecha)='$request->fecha' group by p.idCli,c.Id,c.Nombres,c.Latitud,c.longitud ");
         else
             return DB::select("SELECT p.idCli,c.Id,c.Nombres,c.Latitud,c.longitud
-            from tbpedidos p inner join tbclientes c on p.idCli=c.Cod_Aut 
+            from tbpedidos p inner join tbclientes c on p.idCli=c.Cod_Aut
             where date(p.fecha)='$request->fecha' and  trim(p.CIfunc)=$request->id group by p.idCli,c.Id,c.Nombres,c.Latitud,c.longitud");
+    }
+
+    public function mapClientes(Request $request){
+            return DB::select("SELECT p.idCli,c.Id,c.Nombres,c.Latitud,c.longitud,p.placa,(select v.color from vehiculo v where v.placa=p.placa) color
+            from tbpedidos p inner join tbclientes c on p.idCli=c.Cod_Aut
+            where date(p.fecha)='$request->fecha' group by p.idCli,c.Id,c.Nombres,c.Latitud,c.longitud,p.placa ");
+
+    }
+
+    public function listVehiculo(){
+        return DB::SELECT("SELECT * from vehiculo order by id asc");
+    }
+
+    public function updaVehiPed(Request $request)
+    {
+        // Validar los datos del request
+        $placa = $request->placa;
+        $fecha = $request->fecha;
+        $ids = array_map(function ($item) {
+            return trim($item['idCli']);
+        }, $request->listado);
+
+        // Convertir el array de IDs en un string para usar en la consulta
+        $idsString = implode("','", $ids);
+
+        // Realizar la consulta de una sola vez
+        DB::statement("
+        UPDATE tbpedidos p
+        SET p.placa = ?
+        WHERE DATE(p.fecha) = ?
+        AND TRIM(p.idCli) IN ('$idsString')
+    ", [$placa, $fecha]);
     }
 }
