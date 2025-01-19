@@ -60,6 +60,7 @@ const routes = [
       { path: '/listpedido', component: Despachoresumen ,meta: {requiresAuth: true}},
       { path: '/avance', component: Avance ,meta: {requiresAuth: true}},
       { path: '/mapavendedor', component: () => import('pages/MapaVendedor/MapaVendedor.vue') ,meta: {requiresAuth: true}},
+      { path: '/mapacliente', component: () => import('pages/MapaCliente/MapaCliente.vue') ,meta: {requiresAuth: true}},
       { path: '/login', component: Login },
     ]
   },

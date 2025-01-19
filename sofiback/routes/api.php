@@ -127,6 +127,12 @@ Route::group(['middleware'=>'auth:sanctum'],function (){
     Route::post('/mapClient',[\App\Http\Controllers\PedidoController::class,'mapClient']);
     Route::post('/mapaVendedor',[\App\Http\Controllers\MapaVendedorController::class,'mapaVendedor']);
 
+    Route::post('/mapClientes',[\App\Http\Controllers\PedidoController::class,'mapClientes']);
+    Route::post('/listVehiculo',[\App\Http\Controllers\PedidoController::class,'listVehiculo']);
+    Route::post('/updaVehiPed',[\App\Http\Controllers\PedidoController::class,'updaVehiPed']);
+    
+    
+
 });
 Route::get('/reportePedido/{fecha}',[\App\Http\Controllers\PedidoController::class,'reportePedido']);
 Route::get('/reportePedidoOnly/{id}',[\App\Http\Controllers\PedidoController::class,'reportePedidoOnly']);

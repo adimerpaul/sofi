@@ -995,12 +995,30 @@ class PedidoController extends Controller{
 
     public function mapClient(Request $request){
         if($request->id==0)
-            return DB::select("SELECT p.idCli,c.Id,c.Nombres,c.Latitud,c.longitud 
+            return DB::select("SELECT p.idCli,c.Id,c.Nombres,c.Latitud,c.longitud
             from tbpedidos p inner join tbclientes c on p.idCli=c.Cod_Aut 
-            where date(p.fecha)='$request->fecha' group by p.idCli,c.Id,c.Nombres,c.Latitud,c.longitud");
+            where date(p.fecha)='$request->fecha' group by p.idCli,c.Id,c.Nombres,c.Latitud,c.longitud ");
         else
             return DB::select("SELECT p.idCli,c.Id,c.Nombres,c.Latitud,c.longitud
             from tbpedidos p inner join tbclientes c on p.idCli=c.Cod_Aut 
             where date(p.fecha)='$request->fecha' and  trim(p.CIfunc)=$request->id group by p.idCli,c.Id,c.Nombres,c.Latitud,c.longitud");
+    }
+
+    public function mapClientes(Request $request){
+            return DB::select("SELECT p.idCli,c.Id,c.Nombres,c.Latitud,c.longitud,p.placa,(select v.color from vehiculo v where v.placa=p.placa) color
+            from tbpedidos p inner join tbclientes c on p.idCli=c.Cod_Aut 
+            where date(p.fecha)='$request->fecha' group by p.idCli,c.Id,c.Nombres,c.Latitud,c.longitud,p.placa ");
+        
+    }
+
+    public function listVehiculo(){
+        return DB::SELECT("SELECT * from vehiculo order by id asc");
+    }
+
+    public function updaVehiPed(Request $request){
+        foreach ($request->listado as  $value) {
+            # code...
+            DB::SELECT("UPDATE tbpedidos p set p.placa='$request->placa' where date(p.fecha)='$request->fecha' and trim(p.idCli)=trim(".$value['idCli'].")");
+        }
     }
 }
