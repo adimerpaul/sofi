@@ -32,7 +32,7 @@
           </div>
         </div>
         <div class="col-xs-12 col-md-8">
-            <div style="height: 350px; width: 100%;">
+            <div style="height: 500px; width: 100%;">
               <l-map
                 v-model="zoom"
                 :zoom="zoom"
@@ -151,6 +151,7 @@ export default {
     cambiar(){
       this.loading = true;
       this.$api.post("updaVehiPed", { fecha: this.fecha,placa:this.auto.placa,listado:this.seleccionados }).then((res) => {
+        this.seleccionados=[]
         this.buscar()
       })
 
