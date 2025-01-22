@@ -10,8 +10,9 @@ use Illuminate\Http\Request;
 class MapaVendedorController extends Controller{
     function mapaVendedor(Request $request){
         $fecha = $request->fecha;
+        $tipo = $request->tipo;
         $pedidos = Pedido::whereDate('fecha', $fecha)
-            ->select('NroPed', 'fecha', 'idCli', 'CIfunc', 'estado','fact','comentario','pago')
+            ->select('NroPed', 'fecha', 'idCli', 'CIfunc', 'estado','fact','comentario','pago','tipo')
 //            ->where('estado', 'ENVIADO')
             ->with(['cliente' => function ($query) {
                 $query->select('Cod_Aut', 'Nombres', 'Direccion', 'Telf','zona','Latitud','longitud');
@@ -19,16 +20,16 @@ class MapaVendedorController extends Controller{
             ->with(['user' => function ($query) {
                 $query->select('CodAut', 'Nombre1', 'App1','ci');
             }])
-            ->groupBy('NroPed', 'fecha', 'idCli', 'CIfunc', 'estado','fact','comentario','pago')
+            ->groupBy('NroPed', 'fecha', 'idCli', 'CIfunc', 'estado','fact','comentario','pago','tipo')
             ->orderBy('NroPed')
-            ->where('tipo','NORMAL')
+            ->whereRaw('tipo like "%'.$tipo.'%"')
             ->get();
         $pedidosAll = Pedido::whereDate('fecha', $fecha)
             ->select('NroPed','cod_prod','precio','Cant','Canttxt','subtotal')
             ->with(['producto' => function ($query) {
                 $query->select('cod_prod', 'Producto');
             }])
-            ->where('tipo','NORMAL')
+            ->whereRaw('tipo like "%'.$tipo.'%"')
             ->get();
 
         $resPedido=[];

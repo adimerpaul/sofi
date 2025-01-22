@@ -6,6 +6,11 @@
           <div class="col-12 col-md-3">
             <q-input v-model="fecha" label="Fecha" type="date" dense outlined />
           </div>
+          <div class="col-12 col-md-3">
+            <q-select v-model="tipo" label="Tipo" dense outlined :options="tipos"
+                      emit-value map-options
+            />
+          </div>
           <div class="col-12 col-md-2 text-center">
             <q-btn label="Buscar" color="primary" dense @click="buscar"  icon="search" no-caps :loading="loading" />
           </div>
@@ -115,6 +120,14 @@ export default {
       pedidos: [],
       pedidosAll: [],
       pedidosMapa: [],
+      tipos: [
+        { label: "TODOS", value: "" },
+        { label: "CERDO", value: "CERDO" },
+        { label: "NORMAL", value: "NORMAL" },
+        { label: "POLLO", value: "POLLO" },
+        { label: "RES", value: "RES" },
+      ],
+      tipo: "",
     };
   },
   mounted() {
@@ -126,7 +139,10 @@ export default {
     },
     buscar() {
       this.loading = true;
-      this.$api.post("mapaVendedor", { fecha: this.fecha }).then((res) => {
+      this.$api.post("mapaVendedor", {
+        fecha: this.fecha,
+        tipo: this.tipo,
+      }).then((res) => {
         this.pedidos = res.data;
         this.pedidosMapa = {...res.data};
         this.pedidosAll = {...res.data};
