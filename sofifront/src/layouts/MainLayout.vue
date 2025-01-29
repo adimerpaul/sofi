@@ -335,7 +335,7 @@
             <q-icon name="computer"/>
           </q-item-section>
           <q-item-section>
-            <q-item-label>Mapa Vendedor</q-item-label>
+            <q-item-label>Resumen de Preventa</q-item-label>
             <q-item-label caption>
               Monitoreo
             </q-item-label>

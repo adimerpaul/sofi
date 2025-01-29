@@ -205,6 +205,7 @@ colmap:[
   { name: 'codaut',  label: 'id', field: 'idCli', },
   { name: 'id',  label: 'CiNIT', field: 'Id', },
   { name: 'nombre',  label: 'Nombre', field: 'Nombres', },
+  { name: 'vendedor',  label: 'Vendedor', field: 'vendedor', },
 
 ]
 
