@@ -517,20 +517,20 @@ class PedidoController extends Controller{
     {
         foreach ($request->clientes as $p){
             //DB::select("UPDATE tbpedidos SET  estado='ENVIADO' WHERE NroPed='".$p['NroPed']."'");
-            DB::select("UPDATE tbpedidos p set p.estado='ENVIADO' where p.NroPed='".$p['NroPed']."' and (SELECT c.venta from tbclientes c where c.Cod_Aut=p.idCli)='ACTIVO'");
+            DB::select("UPDATE tbpedidos p set p.estado='ENVIADO' , p.envio = NOW()  where p.NroPed='".$p['NroPed']."' and (SELECT c.venta from tbclientes c where c.Cod_Aut=p.idCli)='ACTIVO'");
         }
     }
 
     public function envpedido(Request $request)
     {
             //DB::select("UPDATE tbpedidos SET  estado='ENVIADO' WHERE NroPed='".$request->NroPed."'");
-            DB::select("UPDATE tbpedidos p set p.estado='ENVIADO' where p.NroPed='".$request->NroPed."' and (SELECT c.venta from tbclientes c where c.Cod_Aut=p.idCli)='ACTIVO'");
+            DB::select("UPDATE tbpedidos p set p.estado='ENVIADO', p.envio = NOW()  where p.NroPed='".$request->NroPed."' and (SELECT c.venta from tbclientes c where c.Cod_Aut=p.idCli)='ACTIVO'");
     }
 
     public function envped(Request $request)
     {
             //DB::select("UPDATE tbpedidos SET  estado='ENVIADO' WHERE NroPed='".$request->NroPed."'");
-            DB::select("UPDATE tbpedidos p set p.estado='ENVIADO' where p.NroPed='".$request->NroPed."'");
+            DB::select("UPDATE tbpedidos p set p.estado='ENVIADO', p.envio = NOW()  where p.NroPed='".$request->NroPed."'");
     }
 
     public function updatecomanda(Request $request){
