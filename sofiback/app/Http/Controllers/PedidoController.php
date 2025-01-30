@@ -517,20 +517,20 @@ class PedidoController extends Controller{
     {
         foreach ($request->clientes as $p){
             //DB::select("UPDATE tbpedidos SET  estado='ENVIADO' WHERE NroPed='".$p['NroPed']."'");
-            DB::select("UPDATE tbpedidos p set p.estado='ENVIADO' where p.NroPed='".$p['NroPed']."' and (SELECT c.venta from tbclientes c where c.Cod_Aut=p.idCli)='ACTIVO'");
+            DB::select("UPDATE tbpedidos p set p.estado='ENVIADO' , p.envio = NOW()  where p.NroPed='".$p['NroPed']."' and (SELECT c.venta from tbclientes c where c.Cod_Aut=p.idCli)='ACTIVO'");
         }
     }
 
     public function envpedido(Request $request)
     {
             //DB::select("UPDATE tbpedidos SET  estado='ENVIADO' WHERE NroPed='".$request->NroPed."'");
-            DB::select("UPDATE tbpedidos p set p.estado='ENVIADO' where p.NroPed='".$request->NroPed."' and (SELECT c.venta from tbclientes c where c.Cod_Aut=p.idCli)='ACTIVO'");
+            DB::select("UPDATE tbpedidos p set p.estado='ENVIADO', p.envio = NOW()  where p.NroPed='".$request->NroPed."' and (SELECT c.venta from tbclientes c where c.Cod_Aut=p.idCli)='ACTIVO'");
     }
 
     public function envped(Request $request)
     {
             //DB::select("UPDATE tbpedidos SET  estado='ENVIADO' WHERE NroPed='".$request->NroPed."'");
-            DB::select("UPDATE tbpedidos p set p.estado='ENVIADO' where p.NroPed='".$request->NroPed."'");
+            DB::select("UPDATE tbpedidos p set p.estado='ENVIADO', p.envio = NOW()  where p.NroPed='".$request->NroPed."'");
     }
 
     public function updatecomanda(Request $request){
@@ -999,13 +999,13 @@ class PedidoController extends Controller{
 
     public function mapClient(Request $request){
         if($request->id==0)
-            return DB::select("SELECT p.idCli,c.Id,c.Nombres,c.Latitud,c.longitud
-            from tbpedidos p inner join tbclientes c on p.idCli=c.Cod_Aut
-            where date(p.fecha)='$request->fecha' group by p.idCli,c.Id,c.Nombres,c.Latitud,c.longitud ");
+            return DB::select("SELECT p.idCli,c.Id,c.Nombres,c.Latitud,c.longitud,concat(trim(e.Nombre1),' ',trim(e.App1)) as vendedor
+            from tbpedidos p inner join tbclientes c on p.idCli=c.Cod_Aut inner join personal e on p.CIfunc=e.CodAut
+            where date(p.fecha)='$request->fecha' group by p.idCli,c.Id,c.Nombres,c.Latitud,c.longitud,e.Nombre1,e.App1 ");
         else
-            return DB::select("SELECT p.idCli,c.Id,c.Nombres,c.Latitud,c.longitud
-            from tbpedidos p inner join tbclientes c on p.idCli=c.Cod_Aut
-            where date(p.fecha)='$request->fecha' and  trim(p.CIfunc)=$request->id group by p.idCli,c.Id,c.Nombres,c.Latitud,c.longitud");
+            return DB::select("SELECT p.idCli,c.Id,c.Nombres,c.Latitud,c.longitud,concat(trim(e.Nombre1),' ',trim(e.App1)) as vendedor
+            from tbpedidos p inner join tbclientes c on p.idCli=c.Cod_Aut inner join personal e on p.CIfunc=e.CodAut
+            where date(p.fecha)='$request->fecha' and  trim(p.CIfunc)=$request->id group by p.idCli,c.Id,c.Nombres,c.Latitud,c.longitud,e.Nombre1,e.App1");
     }
 
     public function mapClientes(Request $request){

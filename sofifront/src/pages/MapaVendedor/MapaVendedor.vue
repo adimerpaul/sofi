@@ -35,12 +35,12 @@
                           <q-badge color="white" text-color="black" :label="'Total '+user.pedidos.cantidad" />
                         </div>
                       </q-linear-progress>
-                      <q-linear-progress size="20px" :value="user.pedidos.creados / user.pedidos.cantidad" color="green">
+                      <q-linear-progress size="20px" :value="user.pedidos.creados / user.pedidos.cantidad" color="blue">
                         <div class="absolute-full flex flex-center">
                           <q-badge color="white" text-color="black" :label="'Creados '+user.pedidos.creados" />
                         </div>
                       </q-linear-progress>
-                      <q-linear-progress size="20px" :value="user.pedidos.enviados / user.pedidos.cantidad" color="blue">
+                      <q-linear-progress size="20px" :value="user.pedidos.enviados / user.pedidos.cantidad" color="green">
                         <div class="absolute-full flex flex-center">
                           <q-badge color="white" text-color="black" :label="'Enviados '+user.pedidos.enviados" />
                         </div>
@@ -74,7 +74,7 @@
                     <l-tooltip :content="pedido.pedido.cliente.Nombres">
                     </l-tooltip>
                     <l-icon >
-                      <q-badge style="padding: 2px" :color="pedido.pedido.estado === 'CREADO' ? 'green' : 'blue'">
+                      <q-badge style="padding: 2px" :color="pedido.pedido.estado === 'CREADO' ? 'blue' : 'green'">
                         {{pedido.pedido.idCli}}
                       </q-badge>
                     </l-icon>
@@ -123,7 +123,7 @@ export default {
       tipos: [
         { label: "TODOS", value: "" },
         { label: "CERDO", value: "CERDO" },
-        { label: "NORMAL", value: "NORMAL" },
+        { label: "EMBUTIDO", value: "NORMAL" },
         { label: "POLLO", value: "POLLO" },
         { label: "RES", value: "RES" },
       ],
