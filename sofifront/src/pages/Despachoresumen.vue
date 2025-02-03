@@ -36,6 +36,9 @@
           <q-td key="fecha" :props="props">
             {{props.row.fecha}}
           </q-td>
+          <q-td key="envio" :props="props">
+            {{props.row.envio}}
+          </q-td>
           <q-td key="pago" :props="props">
             <q-chip :color="props.row.pago=='CONTADO'?'red-7':'indigo'" dense text-color="white">
               {{props.row.pago}}
@@ -87,6 +90,7 @@ export default {
         {label:'CI',name:'Id',field:'Id',align:'left', sortable: true},
         {label:'Nombre',name:'Nombres',field:'Nombres',align:'left', sortable: true},
         {label:'Fecha',name:'fecha',field:'fecha',align:'left', sortable: true},
+        {label:'Envio',name:'envio',field:'envio',align:'left', sortable: true},
         {label:'Pago',name:'pago',field:'pago',align:'left'},
         {label:'Factura',name:'fact',field:'fact',align:'left'},
         {label:'Pedido por',name:'personal',field:'personal',align:'left', sortable: true},
