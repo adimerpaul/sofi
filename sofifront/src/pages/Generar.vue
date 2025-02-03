@@ -5,7 +5,8 @@
     <q-form @submit="consultar">
       <div class="row">
         <div class="col-6"><q-input dense outlined label="fecha" v-model="fecha"/></div>
-        <div class="col-6 flex flex-center"><q-btn color="info" icon="search" label="Consultar" type="submit" /></div>
+        <div class="col-3 flex flex-center"><q-btn color="info" icon="search" label="Consultar" type="submit" /></div>
+        <div class="col-3 flex flex-center"><q-btn color="green"  label="POLLO Preparacion" type="a" :href="url+'generarXlsPollo/'+fecha" target="_blank"/></div>
       </div>
     </q-form>
   </div>
