@@ -392,4 +392,53 @@ class ExcelController extends Controller
     {
         //
     }
+
+    public function generarXlsPollo($fecha){
+            $preventistas = DB::select("SELECT pe.Nombre1,pe.App1,pe.CodAut from personal pe inner join tbpedidos p on pe.CodAut=p.CIfunc
+            where date(p.fecha)='$fecha' and tipo='POLLO' group by pe.Nombre1,pe.App1,pe.CodAut");
+
+        $spreadsheet = \PhpOffice\PhpSpreadsheet\IOFactory::load('preparacion.xlsx');
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->setCellValue('G1', $fecha);
+
+        $c=4;
+        foreach ($preventistas as $value) {
+            $sheet->setCellValue('F'.$c, trim($value->Nombre1).' '.trim($value->App1));
+            $c++;
+            $pedidos=DB::select("SELECT c.Nombres,p.fact,p.pago,p.bs,p.bs2, CASE WHEN p.pago = 'CONTADO' THEN 'SI' ELSE 'NO' END as campo_pago 
+            from tbpedidos p  INNER join tbclientes c on p.idCli=c.Cod_Aut
+            where p.CIfunc=".$value->CodAut." and date(fecha)='$fecha' and tipo='POLLO' AND estado='ENVIADO' ");
+           
+            foreach ($pedidos as $r){
+        //                $t.=" ".$r->Nombres;git
+                $sheet->setCellValue('B'.$c, $r->fact);
+                $sheet->setCellValue('C'.$c, $r->campo_pago);
+                $sheet->setCellValue('D'.$c, $r->bs);
+                $sheet->setCellValue('E'.$c, $r->bs2);
+                $sheet->setCellValue('F'.$c, $r->Nombres);
+                $c++;
+            # code...
+
+        }
+    }
+    $date = date('d-m-y-'.substr((string)microtime(), 1, 8));
+    $date = str_replace(".", "", $date);
+    $filename = "Frial_Pollo_".$date.".xlsx";
+    $filePath = __DIR__ . DIRECTORY_SEPARATOR . $filename; //make sure you set the right permissions and change this to the path you want
+    try {
+        $writer = new Xlsx($spreadsheet);
+        $writer->save($filename);
+        $content = file_get_contents($filename);
+    } catch(Exception $e) {
+        exit($e->getMessage());
+    }
+
+    header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    header('Content-Disposition: attachment; filename="' . urlencode($filename) .'"' );
+
+    echo $content;  // this actually send the file content to the browser
+
+    unlink($filename);
+
+    }
 }
