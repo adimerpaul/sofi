@@ -78,7 +78,7 @@
                     <span class="bold"></span>
                     <span class="bold f-28">{{ $pedido['pedido']->cliente->Nombres }}</span>
                 </td>
-                    <td style="text-align: right;">
+                    <td style="text-align: right; {{ colorPlaca($pedido['pedido']->placa,$vehiculos) }}">
                         <span class="bold">Nro pedido:</span>
                         <span class="bold f-28">{{ $pedido['pedido']->NroPed }}</span>
                     </td>

@@ -413,8 +413,8 @@ class ExcelController extends Controller
         //                $t.=" ".$r->Nombres;git
                 $sheet->setCellValue('B'.$c, $r->fact);
                 $sheet->setCellValue('C'.$c, $r->campo_pago);
-                $sheet->setCellValue('D'.$c, $r->bs);
-                $sheet->setCellValue('E'.$c, $r->bs2);
+                $sheet->setCellValue('D'.$c, $r->bs2);
+                $sheet->setCellValue('E'.$c, $r->bs);
                 $sheet->setCellValue('F'.$c, $r->Nombres);
                 $c++;
             # code...

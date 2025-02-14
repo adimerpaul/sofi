@@ -25,7 +25,7 @@ class PedidoController extends Controller{
         $pedidosAll = Pedido::where('NroPed', $id)
             ->select('NroPed','cod_prod','precio','Cant','Canttxt','subtotal')
             ->with(['producto' => function ($query) {
-                $query->select('cod_prod', 'Producto');
+                $query->select(DB::raw("TRIM(cod_prod) as cod_prod"), 'Producto');
             }])
             ->where('tipo','NORMAL')
             ->get();
