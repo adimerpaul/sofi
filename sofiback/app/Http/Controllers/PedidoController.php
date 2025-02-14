@@ -1011,7 +1011,7 @@ class PedidoController extends Controller{
     public function mapClientes(Request $request){
             return DB::select("SELECT p.idCli,c.Id,c.Nombres,c.Latitud,c.longitud,c.territorio,concat(trim(e.Nombre1),' ',trim(e.App1)) as vendedor,p.placa,(select v.color from vehiculo v where v.placa=p.placa) color
             from tbpedidos p inner join tbclientes c on p.idCli=c.Cod_Aut inner join personal e on p.CIfunc=e.CodAut
-            where date(p.fecha)='$request->fecha' and p.estado='ENVIADO' group by p.idCli,c.Id,c.Nombres,c.Latitud,c.longitud,c.territorio,e.Nombre1,e.App1,p.placa ");
+            where date(p.fecha)='$request->fecha' and p.estado='ENVIADO' and p.tipo='NORMAL' group by p.idCli,c.Id,c.Nombres,c.Latitud,c.longitud,c.territorio,e.Nombre1,e.App1,p.placa ");
 
     }
 
