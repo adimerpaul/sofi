@@ -24,7 +24,10 @@ class ClienteController extends Controller{
 
         $codAuts = $misClientes->pluck('Cod_Aut')->toArray();
         $Ids = $misClientes->pluck('Id')->toArray();
-
+        $Ids = array_map(function ($id) {
+            return "'" . addslashes($id) . "'"; // Escapa caracteres especiales y añade comillas
+        }, $Ids);
+        
         $visitas = DB::select("SELECT * FROM misvisitas WHERE cliente_id IN (".implode(',', $codAuts).") AND fecha = '".date('Y-m-d')."'");
 
 
