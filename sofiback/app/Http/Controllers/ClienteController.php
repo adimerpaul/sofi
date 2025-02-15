@@ -2,66 +2,83 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Cliente;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
-class ClienteController extends Controller
-{
-    /**
-     * Display a listing of the resource.
-     *
-     * @return \Illuminate\Http\Response
-     */
-    public function index(Request $request)
-    {
-//        return DB::select("SELECT * FROM tbclientes WHERE TRIM(CiVend)='".$request->user()->ci."'");
-//        return DB::select("
-//        SELECT *,(
-//        SELECT estado from misvisitas where cliente_id=Cod_Aut AND fecha='".date('Y-m-d')."' LIMIT 1
-//        ) as tipo,(SELECT sum(c.Importe-(SELECT sum(c2.Acuenta) from tbctascobrar c2 where c2.comanda=c.comanda)) FROM tbctascobrar c WHERE c.CINIT=tbclientes.Id and c.Nrocierre=0) as totdeuda
-//        ,(SELECT count(*) FROM tbctascobrar WHERE CINIT=tbclientes.Id AND Nrocierre=0 ) as cantdeuda
-//        FROM tbclientes
-//        WHERE TRIM(CiVend)='".$request->user()->ci."'
-//        ORDER BY tipo desc
-//        ");
-        return DB::select(
-            "SELECT *,
-            (SELECT estado from misvisitas where id=(SELECT max(id) from misvisitas where cliente_id=Cod_Aut AND fecha='".date('Y-m-d')."' )) as tipo,
-            (SELECT sum(c.Importe-(SELECT sum(c2.Acuenta) from tbctascobrar c2 where c2.comanda=c.comanda)) FROM tbctascobrar c WHERE c.CINIT=tbclientes.Id and c.Nrocierre=0 and Acuenta=0) as totdeuda ,
-            (SELECT MIN(c.FechaEntreg) FROM tbctascobrar c WHERE c.CINIT=tbclientes.Id and c.Nrocierre=0 and Acuenta=0) as fechaminima ,
-            (SELECT count(*) FROM tbctascobrar WHERE CINIT=tbclientes.Id AND Nrocierre=0 and Acuenta=0) as cantdeuda
+class ClienteController extends Controller{
+    public function index(Request $request){
+//        return DB::select(
+//            "SELECT *,
+//            (SELECT estado from misvisitas where id=(SELECT max(id) from misvisitas where cliente_id=Cod_Aut AND fecha='".date('Y-m-d')."' )) as tipo,
+//            (SELECT sum(c.Importe-(SELECT sum(c2.Acuenta) from tbctascobrar c2 where c2.comanda=c.comanda)) FROM tbctascobrar c WHERE c.CINIT=tbclientes.Id and c.Nrocierre=0 and Acuenta=0) as totdeuda ,
+//            (SELECT MIN(c.FechaEntreg) FROM tbctascobrar c WHERE c.CINIT=tbclientes.Id and c.Nrocierre=0 and Acuenta=0) as fechaminima ,
+//            (SELECT count(*) FROM tbctascobrar WHERE CINIT=tbclientes.Id AND Nrocierre=0 and Acuenta=0) as cantdeuda
+//
+//             FROM tbclientes
+//             WHERE TRIM(CiVend)='".$request->user()->ci."'
+//             ORDER BY tipo desc;"
+//        );
 
-             FROM tbclientes
-             WHERE TRIM(CiVend)='".$request->user()->ci."'
-             ORDER BY tipo desc;"
-        );
-        //(SELECT COUNT(DISTINCT(date(t.fecha))) FROM tbpedidos t where YEAR(t.fecha)=YEAR('".date('Y-m-d')."') and MONTH(t.fecha)=MONTH('".date('Y-m-d')."') and t.idCli=tbclientes.Cod_Aut) as totalpedido
-        switch ($numdia) {
-            case 0:
-                return " AND do=1 ";
-                break;
-            case 0:
-                return " AND lu=1 ";
-                break;
-            case 0:
-                return " AND Ma=1 ";
-                break;
-            case 0:
-                return " AND Mi=1 ";
-                break;
-            case 0:
-                return " AND Ju=1 ";
-                break;
-            case 0:
-                return " AND Vi=1 ";
-                break;
-            case 0:
-                return " AND Sa=1 ";
-                break;
-            default:
-                return '';
-                break;
-        }
+        $misClientes = Cliente::whereRaw("TRIM(CiVend)='".$request->user()->ci."'")->get();
+
+        $codAuts = $misClientes->pluck('Cod_Aut')->toArray();
+        $Ids = $misClientes->pluck('Id')->toArray();
+
+        $visitas = DB::select("SELECT * FROM misvisitas WHERE cliente_id IN (".implode(',', $codAuts).") AND fecha = '".date('Y-m-d')."'");
+
+
+        $cuentas = DB::select("SELECT sum(c.Importe-(SELECT sum(c2.Acuenta) from tbctascobrar c2 where c2.comanda=c.comanda)) as totdeuda, MIN(c.FechaEntreg) as fechaminima, count(*) as cantdeuda, c.CINIT FROM tbctascobrar c WHERE c.CINIT IN (".implode(',', $Ids).") AND c.Nrocierre=0 AND c.Acuenta=0 GROUP BY c.CINIT");
+
+        error_log(json_encode($cuentas));
+
+        $misClientes->map(function ($cliente) use ($visitas, $cuentas) {
+            $cliente->tipo = null;
+            if (isset($visitas)) {
+                foreach ($visitas as $visita) {
+                    if ($cliente->Cod_Aut == $visita->cliente_id) {
+                        $cliente->tipo = $visita->estado;
+                        break;
+                    }
+                }
+            }
+            $cliente->totdeuda = 0;
+
+            if (isset($cuentas)) {
+                foreach ($cuentas as $cuenta) {
+                    if ($cliente->Id == $cuenta->CINIT) {
+                        $cliente->totdeuda += $cuenta->totdeuda;
+                    }
+                }
+            }
+
+            $cliente->fechaminima = null;
+
+            if (isset($cuentas)) {
+                foreach ($cuentas as $cuenta) {
+                    if ($cliente->Id == $cuenta->CINIT) {
+                        if ($cliente->fechaminima == null || $cliente->fechaminima > $cuenta->fechaminima) {
+                            $cliente->fechaminima = $cuenta->fechaminima;
+                        }
+                    }
+                }
+            }
+
+
+            $cliente->cantdeuda = 0;
+
+            if (isset($cuentas)) {
+                foreach ($cuentas as $cuenta) {
+                    if ($cliente->Id == $cuenta->CINIT) {
+                        $cliente->cantdeuda++;
+                    }
+                }
+            }
+        });
+
+        $misClientes = $misClientes->sortByDesc('tipo')->values()->all();
+
+        return $misClientes;
     }
 
     public function filtrarlista(Request $request){
