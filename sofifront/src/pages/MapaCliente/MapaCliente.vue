@@ -23,7 +23,9 @@
                   style=" font-size:10px "
                   @click="toggleSeleccion(props.row)"
                 >
-                  <td v-for="col in column" :key="col.name" class="text-white" style="font-size:10px">
+<!--                  {{props.row.color}}-->
+                  <td v-for="col in column" :key="col.name"
+                      style="font-size:10px">
                     {{ props.row[col.field] }}
                   </td>
                 </tr>
