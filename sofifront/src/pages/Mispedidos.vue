@@ -559,7 +559,9 @@ const { addToDate } = date
 export default {
   data(){
     return{
-      horarios:['06:00-07:30','07:30-09:00','09:00-10:30','10:30-12:00','SEGUNDA VUELTA'],
+      horarios:['06:00-07:30','07:30-09:00','09:00-10:30','10:30-12:00','SEGUNDA VUELTA','SE RECOGE'],
+      tipopagos:['CONTADO','PAGO QR','CREDITO','BOLETA ANTERIOR','CREDITO BOLETA ANT',],
+      tipago:'',
       horario:'',
       coment:'',
       url:process.env.API,

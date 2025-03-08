@@ -195,10 +195,11 @@
             true-value="SI"
             v-model="fact"/>
             </div>
-            <div class="col-6">
+            <div class="col-md-4 col-xs-6">
               <q-input label="Fecha" v-model="fecha" type="date" dense outlined :min="fechamenos" />
             </div>
-            <div class="col-6"><q-select dense outlined v-model="horario" :options="horarios" label="Horario" /></div>
+            <div class="col-md-4 col-xs-6"><q-select dense outlined v-model="horario" :options="horarios" label="Horario" /></div>
+            <div class="col-md-4 col-xs-12"><q-select dense outlined v-model="tipago" :options="tipopagos" label="Tip Pagos" /></div>
             <div class="col-12"><q-input dense outlined v-model="coment" label="Comentario" /></div>
           </div>
         </q-card-section>
@@ -514,7 +515,9 @@ export default {
   },
   data() {
     return {
-      horarios:['06:00-07:30','07:30-09:00','09:00-10:30','10:30-12:00','SEGUNDA VUELTA'],
+      horarios:['06:00-07:30','07:30-09:00','09:00-10:30','10:30-12:00','SEGUNDA VUELTA','SE RECOGE'],
+      tipopagos:['CONTADO','PAGO QR','CREDITO','BOLETA ANTERIOR','CREDITO BOLETA ANT',],
+      tipago:'',
       horario:'',
       coment:'',
       fecha:date.formatDate(new Date(),'YYYY-MM-DD'),
@@ -830,10 +833,11 @@ export default {
         })
         return false
       }
-      this.$api.post('pedido',{idCli:this.cliente.Cod_Aut,lat:lat,lng:lng,productos:this.misproductos,pago:this.pago,fact:this.fact,fecha:this.fecha,horario:this.horario,comentario:this.coment}).then(res=>{
+      this.$api.post('pedido',{idCli:this.cliente.Cod_Aut,lat:lat,lng:lng,productos:this.misproductos,pago:this.pago,fact:this.fact,fecha:this.fecha,horario:this.horario,tipopago:this.tipago,comentario:this.coment}).then(res=>{
          // console.log(res.data)
         // return false
         this.horario=''
+        this.tipago=''
         this.coment=''
         this.modalpedido=false
         this.fecha=date.formatDate(new Date(),'YYYY-MM-DD')
@@ -1014,6 +1018,7 @@ export default {
     clickpedido(){
       this.coment=''
       this.horario=''
+      this.tipago=''
       this.modalopciones=false
       this.modalpedido=true
       this.misproductos=[]
