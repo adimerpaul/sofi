@@ -125,7 +125,7 @@ GROUP BY p.idCli,c.Id,c.Nombres,c.Telf,c.Direccion,c.Latitud,c.longitud,p.estado
     }
 
     public function listClienteComanda(Request $request)
-    {
+    {/*
         $consulta='';
         if($request->placa!='TODOS'){
             $consulta="and p.placa = '".$request->placa."'";
@@ -133,7 +133,7 @@ GROUP BY p.idCli,c.Id,c.Nombres,c.Telf,c.Direccion,c.Latitud,c.longitud,p.estado
         if($request->grupo=='TODOS'){
             return DB::select("
             SELECT c.Cod_Aut,p.CINIT,c.Id,c.Nombres,c.Telf,c.Direccion,c.Latitud,c.longitud,
-            (select e.estado from entregas e where e.cliente_id=c.Cod_Aut and e.fechaEntreg='$request->fecha' order by e.estado asc limit 1  ) estado
+            (select e.estado from entregas e where e.cliente_id=c.Cod_Aut and e.fechaEntreg='".$request->fecha."' order by e.estado asc limit 1  ) estado
             FROM tbctascobrar p
             INNER JOIN tbclientes c ON c.Id=p.CINIT
             WHERE date(p.FechaEntreg)='".$request->fecha."' $consulta
@@ -158,23 +158,23 @@ GROUP BY p.idCli,c.Id,c.Nombres,c.Telf,c.Direccion,c.Latitud,c.longitud,p.estado
                     $in="not in (2,3,9)";
                 break;
             }
-            $sql="
-            SELECT c.Cod_Aut,p.CINIT,c.Id,c.Nombres,c.Telf,c.Direccion,c.Latitud,c.longitud,
-            (select e.estado from entregas e where e.cliente_id=c.Cod_Aut and e.fechaEntreg='$request->fecha' order by e.estado asc limit 1  ) estado
+
+            $sql="SELECT c.Cod_Aut,p.CINIT,c.Id,c.Nombres,c.Telf,c.Direccion,c.Latitud,c.longitud,
+            (select e.estado from entregas e where e.cliente_id=c.Cod_Aut and e.fechaEntreg='".$request->fecha."' order by e.estado asc limit 1  ) estado
             FROM tbctascobrar p
             INNER JOIN tbclientes c ON c.Id=p.CINIT
             WHERE date(p.FechaEntreg)='".$request->fecha."'
             GROUP BY c.Cod_Aut,p.CINIT,c.Id,c.Nombres,c.Telf,c.Direccion,c.Latitud,c.longitud
             order by estado asc
             ";
+
             error_log($sql);
             $datos=DB::select($sql);
             $resDatos = [];
-            foreach ($datos as $key => $value) {
+            foreach ($datos as  $value) {
                 $CINIT = $value->CINIT;
                 $fecha = $request->fecha;
-                $sql="
-                select c.comanda,v.cod_pro,p.cod_grup,g.Cod_pdr
+                $sql="SELECT c.comanda,v.cod_pro,p.cod_grup,g.Cod_pdr
                 from tbctascobrar c
                 inner join tbventas v on c.comanda = v.comanda
                 inner join tbproductos p on v.cod_pro = p.cod_prod
@@ -192,10 +192,65 @@ GROUP BY p.idCli,c.Id,c.Nombres,c.Telf,c.Direccion,c.Latitud,c.longitud,p.estado
             }
             return $resDatos;
         }
+*/
+$parametros = [$request->fecha, $request->fecha];
+$condiciones = ["DATE(p.FechaEntreg) = ?"];
 
-    }
+if ($request->placa !== 'TODOS') {
+    $condiciones[] = "p.placa = ?";
+    $parametros[] = $request->placa;
+}
 
-    public function listEntrega(){
+$sql = "SELECT c.Cod_Aut, p.CINIT, c.Id, c.Nombres, c.Telf, c.Direccion, c.Latitud, c.longitud,
+               (SELECT e.estado FROM entregas e 
+                WHERE e.cliente_id = c.Cod_Aut 
+                AND e.fechaEntreg = ? 
+                ORDER BY e.estado ASC LIMIT 1) AS estado
+        FROM tbctascobrar p
+        INNER JOIN tbclientes c ON c.Id = p.CINIT
+        WHERE " . implode(" AND ", $condiciones) . "
+        GROUP BY c.Cod_Aut, p.CINIT, c.Id, c.Nombres, c.Telf, c.Direccion, c.Latitud, c.longitud
+        ORDER BY estado ASC";
+
+$datos = DB::select($sql, $parametros);
+
+return ($request->grupo === 'TODOS') ? $datos : $this->filtrarPorGrupo($datos, $request);
+}
+
+public function filtrarPorGrupo($datos, $request) {
+$grupos = [
+    'CARNE POLLO'   => [3],
+    'CARNE CERDO'   => [2],
+    'PODIUM'        => [9],
+    'POLLO CERDO'   => [2, 3],
+    'OTROS'         => ['NOT IN', [2, 3, 9]]
+];
+
+$grupoFiltro = $grupos[$request->grupo] ?? ['NOT IN', [2, 3, 9]];
+$operador = is_array($grupoFiltro) ? "IN" : $grupoFiltro[0];
+$valores = implode(",", is_array($grupoFiltro) ? $grupoFiltro : $grupoFiltro[1]);
+
+$CINITs = array_column($datos, 'CINIT');
+if (empty($CINITs)) return [];
+
+$sqlGrupo = "SELECT DISTINCT c.CINIT
+             FROM tbctascobrar c
+             INNER JOIN tbventas v ON c.comanda = v.comanda
+             INNER JOIN tbproductos p ON v.cod_pro = p.cod_prod
+             INNER JOIN tbgrupos g ON p.cod_grup = g.cod_grup
+             WHERE c.CINIT IN (" . implode(",", array_fill(0, count($CINITs), "?")) . ")
+             AND c.FechaEntreg = ?
+             AND g.Cod_pdr $operador ($valores)";
+//return ($sqlGrupo, array_merge($CINITs, [$request->fecha]));
+$clientesFiltrados = DB::select($sqlGrupo, array_merge($CINITs, [$request->fecha]));
+//return $clientesFiltrados;
+$clientesFiltradosIds = array_column($clientesFiltrados, 'CINIT');
+//return $clientesFiltradosIds;
+
+return array_values(array_filter($datos, fn($item) => in_array($item->CINIT, $clientesFiltradosIds)));
+ }
+
+    public function listEntrega($fecha){
         return DB::select(" SELECT c.Cod_Aut,p.CINIT,c.Id,c.Nombres,c.Telf,c.Direccion,c.Latitud,c.longitud,
         (select e.estado from entregas e where e.cliente_id=c.Cod_Aut and e.fechaEntreg='$fecha' order by e.estado asc limit 1  ) estado
         FROM tbctascobrar p
