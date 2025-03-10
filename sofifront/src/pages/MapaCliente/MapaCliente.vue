@@ -3,9 +3,12 @@
     <q-card flat bordered>
       <q-card-section>
         <div class="row">
-          <div class="col-xs-12 col-md-10">
+          <div class="col-xs-12 col-md-12">
             <q-input v-model="fecha" label="Fecha" type="date" dense outlined v-bind:min="minimo " @update:model-value="buscar"/>
-          </div><br>
+          </div>
+          <br>
+          <div :class="'q-pa-xs col-2 bg-'+vih.color " v-for="vih in vehiculos" :key="vih" ><b>{{vih.placa==''?'SIN ASIGNAR':vih.placa }} : {{calculo(vih.placa)}}</b></div>
+          <br>
           <div class="col-xs-12 col-md-12">
             <div style="height: 500px; width: 100%;">
               <l-map
@@ -23,7 +26,7 @@
                   :lat-lng="[parseFloat(pedido.Latitud), parseFloat(pedido.longitud)]"
                   @click="toggleSeleccion(pedido)"
                 >
-                  <l-tooltip :content="pedido.Nombres"></l-tooltip>
+                  <l-tooltip :content="pedido.Nombres+' Total:' +pedido.importe+' Bs'"></l-tooltip>
                   <l-icon>
                     <q-badge
                       style="padding: 2px"
@@ -57,7 +60,7 @@
             </div>
         </div>
           <div class="col-xs-12 col-md-12">
-            <q-table dense  :rows="clientes" :columns="column" row-key="name" :rows-per-page-options="['0']" :filter="filtro" style="font-size:10px">
+            <q-table dense  :rows="clientes" :columns="column" row-key="name" :rows-per-page-options="['0']" :filter="filtro" style="font-size:10px; height: 400px" virtual-scroll>
               <template v-slot:top-right>
                 <q-input outlined dense debounce="300" v-model="filtro" placeholder="buscar">
                   <template v-slot:append>
@@ -76,6 +79,7 @@
                       style="font-size:10px">
                     {{ props.row[col.field] }}
                   </td>
+                  <td key="op"> <q-btn color="info" icon="visibility" dense flat @click="verDetalle(props.row)"/>                  </td>
                 </tr>
               </template>
               </q-table>
@@ -103,8 +107,27 @@
           </div>
         </div>
 
+
       </q-card-section>
     </q-card>
+
+    <q-dialog v-model="dialogDetalle">
+    <q-card>
+    <q-card-section>
+    <div class="text-h6">{{detalle.Nombres}}</div>
+      </q-card-section>
+      <q-card-section>
+          <table>
+            <tr><th>PEDIDO</th><th>CODIGO</th><th>CANTIDAD</th><th>PRODUCTO</th></tr>
+            <tr v-for="pedido in detalle.contenido" :key="pedido"><td>{{pedido.NroPed}}</td><td>{{pedido.cod_prod}}</td><td>{{pedido.Cant}}</td><td>{{pedido.Producto}}</td>  </tr>
+          </table>
+      </q-card-section>
+      <q-card-actions align="right">
+      <q-btn flat label="OK" color="primary" v-close-popup />
+      </q-card-actions>
+      </q-card>
+    </q-dialog>
+    
   </q-page>
 </template>
 
@@ -266,14 +289,35 @@ export default {
           opacity: 0.1,
           fillOpacity: 0.2,
         }),
-      }
+      },
+      detalle:[],
+      dialogDetalle:false
   }
   },
   mounted() {
     this.buscar();
     this.getVehiculo();
   },
+
   methods: {
+    verDetalle(dato){
+      dato.fecha=this.fecha
+      console.log(dato)
+      this.$api.post("detallePedMap",dato).then((res) => {
+        console.log(res.data)
+        this.detalle=dato
+        this.detalle.contenido=res.data
+        this.dialogDetalle=true
+        })
+    },
+    calculo(veh){
+    let total=0
+    this.clientes.forEach(r => {
+        if(r.placa==veh)
+          total++;
+    });
+    return total
+    },
     onEachFeatureFunction() {
       if (!this.enableTooltip) {
         return () => {};
@@ -296,6 +340,9 @@ export default {
     },
     getVehiculo() {
       this.$api.post("listVehiculo").then((res) => {
+      res.data.forEach(r => {
+          r.cantidad=0
+      });
         this.vehiculos = res.data;
         this.auto=this.vehiculos[0]
       });
