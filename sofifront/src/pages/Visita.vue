@@ -516,7 +516,7 @@ export default {
   data() {
     return {
       horarios:['06:00-07:30','07:30-09:00','09:00-10:30','10:30-12:00','SEGUNDA VUELTA','SE RECOGE'],
-      tipopagos:['CONTADO','PAGO QR','CREDITO','BOLETA ANTERIOR','CREDITO BOLETA ANT'],
+      tipopagos:['CONTADO','PAGO QR','CREDITO','BOLETA ANTERIOR'],
       horario:'',
       coment:'',
       fecha:date.formatDate(new Date(),'YYYY-MM-DD'),
@@ -824,9 +824,9 @@ export default {
         })
         return false
       }
-      if ( this.pago!='CONTADO' && this.pago!='CREDITO' ){
+        if ( this.pago='' || this.pago==undefined ){
         this.$q.notify({
-          message:'Debe Marcar Contado o Credito',
+          message:'Debe Seleccionar tipo pago',
           color:'red',
           icon:'error'
         })
@@ -835,6 +835,8 @@ export default {
       this.$api.post('pedido',{idCli:this.cliente.Cod_Aut,lat:lat,lng:lng,productos:this.misproductos,pago:this.pago,fact:this.fact,fecha:this.fecha,horario:this.horario,comentario:this.coment}).then(res=>{
          // console.log(res.data)
         // return false
+        this.pago=''
+        this.fact=''
         this.horario=''
         this.coment=''
         this.modalpedido=false
