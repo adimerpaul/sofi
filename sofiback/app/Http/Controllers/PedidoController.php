@@ -1009,11 +1009,33 @@ class PedidoController extends Controller{
     }
 
     public function mapClientes(Request $request){
-            return DB::select("SELECT p.idCli,c.Id,c.Nombres,c.Latitud,c.longitud,c.territorio,concat(trim(e.Nombre1),' ',trim(e.App1)) as vendedor,p.placa,(select v.color from vehiculo v where v.placa=p.placa) color
-            from tbpedidos p inner join tbclientes c on p.idCli=c.Cod_Aut inner join personal e on p.CIfunc=e.CodAut
-            where date(p.fecha)='$request->fecha' and p.estado='ENVIADO' and p.tipo='NORMAL' group by p.idCli,c.Id,c.Nombres,c.Latitud,c.longitud,c.territorio,e.Nombre1,e.App1,p.placa ");
-
+        $resultado = DB::select("
+        SELECT 
+            p.idCli, c.Id, c.Nombres, c.Latitud, c.longitud, c.territorio, 
+            CONCAT(TRIM(e.Nombre1), ' ', TRIM(e.App1)) AS vendedor, 
+            p.placa,
+            (SELECT v.color FROM vehiculo v WHERE v.placa = p.placa) AS color, 
+            SUM(p.subtotal) AS importe
+        FROM tbpedidos p 
+        INNER JOIN tbclientes c ON p.idCli = c.Cod_Aut 
+        INNER JOIN personal e ON p.CIfunc = e.CodAut
+        WHERE DATE(p.fecha) = ? AND p.estado = 'ENVIADO' AND p.tipo = 'NORMAL' 
+        GROUP BY p.idCli, c.Id, c.Nombres, c.Latitud, c.longitud, c.territorio, e.Nombre1, e.App1, p.placa
+    ", [$request->fecha]);
+        
+    // Devuelve el resultado como JSON o úsalo en tu vista
+    return response()->json($resultado);
     }
+
+    public function detallePedMap(Request $request){
+            $resultado = DB::select("
+                SELECT p.NroPed, p.Cant, tpr.cod_prod, tpr.Producto 
+                FROM tbpedidos p 
+                INNER JOIN tbproductos tpr ON p.cod_prod = tpr.cod_prod 
+                WHERE DATE(p.fecha) = ? AND p.tipo = 'NORMAL' AND p.idCli = ?
+            ", [$request->fecha, $request->idCli]);
+    return response()->json($resultado);
+}
 
     public function listVehiculo(){
         return DB::SELECT("SELECT * from vehiculo order by id asc");

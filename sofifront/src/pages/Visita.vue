@@ -181,13 +181,14 @@
             <div class="col-12">
               {{cliente.Cod_Aut}} {{cliente.Nombres}}
             </div>
-          <div class="text-bold col-6 flex flex-center">
-<!--               <div class="q-gutter-sm col-md-6 col-sm-12" >-->
+          <!-- <div class="text-bold col-6 flex flex-center">
+             -- <div class="q-gutter-sm col-md-6 col-sm-12" >
                 <q-radio  dense v-model="pago" val="CONTADO" label="Contado" />
                 <q-radio  dense v-model="pago" val="CREDITO" label="Credito" />
-<!--              </div>-->
-          </div>
-          <div class="col-6">
+--              </div>
+          </div>-->
+          <div class="col-md-6 col-xs-6"><q-select dense outlined v-model="pago" :options="tipopagos" label="Tip Pagos" /></div>
+          <div class="col-md-6 col-xs-6">
             <q-toggle
             :label="fact+' FACTURA'"
             color="green"
@@ -195,10 +196,10 @@
             true-value="SI"
             v-model="fact"/>
             </div>
-            <div class="col-6">
+            <div class="col-md-6 col-xs-6">
               <q-input label="Fecha" v-model="fecha" type="date" dense outlined :min="fechamenos" />
             </div>
-            <div class="col-6"><q-select dense outlined v-model="horario" :options="horarios" label="Horario" /></div>
+            <div class="col-md-6 col-xs-6"><q-select dense outlined v-model="horario" :options="horarios" label="Horario" /></div>
             <div class="col-12"><q-input dense outlined v-model="coment" label="Comentario" /></div>
           </div>
         </q-card-section>
@@ -514,7 +515,8 @@ export default {
   },
   data() {
     return {
-      horarios:['06:00-07:30','07:30-09:00','09:00-10:30','10:30-12:00','SEGUNDA VUELTA'],
+      horarios:['06:00-07:30','07:30-09:00','09:00-10:30','10:30-12:00','SEGUNDA VUELTA','SE RECOGE'],
+      tipopagos:['CONTADO','PAGO QR','CREDITO','BOLETA ANTERIOR','CREDITO BOLETA ANT'],
       horario:'',
       coment:'',
       fecha:date.formatDate(new Date(),'YYYY-MM-DD'),
@@ -697,9 +699,9 @@ export default {
         })
         return false
       }
-      if ( this.pago!='CONTADO' && this.pago!='CREDITO' ){
+      if ( this.pago=='' || this.pago==undefined ){
         this.$q.notify({
-          message:'Debe Marcar Contado o Credito',
+          message:'Debe Marcar tipo de pago',
           color:'red',
           icon:'error'
         })
@@ -1014,6 +1016,7 @@ export default {
     clickpedido(){
       this.coment=''
       this.horario=''
+      this.tipago=''
       this.modalopciones=false
       this.modalpedido=true
       this.misproductos=[]

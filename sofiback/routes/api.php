@@ -128,6 +128,8 @@ Route::group(['middleware'=>'auth:sanctum'],function (){
     Route::post('/mapaVendedor',[\App\Http\Controllers\MapaVendedorController::class,'mapaVendedor']);
 
     Route::post('/mapClientes',[\App\Http\Controllers\PedidoController::class,'mapClientes']);
+    Route::post('/detallePedMap',[\App\Http\Controllers\PedidoController::class,'detallePedMap']);
+    
     Route::post('/listVehiculo',[\App\Http\Controllers\PedidoController::class,'listVehiculo']);
     Route::post('/updaVehiPed',[\App\Http\Controllers\PedidoController::class,'updaVehiPed']);
 

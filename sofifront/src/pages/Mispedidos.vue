@@ -50,12 +50,13 @@
         <q-card-section class="q-pt-none">
           <div class="row">
 
-          <div class="text-bold col-6 flex flex-center">
-<!--               <div class="q-gutter-sm col-md-6 col-sm-12" >-->
+          <!-- <div class="text-bold col-6 flex flex-center">
+             -- <div class="q-gutter-sm col-md-6 col-sm-12" >
                 <q-radio  dense v-model="pago" val="CONTADO" label="Contado" />
                 <q-radio  dense v-model="pago" val="CREDITO" label="Credito" />
-<!--              </div>-->
-          </div>
+--              </div>
+          </div>-->
+          <div class="col-md-6 col-xs-6"><q-select dense outlined v-model="pago" :options="tipopagos" label="Tip Pagos" /></div>
                     <div class="col-6">
             <q-toggle
             :label="fact+' FACTURA'"
@@ -559,7 +560,8 @@ const { addToDate } = date
 export default {
   data(){
     return{
-      horarios:['06:00-07:30','07:30-09:00','09:00-10:30','10:30-12:00','SEGUNDA VUELTA'],
+      horarios:['06:00-07:30','07:30-09:00','09:00-10:30','10:30-12:00','SEGUNDA VUELTA','SE RECOGE'],
+      tipopagos:['CONTADO','PAGO QR','CREDITO','BOLETA ANTERIOR','CREDITO BOLETA ANT'],
       horario:'',
       coment:'',
       url:process.env.API,

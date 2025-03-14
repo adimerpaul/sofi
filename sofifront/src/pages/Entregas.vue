@@ -7,7 +7,7 @@
     <div class="col-12 col-md-3"></div>
     <div class="col-12 col-md-3">
       <q-select v-model="grupos" label="Grupo" dense outlined :options="['TODOS','CARNE POLLO','CARNE CERDO','PODIUM','DEMAS','POLLO CERDO']"
-                @update:model-value="misclientes"
+                @update:model-value="misclientes()"
       />
 <!--      <pre>{{grupos}}</pre>-->
     </div>
@@ -194,6 +194,7 @@ export default {
   data(){
     return{
       grupos: 'TODOS',
+      placa:'',
       usuarios:[],
       filter:'',
       clientes:[],
@@ -266,9 +267,12 @@ colPed:[
       this.$q.loading.show()
       this.pedidos=[]
       this.cliente={}
+      if(this.placa==''){ this.placa='TODOS'
+      }
+      console.log(this.placa)
       this.$api.post('listClienteComanda',{
         fecha:this.fecha,
-        placa:pl,
+        placa:this.placa,
         grupo:this.grupos
       } ).then(res=>{
          console.log(res.data)
@@ -472,6 +476,7 @@ colPed:[
       })
     },
     consultaRow(event,row){
+      this.placa=row.placa
       this.consulta(row.placa)
     },
     consulta(pl){
