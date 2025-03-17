@@ -137,7 +137,7 @@ import { LIcon, LMap, LMarker, LTileLayer,LTooltip,LGeoJson } from "@vue-leaflet
 
 
 export default {
-  name: "MapaVendedor",
+  name: "mapaVendedor",
   components: {
     LMap,
     LIcon,
@@ -355,12 +355,10 @@ export default {
         let numero=1
         res.data.forEach(r => {
           r.num=numero
+          r.selected=false
           numero++
         });
-        this.clientes = res.data.map((cliente) => ({
-          ...cliente,
-          selected: false
-        }));
+        this.clientes = res.data;
       }).finally(() => {
         this.loading = false;
       });

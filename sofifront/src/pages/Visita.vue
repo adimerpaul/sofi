@@ -824,7 +824,7 @@ export default {
         })
         return false
       }
-        if ( this.pago='' || this.pago==undefined ){
+        if ( this.pago=='' || this.pago==undefined ){
         this.$q.notify({
           message:'Debe Seleccionar tipo pago',
           color:'red',
