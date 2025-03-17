@@ -835,7 +835,7 @@ export default {
       this.$api.post('pedido',{idCli:this.cliente.Cod_Aut,lat:lat,lng:lng,productos:this.misproductos,pago:this.pago,fact:this.fact,fecha:this.fecha,horario:this.horario,comentario:this.coment}).then(res=>{
          // console.log(res.data)
         // return false
-        this.pago=''
+        //this.pago=''
         this.fact=''
         this.horario=''
         this.coment=''
