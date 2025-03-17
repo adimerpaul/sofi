@@ -5,7 +5,12 @@
         <q-btn flat dense round icon="menu" aria-label="Menu" @click="toggleLeftDrawer"/>
         <q-toolbar-title>
           <template v-if="$store.getters['login/user'].Nombre1==undefined">Sofia</template>
-          <template v-else>{{ $store.getters['login/user'].Nombre1 }} {{ $store.getters['login/user'].App1 }}</template>
+          <template v-else>
+            {{ $filters.capitalize($store.getters['login/user'].Nombre1 +' '+ $store.getters['login/user'].App1 )}}
+          </template>
+          <q-chip dense  class="bg-orange text-black">
+            {{ 'v10.7.2' }}
+          </q-chip>
         </q-toolbar-title>
         <!--        <div>Quasar v{{ $q.version }}</div>-->
         <div>
