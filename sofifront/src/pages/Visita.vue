@@ -115,10 +115,10 @@
                     <template v-slot:top-left>
             <div class="row">
               <div class="col-6 "  @click="misclientes" >
-                <q-btn icon="list" size="xs" color="orange"  />
+                <q-btn icon="list" size="xs" color="orange" :loading="loading"/>
               </div>
               <div class="col-6 " @click="listhoy" >
-                <q-btn icon="today" size="xs" color="cyan" />
+                <q-btn icon="today" size="xs" color="cyan" :loading="loading"/>
               </div>
 
             </div>
@@ -187,7 +187,13 @@
                 <q-radio  dense v-model="pago" val="CREDITO" label="Credito" />
 --              </div>
           </div>-->
-          <div class="col-md-6 col-xs-6"><q-select dense outlined v-model="pago" :options="tipopagos" label="Tip Pagos" /></div>
+          <div class="col-md-6 col-xs-6">
+<!--            <q-select dense outlined v-model="pago" :options="tipopagos" label="Tip Pagos" />-->
+            <div><q-radio v-model="pago" checked-icon="task_alt" dense unchecked-icon="panorama_fish_eye" val="CONTADO" label="Contado" /></div>
+            <div><q-radio v-model="pago" checked-icon="task_alt" dense unchecked-icon="panorama_fish_eye" val="PAGO QR" label="Pago QR" /></div>
+            <div><q-radio v-model="pago" checked-icon="task_alt" dense unchecked-icon="panorama_fish_eye" val="CREDITO" label="Credito" /></div>
+            <div><q-radio v-model="pago" checked-icon="task_alt" dense unchecked-icon="panorama_fish_eye" val="BOLETA ANTERIOR" label="Boleta anterior" /></div>
+          </div>
           <div class="col-md-6 col-xs-6">
             <q-toggle
             :label="fact+' FACTURA'"
@@ -556,7 +562,8 @@ export default {
         {label:'cod_prod',name:'cod_prod',field:'cod_prod',align:'left'},
         {label:'nombre',name:'nombre',field:'nombre',align:'left'},
         {label:'observacion',name:'observacion',field:'observacion',align:'left'},
-      ]
+      ],
+      loading:false,
     };
   },
 
@@ -584,7 +591,8 @@ export default {
 
     },
     listhoy(){
-      this.$q.loading.show()
+      // this.$q.loading.show()
+      this.loading=true
       this.$api.post('filtrarlista',{filtradia:8}).then(res=>{
          console.log(res.data)
         this.clientes=[]
@@ -606,19 +614,24 @@ export default {
           this.clientes.push(d)
         })
         // console.log(this.clientes)
-        this.$q.loading.hide()
+        // this.$q.loading.hide()
+        // this.loading=false
       }).catch(err=>{
+        // this.loading=false
         // console.log(err.response)
-        this.$q.loading.hide()
+        // this.$q.loading.hide()
         this.$q.notify({
           message:err.response.data.message,
           color:'red',
           icon:'error'
         })
+      }).finally(()=>{
+        this.loading=false
       })
     },
     misclientes(){
-      this.$q.loading.show()
+      // this.$q.loading.show()
+      this.loading=true
       this.$api.get('cliente').then(res=>{
          console.log(res.data)
         this.clientes=[]
@@ -640,10 +653,12 @@ export default {
           this.clientes.push(d)
         })
         // console.log(this.clientes)
-        this.$q.loading.hide()
+        // this.$q.loading.hide()
+        this.loading=false
       }).catch(err=>{
         // console.log(err.response)
-        this.$q.loading.hide()
+        // this.$q.loading.hide()
+        this.loading=false
         this.$q.notify({
           message:err.response.data.message,
           color:'red',
@@ -677,25 +692,21 @@ export default {
       })
     },
     enviarpedido(){
-      this.$q.dialog({
-        title:'Seguro de enviar pedido',
-        color:'green',
-        icon:'send',
-        cancel:true
-      }).onOk(data=>{
-        if (this.misproductos.length==0){
-          this.$q.notify({
-            message:'No tienes productos',
-            icon:'error',
-            color:'red'
-          })
-          return false
-        }
-        if ( this.fact!='SI' && this.fact!='NO' ){
+      if (this.misproductos.length==0){
+        this.$q.notify({
+          message:'No tienes productos',
+          icon:'error',
+          color:'red',
+          position:'top'
+        })
+        return false
+      }
+      if ( this.fact!='SI' && this.fact!='NO' ){
         this.$q.notify({
           message:'Debe Marcar Factura',
           color:'red',
-          icon:'error'
+          icon:'error',
+          position:'top'
         })
         return false
       }
@@ -703,11 +714,19 @@ export default {
         this.$q.notify({
           message:'Debe Marcar tipo de pago',
           color:'red',
-          icon:'error'
+          icon:'error',
+          position:'top'
         })
         return false
       }
-        this.$q.loading.show()
+      this.$q.dialog({
+        title:'Seguro de enviar pedido',
+        color:'green',
+        icon:'send',
+        cancel:true
+      }).onOk(data=>{
+        // this.$q.loading.show()
+        this.loading=true
         var lat=0,lng=0
         if (navigator.geolocation) {
           // get  geolocation
@@ -730,7 +749,8 @@ export default {
       })
     },
     clickretornar(){
-      this.$q.loading.show()
+      // this.$q.loading.show()
+      this.loading=true
       var lat=0,lng=0
       if (navigator.geolocation) {
         // get  geolocation
@@ -812,7 +832,8 @@ export default {
         this.$q.notify({
           message:'Debes selecionar una fecha',
           color:'red',
-          icon:'error'
+          icon:'error',
+          position:'top'
         })
         return false
       }
@@ -820,7 +841,8 @@ export default {
         this.$q.notify({
           message:'Debe Marcar Factura',
           color:'red',
-          icon:'error'
+          icon:'error',
+          position:'top'
         })
         return false
       }
@@ -828,7 +850,8 @@ export default {
         this.$q.notify({
           message:'Debe Seleccionar tipo pago',
           color:'red',
-          icon:'error'
+          icon:'error',
+          position:'top'
         })
         return false
       }
@@ -845,7 +868,7 @@ export default {
         //this.misclientes()
       }).catch(err=>{
         // console.log(err.response)
-        this.$q.loading.hide()
+        // this.$q.loading.hide()
         this.$q.notify({
           message:err.response.data.message,
           color:'red',

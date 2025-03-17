@@ -75,7 +75,8 @@ module.exports = configure(function (ctx) {
       env: {
         API: ctx.dev
           ? 'http://localhost:8000/api/'
-          : 'https://bsofia.tuprogam.com/api/'
+          : 'https://bsofia.tuprogam.com/api/',
+        VERSION: '1.0.0'
       }
     },
 

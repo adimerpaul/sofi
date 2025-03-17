@@ -27,7 +27,7 @@ class ClienteController extends Controller{
         $Ids = array_map(function ($id) {
             return "'" . addslashes($id) . "'"; // Escapa caracteres especiales y añade comillas
         }, $Ids);
-        
+
         $visitas = DB::select("SELECT * FROM misvisitas WHERE cliente_id IN (".implode(',', $codAuts).") AND fecha = '".date('Y-m-d')."'");
 
 
@@ -84,7 +84,7 @@ class ClienteController extends Controller{
         return $misClientes;
     }
 
-    public function filtrarlista(Request $request){
+    public function filtrarlista2(Request $request){
 
         if ($request->filtradia==9){
             //si es para todos los dias
@@ -142,6 +142,74 @@ class ClienteController extends Controller{
              //SELECT t.idCli,COUNT(DISTINCT(date(t.fecha))) FROM tbpedidos t where YEAR(t.fecha)=YEAR('2022-10-14') and MONTH(t.fecha)=MONTH('2022-10-14') and t.idCli=1;
              //(SELECT COUNT(DISTINCT(date(t.fecha))) FROM tbpedidos t where YEAR(t.fecha)=YEAR('".date('Y-m-d')."') and MONTH(t.fecha)=MONTH('".date('Y-m-d')."') and t.idCli=tbclientes.Cod_Aut) as totalpedido
     }
+    public function filtrarlista(Request $request) {
+        $user_ci = trim($request->user()->ci);
+        $fecha_hoy = date('Y-m-d');
+
+        if ($request->filtradia == 9) {
+            // Si es para todos los días
+            return DB::select("
+            SELECT t.*,
+                v.tipo,
+                d.totdeuda,
+                d.fechaminima,
+                d.cantdeuda
+            FROM tbclientes t
+            LEFT JOIN (
+                SELECT cliente_id, estado as tipo
+                FROM misvisitas
+                WHERE fecha = ? AND id IN (
+                    SELECT MAX(id) FROM misvisitas GROUP BY cliente_id
+                )
+            ) v ON v.cliente_id = t.Cod_Aut
+            LEFT JOIN (
+                SELECT CINIT,
+                    SUM(Importe - IFNULL((SELECT SUM(Acuenta) FROM tbctascobrar WHERE comanda=c.comanda), 0)) AS totdeuda,
+                    MIN(FechaEntreg) AS fechaminima,
+                    COUNT(*) AS cantdeuda
+                FROM tbctascobrar c
+                WHERE Nrocierre = 0 AND Acuenta = 0
+                GROUP BY CINIT
+            ) d ON d.CINIT = t.Id
+            WHERE TRIM(t.CiVend) = ?
+            ORDER BY v.tipo DESC
+        ", [$fecha_hoy, $user_ci]);
+        }
+
+        // Determinar el día de la semana
+        $numdia = ($request->filtradia == 8) ? date('w') : $request->filtradia;
+
+        $dias = ['do', 'lu', 'Ma', 'Mi', 'Ju', 'Vi', 'Sa'];
+        $filtro = isset($dias[$numdia]) ? " AND t.{$dias[$numdia]} = 1 " : "";
+
+        return DB::select("
+        SELECT t.*,
+            v.tipo,
+            d.totdeuda,
+            d.fechaminima,
+            d.cantdeuda
+        FROM tbclientes t
+        LEFT JOIN (
+            SELECT cliente_id, estado as tipo
+            FROM misvisitas
+            WHERE fecha = ? AND id IN (
+                SELECT MAX(id) FROM misvisitas GROUP BY cliente_id
+            )
+        ) v ON v.cliente_id = t.Cod_Aut
+        LEFT JOIN (
+            SELECT CINIT,
+                SUM(Importe - IFNULL((SELECT SUM(Acuenta) FROM tbctascobrar WHERE comanda=c.comanda), 0)) AS totdeuda,
+                MIN(FechaEntreg) AS fechaminima,
+                COUNT(*) AS cantdeuda
+            FROM tbctascobrar c
+            WHERE Nrocierre = 0 AND Acuenta = 0
+            GROUP BY CINIT
+        ) d ON d.CINIT = t.Id
+        WHERE TRIM(t.CiVend) = ? $filtro
+        ORDER BY v.tipo DESC
+    ", [$fecha_hoy, $user_ci]);
+    }
+
 
     public function listsinpedido(Request $request){
         //return $request;
