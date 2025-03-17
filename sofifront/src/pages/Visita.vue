@@ -1018,7 +1018,7 @@ export default {
     clickpedido(){
       this.coment=''
       this.horario=''
-      this.tipago=''
+      this.pago=''
       this.modalopciones=false
       this.modalpedido=true
       this.misproductos=[]
