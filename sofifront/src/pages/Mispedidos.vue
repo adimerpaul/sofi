@@ -56,8 +56,14 @@
                 <q-radio  dense v-model="pago" val="CREDITO" label="Credito" />
 --              </div>
           </div>-->
-          <div class="col-md-6 col-xs-6"><q-select dense outlined v-model="pago" :options="tipopagos" label="Tip Pagos" /></div>
-                    <div class="col-6">
+          <div class="col-md-6 col-xs-6">
+<!--            <q-select dense outlined v-model="pago" :options="tipopagos" label="Tip Pagos" /></div>-->
+            <div><q-radio v-model="pago" checked-icon="task_alt" dense unchecked-icon="panorama_fish_eye" val="CONTADO" label="Contado" /></div>
+            <div><q-radio v-model="pago" checked-icon="task_alt" dense unchecked-icon="panorama_fish_eye" val="PAGO QR" label="Pago QR" /></div>
+            <div><q-radio v-model="pago" checked-icon="task_alt" dense unchecked-icon="panorama_fish_eye" val="CREDITO" label="Credito" /></div>
+            <div><q-radio v-model="pago" checked-icon="task_alt" dense unchecked-icon="panorama_fish_eye" val="BOLETA ANTERIOR" label="Boleta anterior" /></div>
+          </div>
+          <div class="col-6">
             <q-toggle
             :label="fact+' FACTURA'"
             color="green"
