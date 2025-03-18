@@ -9,7 +9,7 @@
             {{ $filters.capitalize($store.getters['login/user'].Nombre1 +' '+ $store.getters['login/user'].App1 )}}
           </template>
           <q-chip dense  class="bg-orange text-black">
-            {{ 'v10.7.4' }}
+            {{ 'v10.7.5' }}
           </q-chip>
         </q-toolbar-title>
         <!--        <div>Quasar v{{ $q.version }}</div>-->

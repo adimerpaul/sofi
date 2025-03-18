@@ -271,7 +271,7 @@
                   </q-tr>
                 </template>
               </q-table>
-              <q-btn @click="enviarpedido" style="width: 100%" label="Realizar pedido" icon="send" color="positive" />
+              <q-btn @click="enviarpedido" style="width: 100%" label="Realizar pedido" icon="send" color="positive" :loading="loading"/>
             </div>
           </div>
 
@@ -719,6 +719,7 @@ export default {
         })
         return false
       }
+      this.dialog=true
       this.$q.dialog({
         title:'Seguro de enviar pedido',
         color:'green',
@@ -865,10 +866,12 @@ export default {
         this.modalpedido=false
         this.fecha=date.formatDate(new Date(),'YYYY-MM-DD')
         this.listhoy()
+        this.loading=false
         //this.misclientes()
       }).catch(err=>{
         // console.log(err.response)
         // this.$q.loading.hide()
+        this.loading=false
         this.$q.notify({
           message:err.response.data.message,
           color:'red',
