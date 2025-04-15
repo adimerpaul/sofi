@@ -182,7 +182,7 @@ class ClienteController extends Controller{
         $dias = ['do', 'lu', 'Ma', 'Mi', 'Ju', 'Vi', 'Sa'];
         $filtro = isset($dias[$numdia]) ? " AND t.{$dias[$numdia]} = 1 " : "";
 
-        return DB::select("
+        $sql = "
         SELECT t.*,
             v.tipo,
             d.totdeuda,
@@ -207,7 +207,10 @@ class ClienteController extends Controller{
         ) d ON d.CINIT = t.Id
         WHERE TRIM(t.CiVend) = ? $filtro
         ORDER BY v.tipo DESC
-    ", [$fecha_hoy, $user_ci]);
+    ";
+        error_log($sql);
+        error_log("[$fecha_hoy, $user_ci]");
+        return DB::select($sql, [$fecha_hoy, $user_ci]);
     }
 
 

@@ -28,8 +28,26 @@
                 <tbody>
                   <tr v-for="(user, index) in pedidos.users" :key="index" @click="seleccionar(user)">
                     <td>{{ index + 1 }}</td>
-                    <td>{{ user.nombreCompleto }}</td>
                     <td>
+<!--                      v-if ver si es mayor que sero los enviados-->
+                        <q-btn
+                          class="q-mr-sm"
+                          color="orange"
+                          size="xs"
+                          icon="send"
+                          label="Enviar emegencia"
+                          :loading="loading"
+                          dense
+                          v-if="user.pedidos.creados > 0"
+                          no-caps
+                          @click.stop="enviarPedidosEmergencia(user)"
+                        />
+                      <div style="max-width: 80px; wrap-option: wrap">
+                        {{ $filters.capitalize(user.nombreCompleto) }}
+                      </div>
+                    </td>
+                    <td>
+<!--                      btn enaviar pedidos-->
                       <q-linear-progress size="20px" :value="1" color="accent">
                         <div class="absolute-full flex flex-center">
                           <q-badge color="white" text-color="black" :label="'Total '+user.pedidos.cantidad" />
@@ -46,6 +64,7 @@
                         </div>
                       </q-linear-progress>
                     </td>
+
                   </tr>
                 </tbody>
               <tfoot>
@@ -134,6 +153,33 @@ export default {
     this.buscar();
   },
   methods: {
+    enviarPedidosEmergencia(user) {
+      this.loading = true;
+      this.$api.post("enviarPedidosEmergencia", {
+        user: user.CodAut,
+        fecha: this.fecha,
+      }).then((res) => {
+        const pedidosCondeuda = res.data.pedidosCondeuda;
+        let deudores='';
+        for (let i = 0; i < pedidosCondeuda.length; i++) {
+          deudores += `<div> DEUDA ${i + 1}.- ${pedidosCondeuda[i].Nombres} <br> ${pedidosCondeuda[i].Telf} <br> ${pedidosCondeuda[i].Direccion}</div>`;
+        }
+        this.$q.notify({
+          type: "positive",
+          message: 'Se enviaron los pedidos de emergencia <br> <div style="max-height: 200px; overflow-y: auto;">' + deudores + '</div>',
+          position: "top",
+          html: true,
+        });
+        this.buscar();
+      }).catch((err) => {
+        this.$q.notify({
+          type: "negative",
+          message: err.response.data.message,
+        });
+      }).finally(() => {
+        this.loading = false;
+      });
+    },
     seleccionar(user) {
       this.pedidosMapa.users = this.pedidosAll.users.filter((u) => u.CodAut === user.CodAut)
     },

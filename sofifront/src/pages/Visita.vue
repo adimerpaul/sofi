@@ -97,11 +97,11 @@
           </template>
           <template v-slot:top-right>
             <div class="row">
-              <div class="col-2 flex flex-center" @click="getUserPosition"  >
-                <q-btn icon="my_location" size="xs" color="primary"  />
+              <div class="col-2 flex flex-center"   >
+                <q-btn icon="my_location" size="xs" color="primary"  @click="getUserPosition" :loading="loading"/>
               </div>
-              <div class="col-2 flex flex-center" @click="getCentro" >
-                <q-btn icon="my_location" size="xs" color="secondary" />
+              <div class="col-2 flex flex-center"  >
+                <q-btn icon="my_location" size="xs" color="secondary" @click="getCentro" :loading="loading"/>
               </div>
               <div class="col-8">
                 <q-input filled dense v-model="filter" placeholder="Buscar Cliente">
@@ -156,16 +156,16 @@
 <!--          <pre>{{cliente}}</pre>-->
           <div class="row">
             <div class="col-12 col-sm-6" >
-              <q-btn class="q-ma-xs" @click="clickpedido" label="realizar pedido" color="positive" style="width: 100%;" icon="shopping_cart" />
+              <q-btn :loading="loading" class="q-ma-xs" @click="clickpedido" label="realizar pedido" color="positive" style="width: 100%;" icon="shopping_cart" />
             </div>
             <div class="col-12 col-sm-6">
-              <q-btn class="q-ma-xs" @click="clickretornar" label="retornar" color="warning" style="width: 100%;" icon="schedule" />
+              <q-btn :loading="loading" class="q-ma-xs" @click="clickretornar" label="retornar" color="warning" style="width: 100%;" icon="schedule" />
             </div>
             <div class="col-12 col-sm-6">
-              <q-btn class="q-ma-xs" @click="clicknopedido" label="no pedido" color="negative" style="width: 100%;" icon="highlight_off" />
+              <q-btn :loading="loading" class="q-ma-xs" @click="clicknopedido" label="no pedido" color="negative" style="width: 100%;" icon="highlight_off" />
             </div>
             <div class="col-12 col-sm-6">
-              <q-btn class="q-ma-xs" label="generar ruta" color="accent" style="width: 100%;" icon="maps" type="a" target="_blank" :href="'https://www.google.com.bo/maps/place/'+cliente.Latitud+','+cliente.longitud+'/@'+cliente.Latitud+','+cliente.longitud+',17z/data=!3m1!4b1!4m6!3m5!1s0x0:0xeda9371aeb8c1574!7e2!8m2!3d-17.981432!4d-67.1061122?hl=es'"/>
+              <q-btn :loading="loading" class="q-ma-xs" label="generar ruta" color="accent" style="width: 100%;" icon="maps" type="a" target="_blank" :href="'https://www.google.com.bo/maps/place/'+cliente.Latitud+','+cliente.longitud+'/@'+cliente.Latitud+','+cliente.longitud+',17z/data=!3m1!4b1!4m6!3m5!1s0x0:0xeda9371aeb8c1574!7e2!8m2!3d-17.981432!4d-67.1061122?hl=es'"/>
             </div>
           </div>
         </q-card-section>
@@ -174,12 +174,14 @@
         </q-card-actions>
       </q-card>
     </q-dialog>
-    <q-dialog full-width full-height v-model="modalpedido">
+    <q-dialog full-width full-height v-model="modalpedido" persistent>
       <q-card >
         <q-card-section>
           <div class="row">
-            <div class="col-12">
+            <div class="col-12 row items-center">
               {{cliente.Cod_Aut}} {{cliente.Nombres}}
+              <q-space/>
+              <q-btn icon="close" flat @click="modalpedido=false" class="q-ma-xs" color="negative" />
             </div>
           <!-- <div class="text-bold col-6 flex flex-center">
              -- <div class="q-gutter-sm col-md-6 col-sm-12" >
@@ -226,7 +228,9 @@
               <q-btn  class="q-pa-xs q-ma-none" color="primary" icon="add_circle" @click="agregarpedido"/>
             </div>
             <div class="col-12">
-              <q-table :rows="misproductos"  :filter="filteproducto" :columns="columnsproducto" :rows-per-page-options="[0]">
+              <q-table dense :rows="misproductos"  :filter="filteproducto" :columns="columnsproducto" :rows-per-page-options="[0]"
+                       style="height: 300px">
+              >
                 <template v-slot:body-cell-subtotal="props" >
                   <q-td :props="props" auto-width >
                     <q-btn flat @click="seleccionartipo(props.row)" class="q-ma-none q-pa-none" color="accent" icon="tune"/>
@@ -750,17 +754,10 @@ export default {
       })
     },
     clickretornar(){
-      // this.$q.loading.show()
       this.loading=true
       var lat=0,lng=0
       if (navigator.geolocation) {
-        // get  geolocation
         navigator.geolocation.getCurrentPosition(pos => {
-          // set user location
-          // this.center = [
-          //   pos.coords.latitude,
-          //   pos.coords.longitude
-          // ]
           lat=pos.coords.latitude
           lng=pos.coords.longitude
           this.insertarpedidoestado(lat,lng,'PARADO','')
@@ -953,7 +950,7 @@ export default {
         return false
       }
       // console.log(this.cliente)
-      this.misproductos.push({
+      this.misproductos.unshift({
         trozado:'',
         pierna:'',
         brazo:'',
@@ -1079,11 +1076,12 @@ export default {
       // }
     },
     async getUserPosition() {
+      this.loading=true
       this.center = [0,0]
       // check if API is supported
       if (navigator.geolocation) {
         // get  geolocation
-        navigator.geolocation.getCurrentPosition(pos => {
+        await navigator.geolocation.getCurrentPosition(pos => {
           // set user location
           this.center = [
             pos.coords.latitude,
@@ -1091,6 +1089,7 @@ export default {
           ]
         });
       }
+      this.loading=false
     },
     clickclientes(c){
       console.log(c)

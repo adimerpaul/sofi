@@ -20,7 +20,7 @@
       </q-toolbar>
     </q-header>
     <q-drawer v-model="leftDrawerOpen" show-if-above bordered>
-      <q-list>
+      <q-list dense>
         <q-item-label header>Opciones</q-item-label>
         <q-item clickable active-class="bg-primary text-white" exact to="/">
           <q-item-section avatar>
@@ -445,7 +445,7 @@ export default {
   },
   methods: {
     irformulario() {
-      var win = window.open('https://form.jotform.com/250826717349667', '_blank');
+      var win = window.open('https://form.jotform.com/250997190797678', '_blank');
       // Cambiar el foco al nuevo tab (punto opcional)
       win.focus();
     },

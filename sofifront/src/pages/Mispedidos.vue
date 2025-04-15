@@ -23,11 +23,11 @@
 <!--    <q-btn class="full-width" color="teal" icon="list" label="Reporte Comanda" @click="generarcomanda" />-->
 <!--  </div>-->
   <div class="col-12">
-    <q-table :rows-per-page-options="[15,50,100,0]" dense title="Clientes " :columns="columns" :rows="clientes" :filter="filter">
+    <q-table :rows-per-page-options="[0]" dense title="Clientes " :columns="columns" :rows="clientes" :filter="filter" wrap-cells>
       <template v-slot:body-cell-opciones="props">
         <q-td :props="props">
-          <q-btn  @click="listpedidos(props.row)" :color="props.row.estado=='CREADO'?'primary':'warning'" :label="props.row.estado=='CREADO'?'MODIFICAR':'ENVIADO'" icon="shop" size="xs"  />
-          <q-btn  @click="imprimirboleta(props.row)" color="info" icon="print" size="xs"  v-if="props.row.estado=='ENVIADO'"/>
+          <q-btn  @click="listpedidos(props.row)" :color="props.row.estado=='CREADO'?'primary':'warning'" :label="props.row.estado=='CREADO'?'Modificar':'Enviado'" icon="shop" size="xs" dense no-caps  />
+          <q-btn  @click="imprimirboleta(props.row)" color="info" icon="print" size="xs"  v-if="props.row.estado=='ENVIADO'" class="q-ml-xs" />
         </q-td>
       </template>
       <template v-slot:top-right>
@@ -1457,9 +1457,15 @@ generarpollo(){
       this.$api.post('envpedido',{NroPed:this.cliente.NroPed}).then(res=>{
         this.modalpedido=false
         this.$q.loading.hide()
-
         this.misclientes()
-
+      }).catch(err=>{
+        this.$q.loading.hide()
+        this.$q.notify({
+          color:'red',
+          message:err.response.data.message,
+          icon:'error',
+          position:"top"
+        })
       })
     },
 

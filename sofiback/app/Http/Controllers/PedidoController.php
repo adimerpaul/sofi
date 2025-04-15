@@ -2,15 +2,57 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Cliente;
 use App\Models\Pedido;
 use App\Models\Producto;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Barryvdh\DomPDF\Facade\Pdf;
 class PedidoController extends Controller{
+    function enviarPedidosEmergencia(Request $request){
+        $user = User::where('CodAut', $request->user)->first();
+        $fecha = $request->fecha;
+        $pedidosCreados= Pedido::where('CIfunc', $user->CodAut)
+            ->where('estado', 'CREADO')
+            ->whereDate('fecha', $fecha)
+            ->get();
+        $pedidosCondeuda=[];
+        foreach ($pedidosCreados as $p){
+            $pedido = Pedido::where('NroPed', $p->NroPed)->first();
+            $cliente = Cliente::where('Cod_Aut', $pedido->idCli)->first();
+            if ($cliente->venta == 'INACTIVO') {
+                $exists = false;
+                foreach ($pedidosCondeuda as $item) {
+                    if ($item['Cod_Aut'] == $cliente->Cod_Aut) {
+                        $exists = true;
+                        break;
+                    }
+                }
+                if (!$exists) {
+                    $pedidosCondeuda[] = [
+                        'Cod_Aut' => $cliente->Cod_Aut,
+                        'Nombres' => $cliente->Nombres,
+                        'Telf' => $cliente->Telf,
+                        'Direccion' => $cliente->Direccion,
+                        'zona' => $cliente->zona,
+                        'fecha' => $p->fecha,
+                        'NroPed' => $p->NroPed,
+                    ];
+                }
+            } else {
+                $p->estado = 'ENVIADO';
+                $p->envio = now();
+                $p->save();
+            }
+        }
+        return response()->json([
+            'pedidosCondeuda' => $pedidosCondeuda,
+        ]);
+    }
     function reportePedidoOnly($id){
         $pedidos = Pedido::where('NroPed', $id)
-            ->select('NroPed', 'fecha', 'idCli', 'CIfunc', 'estado','fact','comentario','pago','placa')
+            ->select('NroPed', 'fecha', 'idCli', 'CIfunc', 'estado','fact','comentario','pago','placa','horario','comentario')
             ->where('estado', 'ENVIADO')
             ->with(['cliente' => function ($query) {
                 $query->select('Cod_Aut', 'Nombres', 'Direccion', 'Telf','zona');
@@ -18,7 +60,7 @@ class PedidoController extends Controller{
             ->with(['user' => function ($query) {
                 $query->select('CodAut', 'Nombre1', 'App1');
             }])
-            ->groupBy('NroPed', 'fecha', 'idCli', 'CIfunc', 'estado','fact','comentario','pago','placa')
+            ->groupBy('NroPed', 'fecha', 'idCli', 'CIfunc', 'estado','fact','comentario','pago','placa','horario','comentario')
             ->orderBy('NroPed')
             ->where('tipo','NORMAL')
             ->get();
@@ -66,7 +108,7 @@ class PedidoController extends Controller{
     }
     function reportePedido(Request $request,$fecha){
         $pedidos = Pedido::whereDate('fecha', $fecha)
-            ->select('NroPed', 'fecha', 'idCli', 'CIfunc', 'estado','fact','comentario','pago','placa')
+            ->select('NroPed', 'fecha', 'idCli', 'CIfunc', 'estado','fact','comentario','pago','placa','horario','comentario')
             ->where('estado', 'ENVIADO')
             ->with(['cliente' => function ($query) {
                 $query->select('Cod_Aut', 'Nombres', 'Direccion', 'Telf','zona');
@@ -74,7 +116,7 @@ class PedidoController extends Controller{
             ->with(['user' => function ($query) {
                 $query->select('CodAut', 'Nombre1', 'App1');
             }])
-            ->groupBy('NroPed', 'fecha', 'idCli', 'CIfunc', 'estado','fact','comentario','pago','placa')
+            ->groupBy('NroPed', 'fecha', 'idCli', 'CIfunc', 'estado','fact','comentario','pago','placa','horario','comentario')
             ->orderBy('NroPed')
             ->where('tipo','NORMAL')
             ->get();
@@ -117,6 +159,7 @@ class PedidoController extends Controller{
             'vehiculos' => $vehiculos
 //            'fecha' => $fecha
         ];
+//        return $data;
         $pdf = PDF::loadView('pdf.reportePedido', $data);
         return $pdf->stream('document.pdf');
     }
@@ -179,8 +222,24 @@ class PedidoController extends Controller{
     }
 
 
-    public function store(Request $request)
-    {
+    public function store(Request $request){
+
+        $primerTipo = null;
+        $tiposDiferentes = false;
+
+        foreach ($request->productos as $p) {
+            $tipoActual = $p['tipo'];
+            if ($primerTipo === null) {
+                $primerTipo = $tipoActual;
+            } elseif ($tipoActual !== $primerTipo) {
+                $tiposDiferentes = true;
+                break;
+            }
+        }
+
+        if ($tiposDiferentes) {
+            return response()->json(['message' => 'Todos los productos deben tener el mismo tipo'], 400);
+        }
 
         foreach ($request->productos as $p){
             if ($p['tipo'] == 'POLLO') {
@@ -524,6 +583,12 @@ class PedidoController extends Controller{
     public function envpedido(Request $request)
     {
             //DB::select("UPDATE tbpedidos SET  estado='ENVIADO' WHERE NroPed='".$request->NroPed."'");
+        $pedido = Pedido::where('NroPed', $request->NroPed)->first();
+        $cliente = Cliente::where('Cod_Aut', $pedido->idCli)->first();
+        if ($cliente->venta == 'INACTIVO') {
+            return response()->json(['message' => 'El cliente tiene deuda'], 500);
+            exit();
+        }
             DB::select("UPDATE tbpedidos p set p.estado='ENVIADO', p.envio = NOW()  where p.NroPed='".$request->NroPed."' and (SELECT c.venta from tbclientes c where c.Cod_Aut=p.idCli)='ACTIVO'");
     }
 
@@ -1010,28 +1075,28 @@ class PedidoController extends Controller{
 
     public function mapClientes(Request $request){
         $resultado = DB::select("
-        SELECT 
-            p.idCli, c.Id, c.Nombres, c.Latitud, c.longitud, c.territorio, 
-            CONCAT(TRIM(e.Nombre1), ' ', TRIM(e.App1)) AS vendedor, 
-            p.placa,
-            (SELECT v.color FROM vehiculo v WHERE v.placa = p.placa) AS color, 
+        SELECT
+            p.idCli, c.Id, c.Nombres, c.Latitud, c.longitud, c.territorio,
+            CONCAT(TRIM(e.Nombre1), ' ', TRIM(e.App1)) AS vendedor,
+            p.placa,p.horario,
+            (SELECT v.color FROM vehiculo v WHERE v.placa = p.placa) AS color,
             SUM(p.subtotal) AS importe
-        FROM tbpedidos p 
-        INNER JOIN tbclientes c ON p.idCli = c.Cod_Aut 
+        FROM tbpedidos p
+        INNER JOIN tbclientes c ON p.idCli = c.Cod_Aut
         INNER JOIN personal e ON p.CIfunc = e.CodAut
-        WHERE DATE(p.fecha) = ? AND p.estado = 'ENVIADO' AND p.tipo = 'NORMAL' 
-        GROUP BY p.idCli, c.Id, c.Nombres, c.Latitud, c.longitud, c.territorio, e.Nombre1, e.App1, p.placa
+        WHERE DATE(p.fecha) = ? AND p.estado = 'ENVIADO' AND p.tipo = 'NORMAL'
+        GROUP BY p.idCli, c.Id, c.Nombres, c.Latitud, c.longitud, c.territorio, e.Nombre1, e.App1, p.placa,p.horario
     ", [$request->fecha]);
-        
+
     // Devuelve el resultado como JSON o úsalo en tu vista
     return response()->json($resultado);
     }
 
     public function detallePedMap(Request $request){
             $resultado = DB::select("
-                SELECT p.NroPed, p.Cant, tpr.cod_prod, tpr.Producto 
-                FROM tbpedidos p 
-                INNER JOIN tbproductos tpr ON p.cod_prod = tpr.cod_prod 
+                SELECT p.NroPed, p.Cant, tpr.cod_prod, tpr.Producto
+                FROM tbpedidos p
+                INNER JOIN tbproductos tpr ON p.cod_prod = tpr.cod_prod
                 WHERE DATE(p.fecha) = ? AND p.tipo = 'NORMAL' AND p.idCli = ?
             ", [$request->fecha, $request->idCli]);
     return response()->json($resultado);

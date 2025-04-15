@@ -105,6 +105,12 @@
                     <td style="padding: 4px;">{{ $pedido['pedido']->fecha }}</td>
                 </tr>
                 <tr>
+                    <td style="padding: 4px; font-weight: bold;">Horario:</td>
+                    <td style="padding: 4px;">{{ $pedido['pedido']->horario }}</td>
+                    <td style="padding: 4px; font-weight: bold;">Comentario:</td>
+                    <td style="padding: 4px;">{{ $pedido['pedido']->comentario }}</td>
+                </tr>
+                <tr>
                     <td style="padding: 4px; font-weight: bold;">Dirección:</td>
                     <td style="padding: 4px;">{{ $pedido['pedido']->cliente->Direccion }}</td>
                     <td style="padding: 4px; font-weight: bold;">Zona: {{ $pedido['pedido']->cliente->zona }}</td>
