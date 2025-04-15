@@ -223,7 +223,7 @@ class PedidoController extends Controller{
 
 
     public function store(Request $request){
-
+/*
         $primerTipo = null;
         $tiposDiferentes = false;
 
@@ -239,7 +239,7 @@ class PedidoController extends Controller{
 
         if ($tiposDiferentes) {
             return response()->json(['message' => 'Todos los productos deben tener el mismo tipo'], 400);
-        }
+        }*/
 
         foreach ($request->productos as $p){
             if ($p['tipo'] == 'POLLO') {
