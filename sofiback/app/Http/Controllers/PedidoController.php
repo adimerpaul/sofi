@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Cliente;
 use App\Models\Pedido;
 use App\Models\Producto;
 use Illuminate\Http\Request;
@@ -525,6 +526,12 @@ class PedidoController extends Controller{
     public function envpedido(Request $request)
     {
             //DB::select("UPDATE tbpedidos SET  estado='ENVIADO' WHERE NroPed='".$request->NroPed."'");
+        $pedido = Pedido::where('NroPed', $request->NroPed)->first();
+        $cliente = Cliente::where('Cod_Aut', $pedido->idCli)->first();
+        if ($cliente->venta == 'INACTIVO') {
+            return response()->json(['message' => 'El cliente tiene deuda'], 500);
+            exit();
+        }
             DB::select("UPDATE tbpedidos p set p.estado='ENVIADO', p.envio = NOW()  where p.NroPed='".$request->NroPed."' and (SELECT c.venta from tbclientes c where c.Cod_Aut=p.idCli)='ACTIVO'");
     }
 
