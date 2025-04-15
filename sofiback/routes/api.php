@@ -58,6 +58,7 @@ Route::group(['middleware'=>'auth:sanctum'],function (){
     Route::post('/listcomanda',[\App\Http\Controllers\PedidoController::class,'listcomanda']);
     Route::post('/updatecomanda',[\App\Http\Controllers\PedidoController::class,'updatecomanda']);
     Route::post('/enviarpedidos',[\App\Http\Controllers\PedidoController::class,'enviarpedidos']);
+    Route::post('/enviarPedidosEmergencia',[\App\Http\Controllers\PedidoController::class,'enviarPedidosEmergencia']);
     Route::post('/envpedido',[\App\Http\Controllers\PedidoController::class,'envpedido']);
     Route::post('/envped',[\App\Http\Controllers\PedidoController::class,'envped']);
     Route::post('/deletecomanda',[\App\Http\Controllers\PedidoController::class,'deletecomanda']);
@@ -129,13 +130,13 @@ Route::group(['middleware'=>'auth:sanctum'],function (){
 
     Route::post('/mapClientes',[\App\Http\Controllers\PedidoController::class,'mapClientes']);
     Route::post('/detallePedMap',[\App\Http\Controllers\PedidoController::class,'detallePedMap']);
-    
+
     Route::post('/listVehiculo',[\App\Http\Controllers\PedidoController::class,'listVehiculo']);
     Route::post('/updaVehiPed',[\App\Http\Controllers\PedidoController::class,'updaVehiPed']);
 
-    Route::get('/generarXlsPollo/{fecha}',[\App\Http\Controllers\ExcelController::class,'generarXlsPollo']);   
+    Route::get('/generarXlsPollo/{fecha}',[\App\Http\Controllers\ExcelController::class,'generarXlsPollo']);
 
 });
-Route::get('/generarXlsPollo/{fecha}',[\App\Http\Controllers\ExcelController::class,'generarXlsPollo']);   
+Route::get('/generarXlsPollo/{fecha}',[\App\Http\Controllers\ExcelController::class,'generarXlsPollo']);
 Route::get('/reportePedido/{fecha}',[\App\Http\Controllers\PedidoController::class,'reportePedido']);
 Route::get('/reportePedidoOnly/{id}',[\App\Http\Controllers\PedidoController::class,'reportePedidoOnly']);

@@ -5,10 +5,51 @@ namespace App\Http\Controllers;
 use App\Models\Cliente;
 use App\Models\Pedido;
 use App\Models\Producto;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Barryvdh\DomPDF\Facade\Pdf;
 class PedidoController extends Controller{
+    function enviarPedidosEmergencia(Request $request){
+        $user = User::where('CodAut', $request->user)->first();
+        $fecha = $request->fecha;
+        $pedidosCreados= Pedido::where('CIfunc', $user->CodAut)
+            ->where('estado', 'CREADO')
+            ->whereDate('fecha', $fecha)
+            ->get();
+        $pedidosCondeuda=[];
+        foreach ($pedidosCreados as $p){
+            $pedido = Pedido::where('NroPed', $p->NroPed)->first();
+            $cliente = Cliente::where('Cod_Aut', $pedido->idCli)->first();
+            if ($cliente->venta == 'INACTIVO') {
+                $exists = false;
+                foreach ($pedidosCondeuda as $item) {
+                    if ($item['Cod_Aut'] == $cliente->Cod_Aut) {
+                        $exists = true;
+                        break;
+                    }
+                }
+                if (!$exists) {
+                    $pedidosCondeuda[] = [
+                        'Cod_Aut' => $cliente->Cod_Aut,
+                        'Nombres' => $cliente->Nombres,
+                        'Telf' => $cliente->Telf,
+                        'Direccion' => $cliente->Direccion,
+                        'zona' => $cliente->zona,
+                        'fecha' => $p->fecha,
+                        'NroPed' => $p->NroPed,
+                    ];
+                }
+            } else {
+                $p->estado = 'ENVIADO';
+                $p->envio = now();
+                $p->save();
+            }
+        }
+        return response()->json([
+            'pedidosCondeuda' => $pedidosCondeuda,
+        ]);
+    }
     function reportePedidoOnly($id){
         $pedidos = Pedido::where('NroPed', $id)
             ->select('NroPed', 'fecha', 'idCli', 'CIfunc', 'estado','fact','comentario','pago','placa','horario','comentario')
@@ -181,8 +222,24 @@ class PedidoController extends Controller{
     }
 
 
-    public function store(Request $request)
-    {
+    public function store(Request $request){
+
+        $primerTipo = null;
+        $tiposDiferentes = false;
+
+        foreach ($request->productos as $p) {
+            $tipoActual = $p['tipo'];
+            if ($primerTipo === null) {
+                $primerTipo = $tipoActual;
+            } elseif ($tipoActual !== $primerTipo) {
+                $tiposDiferentes = true;
+                break;
+            }
+        }
+
+        if ($tiposDiferentes) {
+            return response()->json(['message' => 'Todos los productos deben tener el mismo tipo'], 400);
+        }
 
         foreach ($request->productos as $p){
             if ($p['tipo'] == 'POLLO') {
