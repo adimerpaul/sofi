@@ -10,7 +10,7 @@ use Barryvdh\DomPDF\Facade\Pdf;
 class PedidoController extends Controller{
     function reportePedidoOnly($id){
         $pedidos = Pedido::where('NroPed', $id)
-            ->select('NroPed', 'fecha', 'idCli', 'CIfunc', 'estado','fact','comentario','pago','placa')
+            ->select('NroPed', 'fecha', 'idCli', 'CIfunc', 'estado','fact','comentario','pago','placa','horario','comentario')
             ->where('estado', 'ENVIADO')
             ->with(['cliente' => function ($query) {
                 $query->select('Cod_Aut', 'Nombres', 'Direccion', 'Telf','zona');
@@ -18,7 +18,7 @@ class PedidoController extends Controller{
             ->with(['user' => function ($query) {
                 $query->select('CodAut', 'Nombre1', 'App1');
             }])
-            ->groupBy('NroPed', 'fecha', 'idCli', 'CIfunc', 'estado','fact','comentario','pago','placa')
+            ->groupBy('NroPed', 'fecha', 'idCli', 'CIfunc', 'estado','fact','comentario','pago','placa','horario','comentario')
             ->orderBy('NroPed')
             ->where('tipo','NORMAL')
             ->get();
@@ -66,7 +66,7 @@ class PedidoController extends Controller{
     }
     function reportePedido(Request $request,$fecha){
         $pedidos = Pedido::whereDate('fecha', $fecha)
-            ->select('NroPed', 'fecha', 'idCli', 'CIfunc', 'estado','fact','comentario','pago','placa')
+            ->select('NroPed', 'fecha', 'idCli', 'CIfunc', 'estado','fact','comentario','pago','placa','horario','comentario')
             ->where('estado', 'ENVIADO')
             ->with(['cliente' => function ($query) {
                 $query->select('Cod_Aut', 'Nombres', 'Direccion', 'Telf','zona');
@@ -74,7 +74,7 @@ class PedidoController extends Controller{
             ->with(['user' => function ($query) {
                 $query->select('CodAut', 'Nombre1', 'App1');
             }])
-            ->groupBy('NroPed', 'fecha', 'idCli', 'CIfunc', 'estado','fact','comentario','pago','placa')
+            ->groupBy('NroPed', 'fecha', 'idCli', 'CIfunc', 'estado','fact','comentario','pago','placa','horario','comentario')
             ->orderBy('NroPed')
             ->where('tipo','NORMAL')
             ->get();
@@ -117,6 +117,7 @@ class PedidoController extends Controller{
             'vehiculos' => $vehiculos
 //            'fecha' => $fecha
         ];
+//        return $data;
         $pdf = PDF::loadView('pdf.reportePedido', $data);
         return $pdf->stream('document.pdf');
     }
@@ -1010,28 +1011,28 @@ class PedidoController extends Controller{
 
     public function mapClientes(Request $request){
         $resultado = DB::select("
-        SELECT 
-            p.idCli, c.Id, c.Nombres, c.Latitud, c.longitud, c.territorio, 
-            CONCAT(TRIM(e.Nombre1), ' ', TRIM(e.App1)) AS vendedor, 
+        SELECT
+            p.idCli, c.Id, c.Nombres, c.Latitud, c.longitud, c.territorio,
+            CONCAT(TRIM(e.Nombre1), ' ', TRIM(e.App1)) AS vendedor,
             p.placa,
-            (SELECT v.color FROM vehiculo v WHERE v.placa = p.placa) AS color, 
+            (SELECT v.color FROM vehiculo v WHERE v.placa = p.placa) AS color,
             SUM(p.subtotal) AS importe
-        FROM tbpedidos p 
-        INNER JOIN tbclientes c ON p.idCli = c.Cod_Aut 
+        FROM tbpedidos p
+        INNER JOIN tbclientes c ON p.idCli = c.Cod_Aut
         INNER JOIN personal e ON p.CIfunc = e.CodAut
-        WHERE DATE(p.fecha) = ? AND p.estado = 'ENVIADO' AND p.tipo = 'NORMAL' 
+        WHERE DATE(p.fecha) = ? AND p.estado = 'ENVIADO' AND p.tipo = 'NORMAL'
         GROUP BY p.idCli, c.Id, c.Nombres, c.Latitud, c.longitud, c.territorio, e.Nombre1, e.App1, p.placa
     ", [$request->fecha]);
-        
+
     // Devuelve el resultado como JSON o úsalo en tu vista
     return response()->json($resultado);
     }
 
     public function detallePedMap(Request $request){
             $resultado = DB::select("
-                SELECT p.NroPed, p.Cant, tpr.cod_prod, tpr.Producto 
-                FROM tbpedidos p 
-                INNER JOIN tbproductos tpr ON p.cod_prod = tpr.cod_prod 
+                SELECT p.NroPed, p.Cant, tpr.cod_prod, tpr.Producto
+                FROM tbpedidos p
+                INNER JOIN tbproductos tpr ON p.cod_prod = tpr.cod_prod
                 WHERE DATE(p.fecha) = ? AND p.tipo = 'NORMAL' AND p.idCli = ?
             ", [$request->fecha, $request->idCli]);
     return response()->json($resultado);
