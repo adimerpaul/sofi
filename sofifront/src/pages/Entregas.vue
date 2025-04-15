@@ -377,6 +377,10 @@ colPed:[
         let num3=1
         let totalcred=0
         let totalcont=0
+        let totalrechazado=0
+        let totalpago1=0
+        let totalpago2=0
+        let totalpago3=0
         let totalpago=0
         res.data.forEach(r => {
             if (r.estado ==null) r.estado=''
@@ -385,17 +389,21 @@ colPed:[
             if (r.Tipago=='CONTADO'){
               contenido+='<tr><td>'+num+'</td><td>'+r.comanda+'</td><td>'+r.Nombres+'</td><td>'+r.Importe+'</td><td>'+r.estado+'</td><td>'+r.pago+'</td</tr>'
                 num++
-                totalcred+=parseFloat(r.Importe)
+                totalcont+=parseFloat(r.Importe)
+                totalpago1+=parseFloat(r.pago)
               }
               else{
               contenido2+='<tr><td>'+num2+'</td><td>'+r.comanda+'</td><td>'+r.Nombres+'</td><td>'+r.Importe+'</td><td>'+r.estado+'</td><td>'+r.pago+'</td</tr>'
                 num2++
-                totalcont+=parseFloat(r.Importe)
+                totalcred+=parseFloat(r.Importe)
+                totalpago2+=parseFloat(r.pago)
               }
             totalpago+=parseFloat(r.pago)}
             else{
               contenido3+='<tr><td>'+num3+'</td><td>'+r.comanda+'</td><td>'+r.Nombres+'</td><td>'+r.Importe+'</td><td>'+r.estado+'</td><td>'+r.pago+'</td</tr>'
+                totalrechazado+=parseFloat(r.Importe)
                 num3++
+                totalpago3+=parseFloat(r.pago)
             }
         });
         let cadena=`<style>
@@ -410,16 +418,19 @@ colPed:[
           <table class='tab1'
             <tr><th>No</th><th>Comanda</th><th>Cliente</th><th>Monto</th><th>Estado</th><th>Pago</th></tr>
             `+contenido+`
+            <tr><td colspan=2>TOTAL</td><td></td><td>`+totalcont.toFixed(2)+`</td><td></td><td>`+totalpago1.toFixed(2)+`</td></tr>
           </table><br>
           <div class='titulo2'>PEDIDOS AL CREDITO</div>
           <table class='tab1'
             <tr><th>No</th><th>Comanda</th><th>Cliente</th><th>Monto</th><th>Estado</th><th>Pago</th></tr>
             `+contenido2+`
+            <tr><td colspan=2>TOTAL</td><td></td><td>`+totalcred.toFixed(2)+`</td><td></td><td>`+totalpago2.toFixed(2)+`</td></tr>
           </table><br>
           <div class='titulo2'>PEDIDOS AL RECHAZADOS</div>
           <table class='tab1'
             <tr><th>No</th><th>Comanda</th><th>Cliente</th><th>Monto</th><th>Estado</th><th>Pago</th></tr>
             `+contenido3+`
+            <tr><td colspan=2>TOTAL</td><td></td><td>`+totalrechazado.toFixed(2)+`</td><td></td><td>`+totalpago3.toFixed(2)+`</td></tr>
           </table>
           <div><b>TOTAL CREDITO: </b> `+totalcred.toFixed(2)+` Bs</div>
           <div><b>TOTAL CONTADO: </b> `+totalcont.toFixed(2)+` Bs</div>
