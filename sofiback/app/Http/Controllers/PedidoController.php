@@ -6,10 +6,154 @@ use App\Models\Cliente;
 use App\Models\Pedido;
 use App\Models\Producto;
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Barryvdh\DomPDF\Facade\Pdf;
 class PedidoController extends Controller{
+    function clonarpedido(Request $request){
+        $NroPed = $request->NroPed;
+        $fecha = $request->fecha;
+        $pedido = Pedido::where('NroPed', $NroPed)->first();
+
+        $fechaRegistro = Carbon::parse($request->fecha);
+        if ($fechaRegistro->isToday()) {
+            return response()->json(['success' => false, 'message' => 'No se puede clonar un pedido del mismo dia.'], 500);
+        }
+
+        $pedidos = Pedido::where('NroPed', $NroPed)->get();
+        error_log('pedidos: '.json_encode($pedidos));
+        if (count($pedidos) == 0) {
+            return response()->json(['success' => false, 'message' => 'No se encontraron pedidos para clonar.']);
+        }
+        $cmdnum=DB::select("SELECT *  FROM comandas limit 1")[0];
+        $numpedido=$cmdnum->comanda+1;
+        DB::select("UPDATE `comandas` SET `comanda`='$numpedido' WHERE id=$cmdnum->id");
+        $data=[];
+        foreach ($pedidos as $p){
+            $imp=0;
+            $d=[
+                'NroPed' => $numpedido,
+                'cod_prod'=>$p['cod_prod'],
+                'CIfunc'=>$p['CIfunc'],
+                'idCli'=>$p['idCli'],
+                'Cant'=>$p['cantidad'],
+                'precio'=>$p['precio'],
+//                'fecha'=>date('Y-m-d H:i:s'),
+                'fecha'=>$request->fecha.' '.date('H:i:s'),
+                'subtotal'=>$p['subtotal'],
+//                'cod_prod'=>$p['cod_prod'],
+                "cbrasa5"=>$p['cbrasa5'],
+                "ubrasa5"=>$p['ubrasa5'],
+                "bsbrasa5"=>$p['bsbrasa5'],
+                "obsbrasa5"=>$p['obsbrasa5'],
+                "cbrasa6"=>$p['cbrasa6'],
+                "cubrasa6"=>$p['cubrasa6'],
+                "bsbrasa6"=>$p['bsbrasa6'],
+                "obsbrasa6"=>$p['obsbrasa6'],
+                "Observaciones"=>$p['observacion'],
+                "Canttxt"=>$p['observacion']!=null?$p['observacion']:'',
+                "impreso"=>$imp,
+                "pagado"=>0,
+                "Tipo1"=>0,
+                "Tipo2"=>0,
+                "c104"=>$p['c104'],
+                "u104"=>$p['u104'],
+                "bs104"=>$p['bs104'],
+                "obs104"=>$p['obs104'],
+                "c105"=>$p['c105'],
+                "u105"=>$p['u105'],
+                "bs105"=>$p['bs105'],
+                "obs105"=>$p['obs105'],
+                "c106"=>$p['c106'],
+                "u106"=>$p['u106'],
+                "bs106"=>$p['bs106'],
+                "obs106"=>$p['obs106'],
+                "c107"=>$p['c107'],
+                "u107"=>$p['u107'],
+                "bs107"=>$p['bs107'],
+                "obs107"=>$p['obs107'],
+                "c108"=>$p['c108'],
+                "u108"=>$p['u108'],
+                "bs108"=>$p['bs108'],
+                "obs108"=>$p['obs108'],
+                "c109"=>$p['c109'],
+                "u109"=>$p['u109'],
+                "bs109"=>$p['bs109'],
+                "obs109"=>$p['obs109'],
+                "ala"=>$p['ala'],
+                "cadera"=>$p['cadera'],
+                "pecho"=>$p['pecho'],
+                "pie"=>$p['pie'],
+                "filete"=>$p['filete'],
+                "cuello"=>$p['cuello'],
+                "hueso"=>$p['hueso'],
+                "menu"=>$p['menu'],
+                "unidala"=>$p['unidala'],
+                "bsala"=>$p['bsala'],
+                "obsala"=>$p['obsala'],
+                "unidcadera"=>$p['unidcadera'],
+                "bscadera"=>$p['bscadera'],
+                "obscadera"=>$p['obscadera'],
+                "unidpecho"=>$p['unidpecho'],
+                "bspecho"=>$p['bspecho'],
+                "obspecho"=>$p['obspecho'],
+                "unidpie"=>$p['unidpie'],
+                "bspie"=>$p['bspie'],
+                "obspie"=>$p['obspie'],
+                "unidfilete"=>$p['unidfilete'],
+                "bsfilete"=>$p['bsfilete'],
+                "obsfilete"=>$p['obsfilete'],
+                "unidcuello"=>$p['unidcuello'],
+                "bscuello"=>$p['bscuello'],
+                "obscuello"=>$p['obscuello'],
+                "unidhueso"=>$p['unidhueso'],
+                "bshueso"=>$p['bshueso'],
+                "obshueso"=>$p['obshueso'],
+                "unidmenu"=>$p['unidmenu'],
+                "bsmenu"=>$p['bsmenu'],
+                "obsmenu"=>$p['obsmenu'],
+                "bs"=>$p['bs'],
+                "bs2"=>$p['bs2'],
+                "contado"=>$p['contado'],
+                "tipo"=>$p['tipo'],
+                "total"=>$p['total'],
+                "entero"=>$p['entero'],
+                "desmembre"=>$p['desmembre'],
+                "corte"=>$p['corte'],
+                "kilo"=>$p['kilo'],
+                "trozado"=>$p['trozado'],
+                "pierna"=>$p['pierna'],
+                "brazo"=>$p['brazo'],
+                "pfrial"=>$p['pfrial'],
+                "hora"=>date('H:i:s'),
+                "pago"=>$p['pago'],
+                "fact"=>$p['fact'],
+                "rango"=>$p['rango'],
+                "horario"=>$p['horario'],
+                "comentario"=>$p['comentario'],
+            ];
+            array_push($data, $d);
+        }
+//        llenar visita
+        $distancia=0;
+        DB::table('misvisitas')->insert([
+            'estado'=>'PEDIDO',
+            'fecha'=>$request->fecha,
+            'hora'=>date('H:i:s'),
+            'lat'=>0,
+            'lng'=>0,
+            'distancia'=>$distancia,
+            'observacion'=>'',
+            'cliente_id'=>$pedidos[0]->idCli,
+            'personal_id'=>$pedidos[0]->CIfunc
+        ]);
+
+
+        DB::table('tbpedidos')->insert($data);
+        return response()->json(['success' => true]);
+
+    }
     function enviarPedidosEmergencia(Request $request){
         $user = User::where('CodAut', $request->user)->first();
         $fecha = $request->fecha;
@@ -227,6 +371,7 @@ class PedidoController extends Controller{
         $numpedido=$cmdnum->comanda+1;
         DB::select("UPDATE `comandas` SET `comanda`='$numpedido' WHERE id=$cmdnum->id");
 
+/*
         $primerTipo = null;
         $tiposDiferentes = false;
 
@@ -242,7 +387,7 @@ class PedidoController extends Controller{
 
         if ($tiposDiferentes) {
             return response()->json(['message' => 'Todos los productos deben tener el mismo tipo'], 400);
-        }
+        }*/
 
         foreach ($request->productos as $p){
             if ($p['tipo'] == 'POLLO') {

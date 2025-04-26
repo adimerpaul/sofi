@@ -33,6 +33,7 @@ Route::group(['middleware'=>'auth:sanctum'],function (){
     Route::resource('/asignar',\App\Http\Controllers\AsignarController::class);
     Route::resource('/producto',\App\Http\Controllers\ProductoController::class);
     Route::resource('/pedido',\App\Http\Controllers\PedidoController::class);
+    Route::post('/clonarpedido',[\App\Http\Controllers\PedidoController::class,'clonarpedido']);
     Route::resource('/pollo',\App\Http\Controllers\PolloController::class);
     Route::resource('/res',\App\Http\Controllers\ResController::class);
     Route::resource('/cerdo',\App\Http\Controllers\CerdoController::class);

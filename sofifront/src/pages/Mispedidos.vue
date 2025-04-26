@@ -8,16 +8,16 @@
 <!--    <q-input dense outlined v-model="fecha2" label="Fecha Fin" type="date"/>-->
 <!--  </div>-->
   <div class="col-6 flex flex-center">
-    <q-btn color="info" icon="search" label="consulta" @click="misclientes"  />
+    <q-btn :loading="loading" color="info" icon="search" label="consulta" @click="misclientes"  />
   </div>
   <div class="col-4 col-sm-4 flex flex-center">
-    <q-btn class="full-width" color="green" type="a" :href="url+'excel/p/'+fecha1+'/'+fecha2+'/'+$store.state.login.user.CodAut" target="_blank" icon="list" label="Reporte Pollo" @click1="generarpollo" />
+    <q-btn :loading="loading" class="full-width" color="green" type="a" :href="url+'excel/p/'+fecha1+'/'+fecha2+'/'+$store.state.login.user.CodAut" target="_blank" icon="list" label="Reporte Pollo" @click1="generarpollo" />
   </div>
   <div class="col-4 col-sm-4 flex flex-center">
-    <q-btn class="full-width" color="accent" type="a" :href="url+'excel/r/'+fecha1+'/'+fecha2+'/'+$store.state.login.user.CodAut" target="_blank" icon="list" label="Reporte Res" @click1="generarres" />
+    <q-btn :loading="loading" class="full-width" color="accent" type="a" :href="url+'excel/r/'+fecha1+'/'+fecha2+'/'+$store.state.login.user.CodAut" target="_blank" icon="list" label="Reporte Res" @click1="generarres" />
   </div>
   <div class="col-4 col-sm-4 flex flex-center">
-    <q-btn class="full-width" color="teal" type="a" :href="url+'excel/c/'+fecha1+'/'+fecha2+'/'+$store.state.login.user.CodAut" target="_blank" icon="list" label="Reporte Cerdo" @click1="generarcerdo" />
+    <q-btn :loading="loading" class="full-width" color="teal" type="a" :href="url+'excel/c/'+fecha1+'/'+fecha2+'/'+$store.state.login.user.CodAut" target="_blank" icon="list" label="Reporte Cerdo" @click1="generarcerdo" />
   </div>
 <!--  <div class="col-6 col-sm-3 flex flex-center">-->
 <!--    <q-btn class="full-width" color="teal" icon="list" label="Reporte Comanda" @click="generarcomanda" />-->
@@ -149,7 +149,7 @@
         <q-card-actions align="right" class="bg-white text-teal">
 <!--          alineadort betwe-->
           <div style="display: flex; justify-content: space-between; width: 100%;">
-            <q-btn label="Clonar"  color="green" @click="clonarpedido" no-caps icon="content_copy" />
+            <q-btn label="Clonar"  color="green" @click="clonarpedido" :loading="loading" no-caps icon="content_copy" />
             <q-btn flat label="cerrar"  color="negative" v-close-popup />
           </div>
         </q-card-actions>
@@ -625,6 +625,7 @@ export default {
       fecha:date.formatDate(Date.now(),'YYYY-MM-DD'),
       fechaClonacion:date.formatDate(Date.now(),'YYYY-MM-DD'),
       fechamenos:date.formatDate(addToDate(new Date(), { days: 0}),'YYYY-MM-DD'),
+      loading:false,
     }
   },
   created() {
@@ -671,7 +672,22 @@ export default {
         persistent: true,
         cancel: true,
       }).onOk((data) => {
-        console.log('Fecha:', data)
+        this.loading=true
+        this.$api.post('clonarpedido',{NroPed:this.cliente.NroPed,fecha:data}).then(res=>{
+          console.log(res.data)
+          this.$q.notify({
+            type: 'positive',
+            message: 'Pedido clonado con exito',
+          })
+        }).finally(()=>{
+          this.loading=false
+        }).catch(err=>{
+          console.log(err)
+          this.$q.notify({
+            type: 'negative',
+            message: err.response.data.message,
+          })
+        })
       })
     },
     imprimirpollo(){
@@ -1664,8 +1680,10 @@ generarpollo(){
     listpedidos(cliente){
       this.cliente=cliente
       console.log(this.cliente)
-      this.$q.loading.show()
-        this.$api.post('listpedido',{NroPed:cliente.NroPed,fecha1:this.fecha1,fecha2:this.fecha2}).then(res=>{
+      // this.$q.loading.show()
+      this.loading  = true
+        this.$api.post('listpedido',{NroPed:cliente.NroPed,fecha1:this.fecha1,fecha2:this.fecha2})
+          .then(res=>{
            console.log(res.data)
           // return false
           this.pago=res.data[0].pago
@@ -1677,6 +1695,8 @@ generarpollo(){
 
           this.modalpedido=true
           this.$q.loading.hide()
+      }).finally(()=>{
+        this.loading = false
       })
     },
         seleccionartipo(m){
