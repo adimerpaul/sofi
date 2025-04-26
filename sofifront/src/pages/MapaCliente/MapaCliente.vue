@@ -61,7 +61,10 @@
                     label="Camion Asignar"
                   />
                 </div>
-                <div class="col-12 col-md-6">
+                <div class="col-12 col-md-3">
+                    <q-select square outlined v-model="usuario" :options="vendedores" label="Camion" dense @update:model-value="filtrarClientes"/>
+                  </div>
+                  <div class="col-12 col-md-3">
                   <q-btn color="green" icon="local_shipping" @click="cambiar" no-caps label="Asignar" :loading="loading" />
                   <q-btn color="info" icon="print" @click="generarPdf" dense />
                 </div>
@@ -451,6 +454,7 @@ export default {
       onEachFeature: this.onEachFeatureFunction
     },
     vendedores: [],
+    filtercliente: [],
     geoJsonOptions: {
         style: (feature) => ({
           color: feature.properties.color, // Color según la propiedad del GeoJSON
@@ -460,7 +464,8 @@ export default {
         }),
       },
       detalle:[],
-      dialogDetalle:false
+      dialogDetalle:false,
+      usuario:[]
   }
   },
   mounted() {
@@ -470,6 +475,13 @@ export default {
   },
 
   methods: {
+    filtrarClientes(){
+      if (this.usuario=='TODOS') {
+      this.clientes = this.filtercliente;
+    } else {
+      this.clientes = this.filtercliente.filter(c => c.vendedor === this.usuario);
+    }
+    },
     loadGeoJson(index) {
       switch (index) {
         case 5:
@@ -534,6 +546,8 @@ export default {
       this.loading = true;
       this.clientes = [];
       this.vendedores = [];
+      const setVendedores = new Set();
+      this.usuario=[]
       this.$api.post("mapClientes", { fecha: this.fecha }).then((res) => {
         console.log(res.data)
         let numero=1
@@ -541,9 +555,14 @@ export default {
           r.num=numero
           r.selected=false
           numero++
-          this.vendedores.push(r.vendedor)
+          setVendedores.add(r.vendedor);
         });
+        this.vendedores = Array.from(setVendedores);
+        this.vendedores.push('TODOS')
+        this.usuario='TODOS'
         this.clientes = res.data;
+        this.filtercliente=this.clientes
+        console.log(this.usuario)
       }).finally(() => {
         this.loading = false;
       });
