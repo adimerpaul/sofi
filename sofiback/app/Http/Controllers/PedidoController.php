@@ -223,6 +223,9 @@ class PedidoController extends Controller{
 
 
     public function store(Request $request){
+        $cmdnum=DB::select("SELECT *  FROM comandas limit 1")[0];
+        $numpedido=$cmdnum->comanda+1;
+        DB::select("UPDATE `comandas` SET `comanda`='$numpedido' WHERE id=$cmdnum->id");
 
         $primerTipo = null;
         $tiposDiferentes = false;
@@ -324,9 +327,6 @@ class PedidoController extends Controller{
 //        exit();
 //        return $request->productos;
         //$max=DB::select("SELECT max(NroPed) as max FROM tbpedidos");
-        $cmdnum=DB::select("SELECT *  FROM comandas limit 1")[0];
-        $numpedido=$cmdnum->comanda+1;
-        DB::select("UPDATE `comandas` SET `comanda`='$numpedido' WHERE id=$cmdnum->id");
 
         $cliente=DB::select("SELECT * FROM tbclientes WHERE Cod_Aut='".$request->idCli."'");
 //        echo ($cliente[0]->Latitud);

@@ -97,7 +97,8 @@
               <q-btn  class="q-pa-xs q-ma-none" color="primary" v-if="cliente.estado=='CREADO'" icon="add_circle" @click="agregarpedido"/>
             </div>
             <div class="col-12">
-              <q-table :rows="misproductos"  :filter="filteproducto" :columns="columnsproducto">
+              <q-table :rows="misproductos"  :filter="filteproducto" :columns="columnsproducto" dense :title="'Pedido de '+cliente.Nombres"
+                       :rows-per-page-options="[0]" row-key="id" wrap-cells flat bordered>
                 <template v-slot:body-cell-subtotal="props" >
                   <q-td :props="props" auto-width >
                     <q-btn flat @click="seleccionartipo(props.row)" class="q-ma-none q-pa-none" color="accent" icon="tune" />
@@ -146,7 +147,11 @@
           </div>
         </q-card-section>
         <q-card-actions align="right" class="bg-white text-teal">
-          <q-btn flat label="cerrar"  color="negative" v-close-popup />
+<!--          alineadort betwe-->
+          <div style="display: flex; justify-content: space-between; width: 100%;">
+            <q-btn label="Clonar"  color="green" @click="clonarpedido" no-caps icon="content_copy" />
+            <q-btn flat label="cerrar"  color="negative" v-close-popup />
+          </div>
         </q-card-actions>
       </q-card>
     </q-dialog>
@@ -618,6 +623,7 @@ export default {
         {label:'observacion',name:'observacion',field:'observacion',align:'left'},
       ],
       fecha:date.formatDate(Date.now(),'YYYY-MM-DD'),
+      fechaClonacion:date.formatDate(Date.now(),'YYYY-MM-DD'),
       fechamenos:date.formatDate(addToDate(new Date(), { days: 0}),'YYYY-MM-DD'),
     }
   },
@@ -653,6 +659,21 @@ export default {
   },
 
   methods:{
+    clonarpedido(){
+      this.fechaClonacion=date.formatDate(Date.now(),'YYYY-MM-DD')
+      this.$q.dialog({
+        title: 'Clonar pedido',
+        message: 'Coloca la fecha de la clonacion',
+        prompt: {
+          model: this.fechaClonacion,
+          type: 'date'
+        },
+        persistent: true,
+        cancel: true,
+      }).onOk((data) => {
+        console.log('Fecha:', data)
+      })
+    },
     imprimirpollo(){
       this.$q.loading.show()
       let mc=this
