@@ -202,9 +202,9 @@ if ($request->placa !== 'TODOS') {
 }
 
 $sql = "SELECT c.Cod_Aut, p.CINIT, c.Id, c.Nombres, c.Telf, c.Direccion, c.Latitud, c.longitud,
-               (SELECT e.estado FROM entregas e 
-                WHERE e.cliente_id = c.Cod_Aut 
-                AND e.fechaEntreg = ? 
+               (SELECT e.estado FROM entregas e
+                WHERE e.cliente_id = c.Cod_Aut
+                AND e.fechaEntreg = ?
                 ORDER BY e.estado ASC LIMIT 1) AS estado
         FROM tbctascobrar p
         INNER JOIN tbclientes c ON c.Id = p.CINIT
@@ -268,7 +268,7 @@ return array_values(array_filter($datos, fn($item) => in_array($item->CINIT, $cl
             $consulta="and c.placa = '".$request->placa."'";
         }
         $user= $request->user();
-    return DB::select(" SELECT e.hora,c.CINIT,l.Nombres,c.comanda,c.placa,e.despachador,e.estado,e.distancia,e.pago,e.observacion
+    return DB::select(" SELECT e.hora,c.CINIT,l.Nombres,c.comanda,c.placa,e.despachador,e.estado,e.distancia,e.pago,e.observacion, l.Latitud latitud,l.longitud
     from tbctascobrar c inner join tbclientes l on c.CINIT=l.Id
     left join entregas e on e.comanda=c.comanda where c.FechaEntreg='$request->fecha'
     and (c.CodAuto, c.comanda) in

@@ -12,9 +12,9 @@
 <!--      <pre>{{grupos}}</pre>-->
     </div>
     <div class="col-12 col-md-6">
-      <q-table title="Entregas Pedidos" :rows="resumen" :columns="columns2" row-key="name" dense @rowClick="consultaRow">
+      <q-table title="Entregas Pedidos" :rows="resumen" :columns="columns2" row-key="name" dense @rowClick="consultaRow" :rows-per-page-options="[0]">
         <template v-slot:top-right>
-          <q-btn  color="indigo" label="Reporte Todos" dense @click="consulta('TODOS')"/>
+          <q-btn  color="indigo" label="Reporte Todos" dense @click="consulta('TODOS')" no-caps :loading="loading"/>
         </template>
         <template v-slot:body-cell-op="props" >
           <q-td :props="props" auto-width>
@@ -63,7 +63,7 @@
       <div style="height: 350px; width: 100%;">
 
         <l-map
-          v-model="zoom"
+          ref="map"
           :zoom="zoom"
           :center="center"
           @move="log('move')"
@@ -90,7 +90,7 @@
   </div>
     <div class="row">
       <div class="col-12 col-md-12">
-        <q-table title="COMANDAS" :rows="pedidos" :columns="colPed"  dense lang="productos" row-key="name">
+        <q-table title="Comandas"  :rows="pedidos" :columns="colPed"  dense lang="productos" row-key="name">
           <template v-slot:body="props">
             <q-tr :props="props" :class="props.row.estado=='ENTREGADO'?'bg-green':props.row.estado=='NO ENTREGADO'?'bg-amber':props.row.estado=='RECHAZADO'?'bg-red':''">
 
@@ -102,8 +102,9 @@
                 {{ col.value }}
 
               </q-td >
-              <q-td auto-width>
+              <q-td>
                 <q-btn size="sm"
+                       :loading="loading"
                        :color="props.expand ? 'primary' : 'secondary'"
                        :label="props.expand ? 'Ocul' : 'Ver'"
                        no-caps dense @click="props.expand = !props.expand" :icon="props.expand ? 'visibility_off' : 'visibility'"/>
@@ -124,7 +125,8 @@
     </div>
     <div class="col-12">
 <!--      <pre>{{datos}}</pre>-->
-      <q-table title="LISTA ENTREGA COMANDA" :rows="listado"  row-key="name" :filter="filter">
+      <q-table title="Lista entrega comanda" :rows="listado"  row-key="name" :filter="filter" dense :rows-per-page-options="[0]"
+      >
         <template v-slot:top-right>
           <q-input outlined dense debounce="300" v-model="filter" placeholder="Buscar">
             <template v-slot:append>
@@ -133,7 +135,9 @@
           </q-input>
         </template>
         <template v-slot:body="props">
-          <q-tr :props="props" :class="props.row.estado=='ENTREGADO'?'bg-green':props.row.estado=='NO ENTREGADO'?'bg-amber':props.row.estado=='RECHAZADO'?'bg-red':''">
+          <q-tr :props="props" :class="props.row.estado=='ENTREGADO'?'bg-green':props.row.estado=='NO ENTREGADO'?'bg-amber':props.row.estado=='RECHAZADO'?'bg-red':''"
+                @click="clickListado($event,props.row,props.index)"
+          >
 
             <q-td
               v-for="col in props.cols"
@@ -193,6 +197,7 @@ export default {
   name: `entregaPage`,
   data(){
     return{
+      map: null,
       grupos: 'TODOS',
       placa:'',
       usuarios:[],
@@ -211,6 +216,7 @@ export default {
       infoventa:[],
       preventistas:[],
       preventista:{},
+      loading: false,
       productos:[],
       resumen:[],
       listado:[],
@@ -252,19 +258,30 @@ colPed:[
 
     }
   },
+  mounted() {
+    this.map = this.$refs.map.leafletObject;
+  },
   created(){
     this.consulta('TODOS')
   },
   methods:{
+    clickListado(event, row, index) {
+      console.log(row);
+      this.center=[row.latitud, row.longitud]
+      this.zoom=18
+    },
     getPedidos(c){
       this.cliente=c
+      this.loading = true
       this.$api.post('repComanda',{id:c.Id, fecha:this.fecha} ).then(res=>{
           console.log(res.data)
           this.pedidos=res.data
+      }).finally(()=>{
+        this.loading = false
       })
     },
     async misclientes(pl){
-      this.$q.loading.show()
+      // this.$q.loading.show()
       this.pedidos=[]
       this.cliente={}
       if(this.placa==''){ this.placa='TODOS'
@@ -277,9 +294,9 @@ colPed:[
       } ).then(res=>{
          console.log(res.data)
          this.clientes=res.data
-        this.$q.loading.hide()
+        // this.$q.loading.hide()
       }).catch(err=>{
-        this.$q.loading.hide()
+        // this.$q.loading.hide()
         this.$q.notify({
           message:'Error al conectarse al server',
           color:'red',
@@ -451,8 +468,9 @@ colPed:[
     contable(){
       this.$api.get('reportContable/'+this.fecha).then(res=>{
         res.data.forEach(r => {
-            r.tcontado=r.tcontado.toFixed(1)
-            r.tcredito=r.tcredito.toFixed(1)
+            // r.tcontado=r.tcontado.toFixed(1)
+            r.tcontado= (r.tcontado==null?0:r.tcontado).toFixed(1)
+            r.tcredito= (r.tcredito==null?0:r.tcredito).toFixed(1)
             r.cobro=r.cobro.toFixed(1)
         });
         this.rcontable=res.data
@@ -491,12 +509,12 @@ colPed:[
       this.consulta(row.placa)
     },
     consulta(pl){
-      this.$q.loading.show()
+      // this.$q.loading.show()
       // console.log()
       this.resumen=[]
       this.listado=[]
-      this.$q.loading.show()
-
+      // this.$q.loading.show()
+      this.loading = true
       this.$api.post('resumenEntrega',{
         fecha:this.fecha
       }).then(res=>{
@@ -506,11 +524,12 @@ colPed:[
         this.$api.post('listRuta',{fecha:this.fecha,placa:pl }).then(res=>{
           console.log(res.data)
           this.listado=res.data;
-              this.contable()
-              this.misclientes(pl)
-
+          this.contable()
+          this.misclientes(pl)
+        }).finally(()=>{
+          this.loading = false
         })
-        this.$q.loading.hide()
+        // this.$q.loading.hide()
       })
     },
     log(a) {
