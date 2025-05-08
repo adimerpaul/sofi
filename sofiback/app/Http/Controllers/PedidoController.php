@@ -10,8 +10,28 @@ use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Barryvdh\DomPDF\Facade\Pdf;
-class PedidoController extends Controller{
-    function clonarpedido(Request $request){
+
+class PedidoController extends Controller
+{
+    function habilitarpedido(Request $request)
+    {
+        $pedidos = Pedido::where('NroPed', $request->NroPed)->get();
+        if (count($pedidos) == 0) {
+            return response()->json(['success' => false, 'message' => 'No se encontraron pedidos para habilitar.']);
+        }
+        $fechaRegistro = Carbon::parse($pedidos[0]->fecha);
+        $hoy = Carbon::today();
+        if (!$fechaRegistro->isSameDay($hoy)) {
+            return response()->json(['success' => false, 'message' => 'Solo se puede habilitar un pedido del mismo día.'], 500);
+        }
+        foreach ($pedidos as $p) {
+            $p->estado = 'CREADO';
+            $p->save();
+        }
+        return response()->json(['success' => true]);
+    }
+    function clonarpedido(Request $request)
+    {
         $NroPed = $request->NroPed;
         $fecha = $request->fecha;
         $pedido = Pedido::where('NroPed', $NroPed)->first();
@@ -22,131 +42,131 @@ class PedidoController extends Controller{
         }
 
         $pedidos = Pedido::where('NroPed', $NroPed)->get();
-        error_log('pedidos: '.json_encode($pedidos));
+        error_log('pedidos: ' . json_encode($pedidos));
         if (count($pedidos) == 0) {
             return response()->json(['success' => false, 'message' => 'No se encontraron pedidos para clonar.']);
         }
-        $cmdnum=DB::select("SELECT *  FROM comandas limit 1")[0];
-        $numpedido=$cmdnum->comanda+1;
+        $cmdnum = DB::select("SELECT *  FROM comandas limit 1")[0];
+        $numpedido = $cmdnum->comanda + 1;
         DB::select("UPDATE `comandas` SET `comanda`='$numpedido' WHERE id=$cmdnum->id");
-        $data=[];
-        foreach ($pedidos as $p){
-            $imp=0;
-            $d=[
+        $data = [];
+        foreach ($pedidos as $p) {
+            $imp = 0;
+            $d = [
                 'NroPed' => $numpedido,
-                'cod_prod'=>$p['cod_prod'],
-                'CIfunc'=>$p['CIfunc'],
-                'idCli'=>$p['idCli'],
-                'Cant'=>$p['cantidad'],
-                'precio'=>$p['precio'],
+                'cod_prod' => $p['cod_prod'],
+                'CIfunc' => $p['CIfunc'],
+                'idCli' => $p['idCli'],
+                'Cant' => $p['cantidad'],
+                'precio' => $p['precio'],
 //                'fecha'=>date('Y-m-d H:i:s'),
-                'fecha'=>$request->fecha.' '.date('H:i:s'),
-                'subtotal'=>$p['subtotal'],
+                'fecha' => $request->fecha . ' ' . date('H:i:s'),
+                'subtotal' => $p['subtotal'],
 //                'cod_prod'=>$p['cod_prod'],
-                "cbrasa5"=>$p['cbrasa5'],
-                "ubrasa5"=>$p['ubrasa5'],
-                "bsbrasa5"=>$p['bsbrasa5'],
-                "obsbrasa5"=>$p['obsbrasa5'],
-                "cbrasa6"=>$p['cbrasa6'],
-                "cubrasa6"=>$p['cubrasa6'],
-                "bsbrasa6"=>$p['bsbrasa6'],
-                "obsbrasa6"=>$p['obsbrasa6'],
-                "Observaciones"=>$p['observacion'],
-                "Canttxt"=>$p['observacion']!=null?$p['observacion']:'',
-                "impreso"=>$imp,
-                "pagado"=>0,
-                "Tipo1"=>0,
-                "Tipo2"=>0,
-                "c104"=>$p['c104'],
-                "u104"=>$p['u104'],
-                "bs104"=>$p['bs104'],
-                "obs104"=>$p['obs104'],
-                "c105"=>$p['c105'],
-                "u105"=>$p['u105'],
-                "bs105"=>$p['bs105'],
-                "obs105"=>$p['obs105'],
-                "c106"=>$p['c106'],
-                "u106"=>$p['u106'],
-                "bs106"=>$p['bs106'],
-                "obs106"=>$p['obs106'],
-                "c107"=>$p['c107'],
-                "u107"=>$p['u107'],
-                "bs107"=>$p['bs107'],
-                "obs107"=>$p['obs107'],
-                "c108"=>$p['c108'],
-                "u108"=>$p['u108'],
-                "bs108"=>$p['bs108'],
-                "obs108"=>$p['obs108'],
-                "c109"=>$p['c109'],
-                "u109"=>$p['u109'],
-                "bs109"=>$p['bs109'],
-                "obs109"=>$p['obs109'],
-                "ala"=>$p['ala'],
-                "cadera"=>$p['cadera'],
-                "pecho"=>$p['pecho'],
-                "pie"=>$p['pie'],
-                "filete"=>$p['filete'],
-                "cuello"=>$p['cuello'],
-                "hueso"=>$p['hueso'],
-                "menu"=>$p['menu'],
-                "unidala"=>$p['unidala'],
-                "bsala"=>$p['bsala'],
-                "obsala"=>$p['obsala'],
-                "unidcadera"=>$p['unidcadera'],
-                "bscadera"=>$p['bscadera'],
-                "obscadera"=>$p['obscadera'],
-                "unidpecho"=>$p['unidpecho'],
-                "bspecho"=>$p['bspecho'],
-                "obspecho"=>$p['obspecho'],
-                "unidpie"=>$p['unidpie'],
-                "bspie"=>$p['bspie'],
-                "obspie"=>$p['obspie'],
-                "unidfilete"=>$p['unidfilete'],
-                "bsfilete"=>$p['bsfilete'],
-                "obsfilete"=>$p['obsfilete'],
-                "unidcuello"=>$p['unidcuello'],
-                "bscuello"=>$p['bscuello'],
-                "obscuello"=>$p['obscuello'],
-                "unidhueso"=>$p['unidhueso'],
-                "bshueso"=>$p['bshueso'],
-                "obshueso"=>$p['obshueso'],
-                "unidmenu"=>$p['unidmenu'],
-                "bsmenu"=>$p['bsmenu'],
-                "obsmenu"=>$p['obsmenu'],
-                "bs"=>$p['bs'],
-                "bs2"=>$p['bs2'],
-                "contado"=>$p['contado'],
-                "tipo"=>$p['tipo'],
-                "total"=>$p['total'],
-                "entero"=>$p['entero'],
-                "desmembre"=>$p['desmembre'],
-                "corte"=>$p['corte'],
-                "kilo"=>$p['kilo'],
-                "trozado"=>$p['trozado'],
-                "pierna"=>$p['pierna'],
-                "brazo"=>$p['brazo'],
-                "pfrial"=>$p['pfrial'],
-                "hora"=>date('H:i:s'),
-                "pago"=>$p['pago'],
-                "fact"=>$p['fact'],
-                "rango"=>$p['rango'],
-                "horario"=>$p['horario'],
-                "comentario"=>$p['comentario'],
+                "cbrasa5" => $p['cbrasa5'],
+                "ubrasa5" => $p['ubrasa5'],
+                "bsbrasa5" => $p['bsbrasa5'],
+                "obsbrasa5" => $p['obsbrasa5'],
+                "cbrasa6" => $p['cbrasa6'],
+                "cubrasa6" => $p['cubrasa6'],
+                "bsbrasa6" => $p['bsbrasa6'],
+                "obsbrasa6" => $p['obsbrasa6'],
+                "Observaciones" => $p['observacion'],
+                "Canttxt" => $p['observacion'] != null ? $p['observacion'] : '',
+                "impreso" => $imp,
+                "pagado" => 0,
+                "Tipo1" => 0,
+                "Tipo2" => 0,
+                "c104" => $p['c104'],
+                "u104" => $p['u104'],
+                "bs104" => $p['bs104'],
+                "obs104" => $p['obs104'],
+                "c105" => $p['c105'],
+                "u105" => $p['u105'],
+                "bs105" => $p['bs105'],
+                "obs105" => $p['obs105'],
+                "c106" => $p['c106'],
+                "u106" => $p['u106'],
+                "bs106" => $p['bs106'],
+                "obs106" => $p['obs106'],
+                "c107" => $p['c107'],
+                "u107" => $p['u107'],
+                "bs107" => $p['bs107'],
+                "obs107" => $p['obs107'],
+                "c108" => $p['c108'],
+                "u108" => $p['u108'],
+                "bs108" => $p['bs108'],
+                "obs108" => $p['obs108'],
+                "c109" => $p['c109'],
+                "u109" => $p['u109'],
+                "bs109" => $p['bs109'],
+                "obs109" => $p['obs109'],
+                "ala" => $p['ala'],
+                "cadera" => $p['cadera'],
+                "pecho" => $p['pecho'],
+                "pie" => $p['pie'],
+                "filete" => $p['filete'],
+                "cuello" => $p['cuello'],
+                "hueso" => $p['hueso'],
+                "menu" => $p['menu'],
+                "unidala" => $p['unidala'],
+                "bsala" => $p['bsala'],
+                "obsala" => $p['obsala'],
+                "unidcadera" => $p['unidcadera'],
+                "bscadera" => $p['bscadera'],
+                "obscadera" => $p['obscadera'],
+                "unidpecho" => $p['unidpecho'],
+                "bspecho" => $p['bspecho'],
+                "obspecho" => $p['obspecho'],
+                "unidpie" => $p['unidpie'],
+                "bspie" => $p['bspie'],
+                "obspie" => $p['obspie'],
+                "unidfilete" => $p['unidfilete'],
+                "bsfilete" => $p['bsfilete'],
+                "obsfilete" => $p['obsfilete'],
+                "unidcuello" => $p['unidcuello'],
+                "bscuello" => $p['bscuello'],
+                "obscuello" => $p['obscuello'],
+                "unidhueso" => $p['unidhueso'],
+                "bshueso" => $p['bshueso'],
+                "obshueso" => $p['obshueso'],
+                "unidmenu" => $p['unidmenu'],
+                "bsmenu" => $p['bsmenu'],
+                "obsmenu" => $p['obsmenu'],
+                "bs" => $p['bs'],
+                "bs2" => $p['bs2'],
+                "contado" => $p['contado'],
+                "tipo" => $p['tipo'],
+                "total" => $p['total'],
+                "entero" => $p['entero'],
+                "desmembre" => $p['desmembre'],
+                "corte" => $p['corte'],
+                "kilo" => $p['kilo'],
+                "trozado" => $p['trozado'],
+                "pierna" => $p['pierna'],
+                "brazo" => $p['brazo'],
+                "pfrial" => $p['pfrial'],
+                "hora" => date('H:i:s'),
+                "pago" => $p['pago'],
+                "fact" => $p['fact'],
+                "rango" => $p['rango'],
+                "horario" => $p['horario'],
+                "comentario" => $p['comentario'],
             ];
             array_push($data, $d);
         }
 //        llenar visita
-        $distancia=0;
+        $distancia = 0;
         DB::table('misvisitas')->insert([
-            'estado'=>'PEDIDO',
-            'fecha'=>$request->fecha,
-            'hora'=>date('H:i:s'),
-            'lat'=>0,
-            'lng'=>0,
-            'distancia'=>$distancia,
-            'observacion'=>'',
-            'cliente_id'=>$pedidos[0]->idCli,
-            'personal_id'=>$pedidos[0]->CIfunc
+            'estado' => 'PEDIDO',
+            'fecha' => $request->fecha,
+            'hora' => date('H:i:s'),
+            'lat' => 0,
+            'lng' => 0,
+            'distancia' => $distancia,
+            'observacion' => '',
+            'cliente_id' => $pedidos[0]->idCli,
+            'personal_id' => $pedidos[0]->CIfunc
         ]);
 
 
@@ -154,15 +174,17 @@ class PedidoController extends Controller{
         return response()->json(['success' => true]);
 
     }
-    function enviarPedidosEmergencia(Request $request){
+
+    function enviarPedidosEmergencia(Request $request)
+    {
         $user = User::where('CodAut', $request->user)->first();
         $fecha = $request->fecha;
-        $pedidosCreados= Pedido::where('CIfunc', $user->CodAut)
+        $pedidosCreados = Pedido::where('CIfunc', $user->CodAut)
             ->where('estado', 'CREADO')
             ->whereDate('fecha', $fecha)
             ->get();
-        $pedidosCondeuda=[];
-        foreach ($pedidosCreados as $p){
+        $pedidosCondeuda = [];
+        foreach ($pedidosCreados as $p) {
             $pedido = Pedido::where('NroPed', $p->NroPed)->first();
             $cliente = Cliente::where('Cod_Aut', $pedido->idCli)->first();
             if ($cliente->venta == 'INACTIVO') {
@@ -194,51 +216,53 @@ class PedidoController extends Controller{
             'pedidosCondeuda' => $pedidosCondeuda,
         ]);
     }
-    function reportePedidoOnly($id){
+
+    function reportePedidoOnly($id)
+    {
         $pedidos = Pedido::where('NroPed', $id)
-            ->select('NroPed', 'fecha', 'idCli', 'CIfunc', 'estado','fact','comentario','pago','placa','horario','comentario')
+            ->select('NroPed', 'fecha', 'idCli', 'CIfunc', 'estado', 'fact', 'comentario', 'pago', 'placa', 'horario', 'comentario')
             ->where('estado', 'ENVIADO')
             ->with(['cliente' => function ($query) {
-                $query->select('Cod_Aut', 'Nombres', 'Direccion', 'Telf','zona');
+                $query->select('Cod_Aut', 'Nombres', 'Direccion', 'Telf', 'zona');
             }])
             ->with(['user' => function ($query) {
                 $query->select('CodAut', 'Nombre1', 'App1');
             }])
-            ->groupBy('NroPed', 'fecha', 'idCli', 'CIfunc', 'estado','fact','comentario','pago','placa','horario','comentario')
+            ->groupBy('NroPed', 'fecha', 'idCli', 'CIfunc', 'estado', 'fact', 'comentario', 'pago', 'placa', 'horario', 'comentario')
             ->orderBy('NroPed')
-            ->where('tipo','NORMAL')
+            ->where('tipo', 'NORMAL')
             ->get();
         $pedidosAll = Pedido::where('NroPed', $id)
-            ->select('NroPed','cod_prod','precio','Cant','Canttxt','subtotal')
+            ->select('NroPed', 'cod_prod', 'precio', 'Cant', 'Canttxt', 'subtotal')
             ->with(['producto' => function ($query) {
                 $query->select(DB::raw("TRIM(cod_prod) as cod_prod"), 'Producto');
             }])
-            ->where('tipo','NORMAL')
+            ->where('tipo', 'NORMAL')
             ->get();
-        $resPedido=[];
+        $resPedido = [];
 
         $pedidosIds = $pedidos->pluck('NroPed');
-        Pedido::whereIn('NroPed',$pedidosIds)
-            ->where('impreso',0)
-            ->update(['impreso'=>1]);
+        Pedido::whereIn('NroPed', $pedidosIds)
+            ->where('impreso', 0)
+            ->update(['impreso' => 1]);
 
-        foreach ($pedidos as $p){
-            $productos=$pedidosAll->where('NroPed',$p->NroPed);
-            $resProducto=[];
-            foreach ($productos as $pro){
-                $resProducto[]=[
-                    'Nroped'=>$pro->NroPed,
-                    'cod_prod'=>$pro->cod_prod,
-                    'producto'=>isset($pro->producto->Producto)?$pro->producto->Producto:'',
-                    'precio'=>$pro->precio,
-                    'Cant'=>$pro->Cant,
-                    'Canttxt'=>$pro->Canttxt,
-                    'subtotal'=>$pro->subtotal
+        foreach ($pedidos as $p) {
+            $productos = $pedidosAll->where('NroPed', $p->NroPed);
+            $resProducto = [];
+            foreach ($productos as $pro) {
+                $resProducto[] = [
+                    'Nroped' => $pro->NroPed,
+                    'cod_prod' => $pro->cod_prod,
+                    'producto' => isset($pro->producto->Producto) ? $pro->producto->Producto : '',
+                    'precio' => $pro->precio,
+                    'Cant' => $pro->Cant,
+                    'Canttxt' => $pro->Canttxt,
+                    'subtotal' => $pro->subtotal
                 ];
             }
-            $resPedido[]=[
-                'pedido'=>$p,
-                'productos'=>$productos
+            $resPedido[] = [
+                'pedido' => $p,
+                'productos' => $productos
             ];
         }
         $vehiculos = DB::table('vehiculo')->get();
@@ -250,51 +274,53 @@ class PedidoController extends Controller{
         $pdf = PDF::loadView('pdf.reportePedido', $data);
         return $pdf->stream('document.pdf');
     }
-    function reportePedido(Request $request,$fecha){
+
+    function reportePedido(Request $request, $fecha)
+    {
         $pedidos = Pedido::whereDate('fecha', $fecha)
-            ->select('NroPed', 'fecha', 'idCli', 'CIfunc', 'estado','fact','comentario','pago','placa','horario','comentario')
+            ->select('NroPed', 'fecha', 'idCli', 'CIfunc', 'estado', 'fact', 'comentario', 'pago', 'placa', 'horario', 'comentario')
             ->where('estado', 'ENVIADO')
             ->with(['cliente' => function ($query) {
-                $query->select('Cod_Aut', 'Nombres', 'Direccion', 'Telf','zona');
+                $query->select('Cod_Aut', 'Nombres', 'Direccion', 'Telf', 'zona');
             }])
             ->with(['user' => function ($query) {
                 $query->select('CodAut', 'Nombre1', 'App1');
             }])
-            ->groupBy('NroPed', 'fecha', 'idCli', 'CIfunc', 'estado','fact','comentario','pago','placa','horario','comentario')
+            ->groupBy('NroPed', 'fecha', 'idCli', 'CIfunc', 'estado', 'fact', 'comentario', 'pago', 'placa', 'horario', 'comentario')
             ->orderBy('NroPed')
-            ->where('tipo','NORMAL')
+            ->where('tipo', 'NORMAL')
             ->get();
         $pedidosAll = Pedido::whereDate('fecha', $fecha)
-            ->select('NroPed','cod_prod','precio','Cant','Canttxt','subtotal')
+            ->select('NroPed', 'cod_prod', 'precio', 'Cant', 'Canttxt', 'subtotal')
             ->with(['producto' => function ($query) {
                 $query->select('cod_prod', 'Producto');
             }])
-            ->where('tipo','NORMAL')
+            ->where('tipo', 'NORMAL')
             ->get();
-        $resPedido=[];
+        $resPedido = [];
 
         $pedidosIds = $pedidos->pluck('NroPed');
-        Pedido::whereIn('NroPed',$pedidosIds)
-            ->where('impreso',0)
-            ->update(['impreso'=>1]);
+        Pedido::whereIn('NroPed', $pedidosIds)
+            ->where('impreso', 0)
+            ->update(['impreso' => 1]);
 
-        foreach ($pedidos as $p){
-            $productos=$pedidosAll->where('NroPed',$p->NroPed);
-            $resProducto=[];
-            foreach ($productos as $pro){
-                $resProducto[]=[
-                    'Nroped'=>$pro->NroPed,
-                    'cod_prod'=>$pro->cod_prod,
-                    'producto'=>isset($pro->producto->Producto)?$pro->producto->Producto:'',
-                    'precio'=>$pro->precio,
-                    'Cant'=>$pro->Cant,
-                    'Canttxt'=>$pro->Canttxt,
-                    'subtotal'=>$pro->subtotal
+        foreach ($pedidos as $p) {
+            $productos = $pedidosAll->where('NroPed', $p->NroPed);
+            $resProducto = [];
+            foreach ($productos as $pro) {
+                $resProducto[] = [
+                    'Nroped' => $pro->NroPed,
+                    'cod_prod' => $pro->cod_prod,
+                    'producto' => isset($pro->producto->Producto) ? $pro->producto->Producto : '',
+                    'precio' => $pro->precio,
+                    'Cant' => $pro->Cant,
+                    'Canttxt' => $pro->Canttxt,
+                    'subtotal' => $pro->subtotal
                 ];
             }
-            $resPedido[]=[
-                'pedido'=>$p,
-                'productos'=>$productos
+            $resPedido[] = [
+                'pedido' => $p,
+                'productos' => $productos
             ];
         }
         $vehiculos = DB::table('vehiculo')->get();
@@ -307,6 +333,7 @@ class PedidoController extends Controller{
         $pdf = PDF::loadView('pdf.reportePedido', $data);
         return $pdf->stream('document.pdf');
     }
+
     public function index()
     {
         //
@@ -315,10 +342,11 @@ class PedidoController extends Controller{
     /**
      * Store a newly created resource in storage.
      *
-     * @param  \Illuminate\Http\Request  $request
+     * @param \Illuminate\Http\Request $request
      * @return \Illuminate\Http\Response
      */
-    public function distance($lat1, $lon1, $lat2, $lon2) {
+    public function distance($lat1, $lon1, $lat2, $lon2)
+    {
         $pi80 = M_PI / 180;
         $lat1 *= $pi80;
         $lon1 *= $pi80;
@@ -334,30 +362,36 @@ class PedidoController extends Controller{
         return $km;
     }
 
-    public function rpollo(Request $request){
+    public function rpollo(Request $request)
+    {
         return DB::SELECT("SELECT * from tbpedidos p, tbclientes c where c.Cod_Aut=p.idCli and date(fecha)>='$request->fecha1' and date(fecha)<='$request->fecha2'  and tipo='POLLO' AND
-        trim(CIfunc)='".$request->user()->CodAut."' and estado='ENVIADO' ");
+        trim(CIfunc)='" . $request->user()->CodAut . "' and estado='ENVIADO' ");
     }
 
-    public function rres(Request $request){
+    public function rres(Request $request)
+    {
         return DB::SELECT("SELECT * from tbpedidos p, tbclientes c where c.Cod_Aut=p.idCli and date(fecha)>='$request->fecha1' and date(fecha)<='$request->fecha2'  and tipo='RES' AND
-        trim(CIfunc)='".$request->user()->CodAut."' and estado='ENVIADO' ");
+        trim(CIfunc)='" . $request->user()->CodAut . "' and estado='ENVIADO' ");
     }
 
-    public function rcerdo(Request $request){
+    public function rcerdo(Request $request)
+    {
         return DB::SELECT("SELECT * from tbpedidos p, tbclientes c where c.Cod_Aut=p.idCli and date(fecha)>='$request->fecha1' and date(fecha)<='$request->fecha2'  and tipo='CERDO' AND
-        trim(CIfunc)='".$request->user()->CodAut."' and estado='ENVIADO' ");
+        trim(CIfunc)='" . $request->user()->CodAut . "' and estado='ENVIADO' ");
     }
 
-    public function rnormal(Request $request){
+    public function rnormal(Request $request)
+    {
         return DB::SELECT(" SELECT tbpedidos.*,tbproductos.Producto from tbpedidos,tbproductos where tbpedidos.cod_prod=tbproductos.cod_prod  and tbpedidos.tipo='NORMAL' and NroPed=$request->comanda");
     }
 
-    public function lispreventista(){
+    public function lispreventista()
+    {
         return DB::SELECT("SELECT DISTINCT(l.CodAut),l.ci,l.Nombre1,l.App1 FROM tbpedidos p inner JOIN personal l on p.CIfunc=l.CodAut WHERE p.tipo='NORMAL'");
     }
 
-    public function informeProducto(Request $request ){
+    public function informeProducto(Request $request)
+    {
         return DB::SELECT("SELECT o.cod_prod,o.Producto,count(*) as cantidad
         FROM tbpedidos p inner join tbproductos o on p.cod_prod=o.cod_prod
         WHERE p.tipo='NORMAL' and date(p.fecha)>='$request->ini' and date(p.fecha)<='$request->fin'
@@ -366,30 +400,31 @@ class PedidoController extends Controller{
     }
 
 
-    public function store(Request $request){
-        $cmdnum=DB::select("SELECT *  FROM comandas limit 1")[0];
-        $numpedido=$cmdnum->comanda+1;
+    public function store(Request $request)
+    {
+        $cmdnum = DB::select("SELECT *  FROM comandas limit 1")[0];
+        $numpedido = $cmdnum->comanda + 1;
         DB::select("UPDATE `comandas` SET `comanda`='$numpedido' WHERE id=$cmdnum->id");
 
-/*
-        $primerTipo = null;
-        $tiposDiferentes = false;
+        /*
+                $primerTipo = null;
+                $tiposDiferentes = false;
+
+                foreach ($request->productos as $p) {
+                    $tipoActual = $p['tipo'];
+                    if ($primerTipo === null) {
+                        $primerTipo = $tipoActual;
+                    } elseif ($tipoActual !== $primerTipo) {
+                        $tiposDiferentes = true;
+                        break;
+                    }
+                }
+
+                if ($tiposDiferentes) {
+                    return response()->json(['message' => 'Todos los productos deben tener el mismo tipo'], 400);
+                }*/
 
         foreach ($request->productos as $p) {
-            $tipoActual = $p['tipo'];
-            if ($primerTipo === null) {
-                $primerTipo = $tipoActual;
-            } elseif ($tipoActual !== $primerTipo) {
-                $tiposDiferentes = true;
-                break;
-            }
-        }
-
-        if ($tiposDiferentes) {
-            return response()->json(['message' => 'Todos los productos deben tener el mismo tipo'], 400);
-        }*/
-
-        foreach ($request->productos as $p){
             if ($p['tipo'] == 'POLLO') {
                 $cbrasa5 = isset($p['cbrasa5']) ? $p['cbrasa5'] : 0;
                 $ubrasa5 = isset($p['ubrasa5']) ? $p['ubrasa5'] : 0;
@@ -418,39 +453,39 @@ class PedidoController extends Controller{
                 $menu = isset($p['menu']) ? $p['menu'] : 0;
                 $rango = isset($p['rango']) ? $p['rango'] : 0;
 
-                $sumTotal = $cbrasa5 + $ubrasa5 + $cbrasa6 + $cubrasa6 + $c104 + $u104 + $c105 + $u105 + $c106 + $u106 + $c107 + $u107 + $c108 + $u108 + $c109 + $u109 + $ala + $cadera + $pecho + $pie + $filete + $cuello + $hueso + $menu+$rango;
+                $sumTotal = $cbrasa5 + $ubrasa5 + $cbrasa6 + $cubrasa6 + $c104 + $u104 + $c105 + $u105 + $c106 + $u106 + $c107 + $u107 + $c108 + $u108 + $c109 + $u109 + $ala + $cadera + $pecho + $pie + $filete + $cuello + $hueso + $menu + $rango;
                 if ($sumTotal == 0) {
                     return response()->json(['message' => 'Debes ingresar al menos un producto frial pollo'], 500);
                     exit();
                 }
-                $sum1 =  $cbrasa5 + $ubrasa5 + $cbrasa6 + $cubrasa6 + $c104 + $u104 + $c105 + $u105 + $c106 + $u106 + $c107 + $u107 + $c108 + $u108 + $c109 + $u109;
-                error_log('sum1: '.$sum1);
+                $sum1 = $cbrasa5 + $ubrasa5 + $cbrasa6 + $cubrasa6 + $c104 + $u104 + $c105 + $u105 + $c106 + $u106 + $c107 + $u107 + $c108 + $u108 + $c109 + $u109;
+                error_log('sum1: ' . $sum1);
                 $bs = isset($p['bs']) ? $p['bs'] : 0;
-                error_log('bs: '.$bs);
-                if ($sum1 >0 && $bs == 0) {
+                error_log('bs: ' . $bs);
+                if ($sum1 > 0 && $bs == 0) {
                     return response()->json(['message' => 'Debes ingresar el total de bs en pollo'], 500);
                     exit();
                 }
                 $sum2 = $ala + $cadera + $pecho + $pie + $filete + $cuello + $hueso + $menu;
-                error_log('sum2: '.$sum2);
+                error_log('sum2: ' . $sum2);
                 $bs2 = isset($p['bs2']) ? $p['bs2'] : 0;
-                error_log('bs2: '.$bs2);
-                if ($sum2 >0 && $bs2 == 0) {
+                error_log('bs2: ' . $bs2);
+                if ($sum2 > 0 && $bs2 == 0) {
                     return response()->json(['message' => 'Debes ingresar el total de bs2 en pollo'], 500);
                     exit();
                 }
 
 
-                $sum3 =  $cbrasa5 + $ubrasa5 + $cbrasa6 + $cubrasa6 + $rango;
+                $sum3 = $cbrasa5 + $ubrasa5 + $cbrasa6 + $cubrasa6 + $rango;
                 $observacion = isset($p['observacion']) ? $p['observacion'] : '';
-                if ($sum3 >0 && $observacion == '') {
+                if ($sum3 > 0 && $observacion == '') {
                     return response()->json(['message' => 'Debes ingresar la observacion frial pollo'], 500);
                     exit();
                 }
 
 
             }
-            if($p['tipo']=='CERDO'){
+            if ($p['tipo'] == 'CERDO') {
                 $pfrial = isset($p['pfrial']) ? $p['pfrial'] : 0;
                 $total = isset($p['total']) ? $p['total'] : 0;
                 $entero = isset($p['entero']) ? $p['entero'] : 0;
@@ -473,130 +508,130 @@ class PedidoController extends Controller{
 //        return $request->productos;
         //$max=DB::select("SELECT max(NroPed) as max FROM tbpedidos");
 
-        $cliente=DB::select("SELECT * FROM tbclientes WHERE Cod_Aut='".$request->idCli."'");
+        $cliente = DB::select("SELECT * FROM tbclientes WHERE Cod_Aut='" . $request->idCli . "'");
 //        echo ($cliente[0]->Latitud);
 //        return floatval( $request->lat)."   -   ".floatval($request->lng)."   -   ".$cliente[0]->Latitud."   -   ".$cliente[0]->longitud;
-        $distancia=$this->distance( floatval( $request->lat),floatval($request->lng),floatval($cliente[0]->Latitud),floatval($cliente[0]->longitud));
+        $distancia = $this->distance(floatval($request->lat), floatval($request->lng), floatval($cliente[0]->Latitud), floatval($cliente[0]->longitud));
 
 //        return $numpedido;
 //        exit;
         DB::table('misvisitas')->insert([
-            'estado'=>'PEDIDO',
-            'fecha'=>date('Y-m-d'),
-            'hora'=>date('H:i:s'),
-            'lat'=>$request->lat,
-            'lng'=>$request->lng,
-            'distancia'=>$distancia,
-            'observacion'=>'',
-            'cliente_id'=>$request->idCli,
-            'personal_id'=>$request->user()->CodAut
+            'estado' => 'PEDIDO',
+            'fecha' => date('Y-m-d'),
+            'hora' => date('H:i:s'),
+            'lat' => $request->lat,
+            'lng' => $request->lng,
+            'distancia' => $distancia,
+            'observacion' => '',
+            'cliente_id' => $request->idCli,
+            'personal_id' => $request->user()->CodAut
         ]);
-        $data=[];
-        foreach ($request->productos as $p){
-        if($p['tipo']=='POLLO' || $p['tipo']=='RES' || $p['tipo']=='CERDO')
-            $imp=1;
-        else
-            $imp=0;
-            $d=[
+        $data = [];
+        foreach ($request->productos as $p) {
+            if ($p['tipo'] == 'POLLO' || $p['tipo'] == 'RES' || $p['tipo'] == 'CERDO')
+                $imp = 1;
+            else
+                $imp = 0;
+            $d = [
                 'NroPed' => $numpedido,
-                'cod_prod'=>$p['cod_prod'],
-                'CIfunc'=>$request->user()->CodAut,
-                'idCli'=>$request->idCli,
-                'Cant'=>$p['cantidad'],
-                'precio'=>$p['precio'],
+                'cod_prod' => $p['cod_prod'],
+                'CIfunc' => $request->user()->CodAut,
+                'idCli' => $request->idCli,
+                'Cant' => $p['cantidad'],
+                'precio' => $p['precio'],
 //                'fecha'=>date('Y-m-d H:i:s'),
-                'fecha'=>$request->fecha.' '.date('H:i:s'),
-                'subtotal'=>$p['subtotal'],
+                'fecha' => $request->fecha . ' ' . date('H:i:s'),
+                'subtotal' => $p['subtotal'],
 //                'cod_prod'=>$p['cod_prod'],
-                "cbrasa5"=>$p['cbrasa5'],
-                "ubrasa5"=>$p['ubrasa5'],
-                "bsbrasa5"=>$p['bsbrasa5'],
-                "obsbrasa5"=>$p['obsbrasa5'],
-                "cbrasa6"=>$p['cbrasa6'],
-                "cubrasa6"=>$p['cubrasa6'],
-                "bsbrasa6"=>$p['bsbrasa6'],
-                "obsbrasa6"=>$p['obsbrasa6'],
-                "Observaciones"=>$p['observacion'],
-                "Canttxt"=>$p['observacion']!=null?$p['observacion']:'',
-                "impreso"=>$imp,
-                "pagado"=>0,
-                "Tipo1"=>0,
-                "Tipo2"=>0,
-                "c104"=>$p['c104'],
-                "u104"=>$p['u104'],
-                "bs104"=>$p['bs104'],
-                "obs104"=>$p['obs104'],
-                "c105"=>$p['c105'],
-                "u105"=>$p['u105'],
-                "bs105"=>$p['bs105'],
-                "obs105"=>$p['obs105'],
-                "c106"=>$p['c106'],
-                "u106"=>$p['u106'],
-                "bs106"=>$p['bs106'],
-                "obs106"=>$p['obs106'],
-                "c107"=>$p['c107'],
-                "u107"=>$p['u107'],
-                "bs107"=>$p['bs107'],
-                "obs107"=>$p['obs107'],
-                "c108"=>$p['c108'],
-                "u108"=>$p['u108'],
-                "bs108"=>$p['bs108'],
-                "obs108"=>$p['obs108'],
-                "c109"=>$p['c109'],
-                "u109"=>$p['u109'],
-                "bs109"=>$p['bs109'],
-                "obs109"=>$p['obs109'],
-                "ala"=>$p['ala'],
-                "cadera"=>$p['cadera'],
-                "pecho"=>$p['pecho'],
-                "pie"=>$p['pie'],
-                "filete"=>$p['filete'],
-                "cuello"=>$p['cuello'],
-                "hueso"=>$p['hueso'],
-                "menu"=>$p['menu'],
-                "unidala"=>$p['unidala'],
-                "bsala"=>$p['bsala'],
-                "obsala"=>$p['obsala'],
-                "unidcadera"=>$p['unidcadera'],
-                "bscadera"=>$p['bscadera'],
-                "obscadera"=>$p['obscadera'],
-                "unidpecho"=>$p['unidpecho'],
-                "bspecho"=>$p['bspecho'],
-                "obspecho"=>$p['obspecho'],
-                "unidpie"=>$p['unidpie'],
-                "bspie"=>$p['bspie'],
-                "obspie"=>$p['obspie'],
-                "unidfilete"=>$p['unidfilete'],
-                "bsfilete"=>$p['bsfilete'],
-                "obsfilete"=>$p['obsfilete'],
-                "unidcuello"=>$p['unidcuello'],
-                "bscuello"=>$p['bscuello'],
-                "obscuello"=>$p['obscuello'],
-                "unidhueso"=>$p['unidhueso'],
-                "bshueso"=>$p['bshueso'],
-                "obshueso"=>$p['obshueso'],
-                "unidmenu"=>$p['unidmenu'],
-                "bsmenu"=>$p['bsmenu'],
-                "obsmenu"=>$p['obsmenu'],
-                "bs"=>$p['bs'],
-                "bs2"=>$p['bs2'],
-                "contado"=>$p['contado'],
-                "tipo"=>$p['tipo'],
-                "total"=>$p['total'],
-                "entero"=>$p['entero'],
-                "desmembre"=>$p['desmembre'],
-                "corte"=>$p['corte'],
-                "kilo"=>$p['kilo'],
-                "trozado"=>$p['trozado'],
-                "pierna"=>$p['pierna'],
-                "brazo"=>$p['brazo'],
-                "pfrial"=>$p['pfrial'],
-                "hora"=>date('H:i:s'),
-                "pago"=>$request->pago,
-                "fact"=>$request->fact,
-                "rango"=>$p['rango'],
-                "horario"=>$request->horario,
-                "comentario"=>$request->comentario,
+                "cbrasa5" => $p['cbrasa5'],
+                "ubrasa5" => $p['ubrasa5'],
+                "bsbrasa5" => $p['bsbrasa5'],
+                "obsbrasa5" => $p['obsbrasa5'],
+                "cbrasa6" => $p['cbrasa6'],
+                "cubrasa6" => $p['cubrasa6'],
+                "bsbrasa6" => $p['bsbrasa6'],
+                "obsbrasa6" => $p['obsbrasa6'],
+                "Observaciones" => $p['observacion'],
+                "Canttxt" => $p['observacion'] != null ? $p['observacion'] : '',
+                "impreso" => $imp,
+                "pagado" => 0,
+                "Tipo1" => 0,
+                "Tipo2" => 0,
+                "c104" => $p['c104'],
+                "u104" => $p['u104'],
+                "bs104" => $p['bs104'],
+                "obs104" => $p['obs104'],
+                "c105" => $p['c105'],
+                "u105" => $p['u105'],
+                "bs105" => $p['bs105'],
+                "obs105" => $p['obs105'],
+                "c106" => $p['c106'],
+                "u106" => $p['u106'],
+                "bs106" => $p['bs106'],
+                "obs106" => $p['obs106'],
+                "c107" => $p['c107'],
+                "u107" => $p['u107'],
+                "bs107" => $p['bs107'],
+                "obs107" => $p['obs107'],
+                "c108" => $p['c108'],
+                "u108" => $p['u108'],
+                "bs108" => $p['bs108'],
+                "obs108" => $p['obs108'],
+                "c109" => $p['c109'],
+                "u109" => $p['u109'],
+                "bs109" => $p['bs109'],
+                "obs109" => $p['obs109'],
+                "ala" => $p['ala'],
+                "cadera" => $p['cadera'],
+                "pecho" => $p['pecho'],
+                "pie" => $p['pie'],
+                "filete" => $p['filete'],
+                "cuello" => $p['cuello'],
+                "hueso" => $p['hueso'],
+                "menu" => $p['menu'],
+                "unidala" => $p['unidala'],
+                "bsala" => $p['bsala'],
+                "obsala" => $p['obsala'],
+                "unidcadera" => $p['unidcadera'],
+                "bscadera" => $p['bscadera'],
+                "obscadera" => $p['obscadera'],
+                "unidpecho" => $p['unidpecho'],
+                "bspecho" => $p['bspecho'],
+                "obspecho" => $p['obspecho'],
+                "unidpie" => $p['unidpie'],
+                "bspie" => $p['bspie'],
+                "obspie" => $p['obspie'],
+                "unidfilete" => $p['unidfilete'],
+                "bsfilete" => $p['bsfilete'],
+                "obsfilete" => $p['obsfilete'],
+                "unidcuello" => $p['unidcuello'],
+                "bscuello" => $p['bscuello'],
+                "obscuello" => $p['obscuello'],
+                "unidhueso" => $p['unidhueso'],
+                "bshueso" => $p['bshueso'],
+                "obshueso" => $p['obshueso'],
+                "unidmenu" => $p['unidmenu'],
+                "bsmenu" => $p['bsmenu'],
+                "obsmenu" => $p['obsmenu'],
+                "bs" => $p['bs'],
+                "bs2" => $p['bs2'],
+                "contado" => $p['contado'],
+                "tipo" => $p['tipo'],
+                "total" => $p['total'],
+                "entero" => $p['entero'],
+                "desmembre" => $p['desmembre'],
+                "corte" => $p['corte'],
+                "kilo" => $p['kilo'],
+                "trozado" => $p['trozado'],
+                "pierna" => $p['pierna'],
+                "brazo" => $p['brazo'],
+                "pfrial" => $p['pfrial'],
+                "hora" => date('H:i:s'),
+                "pago" => $request->pago,
+                "fact" => $request->fact,
+                "rango" => $p['rango'],
+                "horario" => $request->horario,
+                "comentario" => $request->comentario,
             ];
             array_push($data, $d);
         }
@@ -607,7 +642,7 @@ class PedidoController extends Controller{
     /**
      * Display the specified resource.
      *
-     * @param  int  $id
+     * @param int $id
      * @return \Illuminate\Http\Response
      */
     public function show($id)
@@ -618,73 +653,75 @@ class PedidoController extends Controller{
     /**
      * Update the specified resource in storage.
      *
-     * @param  \Illuminate\Http\Request  $request
-     * @param  int  $id
+     * @param \Illuminate\Http\Request $request
+     * @param int $id
      * @return \Illuminate\Http\Response
      */
     public function update(Request $request, $id)
     {
-        $cliente=DB::select("SELECT * FROM tbclientes WHERE Cod_Aut='".$request->idCli."'");
-        $distancia=$this->distance($request->lat,$request->lng,$cliente[0]->Latitud,$cliente[0]->longitud);
+        $cliente = DB::select("SELECT * FROM tbclientes WHERE Cod_Aut='" . $request->idCli . "'");
+        $distancia = $this->distance($request->lat, $request->lng, $cliente[0]->Latitud, $cliente[0]->longitud);
         DB::table('misvisitas')->insert([
-            'estado'=>$request->estado,
-            'fecha'=>date('Y-m-d'),
-            'hora'=>date('H:i:s'),
-            'lat'=>$request->lat,
-            'lng'=>$request->lng,
-            'distancia'=>$distancia,
-            'observacion'=>$request->observacion,
-            'cliente_id'=>$request->idCli,
-            'personal_id'=>$request->user()->CodAut
+            'estado' => $request->estado,
+            'fecha' => date('Y-m-d'),
+            'hora' => date('H:i:s'),
+            'lat' => $request->lat,
+            'lng' => $request->lng,
+            'distancia' => $distancia,
+            'observacion' => $request->observacion,
+            'cliente_id' => $request->idCli,
+            'personal_id' => $request->user()->CodAut
         ]);
     }
 
-    public function reporteVenta(Request $request){
+    public function reporteVenta(Request $request)
+    {
 
-        $fec= strtotime($request->fecha);
-        $numdia= date('w',$fec);
-        $filtro='';
+        $fec = strtotime($request->fecha);
+        $numdia = date('w', $fec);
+        $filtro = '';
         switch ($numdia) {
             case 0:
-                $filtro=" AND do=1 ";
+                $filtro = " AND do=1 ";
                 break;
             case 1:
-                $filtro=" AND lu=1 ";
+                $filtro = " AND lu=1 ";
                 break;
             case 2:
-                $filtro=" AND Ma=1 ";
+                $filtro = " AND Ma=1 ";
                 break;
             case 3:
-                $filtro= " AND Mi=1 ";
+                $filtro = " AND Mi=1 ";
                 break;
             case 4:
-                $filtro= " AND Ju=1 ";
+                $filtro = " AND Ju=1 ";
                 break;
             case 5:
-                $filtro=" AND Vi=1 ";
+                $filtro = " AND Vi=1 ";
                 break;
             case 6:
-                $filtro=" AND Sa=1 ";
+                $filtro = " AND Sa=1 ";
                 break;
             default:
-                $filtro= '';
+                $filtro = '';
                 break;
         }
         return DB::SELECT("
         select p.CIfunc,l.ci,l.CodAut, l.Nombre1,l.App1,
         (SELECT count(DISTINCT(p2.idCli)) from tbpedidos p2 where date(p2.fecha)='$request->fecha' and p.CIfunc=p2.CIfunc) as totclient,
-        (SELECT count(DISTINCT(p2.idCli)) from tbpedidos p2 inner join tbclientes c on p2.idCli=c.Cod_Aut where  date(p2.fecha)='$request->fecha' and p.CIfunc=p2.CIfunc ".$filtro.") as totvisita,
-        (SELECT count(*) from tbclientes tc where tc.CiVend=l.ci ".$filtro.") as numcli ,
+        (SELECT count(DISTINCT(p2.idCli)) from tbpedidos p2 inner join tbclientes c on p2.idCli=c.Cod_Aut where  date(p2.fecha)='$request->fecha' and p.CIfunc=p2.CIfunc " . $filtro . ") as totvisita,
+        (SELECT count(*) from tbclientes tc where tc.CiVend=l.ci " . $filtro . ") as numcli ,
         (SELECT count(*) from misvisitas v WHERE v  .fecha='$request->fecha' and v.personal_id=l.CodAut and v.estado='PEDIDO') as npedido,
         (SELECT count(*) from misvisitas v WHERE v.fecha='$request->fecha' and v.personal_id=l.CodAut and v.estado='NO PEDIDO') as nopedido,
         (SELECT count(*) from misvisitas v WHERE v.fecha='$request->fecha' and v.personal_id=l.CodAut and v.estado='PARADO') as nparado
         from tbpedidos p inner join personal l on p.CIfunc= l.CodAut where date(p.fecha)='$request->fecha' GROUP by p.CIfunc,l.ci, l.Nombre1,l.App1,l.CodAut
         ");
     }
+
     /**
      * Remove the specified resource from storage.
      *
-     * @param  int  $id
+     * @param int $id
      * @return \Illuminate\Http\Response
      */
     public function destroy($id)
@@ -692,21 +729,47 @@ class PedidoController extends Controller{
         //
     }
 
-    public function listcomanda(Request $request){
+    public function listcomanda(Request $request)
+    {
         return DB::SELECT("SELECT * from tbproductos t, tbpedidos p, tbclientes c
         where c.Cod_Aut=p.idCli and p.cod_prod=t.cod_prod and date(fecha)>='$request->fecha1' and date(fecha)<='$request->fecha2'
         and p.tipo='NORMAL' AND estado='ENVIADO' ");
     }
 
-    public function clientepedido(Request $request){
-        //$cl=DB::SELECT("SELECT * from tbclientes where ci='".$request->user()->CodAut."'")[0];
-        if($request->user()->CodAut==1)
-            return DB::SELECT("SELECT p.NroPed,p.pago,p.fecha,p.fact,Cod_Aut,Id,Cod_ciudad,Cod_Nacio,cod_car,Nombres,Telf,Direccion,EstCiv,edad,Empresa,Categoria,Imp_pieza,CiVend,ListBlanck,MotivoListBlack,ListBlack,TipoPaciente,SupraCanal,Canal,subcanal,zona,Latitud,longitud,transporte,territorio,codcli,clinew,p.estado FROM tbpedidos p inner join tbclientes c on c.Cod_Aut=p.idCli  where date(p.fecha)='$request->fecha1' GROUP by  p.NroPed,p.pago,p.fecha,p.fact,cod_Aut,Id,Cod_ciudad,Cod_Nacio,cod_car,Nombres,Telf,Direccion,EstCiv,edad,Empresa,Categoria,Imp_pieza,CiVend,ListBlanck,MotivoListBlack,ListBlack,TipoPaciente,SupraCanal,Canal,subcanal,zona,Latitud,longitud,transporte,territorio,codcli,clinew,p.estado");
-        else
-            return DB::SELECT("SELECT p.NroPed,p.pago,p.fecha,p.fact,Cod_Aut,Id,Cod_ciudad,Cod_Nacio,cod_car,Nombres,Telf,Direccion,EstCiv,edad,Empresa,Categoria,Imp_pieza,CiVend,ListBlanck,MotivoListBlack,ListBlack,TipoPaciente,SupraCanal,Canal,subcanal,zona,Latitud,longitud,transporte,territorio,codcli,clinew,p.estado FROM tbpedidos p inner join tbclientes c on c.Cod_Aut=p.idCli  where date(p.fecha)='$request->fecha1' and c.CiVend='".$request->user()->ci."' GROUP by p.NroPed,p.pago,p.fecha,p.fact,Cod_Aut,Id,Cod_ciudad,Cod_Nacio,cod_car,Nombres,Telf,Direccion,EstCiv,edad,Empresa,Categoria,Imp_pieza,CiVend,ListBlanck,MotivoListBlack,ListBlack,TipoPaciente,SupraCanal,Canal,subcanal,zona,Latitud,longitud,transporte,territorio,codcli,clinew,p.estado");
+    function clientepedidototales( Request $request){
+        $listapersonal = $request->listapersonal;
+        $fecha = $request->fecha;
+        if ($listapersonal==0){
+            $pedidos = DB::SELECT("
+            SELECT p.NroPed,p.pago,p.fecha,p.fact,Cod_Aut,Id,Cod_ciudad,Cod_Nacio,c.cod_car,Nombres,Telf,c.Direccion,EstCiv,edad,Empresa,Categoria,Imp_pieza,CiVend,ListBlanck,MotivoListBlack,ListBlack,TipoPaciente,SupraCanal,Canal,subcanal,zona,Latitud,longitud,transporte,territorio,codcli,clinew,p.estado,CONCAT(pe.Nombre1,' ',pe.App1) as vendedor
+            FROM tbpedidos p
+            inner join tbclientes c on c.Cod_Aut=p.idCli
+            inner join personal pe on p.CIfunc=pe.CodAut
+            where date(p.fecha)='$fecha'
+            GROUP by  p.NroPed,p.pago,p.fecha,p.fact,cod_Aut,Id,Cod_ciudad,Cod_Nacio,c.cod_car,Nombres,Telf,c.Direccion,EstCiv,edad,Empresa,Categoria,Imp_pieza,CiVend,ListBlanck,MotivoListBlack,ListBlack,TipoPaciente,SupraCanal,Canal,subcanal,zona,Latitud,longitud,transporte,territorio,codcli,clinew,p.estado,pe.Nombre1,pe.App1");
+        }else{
+            $pedidos = DB::SELECT("
+            SELECT p.NroPed,p.pago,p.fecha,p.fact,Cod_Aut,Id,Cod_ciudad,Cod_Nacio,c.cod_car,Nombres,Telf,c.Direccion,EstCiv,edad,Empresa,Categoria,Imp_pieza,CiVend,ListBlanck,MotivoListBlack,ListBlack,TipoPaciente,SupraCanal,Canal,subcanal,zona,Latitud,longitud,transporte,territorio,codcli,clinew,p.estado,CONCAT(pe.Nombre1,' ',pe.App1) as vendedor
+            FROM tbpedidos p
+            inner join tbclientes c on c.Cod_Aut=p.idCli
+            inner join personal pe on p.CIfunc=pe.CodAut
+            where date(p.fecha)='$fecha' and p.CIfunc=$listapersonal
+            GROUP by  p.NroPed,p.pago,p.fecha,p.fact,cod_Aut,Id,Cod_ciudad,Cod_Nacio,c.cod_car,Nombres,Telf,c.Direccion,EstCiv,edad,Empresa,Categoria,Imp_pieza,CiVend,ListBlanck,MotivoListBlack,ListBlack,TipoPaciente,SupraCanal,Canal,subcanal,zona,Latitud,longitud,transporte,territorio,codcli,clinew,p.estado,pe.Nombre1,pe.App1");
+        }
+        return $pedidos;
     }
 
-    public function pedpendiente(Request $request){
+    public function clientepedido(Request $request)
+    {
+        //$cl=DB::SELECT("SELECT * from tbclientes where ci='".$request->user()->CodAut."'")[0];
+        if ($request->user()->CodAut == 1)
+            return DB::SELECT("SELECT p.NroPed,p.pago,p.fecha,p.fact,Cod_Aut,Id,Cod_ciudad,Cod_Nacio,cod_car,Nombres,Telf,Direccion,EstCiv,edad,Empresa,Categoria,Imp_pieza,CiVend,ListBlanck,MotivoListBlack,ListBlack,TipoPaciente,SupraCanal,Canal,subcanal,zona,Latitud,longitud,transporte,territorio,codcli,clinew,p.estado FROM tbpedidos p inner join tbclientes c on c.Cod_Aut=p.idCli  where date(p.fecha)='$request->fecha1' GROUP by  p.NroPed,p.pago,p.fecha,p.fact,cod_Aut,Id,Cod_ciudad,Cod_Nacio,cod_car,Nombres,Telf,Direccion,EstCiv,edad,Empresa,Categoria,Imp_pieza,CiVend,ListBlanck,MotivoListBlack,ListBlack,TipoPaciente,SupraCanal,Canal,subcanal,zona,Latitud,longitud,transporte,territorio,codcli,clinew,p.estado");
+        else
+            return DB::SELECT("SELECT p.NroPed,p.pago,p.fecha,p.fact,Cod_Aut,Id,Cod_ciudad,Cod_Nacio,cod_car,Nombres,Telf,Direccion,EstCiv,edad,Empresa,Categoria,Imp_pieza,CiVend,ListBlanck,MotivoListBlack,ListBlack,TipoPaciente,SupraCanal,Canal,subcanal,zona,Latitud,longitud,transporte,territorio,codcli,clinew,p.estado FROM tbpedidos p inner join tbclientes c on c.Cod_Aut=p.idCli  where date(p.fecha)='$request->fecha1' and c.CiVend='" . $request->user()->ci . "' GROUP by p.NroPed,p.pago,p.fecha,p.fact,Cod_Aut,Id,Cod_ciudad,Cod_Nacio,cod_car,Nombres,Telf,Direccion,EstCiv,edad,Empresa,Categoria,Imp_pieza,CiVend,ListBlanck,MotivoListBlack,ListBlack,TipoPaciente,SupraCanal,Canal,subcanal,zona,Latitud,longitud,transporte,territorio,codcli,clinew,p.estado");
+    }
+
+    public function pedpendiente(Request $request)
+    {
         return DB::SELECT("SELECT p.NroPed,Cod_Aut,Id,Cod_ciudad,Cod_Nacio,cod_car,Nombres,Telf,Direccion,EstCiv,edad,Empresa,Categoria,Imp_pieza,CiVend,ListBlanck,MotivoListBlack,ListBlack,TipoPaciente,SupraCanal,Canal,subcanal,zona,Latitud,longitud,transporte,territorio,codcli,clinew,p.estado,
         (SELECT sum(co.Importe-(SELECT sum(c2.Acuenta) from tbctascobrar c2 where c2.comanda=co.comanda))
                 FROM tbctascobrar co WHERE co.CINIT=c.Id and co.Nrocierre=0 and co.Acuenta=0) as totdeuda ,
@@ -719,151 +782,156 @@ class PedidoController extends Controller{
 
     public function enviarpedidos(Request $request)
     {
-        foreach ($request->clientes as $p){
+        foreach ($request->clientes as $p) {
             //DB::select("UPDATE tbpedidos SET  estado='ENVIADO' WHERE NroPed='".$p['NroPed']."'");
-            DB::select("UPDATE tbpedidos p set p.estado='ENVIADO' , p.envio = NOW()  where p.NroPed='".$p['NroPed']."' and (SELECT c.venta from tbclientes c where c.Cod_Aut=p.idCli)='ACTIVO'");
+            DB::select("UPDATE tbpedidos p set p.estado='ENVIADO' , p.envio = NOW()  where p.NroPed='" . $p['NroPed'] . "' and (SELECT c.venta from tbclientes c where c.Cod_Aut=p.idCli)='ACTIVO'");
         }
     }
 
     public function envpedido(Request $request)
     {
-            //DB::select("UPDATE tbpedidos SET  estado='ENVIADO' WHERE NroPed='".$request->NroPed."'");
+        //DB::select("UPDATE tbpedidos SET  estado='ENVIADO' WHERE NroPed='".$request->NroPed."'");
         $pedido = Pedido::where('NroPed', $request->NroPed)->first();
         $cliente = Cliente::where('Cod_Aut', $pedido->idCli)->first();
         if ($cliente->venta == 'INACTIVO') {
             return response()->json(['message' => 'El cliente tiene deuda'], 500);
             exit();
         }
-            DB::select("UPDATE tbpedidos p set p.estado='ENVIADO', p.envio = NOW()  where p.NroPed='".$request->NroPed."' and (SELECT c.venta from tbclientes c where c.Cod_Aut=p.idCli)='ACTIVO'");
+        DB::select("UPDATE tbpedidos p set p.estado='ENVIADO', p.envio = NOW()  where p.NroPed='" . $request->NroPed . "' and (SELECT c.venta from tbclientes c where c.Cod_Aut=p.idCli)='ACTIVO'");
     }
 
     public function envped(Request $request)
     {
-            //DB::select("UPDATE tbpedidos SET  estado='ENVIADO' WHERE NroPed='".$request->NroPed."'");
-            DB::select("UPDATE tbpedidos p set p.estado='ENVIADO', p.envio = NOW()  where p.NroPed='".$request->NroPed."'");
+        //DB::select("UPDATE tbpedidos SET  estado='ENVIADO' WHERE NroPed='".$request->NroPed."'");
+        DB::select("UPDATE tbpedidos p set p.estado='ENVIADO', p.envio = NOW()  where p.NroPed='" . $request->NroPed . "'");
     }
 
-    public function updatecomanda(Request $request){
+    public function updatecomanda(Request $request)
+    {
 //        return $request;
-        $numpedido=$request->comanda;
+        $numpedido = $request->comanda;
         DB::select("DELETE FROM tbpedidos where NroPed='$numpedido'");
-        foreach ($request->productos as $p){
-            if($p['tipo']=='POLLO' || $p['tipo']=='RES' || $p['tipo']=='CERDO')
-            $imp=1;
-        else
-            $imp=0;
+        foreach ($request->productos as $p) {
+            if ($p['tipo'] == 'POLLO' || $p['tipo'] == 'RES' || $p['tipo'] == 'CERDO')
+                $imp = 1;
+            else
+                $imp = 0;
             DB::table('tbpedidos')->insert([
                 'NroPed' => $numpedido,
-                'cod_prod'=>$p['cod_prod'],
-                'CIfunc'=>$request->user()->CodAut,
-                'idCli'=>$request->idCli,
-                'Cant'=>$p['cantidad'],
-                'precio'=>$p['precio'],
-                'fecha'=>$request->fecha.' '.date('H:i:s'),
-                'subtotal'=>$p['subtotal'],
-                "cbrasa5"=>$p['cbrasa5'],
-                "ubrasa5"=>$p['ubrasa5'],
-                "bsbrasa5"=>$p['bsbrasa5'],
-                "obsbrasa5"=>$p['obsbrasa5'],
-                "cbrasa6"=>$p['cbrasa6'],
-                "cubrasa6"=>$p['cubrasa6'],
-                "bsbrasa6"=>$p['bsbrasa6'],
-                "obsbrasa6"=>$p['obsbrasa6'],
-                "Observaciones"=>$p['observacion'],
-                "Canttxt"=>$p['observacion']!=null?$p['observacion']:'',
-                "impreso"=>$imp,
-                "pagado"=>0,
-                "Tipo1"=>0,
-                "Tipo2"=>0,
-                "c104"=>$p['c104'],
-                "u104"=>$p['u104'],
-                "bs104"=>$p['bs104'],
-                "obs104"=>$p['obs104'],
-                "c105"=>$p['c105'],
-                "u105"=>$p['u105'],
-                "bs105"=>$p['bs105'],
-                "obs105"=>$p['obs105'],
-                "c106"=>$p['c106'],
-                "u106"=>$p['u106'],
-                "bs106"=>$p['bs106'],
-                "obs106"=>$p['obs106'],
-                "c107"=>$p['c107'],
-                "u107"=>$p['u107'],
-                "bs107"=>$p['bs107'],
-                "obs107"=>$p['obs107'],
-                "c108"=>$p['c108'],
-                "u108"=>$p['u108'],
-                "bs108"=>$p['bs108'],
-                "obs108"=>$p['obs108'],
-                "c109"=>$p['c109'],
-                "u109"=>$p['u109'],
-                "bs109"=>$p['bs109'],
-                "obs109"=>$p['obs109'],
-                "ala"=>$p['ala'],
-                "cadera"=>$p['cadera'],
-                "pecho"=>$p['pecho'],
-                "pie"=>$p['pie'],
-                "filete"=>$p['filete'],
-                "cuello"=>$p['cuello'],
-                "hueso"=>$p['hueso'],
-                "menu"=>$p['menu'],
-                "unidala"=>$p['unidala'],
-                "bsala"=>$p['bsala'],
-                "obsala"=>$p['obsala'],
-                "unidcadera"=>$p['unidcadera'],
-                "bscadera"=>$p['bscadera'],
-                "obscadera"=>$p['obscadera'],
-                "unidpecho"=>$p['unidpecho'],
-                "bspecho"=>$p['bspecho'],
-                "obspecho"=>$p['obspecho'],
-                "unidpie"=>$p['unidpie'],
-                "bspie"=>$p['bspie'],
-                "obspie"=>$p['obspie'],
-                "unidfilete"=>$p['unidfilete'],
-                "bsfilete"=>$p['bsfilete'],
-                "obsfilete"=>$p['obsfilete'],
-                "unidcuello"=>$p['unidcuello'],
-                "bscuello"=>$p['bscuello'],
-                "obscuello"=>$p['obscuello'],
-                "unidhueso"=>$p['unidhueso'],
-                "bshueso"=>$p['bshueso'],
-                "obshueso"=>$p['obshueso'],
-                "unidmenu"=>$p['unidmenu'],
-                "bsmenu"=>$p['bsmenu'],
-                "obsmenu"=>$p['obsmenu'],
-                "bs"=>$p['bs'],
-                "bs2"=>$p['bs2'],
-                "contado"=>$p['contado'],
-                "tipo"=>$p['tipo'],
-                "total"=>$p['total'],
-                "entero"=>$p['entero'],
-                "desmembre"=>$p['desmembre'],
-                "corte"=>$p['corte'],
-                "kilo"=>$p['kilo'],
-                "trozado"=>$p['trozado'],
-                "pierna"=>$p['pierna'],
-                "brazo"=>$p['brazo'],
-                "pfrial"=>$p['pfrial'],
-                "hora"=>date('H:i:s'),
-                "pago"=>$request->pago,
-                "fact"=>$request->fact,
-                "rango"=>$p['rango'],
-                "horario"=>$request->horario,
-                "comentario"=>$request->comentario,
+                'cod_prod' => $p['cod_prod'],
+                'CIfunc' => $request->user()->CodAut,
+                'idCli' => $request->idCli,
+                'Cant' => $p['cantidad'],
+                'precio' => $p['precio'],
+                'fecha' => $request->fecha . ' ' . date('H:i:s'),
+                'subtotal' => $p['subtotal'],
+                "cbrasa5" => $p['cbrasa5'],
+                "ubrasa5" => $p['ubrasa5'],
+                "bsbrasa5" => $p['bsbrasa5'],
+                "obsbrasa5" => $p['obsbrasa5'],
+                "cbrasa6" => $p['cbrasa6'],
+                "cubrasa6" => $p['cubrasa6'],
+                "bsbrasa6" => $p['bsbrasa6'],
+                "obsbrasa6" => $p['obsbrasa6'],
+                "Observaciones" => $p['observacion'],
+                "Canttxt" => $p['observacion'] != null ? $p['observacion'] : '',
+                "impreso" => $imp,
+                "pagado" => 0,
+                "Tipo1" => 0,
+                "Tipo2" => 0,
+                "c104" => $p['c104'],
+                "u104" => $p['u104'],
+                "bs104" => $p['bs104'],
+                "obs104" => $p['obs104'],
+                "c105" => $p['c105'],
+                "u105" => $p['u105'],
+                "bs105" => $p['bs105'],
+                "obs105" => $p['obs105'],
+                "c106" => $p['c106'],
+                "u106" => $p['u106'],
+                "bs106" => $p['bs106'],
+                "obs106" => $p['obs106'],
+                "c107" => $p['c107'],
+                "u107" => $p['u107'],
+                "bs107" => $p['bs107'],
+                "obs107" => $p['obs107'],
+                "c108" => $p['c108'],
+                "u108" => $p['u108'],
+                "bs108" => $p['bs108'],
+                "obs108" => $p['obs108'],
+                "c109" => $p['c109'],
+                "u109" => $p['u109'],
+                "bs109" => $p['bs109'],
+                "obs109" => $p['obs109'],
+                "ala" => $p['ala'],
+                "cadera" => $p['cadera'],
+                "pecho" => $p['pecho'],
+                "pie" => $p['pie'],
+                "filete" => $p['filete'],
+                "cuello" => $p['cuello'],
+                "hueso" => $p['hueso'],
+                "menu" => $p['menu'],
+                "unidala" => $p['unidala'],
+                "bsala" => $p['bsala'],
+                "obsala" => $p['obsala'],
+                "unidcadera" => $p['unidcadera'],
+                "bscadera" => $p['bscadera'],
+                "obscadera" => $p['obscadera'],
+                "unidpecho" => $p['unidpecho'],
+                "bspecho" => $p['bspecho'],
+                "obspecho" => $p['obspecho'],
+                "unidpie" => $p['unidpie'],
+                "bspie" => $p['bspie'],
+                "obspie" => $p['obspie'],
+                "unidfilete" => $p['unidfilete'],
+                "bsfilete" => $p['bsfilete'],
+                "obsfilete" => $p['obsfilete'],
+                "unidcuello" => $p['unidcuello'],
+                "bscuello" => $p['bscuello'],
+                "obscuello" => $p['obscuello'],
+                "unidhueso" => $p['unidhueso'],
+                "bshueso" => $p['bshueso'],
+                "obshueso" => $p['obshueso'],
+                "unidmenu" => $p['unidmenu'],
+                "bsmenu" => $p['bsmenu'],
+                "obsmenu" => $p['obsmenu'],
+                "bs" => $p['bs'],
+                "bs2" => $p['bs2'],
+                "contado" => $p['contado'],
+                "tipo" => $p['tipo'],
+                "total" => $p['total'],
+                "entero" => $p['entero'],
+                "desmembre" => $p['desmembre'],
+                "corte" => $p['corte'],
+                "kilo" => $p['kilo'],
+                "trozado" => $p['trozado'],
+                "pierna" => $p['pierna'],
+                "brazo" => $p['brazo'],
+                "pfrial" => $p['pfrial'],
+                "hora" => date('H:i:s'),
+                "pago" => $request->pago,
+                "fact" => $request->fact,
+                "rango" => $p['rango'],
+                "horario" => $request->horario,
+                "comentario" => $request->comentario,
             ]);
 //            var_dump($p);
         }
     }
-    public function deletecomanda(Request $request){
+
+    public function deletecomanda(Request $request)
+    {
         //        return $request;
-                $numpedido=$request->comanda;
-                DB::select("DELETE FROM tbpedidos where NroPed='$numpedido'");
+        $numpedido = $request->comanda;
+        DB::select("DELETE FROM tbpedidos where NroPed='$numpedido'");
     }
-    public function listpedido(Request $request){
-        $pedido= DB::SELECT("SELECT NroPed,CIfunc,idCli,fecha,estado,pago,fact,horario,comentario from tbpedidos where NroPed='$request->NroPed'  group by NroPed,CIfunc,idCli,fecha,estado,pago,fact,horario,comentario ");
+
+    public function listpedido(Request $request)
+    {
+        $pedido = DB::SELECT("SELECT NroPed,CIfunc,idCli,fecha,estado,pago,fact,horario,comentario from tbpedidos where NroPed='$request->NroPed'  group by NroPed,CIfunc,idCli,fecha,estado,pago,fact,horario,comentario ");
 //        return $pedido;
         foreach ($pedido as $row) {
-            $lisrped=DB::SELECT("SELECT
+            $lisrped = DB::SELECT("SELECT
             tbpedidos.codAut ,
             NroPed	,
             tbpedidos.cod_prod,
@@ -964,128 +1032,129 @@ class PedidoController extends Controller{
             horario,
             comentario,
             tbproductos.Producto as nombre
-            from tbpedidos,tbproductos where tbpedidos.cod_prod=tbproductos.cod_prod and  NroPed = '$row->NroPed'" );
+            from tbpedidos,tbproductos where tbpedidos.cod_prod=tbproductos.cod_prod and  NroPed = '$row->NroPed'");
 
-            $row->pedidos=$lisrped;
+            $row->pedidos = $lisrped;
         }
 
         return $pedido;
     }
 
-    public function export(Request $request){
-        $pedidos=DB::SELECT("SELECT * from tbpedidos where tipo='NORMAL' AND  date(fecha)>='$request->fecha1' and date(fecha)<='$request->fecha2' and estado='ENVIADO' ");
+    public function export(Request $request)
+    {
+        $pedidos = DB::SELECT("SELECT * from tbpedidos where tipo='NORMAL' AND  date(fecha)>='$request->fecha1' and date(fecha)<='$request->fecha2' and estado='ENVIADO' ");
 //        return $pedidos;
-        foreach ($pedidos as $p){
+        foreach ($pedidos as $p) {
 //            return  $p->NroPed;
-            $comanda=DB::connection('aron-9')->table('tbpedidos')->where('codAut',$p->codAut)->get()->count();
+            $comanda = DB::connection('aron-9')->table('tbpedidos')->where('codAut', $p->codAut)->get()->count();
 //            return  $comanda.'  -   ';
-            if($comanda==0){
+            if ($comanda == 0) {
                 //$pedi=DB::select("SELECT * from tbpedidos where tipo='NORMAL' AND date(fecha)>='$request->fecha1' and date(fecha)<='$request->fecha2' AND NroPed='".$p->NroPed."' and estado='ENVIADO' ");
 //                return $pedi;
                 //foreach ($pedi as $pe){
 //                    return $pe->NroPed;CREADO
 //                    $validar=DB::connection('aron-9')->table('tbpedidos')->where('NroPed',$pe->NroPed)->get();
 //                    if($validar->count()==0){
-                    DB::connection('aron-9')->table('tbpedidos')->insert([
-                        "codAut"=>$p->codAut,
-                        "NroPed"=>$p->NroPed,
-                        "cod_prod"=>$p->cod_prod,
-                        "CIfunc"=>$p->CIfunc,
-                        "idCli"=>$p->idCli,
-                        "Cant"=>$p->Cant,
-                        "precio"=>$p->precio,
-                        "fecha"=>$p->fecha,
-                        "estado"=>$p->estado,
-                        "subtotal"=>$p->subtotal,
-                        "cbrasa5"=>$p->cbrasa5,
-                        "ubrasa5"=>$p->ubrasa5,
-                        "bsbrasa5"=>$p->bsbrasa5,
-                        "obsbrasa5"=>$p->obsbrasa5,
-                        "cbrasa6"=>$p->cbrasa6,
-                        "cubrasa6"=>$p->cubrasa6,
-                        "bsbrasa6"=>$p->bsbrasa6,
-                        "obsbrasa6"=>$p->obsbrasa6,
-                        "Observaciones"=>$p->Observaciones,
-                        "Canttxt"=>$p->Observaciones!=null?$p->Observaciones:'',
-                        "impreso"=>0,
-                        "pagado"=>0,
-                        "Tipo1"=>0,
-                        "Tipo2"=>0,
-                        "c104"=>$p->c104,
-                        "u104"=>$p->u104,
-                        "bs104"=>$p->bs104,
-                        "obs104"=>$p->obs104,
-                        "c105"=>$p->c105,
-                        "u105"=>$p->u105,
-                        "bs105"=>$p->bs105,
-                        "obs105"=>$p->obs105,
-                        "c106"=>$p->c106,
-                        "u106"=>$p->u106,
-                        "bs106"=>$p->bs106,
-                        "obs106"=>$p->obs106,
-                        "c107"=>$p->c107,
-                        "u107"=>$p->u107,
-                        "bs107"=>$p->bs107,
-                        "obs107"=>$p->obs107,
-                        "c108"=>$p->c108,
-                        "u108"=>$p->u108,
-                        "bs108"=>$p->bs108,
-                        "obs108"=>$p->obs108,
-                        "c109"=>$p->c109,
-                        "u109"=>$p->u109,
-                        "bs109"=>$p->bs109,
-                        "obs109"=>$p->obs109,
-                        "ala"=>$p->ala,
-                        "cadera"=>$p->cadera,
-                        "pecho"=>$p->pecho,
-                        "pie"=>$p->pie,
-                        "filete"=>$p->filete,
-                        "cuello"=>$p->cuello,
-                        "hueso"=>$p->hueso,
-                        "menu"=>$p->menu,
-                        "unidala"=>$p->unidala,
-                        "bsala"=>$p->bsala,
-                        "obsala"=>$p->obsala,
-                        "unidcadera"=>$p->unidcadera,
-                        "bscadera"=>$p->bscadera,
-                        "obscadera"=>$p->obscadera,
-                        "unidpecho"=>$p->unidpecho,
-                        "bspecho"=>$p->bspecho,
-                        "obspecho"=>$p->obspecho,
-                        "unidpie"=>$p->unidpie,
-                        "bspie"=>$p->bspie,
-                        "obspie"=>$p->obspie,
-                        "unidfilete"=>$p->unidfilete,
-                        "bsfilete"=>$p->bsfilete,
-                        "obsfilete"=>$p->obsfilete,
-                        "unidcuello"=>$p->unidcuello,
-                        "bscuello"=>$p->bscuello,
-                        "obscuello"=>$p->obscuello,
-                        "unidhueso"=>$p->unidhueso,
-                        "bshueso"=>$p->bshueso,
-                        "obshueso"=>$p->obshueso,
-                        "unidmenu"=>$p->unidmenu,
-                        "bsmenu"=>$p->bsmenu,
-                        "obsmenu"=>$p->obsmenu,
-                        "bs"=>$p->bs,
-                        "bs2"=>$p->bs2,
-                        "contado"=>$p->contado,
-                        "tipo"=>$p->tipo,
-                        "total"=>$p->total,
-                        "entero"=>$p->entero,
-                        "desmembre"=>$p->desmembre,
-                        "corte"=>$p->corte,
-                        "kilo"=>$p->kilo,
-                        "trozado"=>$p->trozado,
-                        "pierna"=>$p->pierna,
-                        "brazo"=>$p->brazo,
-                        "pfrial"=>$p->pfrial,
-                        "hora"=>$p->hora,
-                        "pago"=>$p->pago,
-                        "fact"=>$p->fact,
-                        "rango"=>$p->rango,
+                DB::connection('aron-9')->table('tbpedidos')->insert([
+                    "codAut" => $p->codAut,
+                    "NroPed" => $p->NroPed,
+                    "cod_prod" => $p->cod_prod,
+                    "CIfunc" => $p->CIfunc,
+                    "idCli" => $p->idCli,
+                    "Cant" => $p->Cant,
+                    "precio" => $p->precio,
+                    "fecha" => $p->fecha,
+                    "estado" => $p->estado,
+                    "subtotal" => $p->subtotal,
+                    "cbrasa5" => $p->cbrasa5,
+                    "ubrasa5" => $p->ubrasa5,
+                    "bsbrasa5" => $p->bsbrasa5,
+                    "obsbrasa5" => $p->obsbrasa5,
+                    "cbrasa6" => $p->cbrasa6,
+                    "cubrasa6" => $p->cubrasa6,
+                    "bsbrasa6" => $p->bsbrasa6,
+                    "obsbrasa6" => $p->obsbrasa6,
+                    "Observaciones" => $p->Observaciones,
+                    "Canttxt" => $p->Observaciones != null ? $p->Observaciones : '',
+                    "impreso" => 0,
+                    "pagado" => 0,
+                    "Tipo1" => 0,
+                    "Tipo2" => 0,
+                    "c104" => $p->c104,
+                    "u104" => $p->u104,
+                    "bs104" => $p->bs104,
+                    "obs104" => $p->obs104,
+                    "c105" => $p->c105,
+                    "u105" => $p->u105,
+                    "bs105" => $p->bs105,
+                    "obs105" => $p->obs105,
+                    "c106" => $p->c106,
+                    "u106" => $p->u106,
+                    "bs106" => $p->bs106,
+                    "obs106" => $p->obs106,
+                    "c107" => $p->c107,
+                    "u107" => $p->u107,
+                    "bs107" => $p->bs107,
+                    "obs107" => $p->obs107,
+                    "c108" => $p->c108,
+                    "u108" => $p->u108,
+                    "bs108" => $p->bs108,
+                    "obs108" => $p->obs108,
+                    "c109" => $p->c109,
+                    "u109" => $p->u109,
+                    "bs109" => $p->bs109,
+                    "obs109" => $p->obs109,
+                    "ala" => $p->ala,
+                    "cadera" => $p->cadera,
+                    "pecho" => $p->pecho,
+                    "pie" => $p->pie,
+                    "filete" => $p->filete,
+                    "cuello" => $p->cuello,
+                    "hueso" => $p->hueso,
+                    "menu" => $p->menu,
+                    "unidala" => $p->unidala,
+                    "bsala" => $p->bsala,
+                    "obsala" => $p->obsala,
+                    "unidcadera" => $p->unidcadera,
+                    "bscadera" => $p->bscadera,
+                    "obscadera" => $p->obscadera,
+                    "unidpecho" => $p->unidpecho,
+                    "bspecho" => $p->bspecho,
+                    "obspecho" => $p->obspecho,
+                    "unidpie" => $p->unidpie,
+                    "bspie" => $p->bspie,
+                    "obspie" => $p->obspie,
+                    "unidfilete" => $p->unidfilete,
+                    "bsfilete" => $p->bsfilete,
+                    "obsfilete" => $p->obsfilete,
+                    "unidcuello" => $p->unidcuello,
+                    "bscuello" => $p->bscuello,
+                    "obscuello" => $p->obscuello,
+                    "unidhueso" => $p->unidhueso,
+                    "bshueso" => $p->bshueso,
+                    "obshueso" => $p->obshueso,
+                    "unidmenu" => $p->unidmenu,
+                    "bsmenu" => $p->bsmenu,
+                    "obsmenu" => $p->obsmenu,
+                    "bs" => $p->bs,
+                    "bs2" => $p->bs2,
+                    "contado" => $p->contado,
+                    "tipo" => $p->tipo,
+                    "total" => $p->total,
+                    "entero" => $p->entero,
+                    "desmembre" => $p->desmembre,
+                    "corte" => $p->corte,
+                    "kilo" => $p->kilo,
+                    "trozado" => $p->trozado,
+                    "pierna" => $p->pierna,
+                    "brazo" => $p->brazo,
+                    "pfrial" => $p->pfrial,
+                    "hora" => $p->hora,
+                    "pago" => $p->pago,
+                    "fact" => $p->fact,
+                    "rango" => $p->rango,
 
-                    ]);
+                ]);
 //                }
                 //}
             }
@@ -1196,9 +1265,10 @@ class PedidoController extends Controller{
 //                $conn->close();
     }
 
-    public function  resumenPedidos($fecha){
+    public function resumenPedidos($fecha)
+    {
 
-        $sql="SELECT c.Id,c.Nombres,p.NroPed,p.pago,p.fact,CONCAT(e.Nombre1,' ',e.App1)  personal,p.fecha,p.envio,impreso
+        $sql = "SELECT c.Id,c.Nombres,p.NroPed,p.pago,p.fact,CONCAT(e.Nombre1,' ',e.App1)  personal,p.fecha,p.envio,impreso
         from tbpedidos p inner join personal e on p.CIfunc=e.CodAut inner join tbclientes c on p.idCli=c.Cod_Aut
         where date(p.fecha)='$fecha' and p.tipo='NORMAL' and estado='ENVIADO'
         GROUP by c.Id,c.Nombres,p.NroPed,p.pago,p.fact,personal,p.fecha,impreso,p.envio
@@ -1207,8 +1277,9 @@ class PedidoController extends Controller{
         return DB::SELECT($sql);
     }
 
-    public function mapClient(Request $request){
-        if($request->id==0)
+    public function mapClient(Request $request)
+    {
+        if ($request->id == 0)
             return DB::select("SELECT p.idCli,c.Id,c.Nombres,c.Latitud,c.longitud,concat(trim(e.Nombre1),' ',trim(e.App1)) as vendedor
             from tbpedidos p inner join tbclientes c on p.idCli=c.Cod_Aut inner join personal e on p.CIfunc=e.CodAut
             where date(p.fecha)='$request->fecha' group by p.idCli,c.Id,c.Nombres,c.Latitud,c.longitud,e.Nombre1,e.App1 ");
@@ -1218,7 +1289,8 @@ class PedidoController extends Controller{
             where date(p.fecha)='$request->fecha' and  trim(p.CIfunc)=$request->id group by p.idCli,c.Id,c.Nombres,c.Latitud,c.longitud,e.Nombre1,e.App1");
     }
 
-    public function mapClientes(Request $request){
+    public function mapClientes(Request $request)
+    {
         $resultado = DB::select("
         SELECT
             p.idCli, c.Id, c.Nombres, c.Latitud, c.longitud, c.territorio,
@@ -1233,21 +1305,23 @@ class PedidoController extends Controller{
         GROUP BY p.idCli, c.Id, c.Nombres, c.Latitud, c.longitud, c.territorio, e.Nombre1, e.App1, p.placa,p.horario
     ", [$request->fecha]);
 
-    // Devuelve el resultado como JSON o úsalo en tu vista
-    return response()->json($resultado);
+        // Devuelve el resultado como JSON o úsalo en tu vista
+        return response()->json($resultado);
     }
 
-    public function detallePedMap(Request $request){
-            $resultado = DB::select("
+    public function detallePedMap(Request $request)
+    {
+        $resultado = DB::select("
                 SELECT p.NroPed, p.Cant, tpr.cod_prod, tpr.Producto
                 FROM tbpedidos p
                 INNER JOIN tbproductos tpr ON p.cod_prod = tpr.cod_prod
                 WHERE DATE(p.fecha) = ? AND p.tipo = 'NORMAL' AND p.idCli = ?
             ", [$request->fecha, $request->idCli]);
-    return response()->json($resultado);
-}
+        return response()->json($resultado);
+    }
 
-    public function listVehiculo(){
+    public function listVehiculo()
+    {
         return DB::SELECT("SELECT * from vehiculo order by id asc");
     }
 

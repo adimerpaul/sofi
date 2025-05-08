@@ -26,6 +26,7 @@ import Avance from "pages/Avance.vue";
 import AlmacenVerificar from "pages/AlmacenVerificar.vue";
 import AlmacenVerificado from "pages/AlmacenVerificado.vue";
 import Despachoresumen from "pages/Despachoresumen.vue";
+import Mispedidostotales from "pages/Mispedidostotales.vue";
 
 const routes = [
   {
@@ -36,6 +37,7 @@ const routes = [
       { path: '/asignar', component: Asignar,meta: {requiresAuth: true} },
       { path: '/misasignaciones', component: Misasignaciones ,meta: {requiresAuth: true}},
       { path: '/mispedidos', component: Mispedidos ,meta: {requiresAuth: true}},
+      { path: '/mispedidostotales', component: Mispedidostotales ,meta: {requiresAuth: true}},
       { path: '/cobranza', component: Cobranza ,meta: {requiresAuth: true}},
       { path: '/visita', component: Visita ,meta: {requiresAuth: true}},
       { path: '/miscobranzas', component: Miscobranzas ,meta: {requiresAuth: true}},

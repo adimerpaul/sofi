@@ -6,9 +6,9 @@
         <q-toolbar-title>
           <template v-if="$store.getters['login/user'].Nombre1==undefined">Sofia</template>
           <template v-else>
-            {{ $filters.capitalize($store.getters['login/user'].Nombre1 +' '+ $store.getters['login/user'].App1 )}}
+            {{ $filters.capitalize($store.getters['login/user'].Nombre1 + ' ' + $store.getters['login/user'].App1) }}
           </template>
-          <q-chip dense  class="bg-orange text-black">
+          <q-chip dense class="bg-orange text-black">
             {{ 'v10.7.8' }}
           </q-chip>
         </q-toolbar-title>
@@ -79,6 +79,18 @@
             <q-item-label>Mis pedidos</q-item-label>
             <q-item-label caption>
               Mis pedidos
+            </q-item-label>
+          </q-item-section>
+        </q-item>
+        <q-item clickable active-class="bg-primary text-white" exact to="mispedidostotales"
+                v-if="digitador.includes($store.getters['login/user'].ci)">
+          <q-item-section avatar>
+            <q-icon name="list"/>
+          </q-item-section>
+          <q-item-section>
+            <q-item-label>Mis pedidos totales</q-item-label>
+            <q-item-label caption>
+              Mis pedidos totales
             </q-item-label>
           </q-item-section>
         </q-item>
@@ -349,17 +361,17 @@
           </q-item-section>
         </q-item>
         <q-item clickable active-class="bg-primary text-white" exact to="mapacliente"
-        v-if="asignar.includes($store.getters['login/user'].ci) ">
-        <q-item-section avatar>
-          <q-icon name="computer"/>
-        </q-item-section>
-        <q-item-section>
-          <q-item-label>Mapa Cliente Pedido</q-item-label>
-          <q-item-label caption>
-            Monitoreo
-          </q-item-label>
-        </q-item-section>
-      </q-item>
+                v-if="asignar.includes($store.getters['login/user'].ci) ">
+          <q-item-section avatar>
+            <q-icon name="computer"/>
+          </q-item-section>
+          <q-item-section>
+            <q-item-label>Mapa Cliente Pedido</q-item-label>
+            <q-item-label caption>
+              Monitoreo
+            </q-item-label>
+          </q-item-section>
+        </q-item>
         <q-item clickable active-class="bg-primary text-white" exact @click="irformulario"
                 v-if="vendores.includes($store.getters['login/user'].ci) || cobrador.includes($store.getters['login/user'].ci)">
           <q-item-section avatar>
@@ -437,12 +449,12 @@ export default {
       leftDrawerOpen: false,
       vendores: ['10060810', '3779602', '12612870', '1593578', '33555433', '3520335', '5676554', '7422201', '9876785', '7360035', '5067737', '7331330', '7308976', '7377278', '5938578', '7351953', '7329688', '7288817', '7306963', '5773491', '3544875019', '7312297', '7326952'],
       encargados: ['123321', '7205489', '7277481'],
-      asignar:['7205489','7308976','123321','7277481'],
+      asignar: ['7205489', '7308976', '123321', '7277481'],
       almacen: ['7308976', '7377278', '7205489', '7277481'],
       cobrador: ['7424479'],
-      despachador: ['7205489', 'A1SUD', 'A2NORTE', 'A3CENTRO', 'A4BOLIVAR', 'A5APOYO', 'C1RECOGE', 'B3LLALLAGUA', '7277481', 'B1HUANUNI', 'MOTO1', 'MOTO2','B2CHALLAPATA'],
+      despachador: ['7205489', 'A1SUD', 'A2NORTE', 'A3CENTRO', 'A4BOLIVAR', 'A5APOYO', 'C1RECOGE', 'B3LLALLAGUA', '7277481', 'B1HUANUNI', 'MOTO1', 'MOTO2', 'B2CHALLAPATA'],
       supervisor: ['7308976', '7329688', '7288817', '7312297', '7205489', '7277481'],
-      digitador: ['1223334444','7308976','7205489','7329688','7277481','123321']
+      digitador: ['1223334444', '7308976', '7205489', '7329688', '7277481', '123321']
     }
   },
   methods: {
