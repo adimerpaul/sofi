@@ -1,17 +1,31 @@
 <template>
 <q-page class="q-pa-xs">
   <div class="row">
-    <div class="cols-12 col-md-6">
-      <q-input @change="consulta('TODOS')" v-model="fecha" label="fecha" dense outlined type="date" />
-    </div>
-    <div class="col-12 col-md-3"></div>
-    <div class="col-12 col-md-3">
-      <q-select v-model="grupos" label="Grupo" dense outlined :options="['TODOS','CARNE POLLO','CARNE CERDO','PODIUM','DEMAS','POLLO CERDO']"
-                @update:model-value="misclientes()"
-      />
-<!--      <pre>{{grupos}}</pre>-->
-    </div>
+<!--    <div class="cols-12 col-md-6">-->
+<!--      <div class="row">-->
+<!--        <div class="col-6">-->
+<!--          <q-input @change="consulta('TODOS')" v-model="fecha" label="fecha" dense outlined type="date" />-->
+<!--        </div>-->
+<!--        <div class="col-6">-->
+<!--          <q-select v-model="grupos" label="Grupo" dense outlined :options="['TODOS','CARNE POLLO','CARNE CERDO','PODIUM','DEMAS','POLLO CERDO']"-->
+<!--                    @update:model-value="misclientes()"-->
+<!--          />-->
+<!--        </div>-->
+<!--      </div>-->
+<!--    </div>-->
+<!--    <div class="col-12 col-md-3">-->
+<!--    </div>-->
     <div class="col-12 col-md-6">
+      <div class="row">
+        <div class="col-6">
+          <q-input @change="consulta('TODOS')" v-model="fecha" label="fecha" dense outlined type="date" />
+        </div>
+        <div class="col-6">
+          <q-select v-model="grupos" label="Grupo" dense outlined :options="['TODOS','CARNE POLLO','CARNE CERDO','PODIUM','DEMAS','POLLO CERDO']"
+                    @update:model-value="misclientes()"
+          />
+        </div>
+      </div>
       <q-table title="Entregas Pedidos" :rows="resumen" :columns="columns2" row-key="name" dense @rowClick="consultaRow" :rows-per-page-options="[0]">
         <template v-slot:top-right>
           <q-btn  color="indigo" label="Reporte Todos" dense @click="consulta('TODOS')" no-caps :loading="loading"/>
@@ -268,7 +282,7 @@ colPed:[
     clickListado(event, row, index) {
       console.log(row);
       this.center=[row.latitud, row.longitud]
-      this.zoom=18
+      this.zoom=20
     },
     getPedidos(c){
       this.cliente=c
