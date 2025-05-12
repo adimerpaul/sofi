@@ -37,9 +37,9 @@ class PedidoController extends Controller
         $pedido = Pedido::where('NroPed', $NroPed)->first();
 
         $fechaRegistro = Carbon::parse($request->fecha);
-        if ($fechaRegistro->gte(Carbon::today())) {
-            return response()->json(['success' => false, 'message' => 'No se puede clonar un pedido del mismo dia.'], 500);
-        }
+//        if ($fechaRegistro->gte(Carbon::today())) {
+//            return response()->json(['success' => false, 'message' => 'No se puede clonar un pedido del mismo dia.'], 500);
+//        }
 
         $pedidos = Pedido::where('NroPed', $NroPed)->get();
         error_log('pedidos: ' . json_encode($pedidos));
