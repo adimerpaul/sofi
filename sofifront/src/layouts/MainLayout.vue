@@ -9,7 +9,7 @@
             {{ $filters.capitalize($store.getters['login/user'].Nombre1 + ' ' + $store.getters['login/user'].App1) }}
           </template>
           <q-chip dense class="bg-orange text-black">
-            {{ 'v10.8.1' }}
+            {{ 'v10.8.2' }}
           </q-chip>
         </q-toolbar-title>
         <!--        <div>Quasar v{{ $q.version }}</div>-->
@@ -459,7 +459,7 @@ export default {
   },
   methods: {
     irformulario() {
-      var win = window.open('https://form.jotform.com/250997190797678', '_blank');
+      var win = window.open('https://form.jotform.com/251324706616656', '_blank');
       // Cambiar el foco al nuevo tab (punto opcional)
       win.focus();
     },
