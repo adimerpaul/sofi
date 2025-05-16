@@ -4,7 +4,7 @@
       <q-card-section>
         <div class="row">
           <div class="col-xs-12 col-md-6 q-pa-xs">
-            <q-input v-model="fecha" label="Fecha" type="date" dense outlined v-bind:min="minimo " @update:model-value="buscar"/>
+            <q-input v-model="fecha" label="Fecha" type="date" dense outlined  @update:model-value="buscar"/>
           </div>
           <div class="col-xs-2 col-md-2 q-pa-xs">
             <q-btn color="purple" label="5" @click="loadGeoJson(5)" :loading="loading"  />
@@ -15,9 +15,14 @@
           <div class="col-xs-2 col-md-2 q-pa-xs">
             <q-btn color="orange" label="3" @click="loadGeoJson(3)" :loading="loading"  />
           </div>
+          </div>
+        <div class="row">
+
+          <div :class="'q-pa-xs col-md-2 col-xs-4 bg-'+vih.color " v-for="vih in vehiculos" :key="vih" style="font-size: 12px;"><b>{{vih.placa==''?'SIN ASIGNAR':vih.placa }} : {{calculo(vih.placa)}}</b></div>
           <br>
-          <div :class="'q-pa-xs col-2 bg-'+vih.color " v-for="vih in vehiculos" :key="vih" ><b>{{vih.placa==''?'SIN ASIGNAR':vih.placa }} : {{calculo(vih.placa)}}</b></div>
-          <br>
+          </div>
+        <div class="row">
+
           <div class="col-xs-12 col-md-12">
             <div style="height: 500px; width: 100%;">
               <l-map
@@ -35,7 +40,7 @@
                   :lat-lng="[parseFloat(pedido.Latitud), parseFloat(pedido.longitud)]"
                   @click="toggleSeleccion(pedido)"
                 >
-                  <l-tooltip :content="pedido.Nombres+' Total:' +pedido.importe+' Bs'"></l-tooltip>
+                  <l-tooltip v-if="pedido.showTooltip" :content="pedido.Nombres+' Total:' +pedido.importe+' Bs'" :permanent="false"   :direction="'top'"></l-tooltip>
                   <l-icon>
                     <q-badge
                       style="padding: 2px"
@@ -554,6 +559,7 @@ export default {
         res.data.forEach(r => {
           r.num=numero
           r.selected=false
+          r.showTooltip = false
           numero++
           setVendedores.add(r.vendedor);
         });
@@ -571,7 +577,7 @@ export default {
       // console.log(cliente)
       // Cambiar el estado seleccionado
       this.center=[cliente.Latitud,cliente.longitud]
-      this.zoom=15
+      this.zoom=16
       cliente.selected = !cliente.selected;
 
       if (cliente.selected) {
@@ -581,6 +587,15 @@ export default {
         // Remover de la lista de seleccionados
         this.seleccionados = this.seleccionados.filter((item) => item.Id !== cliente.Id);
       }
+      // Ocultar todos los tooltips
+      this.clientes.forEach(c => {
+        c.showTooltip = false;
+      });
+
+      // Mostrar solo el del cliente actual
+      this.$nextTick(() => {
+        cliente.showTooltip = true;
+      });
     },
     cambiar(){
       this.loading = true;

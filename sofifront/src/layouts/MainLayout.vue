@@ -454,7 +454,7 @@ export default {
       cobrador: ['7424479'],
       despachador: ['7205489', 'A1SUD', 'A2NORTE', 'A3CENTRO', 'A4BOLIVAR', 'A5APOYO', 'C1RECOGE', 'B3LLALLAGUA', '7277481', 'B1HUANUNI', 'MOTO1', 'MOTO2', 'B2CHALLAPATA'],
       supervisor: ['7308976', '7329688', '7288817', '7312297', '7205489', '7277481'],
-      digitador: ['1223334444', '7308976', '7205489', '7329688', '7277481', '123321']
+      digitador: ['1223334444', '7308976',  '7329688', '7277481', '123321']
     }
   },
   methods: {
