@@ -185,6 +185,8 @@
 <script>
 import {date} from "quasar";
 import { Printd } from 'printd'
+import moment from "moment";
+
 import {
   LMap,
   LIcon,
@@ -443,7 +445,7 @@ colPed:[
         .tab1{width:100%}</style>
         <table class='tab1'>
           <tr><td><img src="logo.png" alt="logo" width="150" height="100"></td>
-            <td class='titulo1' style='color:red; font-weight:bold; font-size:20px;'>ENTREGAS DEL DIA <br> <span style="color:blue">`+date.formatDate(this.fecha,'dddd, DD MMMM YYYY')+`</span></td></tr>
+            <td class='titulo1' style='color:red; font-weight:bold; font-size:20px;'>ENTREGAS DEL DIA <br> <span style="color:blue">`+moment(this.fecha).format('dddd, DD MMMM YYYY')+`</span></td></tr>
           </table>
           <div class='titulo2'>PEDIDOS AL CONTADO</div>
           <table class='tab1'
