@@ -14,6 +14,7 @@
                   <tr>
                     <th>FECHA</th>
                     <th>HORA</th>
+                    <th>COMANDA</th>
                     <th>CI</th>
                     <th>CLIENTE</th>
                     <th>ESTADO</th>
@@ -27,6 +28,7 @@
                     <td>{{v.fecha}}</td>
                     <td>{{v.hora}}</td>
                     <td>{{v.Id}}</td>
+                    <td>{{v.comanda}}</td>
                     <td>{{v.Nombres}}</td>
                     <td>{{v.estado}}</td>
                     <td>{{v.despachador}}</td>
@@ -34,7 +36,7 @@
                     <td>{{v.observacion}}</td>
                   </tr>
                   </tbody>
-    
+
     </table>
   </div>
 
