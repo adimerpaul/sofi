@@ -8,10 +8,10 @@
     <q-btn :loading="loading" dense color="green" label="Buscar" @click="mispendiente" no-caps icon="search"/>
   </div>
   <div class="col-12 col-md-2 q-pa-xs">
-    <q-btn :loading="loading" dense color="orange" label="Actulizar Comandas" @click="clickventas" no-caps/>
+    <q-btn :loading="loading" dense color="orange" label="Actulizar Comandas" href="http://192.168.1.200:3000/ventas" target="_blank" no-caps/>
   </div>
   <div class="col-12 col-md-2 q-pa-xs">
-    <q-btn :loading="loading" dense color="orange" label="Actulizar Productos" @click="clickcuentas" no-caps/>
+    <q-btn :loading="loading" dense color="orange" label="Actulizar Productos" href="http://192.168.1.200:3000/cuentas" target="_blank" no-caps/>
   </div>
 <!--  http://192.168.1.200:3000/ventas-->
   <div class="col-12 col-md-2 q-pa-xs text-right">
