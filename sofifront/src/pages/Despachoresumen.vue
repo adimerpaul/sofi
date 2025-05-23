@@ -131,32 +131,39 @@ export default {
     },
     async clickventas() {
       this.loading = true
-      await fetch('http://192.168.1.200:3000/ventas')
-        .then(r => r.text())
-        .then(t => alert(t))
-        .finally(() => {
-          this.loading = false
-        }).catch(e => {
-          this.$q.notify({
-            color: 'negative',
-            message: 'Error al actualizar las comandas',
-            icon: 'report_problem'
-          })
-        });
+      await this.$api.get('http://192.168.1.200:3000/ventas').then(res=>{
+        $.q.notify({
+          color: 'positive',
+          message: 'Comandas actualizadas',
+          icon: 'check_circle'
+        })
+      }).catch(e => {
+        this.$q.notify({
+          color: 'negative',
+          message: 'Error al actualizar las comandas',
+          icon: 'report_problem'
+        })
+      }).finally(() => {
+        this.loading = false
+      });
     },
     async clickcuentas(){
-      await fetch('http://192.168.1.200:3000/cuentas')
-        .then(r => r.text())
-        .then(t => alert(t))
-        .finally(() => {
-          this.loading = false
-        }).catch(e => {
-          this.$q.notify({
-            color: 'negative',
-            message: 'Error al actualizar los productos',
-            icon: 'report_problem'
-          })
-        });
+      this.loading = true
+      await this.$api.get('http://192.168.1.200:3000/cuentas').then(res=>{
+        $.q.notify({
+          color: 'positive',
+          message: 'Productos actualizados',
+          icon: 'check_circle'
+        })
+      }).catch(e => {
+        this.$q.notify({
+          color: 'negative',
+          message: 'Error al actualizar los productos',
+          icon: 'report_problem'
+        })
+      }).finally(() => {
+        this.loading = false
+      });
     },
     mispendiente(){
       this.$q.loading.show()
