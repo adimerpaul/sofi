@@ -30,6 +30,7 @@ class PedidoController extends Controller
         }
         return response()->json(['success' => true]);
     }
+
     function clonarpedido(Request $request)
     {
         $NroPed = $request->NroPed;
@@ -736,10 +737,11 @@ class PedidoController extends Controller
         and p.tipo='NORMAL' AND estado='ENVIADO' ");
     }
 
-    function clientepedidototales( Request $request){
+    function clientepedidototales(Request $request)
+    {
         $listapersonal = $request->listapersonal;
         $fecha = $request->fecha;
-        if ($listapersonal==0){
+        if ($listapersonal == 0) {
             $pedidos = DB::SELECT("
             SELECT p.NroPed,p.pago,p.fecha,p.fact,Cod_Aut,Id,Cod_ciudad,Cod_Nacio,c.cod_car,Nombres,Telf,c.Direccion,EstCiv,edad,Empresa,Categoria,Imp_pieza,CiVend,ListBlanck,MotivoListBlack,ListBlack,TipoPaciente,SupraCanal,Canal,subcanal,zona,Latitud,longitud,transporte,territorio,codcli,clinew,p.estado,CONCAT(pe.Nombre1,' ',pe.App1) as vendedor
             FROM tbpedidos p
@@ -747,7 +749,7 @@ class PedidoController extends Controller
             inner join personal pe on p.CIfunc=pe.CodAut
             where date(p.fecha)='$fecha'
             GROUP by  p.NroPed,p.pago,p.fecha,p.fact,cod_Aut,Id,Cod_ciudad,Cod_Nacio,c.cod_car,Nombres,Telf,c.Direccion,EstCiv,edad,Empresa,Categoria,Imp_pieza,CiVend,ListBlanck,MotivoListBlack,ListBlack,TipoPaciente,SupraCanal,Canal,subcanal,zona,Latitud,longitud,transporte,territorio,codcli,clinew,p.estado,pe.Nombre1,pe.App1");
-        }else{
+        } else {
             $pedidos = DB::SELECT("
             SELECT p.NroPed,p.pago,p.fecha,p.fact,Cod_Aut,Id,Cod_ciudad,Cod_Nacio,c.cod_car,Nombres,Telf,c.Direccion,EstCiv,edad,Empresa,Categoria,Imp_pieza,CiVend,ListBlanck,MotivoListBlack,ListBlack,TipoPaciente,SupraCanal,Canal,subcanal,zona,Latitud,longitud,transporte,territorio,codcli,clinew,p.estado,CONCAT(pe.Nombre1,' ',pe.App1) as vendedor
             FROM tbpedidos p
@@ -1289,8 +1291,8 @@ class PedidoController extends Controller
             where date(p.fecha)='$request->fecha' and  trim(p.CIfunc)=$request->id group by p.idCli,c.Id,c.Nombres,c.Latitud,c.longitud,e.Nombre1,e.App1");
     }
 
-    public function mapClientes(Request $request)
-    {
+    public function mapClientes(Request $request){
+        $tipo = $request->tipo;
         $resultado = DB::select("
         SELECT
             p.idCli, c.Id, c.Nombres, c.Latitud, c.longitud, c.territorio,
@@ -1301,9 +1303,23 @@ class PedidoController extends Controller
         FROM tbpedidos p
         INNER JOIN tbclientes c ON p.idCli = c.Cod_Aut
         INNER JOIN personal e ON p.CIfunc = e.CodAut
-        WHERE DATE(p.fecha) = ? AND p.estado = 'ENVIADO' AND p.tipo = 'NORMAL'
+        WHERE DATE(p.fecha) = ? AND p.estado = 'ENVIADO' AND p.tipo = '$tipo'
         GROUP BY p.idCli, c.Id, c.Nombres, c.Latitud, c.longitud, c.territorio, e.Nombre1, e.App1, p.placa,p.horario
     ", [$request->fecha]);
+//        $resultado = DB::select("
+//        SELECT
+//            p.idCli, c.Id, c.Nombres, c.Latitud, c.longitud, c.territorio,
+//            CONCAT(TRIM(e.Nombre1), ' ', TRIM(e.App1)) AS vendedor,
+//            p.placa,p.horario,
+//            (SELECT v.color FROM vehiculo v WHERE v.placa = p.placa) AS color,
+//            SUM(p.subtotal) AS importe,
+//            p.tipo
+//        FROM tbpedidos p
+//        INNER JOIN tbclientes c ON p.idCli = c.Cod_Aut
+//        INNER JOIN personal e ON p.CIfunc = e.CodAut
+//        WHERE DATE(p.fecha) = ? AND p.estado = 'ENVIADO'
+//        GROUP BY p.idCli, c.Id, c.Nombres, c.Latitud, c.longitud, c.territorio, e.Nombre1, e.App1, p.placa,p.horario,p.tipo
+//    ", [$request->fecha]);
 
         // Devuelve el resultado como JSON o úsalo en tu vista
         return response()->json($resultado);

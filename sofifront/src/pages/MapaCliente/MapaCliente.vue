@@ -80,19 +80,20 @@
                 </div>
                 <div class="col-12 col-md-2"></div>
                 <div class="col-12 col-md-2">
-                  <q-select square outlined v-model="usuario" :options="vendedores" label="Camion" dense
+                  <q-select square outlined v-model="usuario" :options="vendedores" label="Vendedor" dense
                             @update:model-value="filtrarClientes"/>
                 </div>
                 <div class="col-12 col-md-2">
-                  <q-select square outlined v-model="tipoProducto" :options="vendedores" label="Camion" dense
-                            @update:model-value="filtrarClientes"/>
+                  <q-select square outlined v-model="tipoProducto" :options="['NORMAL','POLLO','CERDO']"
+                            label="Producto" dense
+                            @update:model-value="buscar"/>
                 </div>
               </div>
             </div>
           </div>
           <div class="col-xs-12 col-md-12">
             <q-table dense :rows="clientes" :columns="column" row-key="name" :rows-per-page-options="['0']"
-                     :filter="filtro" style="font-size:10px; height: 400px" virtual-scroll>
+                     :filter="filtro" style="font-size:10px; height: 400px" virtual-scroll flat bordered>
               <template v-slot:top-right>
                 <q-input outlined dense debounce="300" v-model="filtro" placeholder="buscar">
                   <template v-slot:append>
@@ -117,6 +118,9 @@
                 </tr>
               </template>
             </q-table>
+            <!--            <pre>-->
+            <!--              {{ clientes }}-->
+            <!--            </pre>-->
             <!--
           <q-markup-table flat bordered dense wrap-cells class="bg-primary text-white cursor-pointer" >
             <thead>
@@ -192,6 +196,7 @@ export default {
   },
   data() {
     return {
+      tipoProducto: 'NORMAL',
       styleGeoJSON: (feature) => ({
         color: feature.properties.color || 'red', // Usa el color de las propiedades o transparente
         weight: 2,
@@ -410,6 +415,7 @@ export default {
           }
         ]
       },
+      url:process.env.API,
       geojsonData3: {
         "type": "FeatureCollection",
         "features": [
@@ -562,8 +568,8 @@ export default {
     // Función que se ejecuta cuando el mouse pasa sobre un polígono
     generarPdf() {
       // :href="`${url}reportePedido/${fecha1}`" target="_blank"
-      const url = `${this.url}reportePedido/${this.fecha}`
-      window.open(url, '_blank')
+      const urlapi = `${this.url}reportePedido/${this.fecha}`
+      window.open(urlapi, '_blank')
     },
     getVehiculo() {
       this.$api.post("listVehiculo").then((res) => {
@@ -580,7 +586,10 @@ export default {
       this.vendedores = [];
       const setVendedores = new Set();
       this.usuario = []
-      this.$api.post("mapClientes", {fecha: this.fecha}).then((res) => {
+      this.$api.post("mapClientes", {
+        fecha: this.fecha,
+        tipo: this.tipoProducto,
+      }).then((res) => {
         console.log(res.data)
         let numero = 1
         res.data.forEach(r => {
