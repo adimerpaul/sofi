@@ -1,14 +1,21 @@
 <template>
 <q-page class="q-pa-xs">
 <div class="row">
-  <div class="col-2 q-pa-xs">
+  <div class="col-12 col-md-2 q-pa-xs">
     <q-input dense outlined v-model="fecha1" label="Fecha Ini" type="date" @update:model-value="mispendiente"/>
   </div>
-  <div class="col-2 q-pa-xs">
-    <q-btn dense color="green" label="Buscar" @click="mispendiente" no-caps icon="search"/>
+  <div class="col-12 col-md-2 q-pa-xs">
+    <q-btn :loading="loading" dense color="green" label="Buscar" @click="mispendiente" no-caps icon="search"/>
   </div>
-  <div class="col-8 q-pa-xs text-right">
-    <q-btn dense color="positive"  label="Descargar"  icon="picture_as_pdf" no-caps @click="generarPdf"/>
+  <div class="col-12 col-md-2 q-pa-xs">
+    <q-btn :loading="loading" dense color="orange" label="Actulizar Comandas" @click="clickventas" no-caps/>
+  </div>
+  <div class="col-12 col-md-2 q-pa-xs">
+    <q-btn :loading="loading" dense color="orange" label="Actulizar Productos" @click="clickcuentas" no-caps/>
+  </div>
+<!--  http://192.168.1.200:3000/ventas-->
+  <div class="col-12 col-md-2 q-pa-xs text-right">
+    <q-btn :loading="loading" dense color="positive"  label="Descargar"  icon="picture_as_pdf" no-caps @click="generarPdf"/>
   </div>
   <div class="col-12 q-pa-xs">
     <q-table :rows-per-page-options="[0]" dense title="Listado de pedidos " :columns="columns" :rows="clientes" :filter="filter" >
@@ -95,7 +102,8 @@ export default {
         {label:'Factura',name:'fact',field:'fact',align:'left'},
         {label:'Pedido por',name:'personal',field:'personal',align:'left', sortable: true},
       ],
-      fecha:date.formatDate(Date.now(),'YYYY-MM-DD')
+      fecha:date.formatDate(Date.now(),'YYYY-MM-DD'),
+      loading: false,
     }
   },
   created() {
@@ -120,6 +128,35 @@ export default {
       }else{
         this.clientes=this.clientesAll.filter(r=>r.pago=='CREDITO')
       }
+    },
+    async clickventas() {
+      this.loading = true
+      await fetch('http://192.168.1.200:3000/ventas')
+        .then(r => r.text())
+        .then(t => alert(t))
+        .finally(() => {
+          this.loading = false
+        }).catch(e => {
+          this.$q.notify({
+            color: 'negative',
+            message: 'Error al actualizar las comandas',
+            icon: 'report_problem'
+          })
+        });
+    },
+    async clickcuentas(){
+      await fetch('http://192.168.1.200:3000/cuentas')
+        .then(r => r.text())
+        .then(t => alert(t))
+        .finally(() => {
+          this.loading = false
+        }).catch(e => {
+          this.$q.notify({
+            color: 'negative',
+            message: 'Error al actualizar los productos',
+            icon: 'report_problem'
+          })
+        });
     },
     mispendiente(){
       this.$q.loading.show()
