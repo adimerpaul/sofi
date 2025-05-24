@@ -38,7 +38,6 @@
                   v-for="(pedido, i) in clientes"
                   :key="i"
                   :lat-lng="[parseFloat(pedido.Latitud), parseFloat(pedido.longitud)]"
-                  :ref="el => pedido.marker = el"
                   @click="toggleSeleccion(pedido)"
                 >
                   <l-tooltip
@@ -52,6 +51,7 @@
                       :color="pedido.selected ? 'red' : pedido.color"
                     >
                       {{ pedido.num }}
+<!--                      <pre>{{pedido}}</pre>-->
                     </q-badge>
                   </l-icon>
                 </l-marker>
@@ -61,16 +61,16 @@
             <br>
             <div class="col-12 col-md-12">
               <div class="row">
-                <div class="col-12 col-md-2">
-                  <q-select
-                    dense
-                    outlined
-                    v-model="auto"
-                    :options="vehiculos"
-                    option-label="placa"
-                    label="Camion Asignar"
-                  />
-                </div>
+<!--                <div class="col-12 col-md-2">-->
+<!--                  <q-select-->
+<!--                    dense-->
+<!--                    outlined-->
+<!--                    v-model="auto"-->
+<!--                    :options="vehiculos"-->
+<!--                    option-label="placa"-->
+<!--                    label="Camion Asignar"-->
+<!--                  />-->
+<!--                </div>-->
                 <div class="col-12 col-md-2">
                   <q-btn color="green" icon="local_shipping" @click="cambiar" no-caps label="Asignar"
                          :loading="loading"/>
@@ -78,6 +78,7 @@
                 <div class="col-12 col-md-2">
                   <q-btn color="info" icon="print" @click="generarPdf" label="Imprimir" no-caps :loading="loading"/>
                 </div>
+                <div class="col-12 col-md-2"></div>
                 <div class="col-12 col-md-2"></div>
                 <div class="col-12 col-md-2">
                   <q-select square outlined v-model="usuario" :options="vendedores" label="Vendedor" dense
@@ -175,6 +176,48 @@
         </q-card-actions>
       </q-card>
     </q-dialog>
+    <q-dialog v-model="dialgoCamion">
+      <q-card style="width: 300px">
+        <q-card-section class="row items-center">
+          <div class="text-h6">Asignar Camion</div>
+          <q-space/>
+          <q-btn flat icon="close" @click="dialgoCamion = false"/>
+        </q-card-section>
+        <q-card-section>
+          <q-form @submit.prevent="asignarCamion">
+          <q-select v-model="auto" :options="vehiculos" option-label="placa" label="Camion Asignar" dense outlined
+                    :rules="[val => !!val || 'Campo requerido']"
+          />
+          <q-select v-model="color" :options="colores" option-label="zona" label="Color Asignar" dense outlined
+                    :rules="[val => !!val || 'Campo requerido']">
+            <template v-slot:option="scope">
+              <q-item v-bind="scope.itemProps">
+                <q-item-section>
+                  <div :class="'text-center bg-'+scope.opt.color">
+                    {{ scope.opt.zona }}
+                  </div>
+                </q-item-section>
+              </q-item>
+            </template>
+            <template v-slot:selected-item="scope">
+<!--              <q-item v-bind="scope.itemProps">-->
+<!--                <q-item-section>-->
+                  <div :class="'text-center bg-'+scope.opt.color">
+                    {{ scope.opt.zona }}
+                  </div>
+<!--                </q-item-section>-->
+<!--              </q-item>-->
+            </template>
+          </q-select>
+          <q-card-actions align="right">
+            <q-btn flat label="Cancelar" color="primary" @click="dialgoCamion = false" :loading="loading"/>
+            <q-btn label="Asignar" color="primary"  type="submit" :loading="loading"/>
+          </q-card-actions>
+          </q-form>
+        </q-card-section>
+      </q-card>
+
+    </q-dialog>
 
   </q-page>
 </template>
@@ -196,6 +239,57 @@ export default {
   },
   data() {
     return {
+      color: '',
+      colores: [
+          {
+            "id": 1,
+            "zona": "A2 NORTE",
+            "color": "deep-orange-4",
+            "colorStyle": "background-color: #FF7043"
+          },
+          {
+            "id": 2,
+            "zona": "A4 BOLIVAR",
+            "color": "pink-4",
+            "colorStyle": "background-color: #F06292"
+          },
+          {
+            "id": 3,
+            "zona": "C1 SE RECOGE",
+            "color": "blue-grey-4",
+            "colorStyle": "background-color: #37474F"
+          },
+          {
+            "id": 4,
+            "zona": "A3 CENTRO",
+            "color": "yellow",
+            "colorStyle": "background-color: #F5EE17"
+          },
+          {
+            "id": 5,
+            "zona": "A5 APOYO",
+            "color": "green-4",
+            "colorStyle": "background-color: #1B5E20"
+          },
+          {
+            "id": 6,
+            "zona": "PROVINCIA",
+            "color": "deep-purple-4",
+            "colorStyle": "background-color: #9575CD"
+          },
+          {
+            "id": 7,
+            "zona": "A1 SUD",
+            "color": "blue-4",
+            "colorStyle": "background-color: #0D47A1"
+          },
+          {
+            "id": 8,
+            "zona": "SIN ZONA",
+            "color": "grey-6",
+            "colorStyle": "background-color: #757575"
+          }
+      ],
       tipoProducto: 'NORMAL',
       styleGeoJSON: (feature) => ({
         color: feature.properties.color || 'red', // Usa el color de las propiedades o transparente
@@ -224,6 +318,7 @@ export default {
         {label: 'ZONA', name: 'zona', field: 'territorio', sortable: true},
         {label: 'PLACA', name: 'placa', field: 'placa', sortable: true},
       ],
+      dialgoCamion: false,
       geojsonData: null,
       geojsonData5: {
         "type": "FeatureCollection",
@@ -506,6 +601,8 @@ export default {
     }
   },
   mounted() {
+    // ordernar zonas por zona
+    this.colores.sort((a, b) => a.zona.localeCompare(b.zona));
     this.geojsonData = this.geojsonData5;
     this.buscar();
     this.getVehiculo();
@@ -610,10 +707,9 @@ export default {
       });
     },
     toggleSeleccion(cliente) {
-      this.center = [cliente.Latitud, cliente.longitud];
-      this.zoom = 17;
+      // this.center = [cliente.Latitud, cliente.longitud];
+      // this.zoom = 17;
       cliente.selected = !cliente.selected;
-
       if (cliente.selected) {
         this.seleccionados.push(cliente);
       } else {
@@ -621,12 +717,12 @@ export default {
       }
 
       // Ocultar todos los tooltips
-      this.clientes.forEach(c => {
-        c.showTooltip = false;
-        if (c.marker && c.marker.leafletObject && c.marker.leafletObject.getTooltip()) {
-          c.marker.leafletObject.closeTooltip();
-        }
-      });
+      // this.clientes.forEach(c => {
+      //   c.showTooltip = false;
+      //   if (c.marker && c.marker.leafletObject && c.marker.leafletObject.getTooltip()) {
+      //     c.marker.leafletObject.closeTooltip();
+      //   }
+      // });
 
       this.$nextTick(() => {
         cliente.showTooltip = true;
@@ -636,17 +732,39 @@ export default {
         }
       });
     },
-    cambiar() {
+    asignarCamion() {
+      // this.dialgoCamion = false
       this.loading = true;
+      // console.log('fecha ' + this.fecha)
+      // console.log('vehiculo ' + this.auto.placa)
+      // console.log(this.seleccionados)
       this.$api.post("updaVehiPed", {
         fecha: this.fecha,
         placa: this.auto.placa,
-        listado: this.seleccionados
+        listado: this.seleccionados,
+        color: this.color
       }).then((res) => {
         this.seleccionados = []
         this.buscar()
-      })
-
+        this.dialgoCamion = false
+      }).finally(() => {
+        this.loading = false;
+      });
+    },
+    cambiar() {
+      this.dialgoCamion = true
+      // this.loading = true;
+      // console.log('fecha ' + this.fecha)
+      // console.log('vehiculo ' + this.auto.placa)
+      // console.log(this.seleccionados)
+      // this.$api.post("updaVehiPed", {
+      //   fecha: this.fecha,
+      //   placa: this.auto.placa,
+      //   listado: this.seleccionados
+      // }).then((res) => {
+      //   this.seleccionados = []
+      //   this.buscar()
+      // })
     }
   }
 };

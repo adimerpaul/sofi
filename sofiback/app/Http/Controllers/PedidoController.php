@@ -279,7 +279,7 @@ class PedidoController extends Controller
     function reportePedido(Request $request, $fecha)
     {
         $pedidos = Pedido::whereDate('fecha', $fecha)
-            ->select('NroPed', 'fecha', 'idCli', 'CIfunc', 'estado', 'fact', 'comentario', 'pago', 'placa', 'horario', 'comentario')
+            ->select('NroPed', 'fecha', 'idCli', 'CIfunc', 'estado', 'fact', 'comentario', 'pago', 'placa', 'horario', 'colorStyle')
             ->where('estado', 'ENVIADO')
             ->with(['cliente' => function ($query) {
                 $query->select('Cod_Aut', 'Nombres', 'Direccion', 'Telf', 'zona');
@@ -287,7 +287,7 @@ class PedidoController extends Controller
             ->with(['user' => function ($query) {
                 $query->select('CodAut', 'Nombre1', 'App1');
             }])
-            ->groupBy('NroPed', 'fecha', 'idCli', 'CIfunc', 'estado', 'fact', 'comentario', 'pago', 'placa', 'horario', 'comentario')
+            ->groupBy('NroPed', 'fecha', 'idCli', 'CIfunc', 'estado', 'fact', 'comentario', 'pago', 'placa', 'horario', 'colorStyle')
             ->orderBy('NroPed')
             ->where('tipo', 'NORMAL')
             ->get();
@@ -1298,13 +1298,13 @@ class PedidoController extends Controller
             p.idCli, c.Id, c.Nombres, c.Latitud, c.longitud, c.territorio,
             CONCAT(TRIM(e.Nombre1), ' ', TRIM(e.App1)) AS vendedor,
             p.placa,p.horario,
-            (SELECT v.color FROM vehiculo v WHERE v.placa = p.placa) AS color,
+            p.color,
             SUM(p.subtotal) AS importe
         FROM tbpedidos p
         INNER JOIN tbclientes c ON p.idCli = c.Cod_Aut
         INNER JOIN personal e ON p.CIfunc = e.CodAut
         WHERE DATE(p.fecha) = ? AND p.estado = 'ENVIADO' AND p.tipo = '$tipo'
-        GROUP BY p.idCli, c.Id, c.Nombres, c.Latitud, c.longitud, c.territorio, e.Nombre1, e.App1, p.placa,p.horario
+        GROUP BY p.idCli, c.Id, c.Nombres, c.Latitud, c.longitud, c.territorio, e.Nombre1, e.App1, p.placa,p.horario,p.color
     ", [$request->fecha]);
 //        $resultado = DB::select("
 //        SELECT
@@ -1344,6 +1344,7 @@ class PedidoController extends Controller
     public function updaVehiPed(Request $request)
     {
         // Validar los datos del request
+        $color = $request->color;
         $placa = $request->placa;
         $fecha = $request->fecha;
         $ids = array_map(function ($item) {
@@ -1356,9 +1357,11 @@ class PedidoController extends Controller
         // Realizar la consulta de una sola vez
         DB::statement("
         UPDATE tbpedidos p
-        SET p.placa = ?
+        SET p.placa = ?,
+            p.color = ?,
+            p.colorStyle = ?
         WHERE DATE(p.fecha) = ?
         AND TRIM(p.idCli) IN ('$idsString')
-    ", [$placa, $fecha]);
+    ", [$placa, $color['color'], $color['colorStyle'], $fecha]);
     }
 }
