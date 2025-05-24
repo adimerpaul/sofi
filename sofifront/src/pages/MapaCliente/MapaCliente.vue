@@ -106,7 +106,7 @@
                 <tr
                   :class=" props.row.selected?'bg-red':'bg-'+props.row.color"
                   style=" font-size:10px "
-                  @click="toggleSeleccion(props.row)"
+                  @click="toggleSeleccionZoom(props.row)"
                 >
                   <!--                  {{props.row.color}}-->
                   <td v-for="col in column" :key="col.name"
@@ -709,6 +709,32 @@ export default {
     toggleSeleccion(cliente) {
       // this.center = [cliente.Latitud, cliente.longitud];
       // this.zoom = 17;
+      cliente.selected = !cliente.selected;
+      if (cliente.selected) {
+        this.seleccionados.push(cliente);
+      } else {
+        this.seleccionados = this.seleccionados.filter((item) => item.Id !== cliente.Id);
+      }
+
+      // Ocultar todos los tooltips
+      // this.clientes.forEach(c => {
+      //   c.showTooltip = false;
+      //   if (c.marker && c.marker.leafletObject && c.marker.leafletObject.getTooltip()) {
+      //     c.marker.leafletObject.closeTooltip();
+      //   }
+      // });
+
+      this.$nextTick(() => {
+        cliente.showTooltip = true;
+
+        if (cliente.marker && cliente.marker.leafletObject) {
+          cliente.marker.leafletObject.openTooltip();
+        }
+      });
+    },
+    toggleSeleccionZoom(cliente) {
+      this.center = [cliente.Latitud, cliente.longitud];
+      this.zoom = 17;
       cliente.selected = !cliente.selected;
       if (cliente.selected) {
         this.seleccionados.push(cliente);
