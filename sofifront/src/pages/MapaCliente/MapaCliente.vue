@@ -17,7 +17,7 @@
           </div>
         </div>
         <div class="row">
-          <div :class="'q-pa-xs col-md-2 col-xs-4 bg-'+vih.color " v-for="vih in vehiculos" :key="vih"
+          <div class="q-pa-xs col-md-2 col-xs-4 " v-for="vih in vehiculos" :key="vih"
                style="font-size: 12px;"><b>{{ vih.placa == '' ? 'SIN ASIGNAR' : vih.placa }} :
             {{ calculo(vih.placa) }}</b></div>
           <br>
@@ -243,31 +243,31 @@ export default {
       colores: [
           {
             "id": 1,
-            "zona": "A2 NORTE",
+            "zona": "NORTE",
             "color": "deep-orange-4",
             "colorStyle": "background-color: #FF7043"
           },
           {
             "id": 2,
-            "zona": "A4 BOLIVAR",
+            "zona": "BOLIVAR",
             "color": "pink-4",
             "colorStyle": "background-color: #F06292"
           },
           {
             "id": 3,
-            "zona": "C1 SE RECOGE",
+            "zona": "SE RECOGE",
             "color": "blue-grey-4",
             "colorStyle": "background-color: #37474F"
           },
           {
             "id": 4,
-            "zona": "A3 CENTRO",
+            "zona": "CENTRO",
             "color": "yellow",
             "colorStyle": "background-color: #F5EE17"
           },
           {
             "id": 5,
-            "zona": "A5 APOYO",
+            "zona": "APOYO",
             "color": "green-4",
             "colorStyle": "background-color: #1B5E20"
           },
@@ -279,7 +279,7 @@ export default {
           },
           {
             "id": 7,
-            "zona": "A1 SUD",
+            "zona": "SUD",
             "color": "blue-4",
             "colorStyle": "background-color: #0D47A1"
           },
