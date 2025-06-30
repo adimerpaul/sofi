@@ -76,7 +76,28 @@
                          :loading="loading"/>
                 </div>
                 <div class="col-12 col-md-2">
-                  <q-btn color="info" icon="print" @click="generarPdf" label="Imprimir" no-caps :loading="loading"/>
+                  <q-btn-dropdown color="info" icon="print" label="Reportes" no-caps>
+                    <q-list>
+                      <q-item clickable @click="generarPdf" v-close-popup>
+                        <q-item-section avatar>
+                          <q-icon name="print"/>
+                        </q-item-section>
+                        <q-item-section>Imprimir Pedidos</q-item-section>
+                      </q-item>
+                      <q-item clickable @click="generarPdfZona" v-close-popup>
+                        <q-item-section avatar>
+                          <q-icon name="print"/>
+                        </q-item-section>
+                        <q-item-section>Imprimir Pedidos Por Zona</q-item-section>
+                      </q-item>
+                      <q-item clickable @click="generarPdfProductos" v-close-popup>
+                        <q-item-section avatar>
+                          <q-icon name="print" />
+                        </q-item-section>
+                        <q-item-section>Imprimir Productos Totales</q-item-section>
+                      </q-item>
+                    </q-list>
+                  </q-btn-dropdown>
                 </div>
                 <div class="col-12 col-md-2"></div>
                 <div class="col-12 col-md-2"></div>
@@ -303,7 +324,8 @@ export default {
       vehiculos: [],
       auto: {},
       zoom: 13,
-      fecha: moment().format("YYYY-MM-DD"),
+      // fecha: moment().format("YYYY-MM-DD"),
+      fecha: '2025-06-28',
       minimo: moment().subtract(1, 'days').format("YYYY-MM-DD"),
       loading: false,
       clientes: [],
@@ -662,10 +684,12 @@ export default {
       };
 
     },
-    // Función que se ejecuta cuando el mouse pasa sobre un polígono
     generarPdf() {
-      // :href="`${url}reportePedido/${fecha1}`" target="_blank"
       const urlapi = `${this.url}reportePedido/${this.fecha}`
+      window.open(urlapi, '_blank')
+    },
+    generarPdfZona() {
+      const urlapi = `${this.url}reportePedidoZona/${this.fecha}`
       window.open(urlapi, '_blank')
     },
     getVehiculo() {
