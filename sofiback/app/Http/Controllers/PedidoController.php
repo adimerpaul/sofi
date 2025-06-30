@@ -452,6 +452,63 @@ class PedidoController extends Controller
         ]);
         return $pdf->stream('document.pdf');
     }
+    function reportePedidoZona(Request $request, $fecha)
+    {
+        // Obtener pedidos con cliente, usuario y producto relacionados
+        $pedidos = Pedido::with([
+            'cliente:id,Cod_Aut,Nombres,Direccion,Telf,zona',
+            'user:CodAut,Nombre1,App1',
+            'producto:cod_prod,Producto'
+        ])
+            ->whereDate('fecha', $fecha)
+            ->where('estado', 'ENVIADO')
+            ->where('tipo', 'NORMAL')
+            ->select(
+                'NroPed', 'fecha', 'idCli', 'CIfunc', 'estado', 'fact',
+                'comentario', 'pago', 'placa', 'horario', 'colorStyle',
+                'cod_prod', 'precio', 'Cant', 'Canttxt', 'subtotal'
+            )
+            ->get();
+
+        // Agrupar por NroPed
+        $resPedido = $pedidos->groupBy('NroPed')->map(function ($items) {
+            $pedido = $items->first();
+            $productos = $items->map(function ($p) {
+                return [
+                    'Nroped'     => $p->NroPed,
+                    'cod_prod'   => $p->cod_prod,
+                    'producto'   => optional($p->producto)->Producto ?? '',
+                    'precio'     => $p->precio,
+                    'Cant'       => $p->Cant,
+                    'Canttxt'    => $p->Canttxt,
+                    'subtotal'   => $p->subtotal,
+                ];
+            });
+            return [
+                'pedido' => $pedido,
+                'productos' => $productos
+            ];
+        });
+
+        // Ordenar por zona del cliente
+        $resPedidoOrdenado = $resPedido->sortBy(function ($item) {
+            return $item['pedido']->cliente->zona ?? '';
+        })->values(); // Reindexa los resultados
+
+        // Marcar como impresos
+        Pedido::whereIn('NroPed', $resPedidoOrdenado->pluck('pedido.NroPed'))
+            ->where('impreso', 0)
+            ->update(['impreso' => 1]);
+
+        $vehiculos = DB::table('vehiculo')->get();
+
+        $pdf = PDF::loadView('pdf.reportePedido', [
+            'pedidos' => $resPedidoOrdenado,
+            'vehiculos' => $vehiculos
+        ]);
+
+        return $pdf->stream('document.pdf');
+    }
 
     public function index()
     {
