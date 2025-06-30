@@ -324,8 +324,8 @@ export default {
       vehiculos: [],
       auto: {},
       zoom: 13,
-      // fecha: moment().format("YYYY-MM-DD"),
-      fecha: '2025-06-28',
+      fecha: moment().format("YYYY-MM-DD"),
+      // fecha: '2025-06-28',
       minimo: moment().subtract(1, 'days').format("YYYY-MM-DD"),
       loading: false,
       clientes: [],
@@ -690,6 +690,10 @@ export default {
     },
     generarPdfZona() {
       const urlapi = `${this.url}reportePedidoZona/${this.fecha}`
+      window.open(urlapi, '_blank')
+    },
+    generarPdfProductos() {
+      const urlapi = `${this.url}reportePedidoProductos/${this.fecha}`
       window.open(urlapi, '_blank')
     },
     getVehiculo() {
