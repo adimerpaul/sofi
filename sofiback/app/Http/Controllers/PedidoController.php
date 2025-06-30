@@ -11,8 +11,37 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Barryvdh\DomPDF\Facade\Pdf;
 
-class PedidoController extends Controller
-{
+class PedidoController extends Controller{
+    public function reportePedidoProductos($fecha)
+    {
+        // Agrupar productos por código y sumar cantidades
+        $productos = Pedido::whereDate('fecha', $fecha)
+            ->where('estado', 'ENVIADO')
+            ->where('tipo', 'NORMAL')
+            ->select(
+                'cod_prod',
+                DB::raw('SUM(Cant) as total'),
+                DB::raw('MAX(canttxt) as Canttxt') // opcional
+            )
+            ->groupBy('cod_prod')
+            ->with(['producto:cod_prod,Producto']) // relación para obtener nombre
+            ->get()
+            ->map(function ($p) {
+                return [
+                    'codigo' => $p->cod_prod,
+                    'nombre' => optional($p->producto)->Producto ?? '',
+                    'total' => $p->total,
+                ];
+            })
+            ->sortByDesc('total')
+            ->values(); // ordenar de mayor a menor
+
+        $pdf = PDF::loadView('pdf.reporteProductosTotales', [
+            'productos' => $productos,
+            'fecha' => $fecha
+        ]);
+        return $pdf->stream('productos-totales.pdf');
+    }
     function habilitarpedido(Request $request)
     {
         $pedidos = Pedido::where('NroPed', $request->NroPed)->get();
