@@ -150,12 +150,18 @@
             <tbody>
             @foreach ($pedido['productos'] as $producto)
                 <tr>
-                    <td>{{ $producto->cod_prod }}</td>
-                    <td>{{ isset($producto->producto) ? $producto->producto->Producto : '' }}</td>
-                    <td>{{ $producto->Cant }}</td>
-                    <td>{{ $producto->Canttxt }}</td>
-                    <td>{{ $producto->precio }}</td>
-                    <td>{{ $producto->subtotal }}</td>
+{{--                    <td>{{ $producto->cod_prod }}</td>--}}
+{{--                    <td>{{ isset($producto->producto) ? $producto->producto->Producto : '' }}</td>--}}
+{{--                    <td>{{ $producto->Cant }}</td>--}}
+{{--                    <td>{{ $producto->Canttxt }}</td>--}}
+{{--                    <td>{{ $producto->precio }}</td>--}}
+{{--                    <td>{{ $producto->subtotal }}</td>--}}
+                    <td>{{ $producto['cod_prod'] }}</td>
+                    <td>{{ $producto['producto'] }}</td>
+                    <td>{{ $producto['Cant'] }}</td>
+                    <td>{{ $producto['Canttxt'] }}</td>
+                    <td>{{ $producto['precio'] }}</td>
+                    <td>{{ $producto['subtotal'] }}</td>
                 </tr>
             @endforeach
             </tbody>

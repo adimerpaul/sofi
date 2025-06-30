@@ -218,7 +218,7 @@ class PedidoController extends Controller
         ]);
     }
 
-    function reportePedidoOnly($id)
+    function reportePedidoOnly2($id)
     {
         $pedidos = Pedido::where('NroPed', $id)
             ->select('NroPed', 'fecha', 'idCli', 'CIfunc', 'estado', 'fact', 'comentario', 'pago', 'placa', 'horario', 'colorStyle')
@@ -275,8 +275,71 @@ class PedidoController extends Controller
         $pdf = PDF::loadView('pdf.reportePedido', $data);
         return $pdf->stream('document.pdf');
     }
+    function reportePedidoOnly($id)
+    {
+        // 1. Obtener todos los pedidos principales (cabecera)
+        $pedidos = Pedido::with([
+            'cliente:id,Cod_Aut,Nombres,Direccion,Telf,zona',
+            'user:CodAut,Nombre1,App1'
+        ])
+            ->where('NroPed', $id)
+            ->where('estado', 'ENVIADO')
+            ->where('tipo', 'NORMAL')
+            ->select(
+                'NroPed', 'fecha', 'idCli', 'CIfunc', 'estado', 'fact',
+                'comentario', 'pago', 'placa', 'horario', 'colorStyle'
+            )
+            ->orderBy('NroPed')
+            ->get();
 
-    function reportePedido(Request $request, $fecha)
+        // 2. Obtener todos los productos asociados
+        $productos = Pedido::with([
+            'producto:cod_prod,Producto'
+        ])
+            ->where('NroPed', $id)
+            ->where('tipo', 'NORMAL')
+            ->select('NroPed', 'cod_prod', 'precio', 'Cant', 'Canttxt', 'subtotal')
+            ->get();
+
+        // 3. Agrupar productos por NroPed
+        $productosPorPedido = $productos->groupBy('NroPed');
+
+        // 4. Construir el array final de pedidos con sus productos
+        $resPedido = $pedidos->map(function ($pedido) use ($productosPorPedido) {
+            $productos = $productosPorPedido->get($pedido->NroPed, collect())->map(function ($p) {
+                return [
+                    'Nroped'     => $p->NroPed,
+                    'cod_prod'   => $p->cod_prod,
+                    'producto'   => optional($p->producto)->Producto ?? '',
+                    'precio'     => $p->precio,
+                    'Cant'       => $p->Cant,
+                    'Canttxt'    => $p->Canttxt,
+                    'subtotal'   => $p->subtotal,
+                ];
+            });
+            return [
+                'pedido' => $pedido,
+                'productos' => $productos
+            ];
+        });
+
+        // 5. Marcar como impresos los pedidos
+        Pedido::whereIn('NroPed', $resPedido->pluck('pedido.NroPed'))
+            ->where('impreso', 0)
+            ->update(['impreso' => 1]);
+
+        // 6. Obtener vehículos
+        $vehiculos = DB::table('vehiculo')->get();
+
+        // 7. Generar PDF
+        $pdf = PDF::loadView('pdf.reportePedido', [
+            'pedidos' => $resPedido,
+            'vehiculos' => $vehiculos
+        ]);
+
+        return $pdf->stream('document.pdf');
+    }
+    function reportePedido2(Request $request, $fecha)
     {
         $pedidos = Pedido::whereDate('fecha', $fecha)
             ->select('NroPed', 'fecha', 'idCli', 'CIfunc', 'estado', 'fact', 'comentario', 'pago', 'placa', 'horario', 'colorStyle')
@@ -332,6 +395,61 @@ class PedidoController extends Controller
         ];
 //        return $data;
         $pdf = PDF::loadView('pdf.reportePedido', $data);
+        return $pdf->stream('document.pdf');
+    }
+    function reportePedido(Request $request, $fecha)
+    {
+        // Primero traer todos los pedidos con sus relaciones
+        $pedidos = Pedido::with([
+            'cliente:id,Cod_Aut,Nombres,Direccion,Telf,zona',
+            'user:CodAut,Nombre1,App1',
+//            'producto:cod_prod,Producto' // si tienes relación producto aquí
+        ])
+            ->whereDate('fecha', $fecha)
+            ->where('estado', 'ENVIADO')
+            ->where('tipo', 'NORMAL')
+            ->select(
+                'NroPed', 'fecha', 'idCli', 'CIfunc', 'estado', 'fact',
+                'comentario', 'pago', 'placa', 'horario', 'colorStyle',
+                'cod_prod', 'precio', 'Cant', 'Canttxt', 'subtotal'
+            )
+            ->orderBy('NroPed')
+            ->get();
+//        return $pedidos;
+
+        // Agrupar por NroPed
+        $resPedido = $pedidos->groupBy('NroPed')->map(function ($items) {
+            $pedido = $items->first();
+            $productos = $items->map(function ($p) {
+                return [
+                    'Nroped' => $p->NroPed,
+                    'cod_prod' => $p->cod_prod,
+                    'producto' => $p->producto->Producto ?? '',
+                    'precio' => $p->precio,
+                    'Cant' => $p->Cant,
+                    'Canttxt' => $p->Canttxt,
+                    'subtotal' => $p->subtotal,
+                ];
+            });
+            return [
+                'pedido' => $pedido,
+                'productos' => $productos
+            ];
+        })->values();
+
+//        return $resPedido;
+
+        // Actualizar solo los pedidos aún no impresos
+        Pedido::whereIn('NroPed', $resPedido->pluck('pedido.NroPed'))
+            ->where('impreso', 0)
+            ->update(['impreso' => 1]);
+
+        $vehiculos = DB::table('vehiculo')->get();
+
+        $pdf = PDF::loadView('pdf.reportePedido', [
+            'pedidos' => $resPedido,
+            'vehiculos' => $vehiculos
+        ]);
         return $pdf->stream('document.pdf');
     }
 
