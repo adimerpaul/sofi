@@ -4,8 +4,12 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
+use PhpOffice\PhpSpreadsheet\Style\Alignment;
+use PhpOffice\PhpSpreadsheet\Style\Font;
+use PhpOffice\PhpSpreadsheet\Style\Fill;
 
 class ExcelController extends Controller
 {
@@ -406,7 +410,7 @@ class ExcelController extends Controller
         //
     }
 
-    public function generarXlsPollo($fecha){
+    public function generarXlsPollo2($fecha){
             $preventistas = DB::select("SELECT pe.Nombre1,pe.App1,pe.CodAut from personal pe inner join tbpedidos p on pe.CodAut=p.CIfunc
             where date(p.fecha)='$fecha' and tipo='POLLO' group by pe.Nombre1,pe.App1,pe.CodAut");
 
@@ -453,5 +457,125 @@ class ExcelController extends Controller
 
     unlink($filename);
 
+    }
+    public function generarXlsPollo($fecha)
+    {
+        $vendedores = DB::select("
+        SELECT pe.CodAut, CONCAT(TRIM(pe.Nombre1), ' ', TRIM(pe.App1)) as nombre
+        FROM personal pe
+        JOIN tbpedidos p ON p.CIfunc = pe.CodAut
+        WHERE DATE(p.fecha) = ? AND p.tipo = 'POLLO' AND p.estado = 'ENVIADO'
+        GROUP BY pe.CodAut, pe.Nombre1, pe.App1
+        ORDER BY nombre ASC
+    ", [$fecha]);
+
+        $spreadsheet = new Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->setTitle("PEDIDOS DE POLLOS");
+
+        // Mostrar la FECHA en la parte superior
+        $sheet->mergeCells("A1:H1");
+        $sheet->setCellValue("A1", "FECHA DE PEDIDO: $fecha");
+        $sheet->getStyle("A1")->getFont()->setBold(true)->setSize(14);
+        $sheet->getStyle("A1")->getFont()->getColor()->setARGB('FF0000');
+        $sheet->getStyle("A1")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+
+        $fila = 3; // Comenzamos después de la fecha (fila 1) y espacio (fila 2)
+
+        foreach ($vendedores as $vendedor) {
+            $sheet->mergeCells("A{$fila}:H{$fila}");
+            $sheet->setCellValue("A{$fila}", strtoupper($vendedor->nombre));
+            $sheet->getStyle("A{$fila}")->getFont()->setBold(true)->getColor()->setARGB('FF0000');
+            $fila++;
+
+            $cabeceras = [
+                'No', 'CLIENTE', 'Brasa 5 cja.', 'Brasa 5 und', 'Brasa 6 cja.', 'Brasa 6 und',
+                '104 cja.', '104 und', '105 cja.', '105 und', '106 cja.', '106 und',
+                '107 cja.', '107 und', '108 cja.', '108 und', '109 cja.', '109 und',
+                'Rango', 'Ala', 'Cadera', 'Pecho', 'Pj/Mu', 'Filete', 'Cuello', 'Hueso', 'Menud',
+                'Bs.', 'Bs. 2', 'Ctdad', 'Observaciones', 'Fact'
+            ];
+
+            foreach ($cabeceras as $col => $titulo) {
+                $columna = Coordinate::stringFromColumnIndex(1 + $col); // A = 1
+                $sheet->setCellValue("{$columna}{$fila}", $titulo);
+                $sheet->getStyle("{$columna}{$fila}")->getFont()->setBold(true);
+                $sheet->getStyle("{$columna}{$fila}")->getFill()
+                    ->setFillType(Fill::FILL_SOLID)->getStartColor()->setARGB('FFDDDD');
+                $sheet->getColumnDimension($columna)->setAutoSize(true);
+            }
+
+            $fila++;
+
+            $pedidos = DB::select("
+            SELECT c.Nombres,
+                p.cbrasa5, p.ubrasa5, p.cbrasa6, p.cubrasa6,
+                p.c104, p.u104, p.c105, p.u105, p.c106, p.u106,
+                p.c107, p.u107, p.c108, p.u108, p.c109, p.u109,
+                p.rango,
+                p.ala, p.unidala,
+                p.cadera, p.unidcadera,
+                p.pecho, p.unidpecho,
+                p.pie, p.unidpie,
+                p.filete, p.unidfilete,
+                p.cuello, p.unidcuello,
+                p.hueso, p.unidhueso,
+                p.menu, p.unidmenu,
+                p.bs, p.bs2, p.pago, p.Observaciones, p.fact
+            FROM tbpedidos p
+            JOIN tbclientes c ON c.Cod_Aut = p.idCli
+            WHERE DATE(p.fecha) = ? AND p.tipo = 'POLLO' AND p.estado = 'ENVIADO' AND p.CIfunc = ?
+        ", [$fecha, $vendedor->CodAut]);
+
+            $num = 1;
+
+            foreach ($pedidos as $p) {
+                $sheet->setCellValue("A{$fila}", $num++);
+                $sheet->setCellValue("B{$fila}", $p->Nombres);
+                $sheet->setCellValue("C{$fila}", $p->cbrasa5);
+                $sheet->setCellValue("D{$fila}", $p->ubrasa5);
+                $sheet->setCellValue("E{$fila}", $p->cbrasa6);
+                $sheet->setCellValue("F{$fila}", $p->cubrasa6);
+                $sheet->setCellValue("G{$fila}", $p->c104);
+                $sheet->setCellValue("H{$fila}", $p->u104);
+                $sheet->setCellValue("I{$fila}", $p->c105);
+                $sheet->setCellValue("J{$fila}", $p->u105);
+                $sheet->setCellValue("K{$fila}", $p->c106);
+                $sheet->setCellValue("L{$fila}", $p->u106);
+                $sheet->setCellValue("M{$fila}", $p->c107);
+                $sheet->setCellValue("N{$fila}", $p->u107);
+                $sheet->setCellValue("O{$fila}", $p->c108);
+                $sheet->setCellValue("P{$fila}", $p->u108);
+                $sheet->setCellValue("Q{$fila}", $p->c109);
+                $sheet->setCellValue("R{$fila}", $p->u109);
+                $sheet->setCellValue("S{$fila}", $p->rango);
+                $sheet->setCellValue("T{$fila}", $p->ala ? "{$p->ala} {$p->unidala}" : '');
+                $sheet->setCellValue("U{$fila}", $p->cadera ? "{$p->cadera} {$p->unidcadera}" : '');
+                $sheet->setCellValue("V{$fila}", $p->pecho ? "{$p->pecho} {$p->unidpecho}" : '');
+                $sheet->setCellValue("W{$fila}", $p->pie ? "{$p->pie} {$p->unidpie}" : '');
+                $sheet->setCellValue("X{$fila}", $p->filete ? "{$p->filete} {$p->unidfilete}" : '');
+                $sheet->setCellValue("Y{$fila}", $p->cuello ? "{$p->cuello} {$p->unidcuello}" : '');
+                $sheet->setCellValue("Z{$fila}", $p->hueso ? "{$p->hueso} {$p->unidhueso}" : '');
+                $sheet->setCellValue("AA{$fila}", $p->menu ? "{$p->menu} {$p->unidmenu}" : '');
+                $sheet->setCellValue("AB{$fila}", $p->bs);
+                $sheet->setCellValue("AC{$fila}", $p->bs2);
+                $sheet->setCellValue("AD{$fila}", strtolower($p->pago) == 'contado' ? 'si' : 'no');
+                $sheet->setCellValue("AE{$fila}", $p->Observaciones);
+                $sheet->setCellValue("AF{$fila}", $p->fact);
+
+                $fila++;
+            }
+
+            $fila++; // Espacio entre vendedores
+        }
+
+        // Zoom general
+        $sheet->getSheetView()->setZoomScale(60);
+
+        $filename = 'PEDIDOS_POLLOS_' . date('Ymd_His') . '.xlsx';
+        $tempPath = storage_path($filename);
+        (new Xlsx($spreadsheet))->save($tempPath);
+
+        return response()->download($tempPath)->deleteFileAfterSend(true);
     }
 }
