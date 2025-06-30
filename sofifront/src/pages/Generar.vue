@@ -82,8 +82,8 @@ export default {
         {label: 'res', name: 'res', field: 'res', align: 'left'},
         {label: 'cerdo', name: 'cerdo', field: 'cerdo', align: 'left'},
       ],
-      // fecha:date.formatDate(new Date(),'YYYY-MM-DD'),
-      fecha: '2025-06-28',
+      fecha:date.formatDate(new Date(),'YYYY-MM-DD'),
+      // fecha: '2025-06-28',
       fecha1: date.formatDate(new Date(), 'YYYY-MM-DD'),
       fecha2: date.formatDate(new Date(), 'YYYY-MM-DD'),
     }

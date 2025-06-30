@@ -15,7 +15,29 @@
   </div>
 <!--  http://192.168.1.200:3000/ventas-->
   <div class="col-12 col-md-2 q-pa-xs text-right">
-    <q-btn :loading="loading" dense color="positive"  label="Descargar"  icon="picture_as_pdf" no-caps @click="generarPdf"/>
+<!--    <q-btn :loading="loading" dense color="positive"  label="Descargar"  icon="picture_as_pdf" no-caps @click="generarPdf"/>-->
+    <q-btn-dropdown color="info" icon="print" label="Reportes" no-caps>
+      <q-list>
+        <q-item clickable @click="generarPdf" v-close-popup>
+          <q-item-section avatar>
+            <q-icon name="print"/>
+          </q-item-section>
+          <q-item-section>Imprimir Pedidos</q-item-section>
+        </q-item>
+        <q-item clickable @click="generarPdfZona" v-close-popup>
+          <q-item-section avatar>
+            <q-icon name="print"/>
+          </q-item-section>
+          <q-item-section>Imprimir Pedidos Por Zona</q-item-section>
+        </q-item>
+        <q-item clickable @click="generarPdfProductos" v-close-popup>
+          <q-item-section avatar>
+            <q-icon name="print" />
+          </q-item-section>
+          <q-item-section>Imprimir Productos Totales</q-item-section>
+        </q-item>
+      </q-list>
+    </q-btn-dropdown>
   </div>
   <div class="col-12 q-pa-xs">
     <q-table :rows-per-page-options="[0]" dense title="Listado de pedidos " :columns="columns" :rows="clientes" :filter="filter" >
@@ -120,6 +142,14 @@ export default {
       const url = `${this.url}reportePedido/${this.fecha1}`
       window.open(url, '_blank')
       this.mispendiente()
+    },
+    generarPdfZona() {
+      const urlapi = `${this.url}reportePedidoZona/${this.fecha}`
+      window.open(urlapi, '_blank')
+    },
+    generarPdfProductos() {
+      const urlapi = `${this.url}reportePedidoProductos/${this.fecha}`
+      window.open(urlapi, '_blank')
     },
     filtrarPago(pago){
       console.log(pago)
