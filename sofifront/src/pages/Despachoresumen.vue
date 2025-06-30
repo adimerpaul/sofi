@@ -144,11 +144,11 @@ export default {
       this.mispendiente()
     },
     generarPdfZona() {
-      const urlapi = `${this.url}reportePedidoZona/${this.fecha}`
+      const urlapi = `${this.url}reportePedidoZona/${this.fecha1}`
       window.open(urlapi, '_blank')
     },
     generarPdfProductos() {
-      const urlapi = `${this.url}reportePedidoProductos/${this.fecha}`
+      const urlapi = `${this.url}reportePedidoProductos/${this.fecha1}`
       window.open(urlapi, '_blank')
     },
     filtrarPago(pago){
