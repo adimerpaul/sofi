@@ -77,28 +77,41 @@ class ExcelController extends Controller
      * @param  int  $id
      * @return \Illuminate\Http\Response
      */
-    public function show($fecha)
-    {
+    public function show($fecha){
+//        return DB::select("
+//        SELECT pe.Nombre1,pe.App1,pe.CodAut,
+//        (
+//        SELECT count(*)
+//        FROM tbpedidos p2
+//        WHERE date(p2.fecha)='".$fecha."' AND p2.CIfunc=pe.CodAut AND tipo='POLLO'
+//        ) as pollo,
+//        (
+//        SELECT count(*)
+//        FROM tbpedidos p2
+//        WHERE date(p2.fecha)='".$fecha."' AND p2.CIfunc=pe.CodAut AND tipo='RES'
+//        ) as res,
+//        (
+//        SELECT count(*)
+//        FROM tbpedidos p2
+//        WHERE date(p2.fecha)='".$fecha."' AND p2.CIfunc=pe.CodAut AND tipo='CERDO'
+//        ) as cerdo
+//        FROM tbpedidos p INNER JOIN personal pe ON pe.CodAut=p.CIfunc
+//        WHERE date(fecha)='".$fecha."' AND tipo IN ('POLLO','RES','CERDO')
+//        GROUP BY pe.Nombre1,pe.App1,pe.CodAut;");
         return DB::select("
-        SELECT pe.Nombre1,pe.App1,pe.CodAut,
-        (
-        SELECT count(*)
-        FROM tbpedidos p2
-        WHERE date(p2.fecha)='".$fecha."' AND p2.CIfunc=pe.CodAut AND tipo='POLLO'
-        ) as pollo,
-        (
-        SELECT count(*)
-        FROM tbpedidos p2
-        WHERE date(p2.fecha)='".$fecha."' AND p2.CIfunc=pe.CodAut AND tipo='RES'
-        ) as res,
-        (
-        SELECT count(*)
-        FROM tbpedidos p2
-        WHERE date(p2.fecha)='".$fecha."' AND p2.CIfunc=pe.CodAut AND tipo='CERDO'
-        ) as cerdo
-        FROM tbpedidos p INNER JOIN personal pe ON pe.CodAut=p.CIfunc
-        WHERE date(fecha)='".$fecha."' AND tipo IN ('POLLO','RES','CERDO')
-        GROUP BY pe.Nombre1,pe.App1,pe.CodAut;");
+        SELECT
+            pe.Nombre1,
+            pe.App1,
+            pe.CodAut,
+            SUM(CASE WHEN p.tipo = 'POLLO' THEN 1 ELSE 0 END) AS pollo,
+            SUM(CASE WHEN p.tipo = 'RES' THEN 1 ELSE 0 END) AS res,
+            SUM(CASE WHEN p.tipo = 'CERDO' THEN 1 ELSE 0 END) AS cerdo
+        FROM tbpedidos p
+        INNER JOIN personal pe ON pe.CodAut = p.CIfunc
+        WHERE DATE(p.fecha) = ?
+          AND p.tipo IN ('POLLO', 'RES', 'CERDO')
+        GROUP BY pe.Nombre1, pe.App1, pe.CodAut
+    ", [$fecha]);
     }
 
     public function consulta($t,$f1,$f2,$codaut)
@@ -405,10 +418,10 @@ class ExcelController extends Controller
         foreach ($preventistas as $value) {
             $sheet->setCellValue('F'.$c, trim($value->Nombre1).' '.trim($value->App1));
             $c++;
-            $pedidos=DB::select("SELECT c.Nombres,p.fact,p.pago,p.bs,p.bs2, CASE WHEN p.pago = 'CONTADO' THEN 'SI' ELSE 'NO' END as campo_pago 
+            $pedidos=DB::select("SELECT c.Nombres,p.fact,p.pago,p.bs,p.bs2, CASE WHEN p.pago = 'CONTADO' THEN 'SI' ELSE 'NO' END as campo_pago
             from tbpedidos p  INNER join tbclientes c on p.idCli=c.Cod_Aut
             where p.CIfunc=".$value->CodAut." and date(fecha)='$fecha' and tipo='POLLO' AND estado='ENVIADO' ");
-           
+
             foreach ($pedidos as $r){
         //                $t.=" ".$r->Nombres;git
                 $sheet->setCellValue('B'.$c, $r->fact);
