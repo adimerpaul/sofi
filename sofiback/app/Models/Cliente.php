@@ -61,4 +61,8 @@ class Cliente extends Model
         'ctasdias',
         'sexo',
     ];
+    public function pedidos()
+    {
+        return $this->hasMany(Pedido::class, 'idCli', 'Cod_Aut');
+    }
 }

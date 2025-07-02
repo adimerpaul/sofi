@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Cliente;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -214,9 +215,62 @@ class ClienteController extends Controller{
     }
 
 
-    public function listsinpedido(Request $request){
-        //return $request;
-        return DB::SELECT("SELECT * from tbclientes t where trim(t.CiVend)='".$request->user()->ci."' and t.Cod_Aut not in (select DISTINCT(p.idCli) from tbpedidos p where p.CIfunc='".$request->user()->CodAut."' and date(p.fecha)>='$request->ini' and date(p.fecha)<='$request->fin')");
+    public function listsinpedido(Request $request)
+    {
+        $ci = $request->user()->ci;
+        $codAut = $request->user()->CodAut;
+        $ini = $request->ini . ' 00:00:00';
+        $fin = $request->fin . ' 23:59:59';
+
+        return DB::select("
+        SELECT
+            c.*,
+            (SELECT MAX(p2.fecha)
+             FROM tbpedidos p2
+             WHERE p2.idCli = c.Cod_Aut AND p2.CIfunc = ?) as ultima_compra
+        FROM tbclientes c
+        LEFT JOIN tbpedidos p
+            ON p.idCli = c.Cod_Aut
+            AND p.CIfunc = ?
+            AND p.fecha BETWEEN ? AND ?
+        WHERE c.CiVend = ?
+          AND p.codAut IS NULL
+    ", [$codAut, $codAut, $ini, $fin, $ci]);
+    }
+    public function exportarSinPedido(Request $request)
+    {
+        $ci = $request->user()->ci;
+        $codAut = $request->user()->CodAut;
+        $ini = $request->ini . ' 00:00:00';
+        $fin = $request->fin . ' 23:59:59';
+
+        $clientes = DB::select("
+        SELECT
+            c.*,
+            (SELECT MAX(p2.fecha)
+             FROM tbpedidos p2
+             WHERE p2.idCli = c.Cod_Aut AND p2.CIfunc = ?) as ultima_compra
+        FROM tbclientes c
+        LEFT JOIN tbpedidos p
+            ON p.idCli = c.Cod_Aut
+            AND p.CIfunc = ?
+            AND p.fecha BETWEEN ? AND ?
+        WHERE c.CiVend = ?
+          AND p.codAut IS NULL
+    ", [$codAut, $codAut, $ini, $fin, $ci]);
+
+        $fechaActual = now()->format('d/m/Y H:i');
+        $usuario = $request->user();
+
+        $pdf = Pdf::loadView('pdf.sinpedido', [
+            'clientes' => $clientes,
+            'fecha' => $fechaActual,
+            'usuario' => $usuario,
+            'ini' => $request->ini,
+            'fin' => $request->fin,
+        ])->setPaper('A4', 'landscape');
+
+        return $pdf->download('clientes_sin_pedido.pdf');
     }
 
     public function todosclientes(Request $request)

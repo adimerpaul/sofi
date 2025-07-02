@@ -89,6 +89,8 @@ Route::group(['middleware'=>'auth:sanctum'],function (){
     Route::post('/me',[\App\Http\Controllers\UserController::class,'me']);
     Route::post('/logout',[\App\Http\Controllers\UserController::class,'logout']);
     Route::post('/listsinpedido',[\App\Http\Controllers\ClienteController::class,'listsinpedido']);
+    Route::post('/listsinpedido/exportar', [\App\Http\Controllers\ClienteController::class, 'exportarSinPedido']);
+
 
     Route::post('/reporteEmbutido',[\App\Http\Controllers\ExcelController::class,'reporteEmbutido']);
     Route::post('/reporteEmbutidoTodo',[\App\Http\Controllers\ExcelController::class,'reporteEmbutidoTodo']);
