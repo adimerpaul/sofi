@@ -45,4 +45,8 @@ class Producto extends Model{
         'codgruppasin',
         'credit',
     ];
+    public function stock()
+    {
+        return $this->hasMany(Stock::class, 'cod_prod', 'cod_prod');
+    }
 }

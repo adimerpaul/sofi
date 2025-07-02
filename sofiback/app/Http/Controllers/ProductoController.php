@@ -2,25 +2,25 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Producto;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
-class ProductoController extends Controller
-{
-    /**
-     * Display a listing of the resource.
-     *
-     * @return \Illuminate\Http\Response
-     */
-    public function index()
-    {
-        //return DB::select("SELECT cod_prod,Producto,Precio,codUnid,tipo,0 cantidad FROM `tbproductos` ");
-        /*return DB::select("SELECT p.cod_prod,p.Producto,p.Precio,p.codUnid,p.tipo,
-        (SUM(s.cant)-SUM(s.saldo)) cantidad
-        FROM tbproductos p
-        INNER JOIN tbstock s ON s.cod_prod=p.cod_prod
-        GROUP BY p.cod_prod,p.Producto,p.Precio,p.codUnid,p.tipo");*/
-        return DB::SELECT("SELECT p.cod_prod,p.Producto,p.Precio,p.codUnid,p.tipo, (select (SUM(s.cant)-SUM(s.saldo)) from tbstock s where s.cod_prod=p.cod_prod group by p.cod_prod) as cantidad from tbproductos p");
+class ProductoController extends Controller{
+    public function index(){
+//        return DB::SELECT("SELECT p.cod_prod,p.Producto,p.Precio,p.codUnid,p.tipo, (select (SUM(s.cant)-SUM(s.saldo)) from tbstock s where s.cod_prod=p.cod_prod group by p.cod_prod) as cantidad from tbproductos p");
+        $productos = Producto::select([
+            'cod_prod',
+            'Producto',
+            'Precio',
+            'codUnid',
+            'tipo',
+            DB::raw('(SELECT SUM(s.cant - s.saldo) FROM tbstock s WHERE s.cod_prod = tbproductos.cod_prod) as cantidad')
+        ])
+            ->orderByDesc('cantidad')
+            ->get();
+
+        return $productos;
     }
 
     public function listProducto(){
