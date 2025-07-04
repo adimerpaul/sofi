@@ -10,11 +10,16 @@
             <div class="col-3 flex flex-center">
               <q-btn color="info" icon="search" label="Consultar" type="submit" :loading="loading" :disable="loading"/>
             </div>
+              <div class="col-3 flex flex-center">
+                <q-btn color="green" label="Pollo preparacion" type="a" :href="url+'generarXlsPollo/'+fecha"
+                      target="_blank"
+                      icon="list" :loading="loading" :disable="loading"/>
+              </div>
             <div class="col-3 flex flex-center">
-              <q-btn color="green" label="Pollo preparacion" type="a" :href="url+'generarXlsPollo/'+fecha"
+              <q-btn color="teal" label="Cerdo preparacion" type="a" :href="url+'generarXlsCerdo/'+fecha"
                      target="_blank"
-                     icon="list" :loading="loading" :disable="loading"/>
-            </div>
+                     icon="list" :loading="loading" :disable="loading"/>  
+                   </div>
           </div>
         </q-form>
       </div>

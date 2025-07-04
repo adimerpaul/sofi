@@ -458,6 +458,60 @@ class ExcelController extends Controller
     unlink($filename);
 
     }
+
+        public function generarXlsCerdo($fecha){
+            $preventistas = DB::select("SELECT pe.Nombre1,pe.App1,pe.CodAut from personal pe inner join tbpedidos p on pe.CodAut=p.CIfunc
+            where date(p.fecha)='$fecha' and tipo='CERDO' group by pe.Nombre1,pe.App1,pe.CodAut");
+
+        $spreadsheet = \PhpOffice\PhpSpreadsheet\IOFactory::load('prepcerdo.xlsx');
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->setCellValue('J3', $fecha);
+
+        $c=6;
+        foreach ($preventistas as $value) {
+            $sheet->setCellValue('B'.$c, trim($value->Nombre1).' '.trim($value->App1));
+            $c++;
+            $pedidos=DB::select("SELECT c.Nombres,p.fact,p.pago,p.total,p.entero,p.desmembre,p.corte,p.kilo,p.Observaciones, CASE WHEN p.pago = 'CONTADO' THEN 'SI' ELSE 'NO' END as campo_pago
+            from tbpedidos p  INNER join tbclientes c on p.idCli=c.Cod_Aut
+            where p.CIfunc=".$value->CodAut." and date(fecha)='$fecha' and tipo='CERDO' AND estado='ENVIADO' ");
+
+            foreach ($pedidos as $r){
+        //                $t.=" ".$r->Nombres;git
+                $sheet->setCellValue('B'.$c, $r->Nombres);
+                $sheet->setCellValue('D'.$c, $r->total);
+                $sheet->setCellValue('E'.$c, $r->entero);
+                $sheet->setCellValue('F'.$c, $r->desmembre);
+                $sheet->setCellValue('H'.$c, $r->corte);
+                $sheet->setCellValue('I'.$c, $r->kilo);
+                $sheet->setCellValue('J'.$c, $r->Observaciones);
+                $sheet->setCellValue('U'.$c, $r->campo_pago);
+                $sheet->setCellValue('V'.$c, $r->fact);
+                $c++;
+            # code...
+
+        }
+    }
+    $date = date('d-m-y-'.substr((string)microtime(), 1, 8));
+    $date = str_replace(".", "", $date);
+    $filename = "Frial_Cerdo_".$date.".xlsx";
+    $filePath = __DIR__ . DIRECTORY_SEPARATOR . $filename; //make sure you set the right permissions and change this to the path you want
+    try {
+        $writer = new Xlsx($spreadsheet);
+        $writer->save($filename);
+        $content = file_get_contents($filename);
+    } catch(Exception $e) {
+        exit($e->getMessage());
+    }
+
+    header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    header('Content-Disposition: attachment; filename="' . urlencode($filename) .'"' );
+
+    echo $content;  // this actually send the file content to the browser
+
+    unlink($filename);
+
+    }
+
     public function generarXlsPollo($fecha)
     {
         $vendedores = DB::select("
