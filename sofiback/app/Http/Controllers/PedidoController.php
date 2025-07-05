@@ -1496,37 +1496,54 @@ class PedidoController extends Controller{
     }
 
     public function mapClientes(Request $request){
-        $tipo = $request->tipo;
-        $resultado = DB::select("
-        SELECT
-            p.idCli, c.Id, c.Nombres, c.Latitud, c.longitud, c.territorio,
-            CONCAT(TRIM(e.Nombre1), ' ', TRIM(e.App1)) AS vendedor,
-            p.placa,p.horario,
-            p.color,
-            SUM(p.subtotal) AS importe
-        FROM tbpedidos p
-        INNER JOIN tbclientes c ON p.idCli = c.Cod_Aut
-        INNER JOIN personal e ON p.CIfunc = e.CodAut
-        WHERE DATE(p.fecha) = ? AND p.estado = 'ENVIADO' AND p.tipo = '$tipo'
-        GROUP BY p.idCli, c.Id, c.Nombres, c.Latitud, c.longitud, c.territorio, e.Nombre1, e.App1, p.placa,p.horario,p.color
-    ", [$request->fecha]);
+//        $tipo = $request->tipo;
 //        $resultado = DB::select("
 //        SELECT
 //            p.idCli, c.Id, c.Nombres, c.Latitud, c.longitud, c.territorio,
 //            CONCAT(TRIM(e.Nombre1), ' ', TRIM(e.App1)) AS vendedor,
 //            p.placa,p.horario,
-//            (SELECT v.color FROM vehiculo v WHERE v.placa = p.placa) AS color,
-//            SUM(p.subtotal) AS importe,
-//            p.tipo
+//            p.color,
+//            SUM(p.subtotal) AS importe
 //        FROM tbpedidos p
 //        INNER JOIN tbclientes c ON p.idCli = c.Cod_Aut
 //        INNER JOIN personal e ON p.CIfunc = e.CodAut
-//        WHERE DATE(p.fecha) = ? AND p.estado = 'ENVIADO'
-//        GROUP BY p.idCli, c.Id, c.Nombres, c.Latitud, c.longitud, c.territorio, e.Nombre1, e.App1, p.placa,p.horario,p.tipo
+//        WHERE DATE(p.fecha) = ? AND p.estado = 'ENVIADO' AND p.tipo = '$tipo'
+//        GROUP BY p.idCli, c.Id, c.Nombres, c.Latitud, c.longitud, c.territorio, e.Nombre1, e.App1, p.placa,p.horario,p.color
 //    ", [$request->fecha]);
+        $tipo = $request->tipo;
+        $fecha = $request->fecha;
 
-        // Devuelve el resultado como JSON o úsalo en tu vista
-        return response()->json($resultado);
+        $resultados = Pedido::with(['cliente', 'user'])
+            ->selectRaw('
+            idCli,
+            placa,
+            horario,
+            color,
+            SUM(subtotal) as importe
+        ')
+            ->whereDate('fecha', $fecha)
+            ->where('estado', 'ENVIADO')
+            ->where('tipo', $tipo)
+            ->groupBy('idCli', 'placa', 'horario', 'color')
+            ->get()
+            ->map(function ($pedido) {
+                return [
+                    'idCli'       => $pedido->idCli,
+                    'Id'          => $pedido->cliente->Id ?? '',
+                    'Nombres'     => $pedido->cliente->Nombres ?? '',
+                    'Direccion'   => $pedido->cliente->Direccion ?? '',
+                    'Latitud'     => $pedido->cliente->Latitud ?? '',
+                    'longitud'    => $pedido->cliente->longitud ?? '',
+                    'territorio'  => $pedido->cliente->territorio ?? '',
+                    'vendedor'    => trim(($pedido->user->name ?? '')),
+                    'placa'       => $pedido->placa,
+                    'horario'     => $pedido->horario,
+                    'color'       => $pedido->color,
+                    'importe'     => $pedido->importe,
+                ];
+            });
+
+        return response()->json($resultados);
     }
 
     public function detallePedMap(Request $request)

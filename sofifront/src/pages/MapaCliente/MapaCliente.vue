@@ -1,35 +1,63 @@
 <template>
-  <q-page class="bg-grey-3 q-pa-xs">
+  <q-page class="bg-grey-3 q-pa-none">
     <q-card flat bordered>
-      <q-card-section>
-        <div class="row">
-          <div class="col-xs-12 col-md-6 q-pa-xs">
-            <q-input v-model="fecha" label="Fecha" type="date" dense outlined @update:model-value="buscar"/>
-          </div>
-          <div class="col-xs-2 col-md-2 q-pa-xs">
-            <q-btn color="purple" label="5" @click="loadGeoJson(5)" :loading="loading"/>
-          </div>
-          <div class="col-xs-2 col-md-2 q-pa-xs">
-            <q-btn color="green" label="4" @click="loadGeoJson(4)" :loading="loading"/>
-          </div>
-          <div class="col-xs-2 col-md-2 q-pa-xs">
-            <q-btn color="orange" label="3" @click="loadGeoJson(3)" :loading="loading"/>
-          </div>
-        </div>
-        <div class="row">
-          <div class="q-pa-xs col-md-2 col-xs-4 " v-for="vih in vehiculos" :key="vih"
-               style="font-size: 12px;"><b>{{ vih.placa == '' ? 'SIN ASIGNAR' : vih.placa }} :
-            {{ calculo(vih.placa) }}</b></div>
-          <br>
-        </div>
+      <q-card-section class="q-pa-none">
+<!--        <div class="row">-->
+<!--          <div class="col-xs-12 col-md-2 q-pa-xs">-->
+<!--            <q-input v-model="fecha" label="Fecha" type="date" dense outlined @update:model-value="buscar"/>-->
+<!--          </div>-->
+<!--          <div class="col-xs-12 col-md-2 q-pa-xs">-->
+<!--            <q-btn color="info" icon="search" label="Consultar" @click="buscar" :loading="loading" no-caps size="md"/>-->
+<!--          </div>-->
+<!--          <div class="col-xs-2 col-md-2 q-pa-xs">-->
+<!--            <q-btn color="purple" label="5" @click="loadGeoJson(5)" :loading="loading"/>-->
+<!--          </div>-->
+<!--          <div class="col-xs-2 col-md-2 q-pa-xs">-->
+<!--            <q-btn color="green" label="4" @click="loadGeoJson(4)" :loading="loading"/>-->
+<!--          </div>-->
+<!--          <div class="col-xs-2 col-md-2 q-pa-xs">-->
+<!--            <q-btn color="orange" label="3" @click="loadGeoJson(3)" :loading="loading"/>-->
+<!--          </div>-->
+<!--        </div>-->
+<!--        <div class="row">-->
+<!--          <div class="q-pa-xs col-md-2 col-xs-4 " v-for="vih in vehiculos" :key="vih"-->
+<!--               style="font-size: 12px;"><b>{{ vih.placa == '' ? 'SIN ASIGNAR' : vih.placa }} :-->
+<!--            {{ calculo(vih.placa) }}</b></div>-->
+<!--          <br>-->
+<!--        </div>-->
         <div class="row">
           <div class="col-xs-12 col-md-12">
-            <div style="height: 500px; width: 100%;">
+            <div style="height: 450px; width: 100%;">
               <l-map
                 v-model="zoom"
                 :zoom="zoom"
                 :center="center"
               >
+                <div class="overlay-menu">
+                  <div class="row" style="width: 100%; margin: 0; padding: 0;">
+                    <div class="col-xs-12 col-md-2 q-pa-xs">
+                      <q-input v-model="fecha" label="Fecha" type="date" dense outlined @update:model-value="buscar"/>
+                    </div>
+<!--                    <div class="col-xs-12 col-md-2 q-pa-xs">-->
+<!--                      <q-btn color="info" icon="search" label="Consultar" @click="buscar" :loading="loading" no-caps size="md"/>-->
+<!--                    </div>-->
+                    <div class="col-xs-2 col-md-2 q-pa-xs">
+                      <q-btn color="purple" label="5" @click="loadGeoJson(5)" :loading="loading"/>
+                    </div>
+                    <div class="col-xs-2 col-md-2 q-pa-xs">
+                      <q-btn color="green" label="4" @click="loadGeoJson(4)" :loading="loading"/>
+                    </div>
+                    <div class="col-xs-2 col-md-2 q-pa-xs">
+                      <q-btn color="orange" label="3" @click="loadGeoJson(3)" :loading="loading"/>
+                    </div>
+                  </div>
+                  <div class="row">
+                    <div class="q-pa-xs col-md-2 col-xs-4 " v-for="vih in vehiculos" :key="vih"
+                         style="font-size: 12px;"><b>{{ vih.placa == '' ? 'SIN ASIGNAR' : vih.placa }} :
+                      {{ calculo(vih.placa) }}</b></div>
+                    <br>
+                  </div>
+                </div>
                 <LTileLayer
                   url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                 ></LTileLayer>
@@ -51,7 +79,7 @@
                       :color="pedido.selected ? 'red' : pedido.color"
                     >
                       {{ pedido.num }}
-<!--                      <pre>{{pedido}}</pre>-->
+                      <!--                      <pre>{{pedido}}</pre>-->
                     </q-badge>
                   </l-icon>
                 </l-marker>
@@ -61,16 +89,16 @@
             <br>
             <div class="col-12 col-md-12">
               <div class="row">
-<!--                <div class="col-12 col-md-2">-->
-<!--                  <q-select-->
-<!--                    dense-->
-<!--                    outlined-->
-<!--                    v-model="auto"-->
-<!--                    :options="vehiculos"-->
-<!--                    option-label="placa"-->
-<!--                    label="Camion Asignar"-->
-<!--                  />-->
-<!--                </div>-->
+                <!--                <div class="col-12 col-md-2">-->
+                <!--                  <q-select-->
+                <!--                    dense-->
+                <!--                    outlined-->
+                <!--                    v-model="auto"-->
+                <!--                    :options="vehiculos"-->
+                <!--                    option-label="placa"-->
+                <!--                    label="Camion Asignar"-->
+                <!--                  />-->
+                <!--                </div>-->
                 <div class="col-12 col-md-2">
                   <q-btn color="green" icon="local_shipping" @click="cambiar" no-caps label="Asignar"
                          :loading="loading"/>
@@ -92,7 +120,7 @@
                       </q-item>
                       <q-item clickable @click="generarPdfProductos" v-close-popup>
                         <q-item-section avatar>
-                          <q-icon name="print" />
+                          <q-icon name="print"/>
                         </q-item-section>
                         <q-item-section>Imprimir Productos Totales</q-item-section>
                       </q-item>
@@ -206,34 +234,34 @@
         </q-card-section>
         <q-card-section>
           <q-form @submit.prevent="asignarCamion">
-          <q-select v-model="auto" :options="vehiculos" option-label="placa" label="Camion Asignar" dense outlined
-                    :rules="[val => !!val || 'Campo requerido']"
-          />
-          <q-select v-model="color" :options="colores" option-label="zona" label="Color Asignar" dense outlined
-                    :rules="[val => !!val || 'Campo requerido']">
-            <template v-slot:option="scope">
-              <q-item v-bind="scope.itemProps">
-                <q-item-section>
-                  <div :class="'text-center bg-'+scope.opt.color">
-                    {{ scope.opt.zona }}
-                  </div>
-                </q-item-section>
-              </q-item>
-            </template>
-            <template v-slot:selected-item="scope">
-<!--              <q-item v-bind="scope.itemProps">-->
-<!--                <q-item-section>-->
-                  <div :class="'text-center bg-'+scope.opt.color">
-                    {{ scope.opt.zona }}
-                  </div>
-<!--                </q-item-section>-->
-<!--              </q-item>-->
-            </template>
-          </q-select>
-          <q-card-actions align="right">
-            <q-btn flat label="Cancelar" color="primary" @click="dialgoCamion = false" :loading="loading"/>
-            <q-btn label="Asignar" color="primary"  type="submit" :loading="loading"/>
-          </q-card-actions>
+            <q-select v-model="auto" :options="vehiculos" option-label="placa" label="Camion Asignar" dense outlined
+                      :rules="[val => !!val || 'Campo requerido']"
+            />
+            <q-select v-model="color" :options="colores" option-label="zona" label="Color Asignar" dense outlined
+                      :rules="[val => !!val || 'Campo requerido']">
+              <template v-slot:option="scope">
+                <q-item v-bind="scope.itemProps">
+                  <q-item-section>
+                    <div :class="'text-center bg-'+scope.opt.color">
+                      {{ scope.opt.zona }}
+                    </div>
+                  </q-item-section>
+                </q-item>
+              </template>
+              <template v-slot:selected-item="scope">
+                <!--              <q-item v-bind="scope.itemProps">-->
+                <!--                <q-item-section>-->
+                <div :class="'text-center bg-'+scope.opt.color">
+                  {{ scope.opt.zona }}
+                </div>
+                <!--                </q-item-section>-->
+                <!--              </q-item>-->
+              </template>
+            </q-select>
+            <q-card-actions align="right">
+              <q-btn flat label="Cancelar" color="primary" @click="dialgoCamion = false" :loading="loading"/>
+              <q-btn label="Asignar" color="primary" type="submit" :loading="loading"/>
+            </q-card-actions>
           </q-form>
         </q-card-section>
       </q-card>
@@ -262,54 +290,54 @@ export default {
     return {
       color: '',
       colores: [
-          {
-            "id": 1,
-            "zona": "NORTE",
-            "color": "deep-orange-4",
-            "colorStyle": "background-color: #FF7043"
-          },
-          {
-            "id": 2,
-            "zona": "BOLIVAR",
-            "color": "pink-4",
-            "colorStyle": "background-color: #F06292"
-          },
-          {
-            "id": 3,
-            "zona": "SE RECOGE",
-            "color": "blue-grey-4",
-            "colorStyle": "background-color: #37474F"
-          },
-          {
-            "id": 4,
-            "zona": "CENTRO",
-            "color": "yellow",
-            "colorStyle": "background-color: #F5EE17"
-          },
-          {
-            "id": 5,
-            "zona": "APOYO",
-            "color": "green-4",
-            "colorStyle": "background-color: #1B5E20"
-          },
-          {
-            "id": 6,
-            "zona": "PROVINCIA",
-            "color": "deep-purple-4",
-            "colorStyle": "background-color: #9575CD"
-          },
-          {
-            "id": 7,
-            "zona": "SUD",
-            "color": "blue-4",
-            "colorStyle": "background-color: #0D47A1"
-          },
-          {
-            "id": 8,
-            "zona": "SIN ZONA",
-            "color": "grey-6",
-            "colorStyle": "background-color: #757575"
-          }
+        {
+          "id": 1,
+          "zona": "NORTE",
+          "color": "deep-orange-4",
+          "colorStyle": "background-color: #FF7043"
+        },
+        {
+          "id": 2,
+          "zona": "BOLIVAR",
+          "color": "pink-4",
+          "colorStyle": "background-color: #F06292"
+        },
+        {
+          "id": 3,
+          "zona": "SE RECOGE",
+          "color": "blue-grey-4",
+          "colorStyle": "background-color: #37474F"
+        },
+        {
+          "id": 4,
+          "zona": "CENTRO",
+          "color": "yellow",
+          "colorStyle": "background-color: #F5EE17"
+        },
+        {
+          "id": 5,
+          "zona": "APOYO",
+          "color": "green-4",
+          "colorStyle": "background-color: #1B5E20"
+        },
+        {
+          "id": 6,
+          "zona": "PROVINCIA",
+          "color": "deep-purple-4",
+          "colorStyle": "background-color: #9575CD"
+        },
+        {
+          "id": 7,
+          "zona": "SUD",
+          "color": "blue-4",
+          "colorStyle": "background-color: #0D47A1"
+        },
+        {
+          "id": 8,
+          "zona": "SIN ZONA",
+          "color": "grey-6",
+          "colorStyle": "background-color: #757575"
+        }
       ],
       tipoProducto: 'NORMAL',
       styleGeoJSON: (feature) => ({
@@ -335,6 +363,8 @@ export default {
         {label: 'N', name: 'id', field: 'num', sortable: true, align: 'center'},
         {label: 'CINIT', name: 'id', field: 'Id', sortable: true, align: 'center'},
         {label: 'CLIENTE', name: 'nombre', field: 'Nombres', sortable: true, align: 'left'},
+        {label: 'DIRECCION', name: 'direccion', field: 'Direccion', sortable: true, align: 'left'},
+        {label: 'IMPORTE', name: 'importe', field: 'importe', sortable: true, align: 'right'},
         {label: 'HORARIO', name: 'horario', field: 'horario', sortable: true, align: 'left'},
         {label: 'VENDEDOR', name: 'vendedor', field: 'vendedor', sortable: true},
         {label: 'ZONA', name: 'zona', field: 'territorio', sortable: true},
@@ -532,7 +562,7 @@ export default {
           }
         ]
       },
-      url:process.env.API,
+      url: process.env.API,
       geojsonData3: {
         "type": "FeatureCollection",
         "features": [
@@ -823,3 +853,16 @@ export default {
   }
 };
 </script>
+<style scoped>
+.overlay-menu {
+  position: absolute;
+  top: 10px;         /* más separación del borde superior */
+  left: 50px;        /* más separación del borde izquierdo */
+  z-index: 1000;
+  background-color: white;
+  padding: 0;   /* padding interno más cómodo */
+  border-radius: 10px;  /* bordes más redondeados */
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2); /* sombra más suave */
+  width: 90%; /* ancho completo del contenedor */
+}
+</style>
