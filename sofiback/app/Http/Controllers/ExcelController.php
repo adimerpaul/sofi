@@ -410,7 +410,7 @@ class ExcelController extends Controller
         //
     }
 
-    public function generarXlsPollo2($fecha){
+    public function generarXlsPollo($fecha){
             $preventistas = DB::select("SELECT pe.Nombre1,pe.App1,pe.CodAut from personal pe inner join tbpedidos p on pe.CodAut=p.CIfunc
             where date(p.fecha)='$fecha' and tipo='POLLO' group by pe.Nombre1,pe.App1,pe.CodAut");
 
@@ -512,7 +512,7 @@ class ExcelController extends Controller
 
     }
 
-    public function generarXlsPollo($fecha)
+    public function generarXlsPollo3($fecha)
     {
         $vendedores = DB::select("
         SELECT pe.CodAut, CONCAT(TRIM(pe.Nombre1), ' ', TRIM(pe.App1)) as nombre
