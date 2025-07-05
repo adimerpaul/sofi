@@ -488,16 +488,17 @@ class PedidoController extends Controller{
         $pedidos = Pedido::with([
             'cliente:id,Cod_Aut,Nombres,Direccion,Telf,zona',
             'user:CodAut,Nombre1,App1',
-            'producto:cod_prod,Producto'
         ])
+            ->leftJoin('tbproductos as prod', DB::raw('TRIM(tbpedidos.cod_prod)'), '=', DB::raw('TRIM(prod.cod_prod)'))
             ->whereDate('fecha', $fecha)
-            ->where('estado', 'ENVIADO')
-            ->where('tipo', 'NORMAL')
-            ->where('placa',$placa)
+            ->where('tbpedidos.estado', 'ENVIADO')
+            ->where('tbpedidos.tipo', 'NORMAL')
+            ->where('tbpedidos.placa', $placa)
             ->select(
-                'NroPed', 'fecha', 'idCli', 'CIfunc', 'estado', 'fact',
-                'comentario', 'pago', 'placa', 'horario', 'colorStyle',
-                'cod_prod', 'precio', 'Cant', 'Canttxt', 'subtotal'
+                'tbpedidos.NroPed', 'tbpedidos.fecha', 'tbpedidos.idCli', 'tbpedidos.CIfunc', 'tbpedidos.estado',
+                'tbpedidos.fact', 'tbpedidos.comentario', 'tbpedidos.pago', 'tbpedidos.placa', 'tbpedidos.horario',
+                'tbpedidos.colorStyle', 'tbpedidos.cod_prod', 'prod.Producto as producto', 'tbpedidos.precio',
+                'tbpedidos.Cant', 'tbpedidos.Canttxt', 'tbpedidos.subtotal'
             )
             ->get();
 
@@ -508,7 +509,7 @@ class PedidoController extends Controller{
                 return [
                     'Nroped'     => $p->NroPed,
                     'cod_prod'   => $p->cod_prod,
-                    'producto'   => optional($p->producto)->Producto ?? '',
+                    'producto' => $p->producto ?? '',
                     'precio'     => $p->precio,
                     'Cant'       => $p->Cant,
                     'Canttxt'    => $p->Canttxt,
