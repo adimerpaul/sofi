@@ -134,30 +134,29 @@ class MisvisitasController extends Controller
 
     public function pedidoVenta(Request $request)
     {
-        
+
         return DB::select("SELECT estado,COUNT(*) cantidad
-        FROM misvisitas 
-        WHERE date(fecha)='".$request->fecha."' AND personal_id='".$request->user()->CodAut."' 
+        FROM misvisitas
+        WHERE date(fecha)='".$request->fecha."' AND personal_id='".$request->user()->CodAut."'
         GROUP BY estado ORDER BY estado");
     }
 
     public function reportEntregVend(Request $request){
         $resul=[];
-        $list= DB::SELECT("SELECT e.hora,e.placa,p.CINIT,c.Id,c.Nombres,p.comanda, 
+        $list= DB::SELECT("SELECT e.hora,e.placa,p.CINIT,c.Id,c.Nombres,p.comanda,
             (select e.estado from entregas e where e.cliente_id=c.Cod_Aut and e.fechaEntreg='$request->fecha' order by e.estado asc limit 1 ) estado
-             FROM tbctascobrar p INNER JOIN tbclientes c ON c.Id=p.CINIT 
-             left join entregas e on e.comanda=p.comanda 
-        WHERE date(p.FechaEntreg)='$request->fecha' and p.CIFunc='".$request->user()->ci."' 
-        GROUP BY e.hora,e.placa,c.Cod_Aut,p.CINIT,c.Id,c.Nombres,p.comanda 
-        ORDER BY 
-    CASE 
+             FROM tbctascobrar p INNER JOIN tbclientes c ON c.Id=p.CINIT
+             left join entregas e on e.comanda=p.comanda
+        WHERE date(p.FechaEntreg)='$request->fecha' and p.CIFunc='".$request->user()->ci."'
+        GROUP BY e.hora,e.placa,c.Cod_Aut,p.CINIT,c.Id,c.Nombres,p.comanda
+        ORDER BY
+    CASE
         WHEN e.hora IS NULL OR e.hora = '' THEN 1
         ELSE 0
-    END, 
+    END,
     e.hora ASC;");
 
         foreach ($list as $r) {
-            # code...
             $prod=DB::SELECT("SELECT p.cod_prod,p.Producto,v.PVentUnit,v.cant,v.Monto from tbventas v inner join tbproductos p on v.cod_pro=p.cod_prod
             where v.Comanda=".$r->comanda);
             $r->detalle=$prod;
