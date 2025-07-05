@@ -146,6 +146,6 @@ Route::group(['middleware'=>'auth:sanctum'],function (){
 Route::get('/generarXlsPollo/{fecha}',[\App\Http\Controllers\ExcelController::class,'generarXlsPollo']);
 Route::get('/generarXlsCerdo/{fecha}',[\App\Http\Controllers\ExcelController::class,'generarXlsCerdo']);
 Route::get('/reportePedido/{fecha}',[\App\Http\Controllers\PedidoController::class,'reportePedido']);
-Route::get('/reportePedidoZona/{fecha}',[\App\Http\Controllers\PedidoController::class,'reportePedidoZona']);
+Route::get('/reportePedidoZona/{fecha}/{placa}',[\App\Http\Controllers\PedidoController::class,'reportePedidoZona']);
 Route::get('/reportePedidoProductos/{fecha}', [\App\Http\Controllers\PedidoController::class,'reportePedidoProductos']);
 Route::get('/reportePedidoOnly/{id}',[\App\Http\Controllers\PedidoController::class,'reportePedidoOnly']);

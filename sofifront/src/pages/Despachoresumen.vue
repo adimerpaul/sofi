@@ -7,12 +7,16 @@
   <div class="col-12 col-md-2 q-pa-xs">
     <q-btn :loading="loading" dense color="green" label="Buscar" @click="mispendiente" no-caps icon="search"/>
   </div>
+    <div class="col-12 col-md-2 q-pa-xs">
+    <q-select square outlined v-model="vehiculo" :options="vehiculos" option-label="placa" label="Vehiculo" dense/>
+  </div>
+  <!--
   <div class="col-12 col-md-2 q-pa-xs">
     <q-btn :loading="loading" dense color="orange" label="Actulizar Comandas" href="http://192.168.1.200:3000/ventas" target="_blank" no-caps/>
   </div>
   <div class="col-12 col-md-2 q-pa-xs">
     <q-btn :loading="loading" dense color="orange" label="Actulizar Productos" href="http://192.168.1.200:3000/cuentas" target="_blank" no-caps/>
-  </div>
+  </div>-->
 <!--  http://192.168.1.200:3000/ventas-->
   <div class="col-12 col-md-2 q-pa-xs text-right">
 <!--    <q-btn :loading="loading" dense color="positive"  label="Descargar"  icon="picture_as_pdf" no-caps @click="generarPdf"/>-->
@@ -106,6 +110,8 @@ import { jsPDF } from "jspdf";
 export default {
   data(){
     return{
+      vehiculos:[],
+      vehiculo:{},
       url:process.env.API,
       filter:'',
       pago:'',
@@ -129,9 +135,22 @@ export default {
     }
   },
   created() {
+    this.getVehiculos()
     this.mispendiente()
   },
   methods:{
+    getVehiculos() {
+      this.$api.post('listVehiculo').then(res => {
+        this.vehiculos = res.data
+        this.vehiculo=this.vehiculos[0]
+      }).catch(e => {
+        this.$q.notify({
+          color: 'negative',
+          message: 'Error al cargar los vehiculos',
+          icon: 'report_problem'
+        })
+      })
+    },
     generarPdfOnly(row){
       const url = `${this.url}reportePedidoOnly/${row.NroPed}`
       window.open(url, '_blank')
@@ -144,7 +163,7 @@ export default {
       this.mispendiente()
     },
     generarPdfZona() {
-      const urlapi = `${this.url}reportePedidoZona/${this.fecha1}`
+      const urlapi = `${this.url}reportePedidoZona/${this.fecha1}/${this.vehiculo.placa}`
       window.open(urlapi, '_blank')
     },
     generarPdfProductos() {
