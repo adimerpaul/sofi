@@ -481,7 +481,7 @@ class PedidoController extends Controller{
         ]);
         return $pdf->stream('document.pdf');
     }
-    function reportePedidoZona(Request $request, $fecha)
+    function reportePedidoZona(Request $request, $fecha,$placa)
     {
         // Obtener pedidos con cliente, usuario y producto relacionados
         $pedidos = Pedido::with([
@@ -492,6 +492,7 @@ class PedidoController extends Controller{
             ->whereDate('fecha', $fecha)
             ->where('estado', 'ENVIADO')
             ->where('tipo', 'NORMAL')
+            ->where('placa',$placa)
             ->select(
                 'NroPed', 'fecha', 'idCli', 'CIfunc', 'estado', 'fact',
                 'comentario', 'pago', 'placa', 'horario', 'colorStyle',
