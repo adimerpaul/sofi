@@ -428,6 +428,7 @@ class PedidoController extends Controller{
     }
     function reportePedido(Request $request, $fecha)
     {
+        return '';
         // Primero traer todos los pedidos con sus relaciones
         $pedidos = Pedido::with([
             'cliente:id,Cod_Aut,Nombres,Direccion,Telf,zona',
@@ -1533,8 +1534,8 @@ class PedidoController extends Controller{
                     'Id'          => $pedido->cliente->Id ?? '',
                     'Nombres'     => $pedido->cliente->Nombres ?? '',
                     'Direccion'   => $pedido->cliente->Direccion ?? '',
-                    'Latitud'     => $pedido->cliente->Latitud ?? '',
-                    'longitud'    => $pedido->cliente->longitud ?? '',
+                    'Latitud'     => str_replace(' ', '', str_replace(',', '.', $pedido->cliente->Latitud ?? '')),
+                    'longitud'    => str_replace(' ', '', str_replace(',', '.', $pedido->cliente->longitud ?? '')),
                     'territorio'  => $pedido->cliente->territorio ?? '',
                     'vendedor'    => trim(($pedido->user->name ?? '')),
                     'placa'       => $pedido->placa,

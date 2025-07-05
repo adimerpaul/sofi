@@ -84,10 +84,10 @@
                   </l-icon>
                 </l-marker>
               </l-map>
-              <!--              <pre>{{ clientes }}</pre>-->
             </div>
             <br>
             <div class="col-12 col-md-12">
+<!--              <pre>{{ clientes }}</pre>-->
               <div class="row">
                 <!--                <div class="col-12 col-md-2">-->
                 <!--                  <q-select-->
@@ -106,13 +106,13 @@
                 <div class="col-12 col-md-2">
                   <q-btn-dropdown color="info" icon="print" label="Reportes" no-caps>
                     <q-list>
-                      <q-item clickable @click="generarPdf" v-close-popup>
-                        <q-item-section avatar>
-                          <q-icon name="print"/>
-                        </q-item-section>
-                        <q-item-section>Imprimir Pedidos</q-item-section>
-                      </q-item>
-                      <q-item clickable @click="generarPdfZona" v-close-popup>
+<!--                      <q-item clickable @click="generarPdf" v-close-popup>-->
+<!--                        <q-item-section avatar>-->
+<!--                          <q-icon name="print"/>-->
+<!--                        </q-item-section>-->
+<!--                        <q-item-section>Imprimir Pedidos</q-item-section>-->
+<!--                      </q-item>-->
+                      <q-item clickable @click="dialogVehiculo = true" v-close-popup>
                         <q-item-section avatar>
                           <q-icon name="print"/>
                         </q-item-section>
@@ -265,9 +265,23 @@
           </q-form>
         </q-card-section>
       </q-card>
-
     </q-dialog>
+    <q-dialog v-model="dialogVehiculo" persistent>
+      <q-card>
+        <q-card-section class="text-h6">
+          Seleccionar Vehículo
+        </q-card-section>
 
+        <q-card-section>
+          <q-select v-model="vehiculoSeleccionado" :options="vehiculos" option-label="placa" label="Vehículo" outlined dense />
+        </q-card-section>
+
+        <q-card-actions align="right">
+          <q-btn flat label="Cancelar" color="negative" v-close-popup />
+          <q-btn flat label="Aceptar" color="primary" @click="confirmarReporteZona" />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
   </q-page>
 </template>
 
@@ -288,6 +302,8 @@ export default {
   },
   data() {
     return {
+      dialogVehiculo: false,
+      vehiculoSeleccionado: null,
       color: '',
       colores: [
         {
@@ -661,6 +677,19 @@ export default {
   },
 
   methods: {
+    confirmarReporteZona() {
+      if (!this.vehiculoSeleccionado || !this.vehiculoSeleccionado.placa) {
+        this.$q.notify({
+          type: 'warning',
+          message: 'Debe seleccionar un vehículo'
+        });
+        return;
+      }
+
+      const urlapi = `${this.url}reportePedidoZona/${this.fecha}/${this.vehiculoSeleccionado.placa}`;
+      window.open(urlapi, '_blank');
+      this.dialogVehiculo = false;
+    },
     filtrarClientes() {
       if (this.usuario == 'TODOS') {
         this.clientes = this.filtercliente;
