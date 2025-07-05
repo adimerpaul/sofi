@@ -1,5 +1,5 @@
 <template>
-  <q-layout view="lHh Lpr lFf">
+  <q-layout view="lhr Lpr lfr" style="min-height: 0">
     <q-header>
       <q-toolbar>
         <q-btn flat dense round icon="menu" aria-label="Menu" @click="toggleLeftDrawer"/>
@@ -9,7 +9,7 @@
             {{ $filters.capitalize($store.getters['login/user'].Nombre1 + ' ' + $store.getters['login/user'].App1) }}
           </template>
           <q-chip dense class="bg-orange text-black">
-            {{ 'v10.9.26' }}
+            {{ 'v10.9.27' }}
           </q-chip>
         </q-toolbar-title>
         <!--        <div>Quasar v{{ $q.version }}</div>-->
@@ -436,7 +436,7 @@
     </q-drawer>
 
     <q-page-container>
-      <router-view/>
+      <router-view style="min-height: 0"/>
     </q-page-container>
   </q-layout>
 </template>

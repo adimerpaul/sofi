@@ -30,10 +30,24 @@
           row-key="comanda"
           dense
           wrap-cells
+          :filter="filterCliente"
           :rows-per-page-options="[0]"
           flat
           bordered
         >
+<!--          tamplet body top-->
+          <template v-slot:top-right>
+            <q-input
+              v-model="filterCliente"
+              label="Filtrar por cliente"
+              dense
+              outlined
+            >
+              <template v-slot:append>
+                <q-icon name="search" class="cursor-pointer" />
+              </template>
+            </q-input>
+          </template>
           <template v-slot:body="props">
             <q-tr
               :props="props"
@@ -105,6 +119,7 @@ export default {
         fin: date.formatDate(new Date(), 'YYYY-MM-DD')
       },
       user: '',
+      filterCliente: '',
       pedido: 0,
       retorno: 0,
       nopedido: 0,
