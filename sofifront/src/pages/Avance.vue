@@ -37,6 +37,15 @@
         >
 <!--          tamplet body top-->
           <template v-slot:top-right>
+<!--            btn actulizar-->
+            <q-btn
+              color="primary"
+              icon="refresh"
+              no-caps
+              label="Actualizar"
+              @click="generar"
+              :loading="loading"
+              dense/>
             <q-input
               v-model="filterCliente"
               label="Filtrar por cliente"
@@ -119,6 +128,7 @@ export default {
         fin: date.formatDate(new Date(), 'YYYY-MM-DD')
       },
       user: '',
+      loading: false,
       filterCliente: '',
       pedido: 0,
       retorno: 0,
@@ -171,7 +181,8 @@ export default {
       this.pedido = 0;
       this.retorno = 0;
       this.nopedido = 0;
-      this.$q.loading.show();
+      // this.$q.loading.show();
+      this.loading = true
       this.$api.post('pedidoVenta', { fecha: this.fecha }).then(res => {
         if (res.data.length > 0) {
           res.data.forEach(r => {
@@ -180,7 +191,9 @@ export default {
             if (r.estado === 'NO PEDIDO') this.nopedido = r.cantidad;
           });
         }
-        this.$q.loading.hide();
+        // this.$q.loading.hide();
+      }).finally(() => {
+        this.loading = false;
       });
     },
     entregas() {
