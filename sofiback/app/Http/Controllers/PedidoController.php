@@ -428,7 +428,7 @@ class PedidoController extends Controller{
     }
     function reportePedido(Request $request, $fecha)
     {
-        return '';
+//        return '';
         // Primero traer todos los pedidos con sus relaciones
         $pedidos = Pedido::with([
             'cliente:id,Cod_Aut,Nombres,Direccion,Telf,zona',

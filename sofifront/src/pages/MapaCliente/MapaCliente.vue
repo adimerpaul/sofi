@@ -106,12 +106,12 @@
                 <div class="col-12 col-md-2">
                   <q-btn-dropdown color="info" icon="print" label="Reportes" no-caps>
                     <q-list>
-<!--                      <q-item clickable @click="generarPdf" v-close-popup>-->
-<!--                        <q-item-section avatar>-->
-<!--                          <q-icon name="print"/>-->
-<!--                        </q-item-section>-->
-<!--                        <q-item-section>Imprimir Pedidos</q-item-section>-->
-<!--                      </q-item>-->
+                      <q-item clickable @click="generarPdf" v-close-popup>
+                        <q-item-section avatar>
+                          <q-icon name="print"/>
+                        </q-item-section>
+                        <q-item-section>Imprimir Pedidos</q-item-section>
+                      </q-item>
                       <q-item clickable @click="dialogVehiculo = true" v-close-popup>
                         <q-item-section avatar>
                           <q-icon name="print"/>
