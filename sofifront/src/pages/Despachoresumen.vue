@@ -22,12 +22,12 @@
         <!--    <q-btn :loading="loading" dense color="positive"  label="Descargar"  icon="picture_as_pdf" no-caps @click="generarPdf"/>-->
         <q-btn-dropdown color="info" icon="print" label="Reportes" no-caps>
           <q-list>
-            <!--        <q-item clickable @click="generarPdf" v-close-popup>-->
-            <!--          <q-item-section avatar>-->
-            <!--            <q-icon name="print"/>-->
-            <!--          </q-item-section>-->
-            <!--          <q-item-section>Imprimir Pedidos</q-item-section>-->
-            <!--        </q-item>-->
+                    <q-item clickable @click="generarPdf" v-close-popup>
+                      <q-item-section avatar>
+                        <q-icon name="print"/>
+                      </q-item-section>
+                      <q-item-section>Imprimir Pedidos</q-item-section>
+                    </q-item>
             <q-item clickable @click="dialogVehiculo = true" v-close-popup>
               <q-item-section avatar>
                 <q-icon name="print"/>
