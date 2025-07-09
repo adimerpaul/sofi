@@ -26,7 +26,7 @@ class Kernel extends ConsoleKernel
                 FROM tbctascobrar c WHERE c.CINIT=tbclientes.Id and c.Nrocierre=0 and Acuenta=0 and (c.Importe-(SELECT sum(c2.Acuenta) from tbctascobrar c2 where c2.comanda=c.comanda))>5 )>12000
             or (SELECT DATEDIFF( curdate(), (select min(c.FechaEntreg) from tbctascobrar c where c.CINIT =tbclientes.Id and c.Nrocierre=0 and Acuenta=0 and (c.Importe-(SELECT sum(c2.Acuenta) from tbctascobrar c2 where c2.comanda=c.comanda))>=5)))>9 )");
 
-        })->weekdays()->dailyAt(9,15,18);
+        })->weekdays()->at(['09:00','15:00','18:00']);
 
         $schedule->call(function () {
 
