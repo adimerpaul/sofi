@@ -775,6 +775,7 @@ export default {
         tipo: this.tipoProducto,
       }).then((res) => {
         console.log(res.data)
+        //return
         let numero = 1
         res.data.forEach(r => {
           r.num = numero

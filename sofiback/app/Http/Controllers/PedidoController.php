@@ -1516,8 +1516,9 @@ class PedidoController extends Controller{
         $tipo = $request->tipo;
         $fecha = $request->fecha;
 
-        $resultados = Pedido::with(['cliente', 'user'])
+        $resultados = Pedido::with('cliente', 'user')
             ->selectRaw('
+            CIfunc,
             idCli,
             placa,
             horario,
@@ -1527,8 +1528,9 @@ class PedidoController extends Controller{
             ->whereDate('fecha', $fecha)
             ->where('estado', 'ENVIADO')
             ->where('tipo', $tipo)
-            ->groupBy('idCli', 'placa', 'horario', 'color')
+            ->groupBy('idCli', 'placa', 'horario', 'color', 'CIfunc')
             ->get()
+            //return $resultados;
             ->map(function ($pedido) {
                 return [
                     'idCli'       => $pedido->idCli,
@@ -1538,7 +1540,7 @@ class PedidoController extends Controller{
                     'Latitud'     => str_replace(' ', '', str_replace(',', '.', $pedido->cliente->Latitud ?? '')),
                     'longitud'    => str_replace(' ', '', str_replace(',', '.', $pedido->cliente->longitud ?? '')),
                     'territorio'  => $pedido->cliente->territorio ?? '',
-                    'vendedor'    => trim(($pedido->user->name ?? '')),
+                    'vendedor'    => trim($pedido->user->Nombre1) . ' ' . trim($pedido->user->App1),
                     'placa'       => $pedido->placa,
                     'horario'     => $pedido->horario,
                     'color'       => $pedido->color,
