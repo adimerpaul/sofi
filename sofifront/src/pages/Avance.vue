@@ -22,6 +22,31 @@
         <div class="text-h3 text-bold text-red ">{{ nopedido }}</div>
       </div>
 
+       <div style="height: 350px; width: 100%;">
+    <l-map
+      @ready="onReady"
+      @locationfound="onLocationFound"
+      v-model="zoom"
+      :zoom="zoom"
+      :center="center"
+
+    >
+<!--      @click="ubicacion"-->
+      <l-tile-layer
+        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+      ></l-tile-layer>
+
+
+      <l-marker  v-for="c in clientes" :key="c.Cod_Aut" :lat-lng="[c.Latitud, c.longitud]"  >
+        <l-icon><q-badge  :class="c.tipo=='PEDIDO'?'bg-green-5  text-italic':c.tipo=='PARADO'?'bg-yellow-5  text-italic':c.tipo=='NO PEDIDO'?'bg-red-5 text-italic':''"  class="q-pa-none" color="info" >{{c.Cod_Aut}}</q-badge></l-icon>
+        <l-tooltip>{{c.Nombres}}</l-tooltip>
+      </l-marker>
+      <l-marker :lat-lng="center"  >
+      </l-marker>
+
+    </l-map>
+    </div>
+
       <div class="col-12">
         <q-table
           title="Listado de Entregas"
@@ -116,11 +141,38 @@
 
 <script>
 import { date } from "quasar";
-
+import {
+  LMap,
+  LIcon,
+  LTileLayer,
+  LMarker,
+  LControlLayers,
+  LTooltip,
+  LPopup,
+  LPolyline,
+  LPolygon,
+  LRectangle,
+} from "@vue-leaflet/vue-leaflet";
+import "leaflet/dist/leaflet.css";
 export default {
   name: 'avancePage',
+    components: {
+    LMap,
+    LIcon,
+    LTileLayer,
+    LMarker,
+    // LControlLayers,
+     LTooltip,
+    // LPopup,
+    // LPolyline,
+    // LPolygon,
+    // LRectangle,
+  },
   data() {
     return {
+      center:[-17.970371, -67.112303],
+      zoom: 16,
+      clientes: [],
       usuarios: [],
       fecha: date.formatDate(new Date(), 'YYYY-MM-DD'),
       fechareporte: {
@@ -171,11 +223,48 @@ export default {
     console.log(this.user);
     this.consulta();
     this.entregas();
+    this.listhoy()
   },
   methods: {
+        onLocationFound(location){
+      // console.log(location)
+      this.center=[location.latlng.lat,location.latlng.lng]
+    },
+        onReady (mapObject) {
+      mapObject.locate();
+    },
+      listhoy(){
+      // this.$q.loading.show()
+      this.loading=true
+      this.$api.post('filtrarlista',{filtradia:8}).then(res=>{
+         console.log(res.data)
+        this.clientes=[]
+        res.data.forEach(r=>{
+          let d=r
+          if (parseFloat(r.Latitud)!=NaN && parseFloat(r.longitud)!=NaN && r.Latitud!='' && r.longitud!='' ){
+            d.Latitud=parseFloat(r.Latitud)
+            d.longitud=parseFloat(r.longitud)
+          }else{
+            d.Latitud=0
+            d.longitud=0
+          }
+
+          this.clientes.push(d)
+        })
+      }).catch(err=>{
+        this.$q.notify({
+          message:err.response.data.message,
+          color:'red',
+          icon:'error'
+        })
+      }).finally(()=>{
+        this.loading=false
+      })
+    },
     generar() {
       this.consulta();
       this.entregas();
+      this.listhoy();
     },
     consulta() {
       this.pedido = 0;

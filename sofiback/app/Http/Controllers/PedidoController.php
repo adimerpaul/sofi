@@ -1590,4 +1590,21 @@ class PedidoController extends Controller{
         AND TRIM(p.idCli) IN ('$idsString')
     ", [$placa, $color['color'], $color['colorStyle'], $fecha]);
     }
-}
+
+    public function listPedidosByPersonal(Request $request)
+    {
+        $fecha = $request->fecha;
+        $user = $request->user();
+
+        //listar los clientes que han hecho pedidos en la fecha indicada user visitas por color si existe color pedido verde volver amarillo rojo rechazado
+        
+
+        $pedidos = DB::SELECT("SELECT p.NroPed,p.pago,p.fecha,p.fact,Cod_Aut,Id,Cod_ciudad,Cod_Nacio,cod_car,Nombres,Telf,Direccion,EstCiv,edad,Empresa,Categoria,Imp_pieza,CiVend,ListBlanck,MotivoListBlack,ListBlack,TipoPaciente,SupraCanal,Canal,subcanal,zona,Latitud,longitud,transporte,territorio,codcli,clinew,p.estado,pe.Nombre1,pe.App1
+        FROM tbpedidos p
+        inner join tbclientes c on c.Cod_Aut=p.idCli
+        inner join personal pe on p.CIfunc=pe.CodAut
+        where date(p.fecha)='$fecha'
+        GROUP by  p.NroPed,p.pago,p.fecha,p.fact,cod_Aut,Id,Cod_ciudad,Cod_Nacio,cod_car,Nombres,Telf,c.Direccion,EstCiv,edad,Empresa,Categoria,Imp_pieza,CiVend,ListBlanck,MotivoListBlack,ListBlack,TipoPaciente,SupraCanal,Canal,subcanal,zona,Latitud,longitud,transporte,territorio,codcli,clinew,p.estado,pe.Nombre1,pe.App1
+        order by pe.Nombre1,pe.App1");
+        }
+    }
