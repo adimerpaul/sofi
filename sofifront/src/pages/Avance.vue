@@ -5,7 +5,7 @@
       <div class="col-12 col-md-4">
         <q-input @change="consulta()" v-model="fecha" label="fecha" dense outlined type="date"/>
       </div>
-      <div class="col-6 col-md-6">
+      <div class="col-6 col-md-4">
         <q-select
           v-model="usuario"
           :options="usuarios"
@@ -15,8 +15,26 @@
           dense
           outlined
           @update:model-value="consulta"
+          v-if="user  == '7329688'"
         />
 <!--        <pre>{{usuarios}}</pre>-->
+<!--        <pre>{{usuario}}</pre>-->
+      </div>
+      <div class="col-6 col-md-2">
+        <q-select
+          v-model="tipo"
+          :options="[
+            'TODOS',
+            'PEDIDO',
+            'NO PEDIDO',
+            'PARADO',
+            'SIN VISITA'
+          ]"
+          label="Tipo de Visita"
+          dense
+          outlined
+          v-if="user  == '7329688'"
+        />
       </div>
       <div class="col-6 col-md-2">
         <q-btn
@@ -26,6 +44,7 @@
           label="Actualizar"
           @click="consulta"
           :loading="loading"
+          v-if="user  == '7329688'"
           dense/>
       </div>
 <!--      <div class="col-3 text-center q-pa-xs">-->
@@ -57,14 +76,20 @@
           <l-tile-layer
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           ></l-tile-layer>
-          <l-marker v-for="c in clientes" :key="c.Cod_Aut" :lat-lng="[c.Latitud, c.longitud]">
+          <l-marker v-for="c in clientesFiltrados" :key="c.Cod_Aut" :lat-lng="[c.Latitud, c.longitud]">
             <l-icon>
               <q-badge
-                :class="c.tipo=='PEDIDO'?'bg-green-5  text-italic':c.tipo=='PARADO'?'bg-yellow-5  text-italic':c.tipo=='NO PEDIDO'?'bg-red-5 text-italic':''"
-                class="q-pa-none" color="info">{{ c.Cod_Aut }}
+                :class="c.tipo == 'PEDIDO' ? 'bg-green-5 text-italic' : c.tipo == 'NO PEDIDO' ? 'bg-red-5 text-italic' : c.tipo == 'PARADO' ? 'bg-orange-5 text-italic' : 'bg-blue-5 text-italic'"
+                class="q-pa-none"
+              >
+                {{ c.Cod_Aut }}
               </q-badge>
             </l-icon>
-            <l-tooltip>{{ c.Nombres }}</l-tooltip>
+            <l-tooltip>
+              {{ c.Nombres }} <br>
+              <span v-if="c.tipo !== 'SIN VISITA'">Estado: {{ c.tipo }}</span>
+              <span v-else>No visitado</span>
+            </l-tooltip>
           </l-marker>
 <!--          <l-marker :lat-lng="center">-->
 <!--          </l-marker>-->
@@ -72,30 +97,20 @@
         </l-map>
       </div>
 
-      <div class="col-12">
+      <div class="col-12 q-mt-md">
         <q-table
-          title="Listado de Entregas"
-          :rows="pedidos"
-          :columns="colped"
-          row-key="comanda"
+          title="Listado de Clientes Visitados"
+          :rows="clientesFiltrados"
+          :columns="columns"
+          row-key="Cod_Aut"
           dense
           wrap-cells
-          :filter="filterCliente"
-          :rows-per-page-options="[0]"
           flat
           bordered
+          :rows-per-page-options="[0]"
+          :filter="filterCliente"
         >
-          <!--          tamplet body top-->
           <template v-slot:top-right>
-            <!--            btn actulizar-->
-            <q-btn
-              color="primary"
-              icon="refresh"
-              no-caps
-              label="Actualizar"
-              @click="consulta"
-              :loading="loading"
-              dense/>
             <q-input
               v-model="filterCliente"
               label="Filtrar por cliente"
@@ -107,62 +122,20 @@
               </template>
             </q-input>
           </template>
+
           <template v-slot:body="props">
             <q-tr
               :props="props"
-              :class="props.row.estado == 'ENTREGADO' ? 'bg-green' : props.row.estado == 'NO ENTREGADO' ? 'bg-amber' : props.row.estado == 'RECHAZADO' ? 'bg-red' : ''"
+              :class="props.row.tipo === 'PEDIDO' ? 'bg-green-2' :
+                props.row.tipo === 'NO PEDIDO' ? 'bg-red-2' :
+                props.row.tipo === 'PARADO' ? 'bg-orange-2' :
+                props.row.tipo === 'SIN VISITA' ? 'bg-blue-1' : ''"
             >
-              <q-td
-                v-for="col in props.cols"
-                :key="col.name"
-                :props="props"
-              >
-                {{ col.value }}
-              </q-td>
-              <q-td>
-                <q-btn-dropdown
-                  color="primary"
-                  size="sm"
-                  dense
-                  no-caps
-                  :label="expandedId === props.row.comanda ? 'Opciones' : 'Ver'"
-                  icon="menu"
-                  :menu-offset="[0, 10]"
-                >
-                  <q-list style="min-width: 150px">
-                    <q-item clickable v-close-popup @click="toggleExpand(props.row.comanda)">
-                      <q-item-section avatar>
-                        <q-icon :name="expandedId === props.row.comanda ? 'visibility_off' : 'visibility'"/>
-                      </q-item-section>
-                      <q-item-section>{{
-                          expandedId === props.row.comanda ? 'Ocultar Detalle' : 'Ver Detalle'
-                        }}
-                      </q-item-section>
-                    </q-item>
-                    <q-item clickable v-close-popup @click="descargarFactura(props.row.comanda)">
-                      <q-item-section avatar>
-                        <q-icon name="picture_as_pdf"/>
-                      </q-item-section>
-                      <q-item-section>Descargar PDF</q-item-section>
-                    </q-item>
-                  </q-list>
-                </q-btn-dropdown>
-              </q-td>
-            </q-tr>
-            <q-tr v-show="expandedId === props.row.comanda" :props="props">
-              <q-td colspan="100%">
-                <div class="text-left" v-for="(r, index) in props.row.detalle" :key="`${r.cod_prod}-${index}`">
-                  <b>Código:</b> {{ r.cod_prod }} &nbsp;
-                  <b>Producto:</b> {{ r.Producto }} &nbsp;
-                  <b>Cantidad:</b> {{ r.cant }}
-                </div>
-                <div class="text-right q-mt-sm">
-                  <q-separator/>
-                  <div class="text-bold">TOTAL DEL PEDIDO:
-                    {{ props.row.detalle.reduce((total, item) => total + parseFloat(item.cant), 0).toFixed(3) }}
-                  </div>
-                </div>
-              </q-td>
+              <q-td key="Cod_Aut">{{ props.row.Cod_Aut }}</q-td>
+              <q-td key="Nombres">{{ props.row.Nombres }}</q-td>
+              <q-td key="tipo">{{ props.row.tipo }}</q-td>
+              <q-td key="fecha">{{ props.row.visita ? props.row.visita.fecha : '—' }}</q-td>
+              <q-td key="observacion">{{ props.row.visita ? props.row.visita.observacion : '—' }}</q-td>
             </q-tr>
           </template>
         </q-table>
@@ -201,8 +174,22 @@ export default {
     // LPolygon,
     // LRectangle,
   },
+  computed: {
+    clientesFiltrados() {
+      return this.clientes
+        .filter(c => {
+          if (this.tipo === 'TODOS') return true;
+          return c.tipo === this.tipo;
+        })
+        .filter(c => {
+          if (!this.filterCliente) return true;
+          return (c.Nombres || '').toLowerCase().includes(this.filterCliente.toLowerCase());
+        });
+    }
+  },
   data() {
     return {
+      tipo: 'TODOS',
       center: [-17.970371, -67.112303],
       zoom: 12,
       clientes: [],
@@ -227,20 +214,11 @@ export default {
       pedidos: [],
       expandedId: null,
       columns: [
-        {
-          name: 'name',
-          label: 'CLIENTE',
-          align: 'left',
-          field: 'Nombres',
-          sortable: true
-        },
-        {
-          name: 'estado',
-          align: 'center',
-          label: 'ESTADO',
-          field: 'tipo',
-          sortable: true
-        }
+        { name: 'Cod_Aut', label: 'Código', field: 'Cod_Aut', align: 'left', sortable: true },
+        { name: 'Nombres', label: 'Cliente', field: 'Nombres', align: 'left', sortable: true },
+        { name: 'tipo', label: 'Estado Visita', field: 'tipo', align: 'left', sortable: true },
+        { name: 'fecha', label: 'Fecha Visita', field: row => row.visita?.fecha || '—', align: 'left' },
+        { name: 'observacion', label: 'Observación', field: row => row.visita?.observacion || '—', align: 'left' },
       ],
       colped: [
         {name: 'hora', label: 'hora', field: 'hora', sortable: true, align: 'left'},
@@ -318,20 +296,31 @@ export default {
       this.pedido = 0;
       this.retorno = 0;
       this.nopedido = 0;
-      // this.$q.loading.show();
-      this.loading = true
+      this.loading = true;
       this.$api.post('pedidoVenta', {
         fecha: this.fecha,
         usuario: this.usuario
       }).then(res => {
-        if (res.data.length > 0) {
-          res.data.forEach(r => {
-            if (r.estado === 'PEDIDO') this.pedido = r.cantidad;
-            if (r.estado === 'PARADO') this.retorno = r.cantidad;
-            if (r.estado === 'NO PEDIDO') this.nopedido = r.cantidad;
-          });
-        }
-        // this.$q.loading.hide();
+        this.clientes = res.data.map(item => {
+          const c = item.cliente;
+          c.visita = item.visita;
+          c.visitado = item.visitado;
+
+          // Colores por tipo de visita
+          if (!item.visitado) {
+            c.tipo = 'SIN VISITA';
+          } else {
+            c.tipo = item.visita.estado || 'SIN VISITA';
+          }
+
+          return c;
+        });
+      }).catch(err => {
+        this.$q.notify({
+          message: err.response?.data?.message || 'Error al obtener visitas',
+          color: 'red',
+          icon: 'error'
+        });
       }).finally(() => {
         this.loading = false;
       });

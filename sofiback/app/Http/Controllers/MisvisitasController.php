@@ -138,7 +138,10 @@ class MisvisitasController extends Controller
     {
         $user = $request->user();
         $usuario = $request->usuario;
-        $user = $usuario == null ? $user : User::where('ci', $usuario)->first();
+
+        $user = $usuario == null ? $user : User::where('CodAut', $usuario['CodAut'])->first();
+//        error_log(json_encode($user));
+//        error_log($user->ci);
 
         $fecha = $request->fecha; // se espera en formato 'Y-m-d'
 
