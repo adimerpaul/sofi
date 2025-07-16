@@ -2,50 +2,75 @@
   <q-page class="q-pa-xs">
     <div>LISTADO DE PEDIDOS CLIENTE</div>
     <div class="row">
-      <div class="col-12">
-        <q-input @change="generar()" v-model="fecha" label="fecha" dense outlined type="date"/>
+      <div class="col-12 col-md-4">
+        <q-input @change="consulta()" v-model="fecha" label="fecha" dense outlined type="date"/>
       </div>
-      <div class="col-3 text-center q-pa-xs">
-        <div class="text-subtitle2 text-bold">Totales</div>
-        <div class="text-h3 text-bold ">{{ pedido + retorno + nopedido }}</div>
+      <div class="col-6 col-md-6">
+        <q-select
+          v-model="usuario"
+          :options="usuarios"
+          option-label="nombre"
+          option-value="ci"
+          label="Usuario"
+          dense
+          outlined
+          @update:model-value="consulta"
+        />
+<!--        <pre>{{usuarios}}</pre>-->
       </div>
-      <div class="col-3 text-center q-pa-xs">
-        <div class="text-subtitle2 text-bold">Pedidos</div>
-        <div class="text-h3 text-bold text-green ">{{ pedido }}</div>
+      <div class="col-6 col-md-2">
+        <q-btn
+          color="primary"
+          icon="refresh"
+          no-caps
+          label="Actualizar"
+          @click="consulta"
+          :loading="loading"
+          dense/>
       </div>
-      <div class="col-3 text-center q-pa-xs">
-        <div class="text-subtitle2 text-bold">Retorno</div>
-        <div class="text-h3 text-bold text-yellow ">{{ retorno }}</div>
+<!--      <div class="col-3 text-center q-pa-xs">-->
+<!--        <div class="text-subtitle2 text-bold">Totales</div>-->
+<!--        <div class="text-h3 text-bold ">{{ pedido + retorno + nopedido }}</div>-->
+<!--      </div>-->
+<!--      <div class="col-3 text-center q-pa-xs">-->
+<!--        <div class="text-subtitle2 text-bold">Pedidos</div>-->
+<!--        <div class="text-h3 text-bold text-green ">{{ pedido }}</div>-->
+<!--      </div>-->
+<!--      <div class="col-3 text-center q-pa-xs">-->
+<!--        <div class="text-subtitle2 text-bold">Retorno</div>-->
+<!--        <div class="text-h3 text-bold text-yellow ">{{ retorno }}</div>-->
+<!--      </div>-->
+<!--      <div class="col-3 text-center q-pa-xs">-->
+<!--        <div class="text-subtitle2 text-bold">No pedidos</div>-->
+<!--        <div class="text-h3 text-bold text-red ">{{ nopedido }}</div>-->
+<!--      </div>-->
+
+      <div style="height: 350px; width: 100%;">
+<!--        @locationfound="onLocationFound"-->
+        <l-map
+          @ready="onReady"
+          v-model="zoom"
+          :zoom="zoom"
+          :center="center"
+        >
+          <!--      @click="ubicacion"-->
+          <l-tile-layer
+            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          ></l-tile-layer>
+          <l-marker v-for="c in clientes" :key="c.Cod_Aut" :lat-lng="[c.Latitud, c.longitud]">
+            <l-icon>
+              <q-badge
+                :class="c.tipo=='PEDIDO'?'bg-green-5  text-italic':c.tipo=='PARADO'?'bg-yellow-5  text-italic':c.tipo=='NO PEDIDO'?'bg-red-5 text-italic':''"
+                class="q-pa-none" color="info">{{ c.Cod_Aut }}
+              </q-badge>
+            </l-icon>
+            <l-tooltip>{{ c.Nombres }}</l-tooltip>
+          </l-marker>
+<!--          <l-marker :lat-lng="center">-->
+<!--          </l-marker>-->
+
+        </l-map>
       </div>
-      <div class="col-3 text-center q-pa-xs">
-        <div class="text-subtitle2 text-bold">No pedidos</div>
-        <div class="text-h3 text-bold text-red ">{{ nopedido }}</div>
-      </div>
-
-       <div style="height: 350px; width: 100%;">
-    <l-map
-      @ready="onReady"
-      @locationfound="onLocationFound"
-      v-model="zoom"
-      :zoom="zoom"
-      :center="center"
-
-    >
-<!--      @click="ubicacion"-->
-      <l-tile-layer
-        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-      ></l-tile-layer>
-
-
-      <l-marker  v-for="c in clientes" :key="c.Cod_Aut" :lat-lng="[c.Latitud, c.longitud]"  >
-        <l-icon><q-badge  :class="c.tipo=='PEDIDO'?'bg-green-5  text-italic':c.tipo=='PARADO'?'bg-yellow-5  text-italic':c.tipo=='NO PEDIDO'?'bg-red-5 text-italic':''"  class="q-pa-none" color="info" >{{c.Cod_Aut}}</q-badge></l-icon>
-        <l-tooltip>{{c.Nombres}}</l-tooltip>
-      </l-marker>
-      <l-marker :lat-lng="center"  >
-      </l-marker>
-
-    </l-map>
-    </div>
 
       <div class="col-12">
         <q-table
@@ -60,15 +85,15 @@
           flat
           bordered
         >
-<!--          tamplet body top-->
+          <!--          tamplet body top-->
           <template v-slot:top-right>
-<!--            btn actulizar-->
+            <!--            btn actulizar-->
             <q-btn
               color="primary"
               icon="refresh"
               no-caps
               label="Actualizar"
-              @click="generar"
+              @click="consulta"
               :loading="loading"
               dense/>
             <q-input
@@ -78,7 +103,7 @@
               outlined
             >
               <template v-slot:append>
-                <q-icon name="search" class="cursor-pointer" />
+                <q-icon name="search" class="cursor-pointer"/>
               </template>
             </q-input>
           </template>
@@ -106,11 +131,18 @@
                 >
                   <q-list style="min-width: 150px">
                     <q-item clickable v-close-popup @click="toggleExpand(props.row.comanda)">
-                      <q-item-section avatar><q-icon :name="expandedId === props.row.comanda ? 'visibility_off' : 'visibility'" /></q-item-section>
-                      <q-item-section>{{ expandedId === props.row.comanda ? 'Ocultar Detalle' : 'Ver Detalle' }}</q-item-section>
+                      <q-item-section avatar>
+                        <q-icon :name="expandedId === props.row.comanda ? 'visibility_off' : 'visibility'"/>
+                      </q-item-section>
+                      <q-item-section>{{
+                          expandedId === props.row.comanda ? 'Ocultar Detalle' : 'Ver Detalle'
+                        }}
+                      </q-item-section>
                     </q-item>
                     <q-item clickable v-close-popup @click="descargarFactura(props.row.comanda)">
-                      <q-item-section avatar><q-icon name="picture_as_pdf" /></q-item-section>
+                      <q-item-section avatar>
+                        <q-icon name="picture_as_pdf"/>
+                      </q-item-section>
                       <q-item-section>Descargar PDF</q-item-section>
                     </q-item>
                   </q-list>
@@ -125,7 +157,7 @@
                   <b>Cantidad:</b> {{ r.cant }}
                 </div>
                 <div class="text-right q-mt-sm">
-                  <q-separator />
+                  <q-separator/>
                   <div class="text-bold">TOTAL DEL PEDIDO:
                     {{ props.row.detalle.reduce((total, item) => total + parseFloat(item.cant), 0).toFixed(3) }}
                   </div>
@@ -140,7 +172,7 @@
 </template>
 
 <script>
-import { date } from "quasar";
+import {date} from "quasar";
 import {
   LMap,
   LIcon,
@@ -154,15 +186,16 @@ import {
   LRectangle,
 } from "@vue-leaflet/vue-leaflet";
 import "leaflet/dist/leaflet.css";
+
 export default {
   name: 'avancePage',
-    components: {
+  components: {
     LMap,
     LIcon,
     LTileLayer,
     LMarker,
     // LControlLayers,
-     LTooltip,
+    LTooltip,
     // LPopup,
     // LPolyline,
     // LPolygon,
@@ -170,10 +203,11 @@ export default {
   },
   data() {
     return {
-      center:[-17.970371, -67.112303],
-      zoom: 16,
+      center: [-17.970371, -67.112303],
+      zoom: 12,
       clientes: [],
       usuarios: [],
+      usuario: {},
       fecha: date.formatDate(new Date(), 'YYYY-MM-DD'),
       fechareporte: {
         ini: date.formatDate(new Date(), 'YYYY-MM-DD'),
@@ -209,70 +243,87 @@ export default {
         }
       ],
       colped: [
-        { name: 'hora', label: 'hora', field: 'hora', sortable: true, align: 'left' },
-        { name: 'placa', label: 'placa', field: 'placa', sortable: true, align: 'left' },
-        { name: 'CI', label: 'ci', field: 'Id', sortable: true, align: 'left' },
-        { name: 'CLIENTE', label: 'nombre', field: 'Nombres', sortable: true, align: 'left' },
-        { name: 'COMANDA', label: 'comanda', field: 'comanda', sortable: true },
-        { name: 'ESTADO', label: 'estado', field: 'estado' },
+        {name: 'hora', label: 'hora', field: 'hora', sortable: true, align: 'left'},
+        {name: 'placa', label: 'placa', field: 'placa', sortable: true, align: 'left'},
+        {name: 'CI', label: 'ci', field: 'Id', sortable: true, align: 'left'},
+        {name: 'CLIENTE', label: 'nombre', field: 'Nombres', sortable: true, align: 'left'},
+        {name: 'COMANDA', label: 'comanda', field: 'comanda', sortable: true},
+        {name: 'ESTADO', label: 'estado', field: 'estado'},
       ]
     };
   },
   created() {
     this.user = this.$store.getters['login/user'].ci;
     console.log(this.user);
-    this.consulta();
-    this.entregas();
-    this.listhoy()
+    this.consulta()
+    // this.entregas();
+    // this.listhoy()
+    this.listapersonalGet()
   },
   methods: {
-        onLocationFound(location){
-      // console.log(location)
-      this.center=[location.latlng.lat,location.latlng.lng]
+    listapersonalGet() {
+      this.$api.get('personalCliente').then(res => {
+        this.usuarios = res.data;
+        this.usuario = this.usuarios.find(u => u.ci === this.user);
+        // console.log(this.usuario);
+      }).catch(err => {
+        this.$q.notify({
+          message: err.response.data.message,
+          color: 'red',
+          icon: 'error'
+        });
+      });
     },
-        onReady (mapObject) {
+    onLocationFound(location) {
+      // console.log(location)
+      this.center = [location.latlng.lat, location.latlng.lng]
+    },
+    onReady(mapObject) {
       mapObject.locate();
     },
-      listhoy(){
+    listhoy() {
       // this.$q.loading.show()
-      this.loading=true
-      this.$api.post('filtrarlista',{filtradia:8}).then(res=>{
-         console.log(res.data)
-        this.clientes=[]
-        res.data.forEach(r=>{
-          let d=r
-          if (parseFloat(r.Latitud)!=NaN && parseFloat(r.longitud)!=NaN && r.Latitud!='' && r.longitud!='' ){
-            d.Latitud=parseFloat(r.Latitud)
-            d.longitud=parseFloat(r.longitud)
-          }else{
-            d.Latitud=0
-            d.longitud=0
+      this.loading = true
+      this.$api.post('filtrarlista', {filtradia: 8}).then(res => {
+        console.log(res.data)
+        this.clientes = []
+        res.data.forEach(r => {
+          let d = r
+          if (parseFloat(r.Latitud) != NaN && parseFloat(r.longitud) != NaN && r.Latitud != '' && r.longitud != '') {
+            d.Latitud = parseFloat(r.Latitud)
+            d.longitud = parseFloat(r.longitud)
+          } else {
+            d.Latitud = 0
+            d.longitud = 0
           }
 
           this.clientes.push(d)
         })
-      }).catch(err=>{
+      }).catch(err => {
         this.$q.notify({
-          message:err.response.data.message,
-          color:'red',
-          icon:'error'
+          message: err.response.data.message,
+          color: 'red',
+          icon: 'error'
         })
-      }).finally(()=>{
-        this.loading=false
+      }).finally(() => {
+        this.loading = false
       })
     },
-    generar() {
-      this.consulta();
-      this.entregas();
-      this.listhoy();
-    },
+    // generar() {
+    //   this.consulta();
+    //   this.entregas();
+    //   this.listhoy();
+    // },
     consulta() {
       this.pedido = 0;
       this.retorno = 0;
       this.nopedido = 0;
       // this.$q.loading.show();
       this.loading = true
-      this.$api.post('pedidoVenta', { fecha: this.fecha }).then(res => {
+      this.$api.post('pedidoVenta', {
+        fecha: this.fecha,
+        usuario: this.usuario
+      }).then(res => {
         if (res.data.length > 0) {
           res.data.forEach(r => {
             if (r.estado === 'PEDIDO') this.pedido = r.cantidad;
@@ -286,7 +337,7 @@ export default {
       });
     },
     entregas() {
-      this.$api.post('reportEntregVend', { fecha: this.fecha }).then(res => {
+      this.$api.post('reportEntregVend', {fecha: this.fecha}).then(res => {
         this.pedidos = res.data;
       });
     },
@@ -304,7 +355,7 @@ export default {
           Accept: 'application/pdf'
         }
       }).then((res) => {
-        const blob = new Blob([res.data], { type: 'application/pdf' });
+        const blob = new Blob([res.data], {type: 'application/pdf'});
         const link = document.createElement('a');
         link.href = window.URL.createObjectURL(blob);
         link.download = `factura_${comanda}.pdf`;
@@ -312,7 +363,7 @@ export default {
         window.URL.revokeObjectURL(link.href);
         this.$q.loading.hide();
       }).catch((err) => {
-        this.$q.notify({ type: 'negative', message: 'Error al descargar la factura' });
+        this.$q.notify({type: 'negative', message: 'Error al descargar la factura'});
         console.error(err);
         this.$q.loading.hide();
       });
