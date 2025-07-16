@@ -15,7 +15,7 @@
           dense
           outlined
           @update:model-value="consulta"
-          v-if="user  == '7329688'"
+          v-if="user  == '7329688' || user == '7205489'"
         />
 <!--        <pre>{{usuarios}}</pre>-->
 <!--        <pre>{{usuario}}</pre>-->
@@ -33,7 +33,7 @@
           label="Tipo de Visita"
           dense
           outlined
-          v-if="user  == '7329688'"
+          v-if="user  == '7329688' || user == '7205489'"
         />
       </div>
       <div class="col-6 col-md-2">
@@ -44,7 +44,7 @@
           label="Actualizar"
           @click="consulta"
           :loading="loading"
-          v-if="user  == '7329688'"
+          v-if="user  == '7329688' || user == '7205489'"
           dense/>
       </div>
 <!--      <div class="col-3 text-center q-pa-xs">-->
