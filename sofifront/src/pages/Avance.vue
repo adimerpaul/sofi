@@ -96,6 +96,94 @@
 
         </l-map>
       </div>
+      <div class="col-12">
+        <q-table
+          title="Listado de Entregas"
+          :rows="pedidos"
+          :columns="colped"
+          row-key="comanda"
+          dense
+          wrap-cells
+          :filter="filterCliente"
+          :rows-per-page-options="[0]"
+          flat
+          bordered
+        >
+          <!--          tamplet body top-->
+          <template v-slot:top-right>
+            <!--            btn actulizar-->
+            <q-btn
+              color="primary"
+              icon="refresh"
+              no-caps
+              label="Actualizar"
+              @click="entregas"
+              :loading="loading"
+              dense/>
+            <q-input
+              v-model="filterCliente"
+              label="Filtrar por cliente"
+              dense
+              outlined
+            >
+              <template v-slot:append>
+                <q-icon name="search" class="cursor-pointer" />
+              </template>
+            </q-input>
+          </template>
+          <template v-slot:body="props">
+            <q-tr
+              :props="props"
+              :class="props.row.estado == 'ENTREGADO' ? 'bg-green' : props.row.estado == 'NO ENTREGADO' ? 'bg-amber' : props.row.estado == 'RECHAZADO' ? 'bg-red' : ''"
+            >
+              <q-td
+                v-for="col in props.cols"
+                :key="col.name"
+                :props="props"
+              >
+                {{ col.value }}
+              </q-td>
+              <q-td>
+                <q-btn-dropdown
+                  color="primary"
+                  size="sm"
+                  dense
+                  no-caps
+                  :label="expandedId === props.row.comanda ? 'Opciones' : 'Ver'"
+                  icon="menu"
+                  :menu-offset="[0, 10]"
+                >
+                  <q-list style="min-width: 150px">
+                    <q-item clickable v-close-popup @click="toggleExpand(props.row.comanda)">
+                      <q-item-section avatar><q-icon :name="expandedId === props.row.comanda ? 'visibility_off' : 'visibility'" /></q-item-section>
+                      <q-item-section>{{ expandedId === props.row.comanda ? 'Ocultar Detalle' : 'Ver Detalle' }}</q-item-section>
+                    </q-item>
+                    <q-item clickable v-close-popup @click="descargarFactura(props.row.comanda)">
+                      <q-item-section avatar><q-icon name="picture_as_pdf" /></q-item-section>
+                      <q-item-section>Descargar PDF</q-item-section>
+                    </q-item>
+                  </q-list>
+                </q-btn-dropdown>
+              </q-td>
+            </q-tr>
+            <q-tr v-show="expandedId === props.row.comanda" :props="props">
+              <q-td colspan="100%">
+                <div class="text-left" v-for="(r, index) in props.row.detalle" :key="`${r.cod_prod}-${index}`">
+                  <b>Código:</b> {{ r.cod_prod }} &nbsp;
+                  <b>Producto:</b> {{ r.Producto }} &nbsp;
+                  <b>Cantidad:</b> {{ r.cant }}
+                </div>
+                <div class="text-right q-mt-sm">
+                  <q-separator />
+                  <div class="text-bold">TOTAL DEL PEDIDO:
+                    {{ props.row.detalle.reduce((total, item) => total + parseFloat(item.cant), 0).toFixed(3) }}
+                  </div>
+                </div>
+              </q-td>
+            </q-tr>
+          </template>
+        </q-table>
+      </div>
 
       <div class="col-12 q-mt-md">
         <q-table
@@ -234,7 +322,7 @@ export default {
     this.user = this.$store.getters['login/user'].ci;
     console.log(this.user);
     this.consulta()
-    // this.entregas();
+    this.entregas();
     // this.listhoy()
     this.listapersonalGet()
   },
