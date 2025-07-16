@@ -2,29 +2,29 @@
   <q-page class="bg-grey-3 q-pa-none">
     <q-card flat bordered>
       <q-card-section class="q-pa-none">
-<!--        <div class="row">-->
-<!--          <div class="col-xs-12 col-md-2 q-pa-xs">-->
-<!--            <q-input v-model="fecha" label="Fecha" type="date" dense outlined @update:model-value="buscar"/>-->
-<!--          </div>-->
-<!--          <div class="col-xs-12 col-md-2 q-pa-xs">-->
-<!--            <q-btn color="info" icon="search" label="Consultar" @click="buscar" :loading="loading" no-caps size="md"/>-->
-<!--          </div>-->
-<!--          <div class="col-xs-2 col-md-2 q-pa-xs">-->
-<!--            <q-btn color="purple" label="5" @click="loadGeoJson(5)" :loading="loading"/>-->
-<!--          </div>-->
-<!--          <div class="col-xs-2 col-md-2 q-pa-xs">-->
-<!--            <q-btn color="green" label="4" @click="loadGeoJson(4)" :loading="loading"/>-->
-<!--          </div>-->
-<!--          <div class="col-xs-2 col-md-2 q-pa-xs">-->
-<!--            <q-btn color="orange" label="3" @click="loadGeoJson(3)" :loading="loading"/>-->
-<!--          </div>-->
-<!--        </div>-->
-<!--        <div class="row">-->
-<!--          <div class="q-pa-xs col-md-2 col-xs-4 " v-for="vih in vehiculos" :key="vih"-->
-<!--               style="font-size: 12px;"><b>{{ vih.placa == '' ? 'SIN ASIGNAR' : vih.placa }} :-->
-<!--            {{ calculo(vih.placa) }}</b></div>-->
-<!--          <br>-->
-<!--        </div>-->
+       <div class="row">
+          <div class="col-xs-12 col-md-2 q-pa-xs">
+            <q-input v-model="fecha" label="Fecha" type="date" dense outlined @update:model-value="buscar"/>
+          </div>
+          <div class="col-xs-12 col-md-2 q-pa-xs">
+            <q-btn color="info" icon="search" label="Consultar" @click="buscar" :loading="loading" no-caps size="md"/>
+          </div>
+          <div class="col-xs-2 col-md-2 q-pa-xs">
+            <q-btn color="purple" label="5" @click="loadGeoJson(5)" :loading="loading"/>
+          </div>
+          <div class="col-xs-2 col-md-2 q-pa-xs">
+            <q-btn color="green" label="4" @click="loadGeoJson(4)" :loading="loading"/>
+          </div>
+          <div class="col-xs-2 col-md-2 q-pa-xs">
+            <q-btn color="orange" label="3" @click="loadGeoJson(3)" :loading="loading"/>
+          </div>
+        </div>
+        <div class="row">
+          <div class="q-pa-xs col-md-2 col-xs-4 " v-for="vih in vehiculos" :key="vih"
+               style="font-size: 12px;"><b>{{ vih.placa == '' ? 'SIN ASIGNAR' : vih.placa }} :
+            {{ calculo(vih.placa) }}</b></div>
+          <br>
+        </div>
         <div class="row">
           <div class="col-xs-12 col-md-12">
             <div style="height: 450px; width: 100%;">
@@ -33,15 +33,15 @@
                 :zoom="zoom"
                 :center="center"
               >
-                <div class="overlay-menu">
+<!--                <div class="overlay-menu">
                   <div class="row" style="width: 100%; margin: 0; padding: 0;">
                     <div class="col-xs-12 col-md-2 q-pa-xs">
                       <q-input v-model="fecha" label="Fecha" type="date" dense outlined @update:model-value="buscar"/>
                     </div>
-<!--                    <div class="col-xs-12 col-md-2 q-pa-xs">-->
-<!--                      <q-btn color="info" icon="search" label="Consultar" @click="buscar" :loading="loading" no-caps size="md"/>-->
-<!--                    </div>-->
-                    <div class="col-xs-2 col-md-2 q-pa-xs">
+                    <div class="col-xs-12 col-md-2 q-pa-xs">
+                      <q-btn color="info" icon="search" label="Consultar" @click="buscar" :loading="loading" no-caps size="md"/>
+                   </div>
+                 <div class="col-xs-2 col-md-2 q-pa-xs">
                       <q-btn color="purple" label="5" @click="loadGeoJson(5)" :loading="loading"/>
                     </div>
                     <div class="col-xs-2 col-md-2 q-pa-xs">
@@ -57,7 +57,7 @@
                       {{ calculo(vih.placa) }}</b></div>
                     <br>
                   </div>
-                </div>
+                </div>-->
                 <LTileLayer
                   url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                 ></LTileLayer>
