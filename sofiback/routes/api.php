@@ -77,6 +77,7 @@ Route::group(['middleware'=>'auth:sanctum'],function (){
     Route::post('/todosclientes',[\App\Http\Controllers\ClienteController::class,'todosclientes']);
     Route::post('/desbloquear',[\App\Http\Controllers\ClienteController::class,'desbloquear']);
     Route::get('/listapersonal',[\App\Http\Controllers\ClienteController::class,'listapersonal']);
+    Route::get('/personalCliente',[\App\Http\Controllers\ClienteController::class,'personalCliente']);
     Route::get('/listaclientes',[\App\Http\Controllers\ClienteController::class,'listaclientes']);
     Route::post('/modprevent',[\App\Http\Controllers\ClienteController::class,'modprevent']);
     Route::post('/filtrarlista',[\App\Http\Controllers\ClienteController::class,'filtrarlista']);

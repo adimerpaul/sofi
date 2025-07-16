@@ -3,11 +3,24 @@
 namespace App\Http\Controllers;
 
 use App\Models\Cliente;
+use App\Models\User;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class ClienteController extends Controller{
+    function personalCliente(){
+        $usuariosConClientes = User::whereHas('clientes')
+            ->with('clientes')
+            ->get();
+        return $usuariosConClientes->map(function ($usuario) {
+            return [
+                'CodAut' => $usuario->CodAut,
+                'ci' => $usuario->ci,
+                'nombre' => trim($usuario->Nombre1). ' ' . trim($usuario->Nombre2) . ' ' . trim($usuario->App1) . ' ' . trim($usuario->Apm),
+            ];
+        });
+    }
     public function index(Request $request){
 //        return DB::select(
 //            "SELECT *,
