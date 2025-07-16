@@ -67,11 +67,11 @@ class Cliente extends Model
     }
     public function visitas()
     {
-        return $this->hasMany(Misvisita::class, 'cliente_id', 'Cod_Aut');
+        return $this->hasMany(MisVisita::class, 'cliente_id', 'Cod_Aut');
     }
 
     public function ultimaVisita()
     {
-        return $this->hasOne(Misvisita::class, 'cliente_id', 'Cod_Aut')->latestOfMany();
+        return $this->hasOne(MisVisita::class, 'cliente_id', 'Cod_Aut')->latestOfMany();
     }
 }
