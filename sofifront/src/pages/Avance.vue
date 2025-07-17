@@ -2,10 +2,28 @@
   <q-page class="q-pa-xs">
     <div>LISTADO DE PEDIDOS CLIENTE</div>
     <div class="row">
-      <div class="col-12 col-md-4">
-        <q-input @change="consulta()" v-model="fecha" label="fecha" dense outlined type="date"/>
+      <div class="col-12 col-md-12">
+        <q-input @change="generar()" v-model="fecha" label="fecha" dense outlined type="date"/>
       </div>
-      <div class="col-6 col-md-4">
+
+      <div class="col-3 text-center q-pa-xs">
+        <div class="text-subtitle2 text-bold">Totales</div>
+        <div class="text-h3 text-bold ">{{ pedido + retorno + nopedido }}</div>
+      </div>
+      <div class="col-3 text-center q-pa-xs">
+        <div class="text-subtitle2 text-bold">Pedidos</div>
+        <div class="text-h3 text-bold text-green ">{{ pedido }}</div>
+      </div>
+      <div class="col-3 text-center q-pa-xs">
+        <div class="text-subtitle2 text-bold">Retorno</div>
+        <div class="text-h3 text-bold text-yellow ">{{ retorno }}</div>
+      </div>
+      <div class="col-3 text-center q-pa-xs">
+        <div class="text-subtitle2 text-bold">No pedidos</div>
+        <div class="text-h3 text-bold text-red ">{{ nopedido }}</div>
+      </div>
+
+      <!--<div class="col-6 col-md-4">
         <q-select
           v-model="usuario"
           :options="usuarios"
@@ -17,8 +35,6 @@
           @update:model-value="consulta"
           v-if="user  == '7329688' || user == '7205489'"
         />
-<!--        <pre>{{usuarios}}</pre>-->
-<!--        <pre>{{usuario}}</pre>-->
       </div>
       <div class="col-6 col-md-2">
         <q-select
@@ -46,7 +62,7 @@
           :loading="loading"
           v-if="user  == '7329688' || user == '7205489'"
           dense/>
-      </div>
+      </div>-->
 <!--      <div class="col-3 text-center q-pa-xs">-->
 <!--        <div class="text-subtitle2 text-bold">Totales</div>-->
 <!--        <div class="text-h3 text-bold ">{{ pedido + retorno + nopedido }}</div>-->
@@ -64,15 +80,13 @@
 <!--        <div class="text-h3 text-bold text-red ">{{ nopedido }}</div>-->
 <!--      </div>-->
 
-      <div style="height: 350px; width: 100%;">
-<!--        @locationfound="onLocationFound"-->
+      <!--<div style="height: 350px; width: 100%;">
         <l-map
           @ready="onReady"
           v-model="zoom"
           :zoom="zoom"
           :center="center"
         >
-          <!--      @click="ubicacion"-->
           <l-tile-layer
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           ></l-tile-layer>
@@ -91,11 +105,9 @@
               <span v-else>No visitado</span>
             </l-tooltip>
           </l-marker>
-<!--          <l-marker :lat-lng="center">-->
-<!--          </l-marker>-->
 
         </l-map>
-      </div>
+      </div>-->
       <div class="col-12">
         <q-table
           title="Listado de Entregas"
@@ -185,7 +197,7 @@
         </q-table>
       </div>
 
-      <div class="col-12 q-mt-md">
+     <!-- <div class="col-12 q-mt-md">
         <q-table
           title="Listado de Clientes Visitados"
           :rows="clientesFiltrados"
@@ -227,41 +239,18 @@
             </q-tr>
           </template>
         </q-table>
-      </div>
+      </div>-->
     </div>
   </q-page>
 </template>
 
 <script>
 import {date} from "quasar";
-import {
-  LMap,
-  LIcon,
-  LTileLayer,
-  LMarker,
-  LControlLayers,
-  LTooltip,
-  LPopup,
-  LPolyline,
-  LPolygon,
-  LRectangle,
-} from "@vue-leaflet/vue-leaflet";
-import "leaflet/dist/leaflet.css";
+
 
 export default {
   name: 'avancePage',
-  components: {
-    LMap,
-    LIcon,
-    LTileLayer,
-    LMarker,
-    // LControlLayers,
-    LTooltip,
-    // LPopup,
-    // LPolyline,
-    // LPolygon,
-    // LRectangle,
-  },
+
   computed: {
     clientesFiltrados() {
       return this.clientes
@@ -322,9 +311,9 @@ export default {
     this.user = this.$store.getters['login/user'].ci;
     console.log(this.user);
     this.consulta()
-    this.entregas();
-    // this.listhoy()
-    this.listapersonalGet()
+    //this.entregas();
+    this.listhoy()
+    //this.listapersonalGet()
   },
   methods: {
     listapersonalGet() {
@@ -375,11 +364,11 @@ export default {
         this.loading = false
       })
     },
-    // generar() {
-    //   this.consulta();
-    //   this.entregas();
-    //   this.listhoy();
-    // },
+     generar() {
+       this.consulta();
+       this.entregas();
+       this.listhoy();
+     },
     consulta() {
       this.pedido = 0;
       this.retorno = 0;
