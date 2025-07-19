@@ -104,7 +104,7 @@
                 <q-btn icon="my_location" size="xs" color="secondary" @click="getCentro" :loading="loading"/>
               </div>
               <div class="col-8">
-                <q-input filled dense v-model="filter" placeholder="Buscar Cliente">
+                <q-input filled dense v-model="filter" placeholder="Buscar Cliente" clearable>
                   <template v-slot:append>
                     <q-icon name="search" />
                   </template>
