@@ -94,6 +94,36 @@
               </l-map>
             </div>
           </div>
+          <div class="col-12 q-mt-md">
+            <q-markup-table flat bordered dense wrap-cells>
+              <thead>
+              <tr>
+                <th>#</th>
+                <th>Vendedor</th>
+                <th>Total Clientes</th>
+                <th>Pedido</th>
+                <th>No Pedido</th>
+                <th>Retorno</th>
+                <th>Faltaron</th>
+                <th>Efectividad</th>
+              </tr>
+              </thead>
+              <tbody>
+              <tr v-for="(user, i) in pedidos.users" :key="i">
+                <td>{{ i + 1 }}</td>
+                <td>{{ $filters.capitalize(user.nombreCompleto) }}</td>
+                <td class="text-center">{{ user.pedidos.cantidad }}</td>
+                <td class="text-center">{{ user.pedidos.creados }}</td>
+                <td class="text-center">{{ user.pedidos.nopedido }}</td>
+                <td class="text-center">{{ user.pedidos.parado }}</td>
+                <td class="text-center">{{ user.pedidos.faltaron }}</td>
+                <td class="text-center">
+                  {{ ((user.pedidos.creados / user.pedidos.cantidad) * 100).toFixed(1) }}%
+                </td>
+              </tr>
+              </tbody>
+            </q-markup-table>
+          </div>
         </div>
       </q-card-section>
     </q-card>
@@ -149,16 +179,18 @@ export default {
       }).then((res) => {
         // contar por estado
         res.data.users.forEach(user => {
-          let creados = 0, nopedido = 0, parado = 0;
+          let creados = 0, nopedido = 0, parado = 0, faltaron = 0;
           user.clientes.forEach(c => {
             if (c.estado === 'PEDIDO') creados++;
             else if (c.estado === 'NO PEDIDO') nopedido++;
             else if (c.estado === 'PARADO') parado++;
+            else faltaron++;
           });
           user.pedidos = {
             creados,
             nopedido,
             parado,
+            faltaron,
             cantidad: user.clientes.length
           };
         });

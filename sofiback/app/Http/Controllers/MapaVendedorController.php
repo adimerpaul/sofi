@@ -90,43 +90,55 @@ class MapaVendedorController extends Controller{
         ];
         return $data;
     }
-    function mapaVendedorVisita(Request $request){
+    function mapaVendedorVisita(Request $request)
+    {
         $fecha = $request->fecha;
         $tipo = $request->tipo;
+
+
+        // Vendedores que realizaron algún pedido ese día
         $idUserArray = Pedido::whereDate('fecha', $fecha)
             ->orderBy('CIfunc')
             ->select('CIfunc')
-            ->whereRaw('tipo like "%'.$tipo.'%"')
+            ->whereRaw('tipo like ?', ["%$tipo%"])
             ->distinct()
             ->pluck('CIfunc')
             ->toArray();
-//        error_log(json_encode($idUserArray));
 
         $users = User::whereIn('CodAut', $idUserArray)
             ->select('CodAut', 'Nombre1', 'App1', 'ci')
             ->get();
-//        error_log('Usuarios: ' . $users->count());
-        $ciUserArray = $users->pluck('ci')->toArray();
-//        error_log(json_encode($ciUserArray));
 
+        $ciUserArray = $users->pluck('ci')->toArray();
+
+        // Solo clientes del día seleccionado
         $clientes = Cliente::whereIn('CiVend', $ciUserArray)
-            ->select('Cod_Aut', 'Nombres', 'Direccion', 'Latitud', 'longitud', 'CiVend')
+//            ->where($campoDia, 1)
+            ->select('Cod_Aut', 'Nombres', 'Direccion', 'Latitud', 'longitud', 'CiVend', 'lu', 'ma', 'mi', 'ju', 'vi', 'sa', 'do')
             ->get();
+
         $clientesIdArray = $clientes->pluck('Cod_Aut')->toArray();
 
+        // Última visita por cliente en la fecha
         $sub = MisVisita::selectRaw('MAX(id) as id')
             ->whereIn('cliente_id', $clientesIdArray)
             ->whereDate('fecha', $fecha)
             ->groupBy('cliente_id');
 
-        $misVisitas = MisVisita::whereIn('id', $sub)->select('estado','cliente_id')
-            ->get();
-
-        error_log(json_encode($misVisitas));
+        $misVisitas = MisVisita::whereIn('id', $sub)->select('estado', 'cliente_id')->get();
 
         $userRes = [];
+
+        $diaDeFecha = date('w', strtotime($fecha));
+        $diasCampos = ['do', 'lu', 'ma', 'mi', 'ju', 'vi', 'sa'];
+        $campoDia = $diasCampos[$diaDeFecha];
+
         foreach ($users as $user) {
-            $clientesUser = $clientes->where('CiVend', $user->ci);
+            // Filtrar clientes de este usuario y que tengan marcado el día como activo
+            $clientesUser = $clientes->filter(function ($cliente) use ($user, $campoDia) {
+                return $cliente->CiVend == $user->ci && $cliente->$campoDia == 1;
+            });
+
             $clientesUserRes = [];
             foreach ($clientesUser as $cliente) {
                 $ultimaVisita = $misVisitas->where('cliente_id', $cliente->Cod_Aut)->first();
@@ -139,6 +151,7 @@ class MapaVendedorController extends Controller{
                     'estado' => isset($ultimaVisita) ? $ultimaVisita->estado : null
                 ];
             }
+
             $userRes[] = [
                 'CodAut' => $user->CodAut,
                 'nombreCompleto' => trim($user->Nombre1) . ' ' . trim($user->App1),
@@ -146,10 +159,9 @@ class MapaVendedorController extends Controller{
                 'clientes' => $clientesUserRes
             ];
         }
-        $data = [
+
+        return [
             'users' => $userRes
         ];
-        return $data;
-
     }
 }

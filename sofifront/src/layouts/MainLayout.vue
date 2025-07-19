@@ -399,10 +399,10 @@
         <q-item clickable active-class="bg-primary text-white" exact to="bonificaciones"
             v-if="supervisor.includes($store.getters['login/user'].ci) || $store.getters['login/user'].ci=='123321'">
           <q-item-section avatar>
-            <q-icon name="monetization_on"/>
+            <q-icon name="no_food"/>
           </q-item-section>
           <q-item-section>
-            <q-item-label>Alta Bonificaion</q-item-label>
+            <q-item-label>Cambios</q-item-label>
           </q-item-section>
         </q-item>
         <q-item clickable active-class="bg-primary text-white" exact @click="irformulario2"
