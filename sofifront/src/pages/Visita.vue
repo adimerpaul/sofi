@@ -9,6 +9,18 @@
       @move="log('move')"
 
     >
+      <div class="q-pa-xs text-caption text-bold"
+           style="position: absolute; right: 8px; top: 8px; z-index: 999; background: white; border-radius: 6px;">
+        <div>
+          <q-badge color="green" class="q-mr-sm">P: {{ resumen.pedido }}</q-badge>
+          <q-badge color="red" class="q-mr-sm">NP: {{ resumen.nopedido }}</q-badge>
+          <q-badge color="yellow-8" class="q-mr-sm">R: {{ resumen.parado }}</q-badge>
+        </div>
+        <div class="q-mt-xs">
+          <q-badge color="primary" class="q-mr-sm">Total: {{ resumen.total }}</q-badge>
+          <q-badge color="deep-orange">Efec: {{ resumen.efectividad }}%</q-badge>
+        </div>
+      </div>
 <!--      @click="ubicacion"-->
       <l-tile-layer
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -1129,6 +1141,19 @@ export default {
     },
   },
   computed: {
+    resumen() {
+      const resumen = { pedido: 0, nopedido: 0, parado: 0, total: 0, efectividad: 0 };
+      this.clientes.forEach(c => {
+        if (c.tipo === 'PEDIDO') resumen.pedido++;
+        else if (c.tipo === 'NO PEDIDO') resumen.nopedido++;
+        else if (c.tipo === 'PARADO') resumen.parado++;
+      });
+      resumen.total = this.clientes.length;
+      if (resumen.total > 0) {
+        resumen.efectividad = ((resumen.pedido / resumen.total) * 100).toFixed(1);
+      }
+      return resumen;
+    },
     // iconUrl() {
     //   return `https://placekitten.com/25/40`;
     // },
