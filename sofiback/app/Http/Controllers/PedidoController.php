@@ -430,12 +430,9 @@ class PedidoController extends Controller{
     }
     function reportePedido(Request $request, $fecha)
     {
-//        return '';
-        // Primero traer todos los pedidos con sus relaciones
         $pedidos = Pedido::with([
             'cliente:id,Cod_Aut,Nombres,Direccion,Telf,zona',
             'user:CodAut,Nombre1,App1',
-//            'producto:cod_prod,Producto' // si tienes relación producto aquí
         ])
             ->whereDate('fecha', $fecha)
             ->where('estado', 'ENVIADO')
@@ -444,7 +441,7 @@ class PedidoController extends Controller{
             ->select(
                 'NroPed', 'fecha', 'idCli', 'CIfunc', 'estado', 'fact',
                 'comentario', 'pago', 'placa', 'horario', 'colorStyle',
-                'cod_prod', 'precio', 'Cant', 'Canttxt', 'subtotal'
+                'cod_prod', 'precio', 'Cant', 'Canttxt', 'subtotal','bonificacion', 'bonificacionAprovacion',
             )
             ->orderBy('NroPed')
             ->get();

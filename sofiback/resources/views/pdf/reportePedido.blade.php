@@ -76,7 +76,11 @@
                 <tr>
                 <td>
                     <span class="bold"></span>
-                    <span class="bold f-28">{{ $pedido['pedido']->cliente->Nombres }}</span>
+                    <span class="bold f-28">
+                        {{ $pedido['pedido']->cliente->Nombres }}
+                {{--bonificacionAprovacion si es bonificaion aprobacion--}}
+{{--                        {{ $pedido['pedido']->bonificacionAprovacion != null ? 'BONIFICACION APROBADA' : $pedido['pedido']->cliente->Nombres }}--}}
+                    </span>
                 </td>
                     <td style="text-align: right; {{ $pedido['pedido']->colorStyle }}">
                         <span class="bold">Nro pedido:</span>
@@ -108,7 +112,10 @@
                     <td style="padding: 4px; font-weight: bold;">Horario:</td>
                     <td style="padding: 4px;">{{ $pedido['pedido']->horario }}</td>
                     <td style="padding: 4px; font-weight: bold;">Comentario:</td>
-                    <td style="padding: 4px;">{{ $pedido['pedido']->comentario }}</td>
+                    <td style="padding: 4px;">
+{{--                        {{ $pedido['pedido']->comentario }}--}}
+                        {{ $pedido['pedido']->bonificacionAprovacion != null ? $pedido['pedido']->comentario.' '.$pedido['pedido']->cliente->Nombres : $pedido['pedido']->comentario }}
+                    </td>
                 </tr>
                 <tr>
                     <td style="padding: 4px; font-weight: bold;">Dirección:</td>

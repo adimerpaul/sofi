@@ -289,7 +289,7 @@
                   </q-item>
                 </template>
               </q-select>
-              <pre>{{clienteBonificacion}}</pre>
+<!--              <pre>{{clienteBonificacion}}</pre>-->
             </div>
           </div>
         </q-card-section>
