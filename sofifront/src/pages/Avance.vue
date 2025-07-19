@@ -310,8 +310,8 @@ export default {
       clientes: [],
       usuarios: [],
       usuario: {},
-      // fecha: date.formatDate(new Date(), 'YYYY-MM-DD'),
-      fecha: '2025-07-01',
+      fecha: date.formatDate(new Date(), 'YYYY-MM-DD'),
+      // fecha: '2025-07-01',
       fechareporte: {
         ini: date.formatDate(new Date(), 'YYYY-MM-DD'),
         fin: date.formatDate(new Date(), 'YYYY-MM-DD')

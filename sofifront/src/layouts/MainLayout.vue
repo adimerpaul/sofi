@@ -8,14 +8,14 @@
           <template v-else>
             {{ $filters.capitalize($store.getters['login/user'].Nombre1 + ' ' + $store.getters['login/user'].App1) }}
           </template>
-          <q-chip dense class="bg-orange text-black">
-            {{ 'v10.10.31' }}
+          <q-chip dense class="bg-orange text-white" size="10px">
+            {{ '11.1.3' }}
           </q-chip>
         </q-toolbar-title>
         <!--        <div>Quasar v{{ $q.version }}</div>-->
         <div>
           <!--          <q-input dense bg-color="white" v-model="$store.state.login.url" outlined label="url" />-->
-          <!--          <q-btn v-if="$store.getters['login/isLoggedIn']" @click="logout" size="xs" label="salir" icon="logout" color="negative"/>-->
+                    <q-btn v-if="$store.getters['login/isLoggedIn']" @click="logout" size="xs" label="Salir" icon="logout" color="negative" dense no-caps/>
         </div>
       </q-toolbar>
     </q-header>
@@ -358,6 +358,18 @@
             <q-item-label caption>
               Monitoreo
             </q-item-label>
+          </q-item-section>
+        </q-item>
+        <q-item clickable active-class="bg-primary text-white" exact to="mapavendedorvisita"
+                v-if="supervisor.includes($store.getters['login/user'].ci) || $store.getters['login/user'].ci=='123321'">
+          <q-item-section avatar>
+            <q-icon name="map"/>
+          </q-item-section>
+          <q-item-section>
+            <q-item-label>Mapa vendeor visita</q-item-label>
+<!--            <q-item-label caption>-->
+<!--              Monitoreo-->
+<!--            </q-item-label>-->
           </q-item-section>
         </q-item>
         <q-item clickable active-class="bg-primary text-white" exact to="mapacliente"
