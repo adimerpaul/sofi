@@ -111,7 +111,9 @@ class Pedido extends Model{
         'fact',
         'Impreso2',
         'horario',
-        'comentario'
+        'comentario',
+        'bonificacion',
+        'bonificacionAprovacion',
     ];
 
     function user(){

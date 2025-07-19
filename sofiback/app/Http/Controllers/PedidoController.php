@@ -736,10 +736,16 @@ class PedidoController extends Controller{
         ]);
         $data = [];
         foreach ($request->productos as $p) {
-            if ($p['tipo'] == 'POLLO' || $p['tipo'] == 'RES' || $p['tipo'] == 'CERDO')
+            $imp = 0;
+            if ($p['tipo'] == 'POLLO' || $p['tipo'] == 'RES' || $p['tipo'] == 'CERDO'){
                 $imp = 1;
-            else
-                $imp = 0;
+            }
+
+            $bonificacion = false;
+            if ($request->idCli == 3070 || $request->idCli == 2728) {
+                $bonificacion = true;
+            }
+
             $d = [
                 'NroPed' => $numpedido,
                 'cod_prod' => $p['cod_prod'],
@@ -840,6 +846,7 @@ class PedidoController extends Controller{
                 "rango" => $p['rango'],
                 "horario" => $request->horario,
                 "comentario" => $request->comentario,
+                "bonificacion" => $bonificacion,
             ];
             array_push($data, $d);
         }
@@ -1597,7 +1604,7 @@ class PedidoController extends Controller{
         $user = $request->user();
 
         //listar los clientes que han hecho pedidos en la fecha indicada user visitas por color si existe color pedido verde volver amarillo rojo rechazado
-        
+
 
         $pedidos = DB::SELECT("SELECT p.NroPed,p.pago,p.fecha,p.fact,Cod_Aut,Id,Cod_ciudad,Cod_Nacio,cod_car,Nombres,Telf,Direccion,EstCiv,edad,Empresa,Categoria,Imp_pieza,CiVend,ListBlanck,MotivoListBlack,ListBlack,TipoPaciente,SupraCanal,Canal,subcanal,zona,Latitud,longitud,transporte,territorio,codcli,clinew,p.estado,pe.Nombre1,pe.App1
         FROM tbpedidos p

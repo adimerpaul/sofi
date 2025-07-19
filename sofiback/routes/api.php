@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\BonificacionController;
 use App\Http\Controllers\FacturaController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -145,6 +146,9 @@ Route::group(['middleware'=>'auth:sanctum'],function (){
     Route::get('/generarXlsPollo/{fecha}',[\App\Http\Controllers\ExcelController::class,'generarXlsPollo']);
     Route::get('/generarXlsCerdo/{fecha}',[\App\Http\Controllers\ExcelController::class,'generarXlsCerdo']);
     Route::get('/factura/{comanda}', [FacturaController::class, 'generarPDF']);
+
+    Route::get('/bonificaciones', [BonificacionController::class, 'listar']);
+    Route::post('/bonificaciones/{id}/aprobar', [BonificacionController::class, 'aprobar']);
 });
 Route::get('/facturaV/{comanda}', [FacturaController::class, 'generarPDF']);
 Route::get('/generarXlsPollo/{fecha}',[\App\Http\Controllers\ExcelController::class,'generarXlsPollo']);
