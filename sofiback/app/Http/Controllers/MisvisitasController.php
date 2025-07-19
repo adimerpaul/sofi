@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Cliente;
+use App\Models\MisVisita;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -134,39 +135,51 @@ class MisvisitasController extends Controller
              WHERE TRIM(c.CiVend)='".$request->user()->ci."' " .$filtro." Order by tipo desc");
     }
 
-    public function pedidoVenta(Request $request)
-    {
+    public function pedidoVenta(Request $request){
+//        $user = $request->user();
+//        $usuario = $request->usuario;
+//
+//        $user = $usuario == null ? $user : User::where('CodAut', $usuario['CodAut'])->first();
+////        error_log(json_encode($user));
+////        error_log($user->ci);
+//
+//        $fecha = $request->fecha; // se espera en formato 'Y-m-d'
+//
+//        // Obtener clientes asignados con visitas solo de esa fecha
+//        $clientes = Cliente::where('CiVend', $user->ci)
+//            ->with(['visitas' => function ($query) use ($fecha) {
+//                $query->whereDate('fecha', $fecha)->orderBy('fecha', 'desc')->orderBy('hora', 'desc');
+//            }])
+//            ->get();
+//
+//        // Mapear resultado incluyendo solo si hubo visita ese día
+//        $clientesConVisita = $clientes->map(function ($cliente) {
+//            $visita = $cliente->visitas->first(); // primera visita de ese día, si existe
+//            return [
+//                'cliente' => $cliente,
+//                'visitado' => $visita ? true : false,
+//                'visita' => $visita ? [
+//                    'fecha' => $visita->fecha,
+//                    'estado' => $visita->estado,
+//                    'observacion' => $visita->observacion,
+//                ] : null,
+//            ];
+//        });
+//
+//        return response()->json($clientesConVisita);
         $user = $request->user();
-        $usuario = $request->usuario;
+        $misvisitas = MisVisita::where('personal_id', $user->CodAut)
+            ->whereDate('fecha', $request->fecha)->get();
+        $pedidoCount = $misvisitas->where('estado', 'PEDIDO')->count();
+        $retornoCount = $misvisitas->where('estado', 'PARADO')->count();
+        $noPedidoCount = $misvisitas->where('estado', 'NO PEDIDO')->count();
 
-        $user = $usuario == null ? $user : User::where('CodAut', $usuario['CodAut'])->first();
-//        error_log(json_encode($user));
-//        error_log($user->ci);
+        return response()->json([
+            'pedido' => $pedidoCount,
+            'retorno' => $retornoCount,
+            'nopedido' => $noPedidoCount,
+        ]);
 
-        $fecha = $request->fecha; // se espera en formato 'Y-m-d'
-
-        // Obtener clientes asignados con visitas solo de esa fecha
-        $clientes = Cliente::where('CiVend', $user->ci)
-            ->with(['visitas' => function ($query) use ($fecha) {
-                $query->whereDate('fecha', $fecha)->orderBy('fecha', 'desc')->orderBy('hora', 'desc');
-            }])
-            ->get();
-
-        // Mapear resultado incluyendo solo si hubo visita ese día
-        $clientesConVisita = $clientes->map(function ($cliente) {
-            $visita = $cliente->visitas->first(); // primera visita de ese día, si existe
-            return [
-                'cliente' => $cliente,
-                'visitado' => $visita ? true : false,
-                'visita' => $visita ? [
-                    'fecha' => $visita->fecha,
-                    'estado' => $visita->estado,
-                    'observacion' => $visita->observacion,
-                ] : null,
-            ];
-        });
-
-        return response()->json($clientesConVisita);
     }
 
     public function reportEntregVend(Request $request){

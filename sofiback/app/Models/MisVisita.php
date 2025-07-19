@@ -5,16 +5,11 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class MisVisita extends Model
-{
+class MisVisita extends Model{
     use HasFactory;
-
     protected $table = 'misvisitas';
-
     protected $primaryKey = 'id';
-
     public $timestamps = false; // Asumiendo que no tienes `created_at` ni `updated_at`
-
     protected $fillable = [
         'estado',
         'fecha',
