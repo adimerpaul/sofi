@@ -1569,7 +1569,9 @@ class PedidoController extends Controller{
             ->whereDate('fecha', $fecha)
             ->where('estado', 'ENVIADO')
             ->where('tipo', $tipo)
+            ->where('bonificacion', 0)
             ->groupBy('idCli', 'placa', 'horario', 'color', 'CIfunc')
+            
             ->get()
             //return $resultados;
             ->map(function ($pedido) {
