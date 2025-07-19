@@ -14,7 +14,7 @@ class BonificacionController extends Controller{
         // Agrupamos por NroPed y cargamos relaciones
         $pedidosConBonificaciones = Pedido::with(['cliente', 'user', 'producto'])
             ->whereDate('fecha', $fecha)
-            ->where('bonificacion', true)
+            ->whereRaw('(bonificacion = true OR bonificacionAprovacion IS NOT NULL)')
             ->get()
             ->groupBy('NroPed')
             ->map(function ($items, $nroPed) {
@@ -59,6 +59,7 @@ class BonificacionController extends Controller{
         // Guardar la aprobación en todos los registros del mismo NroPed
         foreach ($pedidos as $pedido) {
             $pedido->bonificacionAprovacion = $request->user()->Nombre1;
+            $pedido->bonificacion = false;
             $pedido->save();
         }
 

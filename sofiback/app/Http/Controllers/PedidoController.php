@@ -725,8 +725,11 @@ class PedidoController extends Controller{
 //        return floatval( $request->lat)."   -   ".floatval($request->lng)."   -   ".$cliente[0]->Latitud."   -   ".$cliente[0]->longitud;
         $distancia = $this->distance(floatval($request->lat), floatval($request->lng), floatval($cliente[0]->Latitud), floatval($cliente[0]->longitud));
 
-//        return $numpedido;
-//        exit;
+        $idCli = $request->idCli;
+        if ($request->idCli == 3070 || $request->idCli == 2728) {
+            $idCli = $request->clienteBonificacion;
+        }
+
         DB::table('misvisitas')->insert([
             'estado' => 'PEDIDO',
             'fecha' => date('Y-m-d'),
@@ -735,7 +738,7 @@ class PedidoController extends Controller{
             'lng' => $request->lng,
             'distancia' => $distancia,
             'observacion' => '',
-            'cliente_id' => $request->idCli,
+            'cliente_id' => $idCli,
             'personal_id' => $request->user()->CodAut
         ]);
         $data = [];
@@ -746,15 +749,19 @@ class PedidoController extends Controller{
             }
 
             $bonificacion = false;
+            $idCli = $request->idCli;
+            $comentario = $request->comentario;
             if ($request->idCli == 3070 || $request->idCli == 2728) {
                 $bonificacion = true;
+                $idCli = $request->clienteBonificacion;
+                $comentario = $comentario. ' - BONIFICACION';
             }
 
             $d = [
                 'NroPed' => $numpedido,
                 'cod_prod' => $p['cod_prod'],
                 'CIfunc' => $request->user()->CodAut,
-                'idCli' => $request->idCli,
+                'idCli' => $idCli,
                 'Cant' => $p['cantidad'],
                 'precio' => $p['precio'],
 //                'fecha'=>date('Y-m-d H:i:s'),
@@ -849,7 +856,7 @@ class PedidoController extends Controller{
                 "fact" => $request->fact,
                 "rango" => $p['rango'],
                 "horario" => $request->horario,
-                "comentario" => $request->comentario,
+                "comentario" => $comentario,
                 "bonificacion" => $bonificacion,
             ];
             array_push($data, $d);
@@ -1012,6 +1019,7 @@ class PedidoController extends Controller{
                     'NroPed'      => $pedido->NroPed,
                     'pago'        => $pedido->pago,
                     'fecha'       => $pedido->fecha,
+                    'bonificacion' => $pedido->bonificacion,
                     'fact'        => $pedido->fact,
                     'estado'      => $pedido->estado,
                     'cliente'     => $pedido->cliente, // Objeto completo del cliente
@@ -1037,8 +1045,7 @@ class PedidoController extends Controller{
     public function enviarpedidos(Request $request)
     {
         foreach ($request->clientes as $p) {
-            //DB::select("UPDATE tbpedidos SET  estado='ENVIADO' WHERE NroPed='".$p['NroPed']."'");
-            DB::select("UPDATE tbpedidos p set p.estado='ENVIADO' , p.envio = NOW()  where p.NroPed='" . $p['NroPed'] . "' and (SELECT c.venta from tbclientes c where c.Cod_Aut=p.idCli)='ACTIVO'");
+            DB::select("UPDATE tbpedidos p set p.estado='ENVIADO' , p.envio = NOW()  where p.bonificacion=0 and p.NroPed='" . $p['NroPed'] . "' and (SELECT c.venta from tbclientes c where c.Cod_Aut=p.idCli)='ACTIVO'");
         }
     }
 
@@ -1049,6 +1056,11 @@ class PedidoController extends Controller{
         $cliente = Cliente::where('Cod_Aut', $pedido->idCli)->first();
         if ($cliente->venta == 'INACTIVO') {
             return response()->json(['message' => 'El cliente tiene deuda'], 500);
+            exit();
+        }
+
+        if ($pedido->bonificacion == 1) {
+            return response()->json(['message' => 'No se puede enviar un pedido de bonificacion'], 500);
             exit();
         }
         DB::select("UPDATE tbpedidos p set p.estado='ENVIADO', p.envio = NOW()  where p.NroPed='" . $request->NroPed . "' and (SELECT c.venta from tbclientes c where c.Cod_Aut=p.idCli)='ACTIVO'");
