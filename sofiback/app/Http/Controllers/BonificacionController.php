@@ -23,6 +23,7 @@ class BonificacionController extends Controller{
                     'cliente' => $items->first()->cliente,
                     'comentario' => $items->first()->comentario,
                     'aprobacion' => $items->first()->bonificacionAprovacion,
+                    'usuario' => $items->first()->user->Nombre1 ?? 'Desconocido',
                     'productos' => $items->map(function ($item) {
                         return [
                             'producto' => $item->producto->Producto ?? 'Desconocido',

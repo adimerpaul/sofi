@@ -44,9 +44,17 @@
             label="Aprobar"
             color="green"
             @click="aprobar(props.row.codAut)"
-            :loading ="loading"
+            :loading="loading"
             icon="check_circle_outline"
           />
+        </q-td>
+      </template>
+      <template v-slot:body-cell-productos="props">
+        <q-td :props="props">
+<!--          <pre>{{props.row.productos}}</pre>-->
+          <div v-for="(producto, index) in props.row.productos" :key="index">
+            {{ producto.producto }} ({{ producto.cantidad }})
+          </div>
         </q-td>
       </template>
     </q-table>
@@ -55,6 +63,7 @@
 
 <script>
 import moment from 'moment';
+
 export default {
   data() {
     return {
@@ -63,23 +72,35 @@ export default {
       bonificaciones: [],
       columns: [
         {
+          name: 'codAut',
+          label: 'Código',
+          field: 'NroPed',
+          align: 'left'
+        },
+        {
           name: 'cliente',
           label: 'Cliente',
-          field: row => row.cliente?.Nombres,
+          field: row => row.cliente?.Nombres || '',
           align: 'left'
         },
         {
-          name: 'producto',
-          label: 'Producto',
-          field: row => row.producto?.Producto,
+          name: 'usuario',
+          label: 'Usuario',
+          field: 'usuario',
           align: 'left'
         },
         {
-          name: 'total',
-          label: 'Total',
-          field: 'total',
-          align: 'right'
+          name: 'productos',
+          label: 'Productos',
+          field: 'productos',
+          align: 'left'
         },
+        // {
+        //   name: 'canttxt',
+        //   label: 'Cantidad',
+        //   field: 'Canttxt',
+        //   align: 'center'
+        // },
         {
           name: 'comentario',
           label: 'Comentario',
@@ -97,12 +118,10 @@ export default {
   },
   methods: {
     async cargarBonificaciones() {
+      this.loading = true;
       try {
-        this.loading = true;
         const response = await this.$api.get('/bonificaciones', {
           params: { fecha: this.fecha }
-        }).finally(() => {
-          this.loading = false;
         });
         this.bonificaciones = response.data;
       } catch (error) {
@@ -110,11 +129,13 @@ export default {
           message: 'Error al cargar bonificaciones',
           color: 'negative'
         });
+      } finally {
+        this.loading = false;
       }
     },
     async aprobar(id) {
+      this.loading = true;
       try {
-        this.loading = true;
         await this.$api.post(`/bonificaciones/${id}/aprobar`);
         this.$q.notify({
           message: 'Bonificación aprobada',
@@ -126,6 +147,8 @@ export default {
           message: 'Error al aprobar bonificación',
           color: 'negative'
         });
+      } finally {
+        this.loading = false;
       }
     }
   },

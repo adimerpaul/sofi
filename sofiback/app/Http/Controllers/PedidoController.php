@@ -975,13 +975,47 @@ class PedidoController extends Controller{
         return $pedidos;
     }
 
-    public function clientepedido(Request $request)
+    public function clientepedido2(Request $request)
     {
         //$cl=DB::SELECT("SELECT * from tbclientes where ci='".$request->user()->CodAut."'")[0];
         if ($request->user()->CodAut == 1)
             return DB::SELECT("SELECT p.NroPed,p.pago,p.fecha,p.fact,Cod_Aut,Id,Cod_ciudad,Cod_Nacio,cod_car,Nombres,Telf,Direccion,EstCiv,edad,Empresa,Categoria,Imp_pieza,CiVend,ListBlanck,MotivoListBlack,ListBlack,TipoPaciente,SupraCanal,Canal,subcanal,zona,Latitud,longitud,transporte,territorio,codcli,clinew,p.estado FROM tbpedidos p inner join tbclientes c on c.Cod_Aut=p.idCli  where date(p.fecha)='$request->fecha1' GROUP by  p.NroPed,p.pago,p.fecha,p.fact,cod_Aut,Id,Cod_ciudad,Cod_Nacio,cod_car,Nombres,Telf,Direccion,EstCiv,edad,Empresa,Categoria,Imp_pieza,CiVend,ListBlanck,MotivoListBlack,ListBlack,TipoPaciente,SupraCanal,Canal,subcanal,zona,Latitud,longitud,transporte,territorio,codcli,clinew,p.estado");
         else
-            return DB::SELECT("SELECT p.NroPed,p.pago,p.fecha,p.fact,Cod_Aut,Id,Cod_ciudad,Cod_Nacio,cod_car,Nombres,Telf,Direccion,EstCiv,edad,Empresa,Categoria,Imp_pieza,CiVend,ListBlanck,MotivoListBlack,ListBlack,TipoPaciente,SupraCanal,Canal,subcanal,zona,Latitud,longitud,transporte,territorio,codcli,clinew,p.estado FROM tbpedidos p inner join tbclientes c on c.Cod_Aut=p.idCli  where date(p.fecha)='$request->fecha1' and c.CiVend='" . $request->user()->ci . "' GROUP by p.NroPed,p.pago,p.fecha,p.fact,Cod_Aut,Id,Cod_ciudad,Cod_Nacio,cod_car,Nombres,Telf,Direccion,EstCiv,edad,Empresa,Categoria,Imp_pieza,CiVend,ListBlanck,MotivoListBlack,ListBlack,TipoPaciente,SupraCanal,Canal,subcanal,zona,Latitud,longitud,transporte,territorio,codcli,clinew,p.estado");
+            $sql = "SELECT p.NroPed,p.pago,p.fecha,p.fact,Cod_Aut,Id,Cod_ciudad,Cod_Nacio,cod_car,Nombres,Telf,Direccion,EstCiv,edad,Empresa,Categoria,Imp_pieza,CiVend,ListBlanck,MotivoListBlack,ListBlack,TipoPaciente,SupraCanal,Canal,subcanal,zona,Latitud,longitud,transporte,territorio,codcli,clinew,p.estado FROM tbpedidos p inner join tbclientes c on c.Cod_Aut=p.idCli  where date(p.fecha)='$request->fecha1' and c.CiVend='" . $request->user()->ci . "' GROUP by p.NroPed,p.pago,p.fecha,p.fact,Cod_Aut,Id,Cod_ciudad,Cod_Nacio,cod_car,Nombres,Telf,Direccion,EstCiv,edad,Empresa,Categoria,Imp_pieza,CiVend,ListBlanck,MotivoListBlack,ListBlack,TipoPaciente,SupraCanal,Canal,subcanal,zona,Latitud,longitud,transporte,territorio,codcli,clinew,p.estado";
+            error_log($sql);
+            return DB::SELECT($sql);
+    }
+    public function clientepedido(Request $request)
+    {
+        $fecha = $request->input('fecha1', Carbon::now()->format('Y-m-d'));
+        $user = $request->user();
+        $query = Pedido::with('cliente')
+            ->whereDate('fecha', $fecha);
+
+        if ($request->user()->CodAut != 1) {
+//            $query->whereHas('cliente', function ($q) use ($request) {
+//                $q->where('CiVend', $request->user()->ci);
+//            });
+            $query->where('CIfunc', $request->user()->CodAut);
+        }
+
+        $resultados = $query
+            ->get()
+            ->groupBy('NroPed')
+            ->map(function ($pedidos) {
+                $pedido = $pedidos->first();
+                return [
+                    'NroPed'      => $pedido->NroPed,
+                    'pago'        => $pedido->pago,
+                    'fecha'       => $pedido->fecha,
+                    'fact'        => $pedido->fact,
+                    'estado'      => $pedido->estado,
+                    'cliente'     => $pedido->cliente, // Objeto completo del cliente
+                ];
+            })
+            ->values();
+
+        return response()->json($resultados);
     }
 
     public function pedpendiente(Request $request)
