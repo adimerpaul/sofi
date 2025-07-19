@@ -3,7 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Models\Cliente;
+use App\Models\MisVisita;
 use App\Models\Pedido;
+use App\Models\User;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 
@@ -87,5 +89,67 @@ class MapaVendedorController extends Controller{
             'users' => $users
         ];
         return $data;
+    }
+    function mapaVendedorVisita(Request $request){
+        $fecha = $request->fecha;
+        $tipo = $request->tipo;
+        $idUserArray = Pedido::whereDate('fecha', $fecha)
+            ->orderBy('CIfunc')
+            ->select('CIfunc')
+            ->whereRaw('tipo like "%'.$tipo.'%"')
+            ->distinct()
+            ->pluck('CIfunc')
+            ->toArray();
+//        error_log(json_encode($idUserArray));
+
+        $users = User::whereIn('CodAut', $idUserArray)
+            ->select('CodAut', 'Nombre1', 'App1', 'ci')
+            ->get();
+//        error_log('Usuarios: ' . $users->count());
+        $ciUserArray = $users->pluck('ci')->toArray();
+//        error_log(json_encode($ciUserArray));
+
+        $clientes = Cliente::whereIn('CiVend', $ciUserArray)
+            ->select('Cod_Aut', 'Nombres', 'Direccion', 'Latitud', 'longitud', 'CiVend')
+            ->get();
+        $clientesIdArray = $clientes->pluck('Cod_Aut')->toArray();
+
+        $sub = MisVisita::selectRaw('MAX(id) as id')
+            ->whereIn('cliente_id', $clientesIdArray)
+            ->whereDate('fecha', $fecha)
+            ->groupBy('cliente_id');
+
+        $misVisitas = MisVisita::whereIn('id', $sub)->select('estado','cliente_id')
+            ->get();
+
+        error_log(json_encode($misVisitas));
+
+        $userRes = [];
+        foreach ($users as $user) {
+            $clientesUser = $clientes->where('CiVend', $user->ci);
+            $clientesUserRes = [];
+            foreach ($clientesUser as $cliente) {
+                $ultimaVisita = $misVisitas->where('cliente_id', $cliente->Cod_Aut)->first();
+                $clientesUserRes[] = [
+                    'Cod_Aut' => $cliente->Cod_Aut,
+                    'Nombres' => $cliente->Nombres,
+                    'Direccion' => $cliente->Direccion,
+                    'Latitud' => $cliente->Latitud,
+                    'longitud' => $cliente->longitud,
+                    'estado' => isset($ultimaVisita) ? $ultimaVisita->estado : null
+                ];
+            }
+            $userRes[] = [
+                'CodAut' => $user->CodAut,
+                'nombreCompleto' => trim($user->Nombre1) . ' ' . trim($user->App1),
+                'ci' => $user->ci,
+                'clientes' => $clientesUserRes
+            ];
+        }
+        $data = [
+            'users' => $userRes
+        ];
+        return $data;
+
     }
 }
