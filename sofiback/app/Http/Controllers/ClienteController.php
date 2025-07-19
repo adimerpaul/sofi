@@ -3,8 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Models\Cliente;
+use App\Models\MisVisita;
 use App\Models\User;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -156,10 +158,9 @@ class ClienteController extends Controller{
              //SELECT t.idCli,COUNT(DISTINCT(date(t.fecha))) FROM tbpedidos t where YEAR(t.fecha)=YEAR('2022-10-14') and MONTH(t.fecha)=MONTH('2022-10-14') and t.idCli=1;
              //(SELECT COUNT(DISTINCT(date(t.fecha))) FROM tbpedidos t where YEAR(t.fecha)=YEAR('".date('Y-m-d')."') and MONTH(t.fecha)=MONTH('".date('Y-m-d')."') and t.idCli=tbclientes.Cod_Aut) as totalpedido
     }
-    public function filtrarlista(Request $request) {
+    public function filtrarlista3(Request $request) {
         $user_ci = trim($request->user()->ci);
         $fecha_hoy = date('Y-m-d');
-
         if ($request->filtradia == 9) {
             // Si es para todos los días
             return DB::select("
@@ -225,6 +226,69 @@ class ClienteController extends Controller{
         error_log($sql);
         error_log("[$fecha_hoy, $user_ci]");
         return DB::select($sql, [$fecha_hoy, $user_ci]);
+    }
+    public function filtrarlista(Request $request)
+    {
+        $user_ci = trim($request->user()->ci);
+        $fecha_hoy = Carbon::now()->format('Y-m-d');
+
+        $idsExtra = ['61839000', '0023456'];
+
+        // Subconsulta base (usada para ambos)
+        $baseSelect = [
+            'tbclientes.*',
+            // Última visita
+            'tipo' => MisVisita::select('estado')
+                ->whereColumn('cliente_id', 'tbclientes.Cod_Aut')
+                ->whereDate('fecha', $fecha_hoy)
+                ->orderByDesc('id')
+                ->limit(1),
+            // Deuda total
+            'totdeuda' => DB::table('tbctascobrar as c')
+                ->selectRaw('SUM(Importe - IFNULL((SELECT SUM(Acuenta) FROM tbctascobrar WHERE comanda = c.comanda), 0))')
+                ->whereColumn('c.CINIT', 'tbclientes.Id')
+                ->where('Nrocierre', 0)
+                ->where('Acuenta', 0),
+            // Fecha mínima
+            'fechaminima' => DB::table('tbctascobrar as c')
+                ->selectRaw('MIN(FechaEntreg)')
+                ->whereColumn('c.CINIT', 'tbclientes.Id')
+                ->where('Nrocierre', 0)
+                ->where('Acuenta', 0),
+            // Cant deuda
+            'cantdeuda' => DB::table('tbctascobrar as c')
+                ->selectRaw('COUNT(*)')
+                ->whereColumn('c.CINIT', 'tbclientes.Id')
+                ->where('Nrocierre', 0)
+                ->where('Acuenta', 0)
+        ];
+
+        // Primera consulta: clientes normales
+        $clientesQuery = Cliente::query()
+            ->whereRaw('TRIM(CiVend) = ?', [$user_ci])
+            ->select($baseSelect);
+
+        // Día de la semana
+        if ($request->filtradia != 9) {
+            $numdia = $request->filtradia == 8 ? Carbon::now()->dayOfWeek : $request->filtradia;
+            $dias = ['do', 'lu', 'Ma', 'Mi', 'Ju', 'Vi', 'Sa'];
+            if (isset($dias[$numdia])) {
+                $clientesQuery->where($dias[$numdia], 1);
+            }
+        }
+
+        // Segunda consulta: clientes forzados por ID
+        $clientesExtraQuery = Cliente::query()
+            ->whereIn('Id', $idsExtra)
+            ->select($baseSelect);
+
+        // Unión de ambas
+        $clientes = $clientesQuery
+            ->union($clientesExtraQuery)
+            ->orderByDesc('tipo')
+            ->get();
+
+        return $clientes;
     }
 
 
