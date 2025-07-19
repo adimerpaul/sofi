@@ -18,6 +18,7 @@ class PedidoController extends Controller{
         $productos = Pedido::whereDate('fecha', $fecha)
             ->where('estado', 'ENVIADO')
             ->where('tipo', 'NORMAL')
+            ->where('bonificacion', 0)
             ->select(
                 'cod_prod',
                 DB::raw('SUM(Cant) as total'),
@@ -314,6 +315,7 @@ class PedidoController extends Controller{
             ->where('NroPed', $id)
             ->where('estado', 'ENVIADO')
             ->where('tipo', 'NORMAL')
+            ->where('bonificacion', 0)
             ->select(
                 'NroPed', 'fecha', 'idCli', 'CIfunc', 'estado', 'fact',
                 'comentario', 'pago', 'placa', 'horario', 'colorStyle'
@@ -438,6 +440,7 @@ class PedidoController extends Controller{
             ->whereDate('fecha', $fecha)
             ->where('estado', 'ENVIADO')
             ->where('tipo', 'NORMAL')
+            ->where('bonificacion', 0)
             ->select(
                 'NroPed', 'fecha', 'idCli', 'CIfunc', 'estado', 'fact',
                 'comentario', 'pago', 'placa', 'horario', 'colorStyle',
@@ -494,6 +497,7 @@ class PedidoController extends Controller{
             ->where('tbpedidos.estado', 'ENVIADO')
             ->where('tbpedidos.tipo', 'NORMAL')
             ->where('tbpedidos.placa', $placa)
+            ->where('bonificacion', 0)
             ->select(
                 'tbpedidos.NroPed', 'tbpedidos.fecha', 'tbpedidos.idCli', 'tbpedidos.CIfunc', 'tbpedidos.estado',
                 'tbpedidos.fact', 'tbpedidos.comentario', 'tbpedidos.pago', 'tbpedidos.placa', 'tbpedidos.horario',
@@ -1571,7 +1575,7 @@ class PedidoController extends Controller{
             ->where('tipo', $tipo)
             ->where('bonificacion', 0)
             ->groupBy('idCli', 'placa', 'horario', 'color', 'CIfunc')
-            
+
             ->get()
             //return $resultados;
             ->map(function ($pedido) {

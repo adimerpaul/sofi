@@ -148,7 +148,7 @@ Route::group(['middleware'=>'auth:sanctum'],function (){
     Route::get('/factura/{comanda}', [FacturaController::class, 'generarPDF']);
 
     Route::get('/bonificaciones', [BonificacionController::class, 'listar']);
-    Route::post('/bonificaciones/{id}/aprobar', [BonificacionController::class, 'aprobar']);
+    Route::post('/bonificacioneAprobar', [BonificacionController::class, 'bonificacioneAprobar']);
 });
 Route::get('/facturaV/{comanda}', [FacturaController::class, 'generarPDF']);
 Route::get('/generarXlsPollo/{fecha}',[\App\Http\Controllers\ExcelController::class,'generarXlsPollo']);

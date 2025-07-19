@@ -43,9 +43,10 @@
             no-caps
             label="Aprobar"
             color="green"
-            @click="aprobar(props.row.codAut)"
+            @click="aprobar(props.row)"
             :loading="loading"
             icon="check_circle_outline"
+            v-if="!props.row.aprobacion"
           />
         </q-td>
       </template>
@@ -108,6 +109,12 @@ export default {
           align: 'left'
         },
         {
+          name: 'aprobado',
+          label: 'Aprobado',
+          field: row => row.aprobacion || '—',
+          align: 'left'
+        },
+        {
           name: 'aprobar',
           label: 'Acción',
           field: 'aprobar',
@@ -133,18 +140,29 @@ export default {
         this.loading = false;
       }
     },
-    async aprobar(id) {
+    async aprobar(pedido) {
+      if (pedido.aprobacion) {
+        this.$q.notify({
+          message: 'Esta bonificación ya fue aprobada',
+          color: 'warning'
+        });
+        return;
+      }
+
       this.loading = true;
       try {
-        await this.$api.post(`/bonificaciones/${id}/aprobar`);
+        await this.$api.post(`/bonificacioneAprobar`, {
+          NroPed: pedido.NroPed
+        });
         this.$q.notify({
           message: 'Bonificación aprobada',
           color: 'positive'
         });
         this.cargarBonificaciones();
       } catch (error) {
+        const msg = error.response?.data?.message || 'Error al aprobar';
         this.$q.notify({
-          message: 'Error al aprobar bonificación',
+          message: msg,
           color: 'negative'
         });
       } finally {

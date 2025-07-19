@@ -38,12 +38,30 @@ class BonificacionController extends Controller{
 
         return response()->json($pedidosConBonificaciones);
     }
-    public function aprobar(Request $request, $id)
+    public function bonificacioneAprobar(Request $request)
     {
-        $pedido = Pedido::findOrFail($id);
-        $pedido->bonificacionAprovacion = $request->user()->name; // o cualquier campo de nombre
-        $pedido->save();
+        $nroPed = $request->input('NroPed');
 
-        return response()->json(['message' => 'Bonificación aprobada con éxito.']);
+        // Obtener todos los pedidos de ese NroPed con bonificación
+        $pedidos = Pedido::where('NroPed', $nroPed)
+            ->where('bonificacion', true)
+            ->get();
+
+        if ($pedidos->isEmpty()) {
+            return response()->json(['message' => 'Bonificación no encontrada.'], 404);
+        }
+
+        // Verificar si ya fue aprobada
+        if ($pedidos->first()->bonificacionAprovacion) {
+            return response()->json(['message' => 'La bonificación ya fue aprobada.'], 422);
+        }
+
+        // Guardar la aprobación en todos los registros del mismo NroPed
+        foreach ($pedidos as $pedido) {
+            $pedido->bonificacionAprovacion = $request->user()->Nombre1;
+            $pedido->save();
+        }
+
+        return response()->json(['message' => 'Bonificación aprobada correctamente.']);
     }
 }
