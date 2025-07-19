@@ -186,13 +186,9 @@
                 </template>
               </q-input>
             </div>
-            <div class="col-md-6 col-xs-12">
-              <q-input dense outlined v-model="clienteBonificacion" label="Comentario">
-                <template v-slot:after>
-                  <q-btn round dense flat icon="edit" @click="modcomentario"/>
-                </template>
-              </q-input>
-            </div>
+<!--            <div class="col-12">-->
+<!--              <pre>{{cliente}}</pre>-->
+<!--            </div>-->
           </div>
 
         </q-card-section>
@@ -273,6 +269,27 @@
             </div>
             <div class="col-12">
               <q-input dense outlined v-model="coment" label="Comentario"/>
+            </div>
+            <!--            $idsExtra = ['61839000', '0023456'];-->
+            <div class="col-12" v-if="cliente.Id == '61839000' || cliente.Id == '0023456'">
+<!--              <q-input dense outlined v-model="clienteBonificacion" label="Cliente Bonificacion">-->
+<!--              </q-input>-->
+              <q-select v-model="clienteBonificacion" dense outlined
+                        :options="clientes2" label="Cliente Bonificacion"
+                        option-label="Nombres"
+                        option-value="Cod_Aut"
+                        emit-value
+                        map-options
+              >
+                <template v-slot:no-option>
+                  <q-item>
+                    <q-item-section class="text-grey">
+                      No results
+                    </q-item-section>
+                  </q-item>
+                </template>
+              </q-select>
+              <pre>{{clienteBonificacion}}</pre>
             </div>
           </div>
         </q-card-section>
@@ -705,6 +722,7 @@ export default {
       iconWidth: 25,
       iconHeight: 40,
       clientes: [],
+      clientes2: [],
       cliente: {},
       productos: [],
       productos2: [],
@@ -778,9 +796,12 @@ export default {
 
           this.clientes.push(d)
         })
-        // console.log(this.clientes)
-        // this.$q.loading.hide()
-        // this.loading=false
+        this.clientes2 = [...this.clientes]
+        this.clientes2.sort((a, b) => {
+          if (a.Nombres < b.Nombres) return -1;
+          if (a.Nombres > b.Nombres) return 1;
+          return 0;
+        });
       }).catch(err => {
         // this.loading=false
         // console.log(err.response)
@@ -885,6 +906,19 @@ export default {
           position: 'top'
         })
         return false
+      }
+      if (this.cliente.Id == '61839000' || this.cliente.Id == '0023456' ) {
+        if (this.clienteBonificacion == null || this.clienteBonificacion == undefined) {
+          this.$q.notify({
+            message: 'Debe seleccionar cliente de bonificacion',
+            color: 'red',
+            icon: 'error',
+            position: 'top'
+          })
+          return false
+        }
+      } else {
+        this.clienteBonificacion = null
       }
       this.dialog = true
       this.$q.dialog({
@@ -1030,7 +1064,8 @@ export default {
         fact: this.fact,
         fecha: this.fecha,
         horario: this.horario,
-        comentario: this.coment
+        comentario: this.coment,
+        clienteBonificacion: this.clienteBonificacion
       }).then(res => {
         // console.log(res.data)
         // return false

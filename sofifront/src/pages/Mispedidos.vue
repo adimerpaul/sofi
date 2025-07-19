@@ -51,6 +51,9 @@
                label="Enviar todos los pedidos"></q-btn>
         <!--    <q-btn style="width: 100%" @click="expedidos" color="red" icon="warning" label="export pedidos"> </q-btn>-->
       </div>
+<!--      <div>-->
+<!--        <pre>{{clientes}}</pre>-->
+<!--      </div>-->
 
       <q-dialog full-width full-height v-model="modalpedido">
         <q-card>
@@ -172,11 +175,11 @@
                     </q-tr>
                   </template>
                 </q-table>
-                <q-btn v-if="cliente.estado=='CREADO'" @click="modificarcomanda" style="width: 100%"
+                <q-btn v-if="cliente.estado=='CREADO'" @click="modificarcomanda" style="width: 100%" class="q-ma-xs"
                        label="Modificar pedido" icon="edit" color="warning"/>
-                <q-btn v-if="cliente.estado=='CREADO'" @click="enviarcomanda" style="width: 100%" label="Enviar pedido"
+                <q-btn v-if="cliente.estado=='CREADO'" @click="enviarcomanda" style="width: 100%" label="Enviar pedido" class="q-ma-xs"
                        icon="send" color="teal"/>
-                <q-btn v-if="cliente.estado=='CREADO'" @click="eliminarcomanda" style="width: 100%"
+                <q-btn v-if="cliente.estado=='CREADO'" @click="eliminarcomanda" style="width: 100%" class="q-ma-xs"
                        label="Eliminar pedido" icon="delete" color="red"/>
               </div>
             </div>
