@@ -1189,7 +1189,7 @@ class PedidoController extends Controller{
         DB::select("DELETE FROM tbpedidos where NroPed='$numpedido'");
     }
 
-    public function listpedido(Request $request)
+    public function listpedido2(Request $request)
     {
         $pedido = DB::SELECT("SELECT NroPed,CIfunc,idCli,fecha,estado,pago,fact,horario,comentario from tbpedidos where NroPed='$request->NroPed'  group by NroPed,CIfunc,idCli,fecha,estado,pago,fact,horario,comentario ");
 //        return $pedido;
@@ -1301,6 +1301,127 @@ class PedidoController extends Controller{
         }
 
         return $pedido;
+    }
+    public function listpedido(Request $request){
+        $pedido = Pedido::with(['cliente', 'user', 'producto'])
+            ->where('NroPed', $request->NroPed)
+            ->get()
+            ->groupBy('NroPed')
+            ->map(function ($items) {
+                $first = $items->first();
+
+                return (object)[
+                    'NroPed'     => $first->NroPed,
+                    'CIfunc'     => $first->CIfunc,
+                    'idCli'      => $first->idCli,
+                    'fecha'      => $first->fecha,
+                    'estado'     => $first->estado,
+                    'pago'       => $first->pago,
+                    'fact'       => $first->fact,
+                    'horario'    => $first->horario,
+                    'comentario' => $first->comentario,
+                    'cliente'    => $first->cliente,
+                    'usuario'    => $first->user,
+                    'pedidos'    => $items->map(function ($p) {
+                        return [
+                            'codAut'      => $p->codAut,
+                            'NroPed'      => $p->NroPed,
+                            'cod_prod'    => $p->cod_prod,
+                            'cantidad'    => $p->Cant,
+                            'precio'      => $p->precio,
+                            'subtotal'    => $p->subtotal,
+                            'observacion' => $p->Observaciones,
+                            'nombre'      => optional($p->producto)->Producto,
+                            'tipo'        => $p->tipo,
+                            'total'       => $p->total,
+                            'entero'      => $p->entero,
+                            'desmembre'   => $p->desmembre,
+                            'corte'       => $p->corte,
+                            'kilo'        => $p->kilo,
+                            'trozado'     => $p->trozado,
+                            'pierna'      => $p->pierna,
+                            'brazo'       => $p->brazo,
+                            'pfrial'      => $p->pfrial,
+                            'hora'        => $p->hora,
+                            'pago'        => $p->pago,
+                            'fact'        => $p->fact,
+                            'rango'       => $p->rango,
+                            'horario'     => $p->horario,
+                            'comentario'  => $p->comentario,
+                            'cbrasa5'    => $p->cbrasa5,
+                            'ubrasa5'    => $p->ubrasa5,
+                            'bsbrasa5'   => $p->bsbrasa5,
+                            'obsbrasa5'  => $p->obsbrasa5,
+                            'cbrasa6'    => $p->cbrasa6,
+                            'cubrasa6'   => $p->cubrasa6,
+                            'bsbrasa6'   => $p->bsbrasa6,
+                            'obsbrasa6'  => $p->obsbrasa6,
+                            'c104'       => $p->c104,
+                            'u104'       => $p->u104,
+                            'bs104'      => $p->bs104,
+                            'obs104'     => $p->obs104,
+                            'c105'       => $p->c105,
+                            'u105'       => $p->u105,
+                            'bs105'      => $p->bs105,
+                            'obs105'     => $p->obs105,
+                            'c106'       => $p->c106,
+                            'u106'       => $p->u106,
+                            'bs106'      => $p->bs106,
+                            'obs106'     => $p->obs106,
+                            'c107'       => $p->c107,
+                            'u107'       => $p->u107,
+                            'bs107'      => $p->bs107,
+                            'obs107'     => $p->obs107,
+                            'c108'       => $p->c108,
+                            'u108'       => $p->u108,
+                            'bs108'      => $p->bs108,
+                            'obs108'     => $p->obs108,
+                            'c109'       => $p->c109,
+                            'u109'       => $p->u109,
+                            'bs109'      => $p->bs109,
+                            'obs109'     => $p->obs109,
+                            'ala'        => $p->ala,
+                            'unidala'    => $p->unidala,
+                            'bsala'      => $p->bsala,
+                            'obsala'     => $p->obsala,
+                            'cadera'     => $p->cadera,
+                            'unidcadera' => $p->unidcadera,
+                            'bscadera'   => $p->bscadera,
+                            'obscadera'  => $p->obscadera,
+                            'pecho'      => $p->pecho,
+                            'unidpecho'  => $p->unidpecho,
+                            'bspecho'    => $p->bspecho,
+                            'obspecho'   => $p->obspecho,
+                            'pie'        => $p->pie,
+                            'unidpie'    => $p->unidpie,
+                            'bspie'      => $p->bspie,
+                            'obspie'     => $p->obspie,
+                            'filete'     => $p->filete,
+                            'unidfilete' => $p->unidfilete,
+                            'bsfilete'   => $p->bsfilete,
+                            'obsfilete'  => $p->obsfilete,
+                            'cuello'     => $p->cuello,
+                            'unidcuello' => $p->unidcuello,
+                            'bscuello'   => $p->bscuello,
+                            'obscuello'  => $p->obscuello,
+                            'hueso'      => $p->hueso,
+                            'unidhueso'  => $p->unidhueso,
+                            'bshueso'    => $p->bshueso,
+                            'obshueso'   => $p->obshueso,
+                            'menu'       => $p->menu,
+                            'unidmenu'   => $p->unidmenu,
+                            'bsmenu'     => $p->bsmenu,
+                            'obsmenu'    => $p->obsmenu,
+                            'bs'         => $p->bs,
+                            'bs2'        => $p->bs2,
+                            'contado'    => $p->contado,
+
+                        ];
+                    })->values()
+                ];
+            })->values();
+
+        return response()->json($pedido);
     }
 
     public function export(Request $request)

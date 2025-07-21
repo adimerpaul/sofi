@@ -124,8 +124,9 @@
                        @click="agregarpedido"/>
               </div>
               <div class="col-12">
+<!--                <pre>{{cliente.cliente}}</pre>-->
                 <q-table :rows="misproductos" :filter="filteproducto" :columns="columnsproducto" dense
-                         :title="'Pedido de '+cliente.Nombres"
+                         :title="'Pedido de '+cliente.cliente.Nombres"
                          :rows-per-page-options="[0]" row-key="id" wrap-cells flat bordered>
                   <template v-slot:body-cell-subtotal="props">
                     <q-td :props="props" auto-width>
@@ -1651,7 +1652,7 @@ export default {
       this.$q.loading.show()
       this.$api.post('updatecomanda', {
         comanda: this.cliente.NroPed,
-        idCli: this.cliente.Cod_Aut,
+        idCli: this.cliente.cliente.Cod_Aut,
         productos: this.misproductos,
         pago: this.pago,
         fact: this.fact,
