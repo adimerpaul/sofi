@@ -38,6 +38,7 @@
       <template v-slot:body-cell-aprobar="props">
         <q-td :props="props">
 <!--          btn derodown-->
+<!--          <pre>{{props.row.bonificacion}}</pre>-->
           <q-btn-dropdown
             dense
             size="md"
@@ -46,7 +47,7 @@
             label="Acciones"
             :loading="loading">
             <q-list>
-              <q-item clickable @click="aprobar(props.row)" v-close-popup>
+              <q-item clickable @click="aprobar(props.row)" v-close-popup v-if="!props.row.bonificacion">
                 <q-item-section avatar>
                   <q-icon name="check_circle_outline" />
                 </q-item-section>
@@ -54,8 +55,6 @@
                   Aprobar
                 </q-item-section>
               </q-item>
-<!--              <q-btn @click="listpedidos(props.row)" :color="props.row.estado=='CREADO'?'primary':'warning'"-->
-<!--                     :label="props.row.estado=='CREADO'?'Modificar':'Enviado'" icon="shop" size="xs" dense no-caps/>-->
               <q-item clickable @click="listpedidos(props.row)" v-close-popup>
                 <q-item-section avatar>
                   <q-icon name="list" />

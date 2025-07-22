@@ -441,13 +441,12 @@ class PedidoController extends Controller{
             ->select(
                 'NroPed', 'fecha', 'idCli', 'CIfunc', 'estado', 'fact',
                 'comentario', 'pago', 'placa', 'horario', 'colorStyle',
-                'cod_prod', 'precio', 'Cant', 'Canttxt', 'subtotal','bonificacion', 'bonificacionAprovacion',
+                'cod_prod', 'precio', 'Cant', 'Canttxt', 'subtotal','bonificacion', 'bonificacionAprovacion','bonificacionId'
             )
             ->orderBy('NroPed')
             ->get();
 //        return $pedidos;
 
-        // Agrupar por NroPed
         $resPedido = $pedidos->groupBy('NroPed')->map(function ($items) {
             $pedido = $items->first();
             $productos = $items->map(function ($p) {
@@ -463,18 +462,27 @@ class PedidoController extends Controller{
             });
             return [
                 'pedido' => $pedido,
-                'productos' => $productos
+                'productos' => $productos,
+                'bonificacionCliente' => $pedido->bonificacionId ? Cliente::where('Cod_Aut', $pedido->bonificacionId)
+                    ->select('Cod_Aut', 'Nombres', 'Direccion', 'Telf', 'zona')
+                    ->first() : null
             ];
         })->values();
 
 //        return $resPedido;
-
-        // Actualizar solo los pedidos aún no impresos
         Pedido::whereIn('NroPed', $resPedido->pluck('pedido.NroPed'))
             ->where('impreso', 0)
             ->update(['impreso' => 1]);
 
         $vehiculos = DB::table('vehiculo')->get();
+//        $bonificacionCliente = [];
+//        error_log($resPedido['pedido']);
+////        if ($resPedido->bonificacionId != null) {
+////            $bonificacionCliente = Cliente::where('Cod_Aut', $resPedido->bonificacionId)
+////                ->select('Cod_Aut', 'Nombres', 'Direccion', 'Telf', 'zona')
+////                ->first();
+////        }
+////        error_log('bonificacionCliente: ' . json_encode($bonificacionCliente));
 
         $pdf = PDF::loadView('pdf.reportePedido', [
             'pedidos' => $resPedido,
@@ -1087,6 +1095,9 @@ class PedidoController extends Controller{
                 'cod_prod' => $p['cod_prod'],
                 'CIfunc' => $request->user()->CodAut,
                 'idCli' => $request->idCli,
+                'bonificacion' => $request->bonificacion,
+                'bonificacionAprovacion' => $request->bonificacionAprovacion ?? '',
+                'bonificacionId' => $request->bonificacionId ?? null,
                 'Cant' => $p['cantidad'],
                 'precio' => $p['precio'],
                 'fecha' => $request->fecha . ' ' . date('H:i:s'),
@@ -1312,7 +1323,8 @@ class PedidoController extends Controller{
             ->groupBy('NroPed')
             ->map(function ($items) {
                 $first = $items->first();
-
+//                error_log(json_encode($first));
+                    error_log("bonificacionId: " . $first->bonificacionId . " - Cliente: " . $first->cliente->Nombres . " - Usuario: " . $first->user->Nombre1);
                 return (object)[
                     'NroPed'     => $first->NroPed,
                     'CIfunc'     => $first->CIfunc,
@@ -1325,6 +1337,9 @@ class PedidoController extends Controller{
                     'comentario' => $first->comentario,
                     'cliente'    => $first->cliente,
                     'usuario'    => $first->user,
+                    'bonificacion' => $first->bonificacion,
+                    'bonificacionAprovacion' => $first->bonificacionAprovacion ?? '',
+                    'bonificacionId' => $first->bonificacionId ?? null,
                     'pedidos'    => $items->map(function ($p) {
                         return [
                             'codAut'      => $p->codAut,

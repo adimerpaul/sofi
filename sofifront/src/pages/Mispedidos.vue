@@ -747,6 +747,9 @@ export default {
       fechaClonacion: date.formatDate(Date.now(), 'YYYY-MM-DD'),
       fechamenos: date.formatDate(addToDate(new Date(), {days: 0}), 'YYYY-MM-DD'),
       loading: false,
+      bonificacion: 0,
+      bonificacionAprovacion: '',
+      bonificacionId: '',
     }
   },
   created() {
@@ -1638,11 +1641,14 @@ export default {
 
     modificarcomanda() {
       // console.log(this.misproductos)
-      // console.log(this.cliente)
+      console.log(this.cliente)
       this.$q.loading.show()
       this.$api.post('updatecomanda', {
         comanda: this.cliente.NroPed,
         idCli: this.cliente.cliente.Cod_Aut,
+        bonificacion: this.bonificacion,
+        bonificacionAprovacion: this.bonificacionAprovacion,
+        bonificacionId: this.bonificacionId,
         productos: this.misproductos,
         pago: this.pago,
         fact: this.fact,
@@ -1826,8 +1832,10 @@ export default {
           this.coment = res.data[0].comentario
           this.fecha = date.formatDate(res.data[0].fecha, 'YYYY-MM-DD')
           this.misproductos = res.data[0].pedidos
-
           this.modalpedido = true
+          this.bonificacion = res.data[0].bonificacion
+          this.bonificacionAprovacion = res.data[0].bonificacionAprovacion
+          this.bonificacionId = res.data[0].bonificacionId
           this.$q.loading.hide()
         }).finally(() => {
         this.loading = false

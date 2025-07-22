@@ -77,9 +77,8 @@
                 <td>
                     <span class="bold"></span>
                     <span class="bold f-28">
-                        {{ $pedido['pedido']->cliente->Nombres }}
-                {{--bonificacionAprovacion si es bonificaion aprobacion--}}
-{{--                        {{ $pedido['pedido']->bonificacionAprovacion != null ? 'BONIFICACION APROBADA' : $pedido['pedido']->cliente->Nombres }}--}}
+{{--                        {{ $pedido['pedido']->cliente->Nombres }}--}}
+                        {{ $pedido['pedido']->bonificacionAprovacion != null ? $pedido['bonificacionCliente']->Nombres : $pedido['pedido']->cliente->Nombres }}
                     </span>
                 </td>
                     <td style="text-align: right; {{ $pedido['pedido']->colorStyle }}">

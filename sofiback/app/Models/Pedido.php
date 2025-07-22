@@ -114,6 +114,7 @@ class Pedido extends Model{
         'comentario',
         'bonificacion',
         'bonificacionAprovacion',
+        'bonificacionId',
     ];
 
     function user(){
