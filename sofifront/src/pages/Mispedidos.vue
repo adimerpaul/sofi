@@ -194,7 +194,6 @@
           </q-card-actions>
         </q-card>
       </q-dialog>
-
       <q-dialog v-model="modalpollo" full-width>
         <q-card>
           <q-card-section>
@@ -328,8 +327,6 @@
           </q-card-actions>
         </q-card>
       </q-dialog>
-
-
       <q-dialog v-model="modalnormal" full-width>
         <q-card>
           <q-card-section>
@@ -347,7 +344,6 @@
           </q-card-actions>
         </q-card>
       </q-dialog>
-
       <q-dialog v-model="modalcerdo" full-width>
         <q-card>
           <q-card-section>
@@ -383,7 +379,6 @@
           </q-card-actions>
         </q-card>
       </q-dialog>
-
       <q-dialog v-model="modalres" full-width>
         <q-card>
           <q-card-section>
@@ -416,7 +411,6 @@
           </q-card-actions>
         </q-card>
       </q-dialog>
-
       <q-dialog v-model="dialog_pollo" full-width full-height>
         <q-card>
           <q-card-section>
@@ -580,7 +574,6 @@
           </q-card-actions>
         </q-card>
       </q-dialog>
-
       <q-dialog v-model="dialog_res" full-width>
         <q-card>
           <q-card-section>
@@ -624,8 +617,6 @@
           </q-card-actions>
         </q-card>
       </q-dialog>
-
-
       <q-dialog v-model="dialog_cerdo" full-width>
         <q-card>
           <q-card-section>
@@ -671,7 +662,6 @@
           </q-card-actions>
         </q-card>
       </q-dialog>
-
     </div>
   </q-page>
 </template>
@@ -1801,13 +1791,9 @@ export default {
       if (val === '') {
         update(() => {
           this.productos = this.productos2
-
-          // here you have access to "ref" which
-          // is the Vue reference of the QSelect
         })
         return
       }
-
       update(() => {
         const needle = val.toLowerCase()
         this.productos = this.productos2.filter(v => v.label.toLowerCase().indexOf(needle) > -1)

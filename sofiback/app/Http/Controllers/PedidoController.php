@@ -748,10 +748,12 @@ class PedidoController extends Controller{
             $bonificacion = false;
             $idCli = $request->idCli;
             $comentario = $request->comentario;
+            $bonificacionId = null;
             if ($request->idCli == 3070 || $request->idCli == 2728) {
                 $bonificacion = true;
                 $idCli = $request->clienteBonificacion;
                 $comentario = $comentario. ' - BONIFICACION';
+                $bonificacionId = $request->idCli;
             }
 
             $d = [
@@ -855,6 +857,7 @@ class PedidoController extends Controller{
                 "horario" => $request->horario,
                 "comentario" => $comentario,
                 "bonificacion" => $bonificacion,
+                "bonificacionId" => $bonificacionId,
             ];
             array_push($data, $d);
         }
