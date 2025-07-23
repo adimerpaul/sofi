@@ -189,6 +189,7 @@ export default {
         fecha: this.fecha,
         tipo: this.tipo,
       }).then((res) => {
+        console.log(res.data);
         this.pedidos = res.data;
         this.pedidosMapa = {...res.data};
         this.pedidosAll = {...res.data};
