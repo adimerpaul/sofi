@@ -89,7 +89,7 @@
                   url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                 ></LTileLayer>
                 <template v-for="(user) in pedidosMapa?.users">
-                  <l-marker v-for="(pedido,i) in user?.pedidos?.pedidos" :key="i" :lat-lng="[parseFloat(pedido.pedido.cliente.Latitud) || 0, parseFloat(pedido.pedido.cliente.longitud) || 0]">
+                  <l-marker v-for="(pedido,i) in user?.pedidos?.pedidos" :key="i" :lat-lng="[this.toFloatOrZero(pedido.pedido.cliente.Latitud), this.toFloatOrZero(pedido.pedido.cliente.longitud)]">
                     <l-tooltip :content="pedido.pedido.cliente.Nombres">
                     </l-tooltip>
                     <l-icon >
@@ -153,6 +153,10 @@ export default {
     this.buscar();
   },
   methods: {
+      toFloatOrZero(value) {
+    const num = parseFloat(value);
+    return isNaN(num) || !isFinite(num) ? 0 : num;
+  },
     enviarPedidosEmergencia(user) {
       this.loading = true;
       this.$api.post("enviarPedidosEmergencia", {
