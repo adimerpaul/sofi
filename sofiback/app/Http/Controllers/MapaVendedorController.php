@@ -17,7 +17,7 @@ class MapaVendedorController extends Controller{
             ->select('NroPed', 'fecha', 'idCli', 'CIfunc', 'estado','fact','comentario','pago','tipo')
 //            ->where('estado', 'ENVIADO')
             ->with(['cliente' => function ($query) {
-                $query->select('Cod_Aut', 'Nombres', 'Direccion', 'Telf','zona','Latitud','longitud');
+                $query->select('Cod_Aut', 'Nombres', 'Direccion', 'Telf','zona', 'Latitud','longitud');
             }])
             ->with(['user' => function ($query) {
                 $query->select('CodAut', 'Nombre1', 'App1','ci');

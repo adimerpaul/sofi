@@ -89,7 +89,7 @@
                   url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                 ></LTileLayer>
                 <template v-for="(user) in pedidosMapa?.users">
-                  <l-marker v-for="(pedido,i) in user?.pedidos?.pedidos" :key="i" :lat-lng="[parseFloat(pedido.pedido.cliente.Latitud), parseFloat(pedido.pedido.cliente.longitud)]">
+                  <l-marker v-for="(pedido,i) in user?.pedidos?.pedidos" :key="i" :lat-lng="[parseFloat(pedido.pedido.cliente.Latitud) || 0, parseFloat(pedido.pedido.cliente.longitud) || 0]">
                     <l-tooltip :content="pedido.pedido.cliente.Nombres">
                     </l-tooltip>
                     <l-icon >
