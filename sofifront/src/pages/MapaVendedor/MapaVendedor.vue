@@ -88,7 +88,7 @@
                 <LTileLayer
                   url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                 ></LTileLayer>
-                <template v-for="(user) in pedidosMapa?.users">
+                <div v-for="(user) in pedidosMapa?.users" :key="user.CodAut">
                   <l-marker v-for="(pedido,i) in user?.pedidos?.pedidos" :key="i" :lat-lng="[toFloatOrZero(pedido.pedido.cliente.Latitud), toFloatOrZero(pedido.pedido.cliente.longitud)]">
                     <l-tooltip :content="pedido.pedido.cliente.Nombres">
                     </l-tooltip>
@@ -98,7 +98,7 @@
                       </q-badge>
                     </l-icon>
                   </l-marker>
-                </template>
+                </div>
               </l-map>
 <!--              <template v-for="(user,i) in pedidosMapa?.users" :key="i">-->
 <!--                <div v-for="(pedido,j) in user?.pedidos?.pedidos" :key="j">-->
