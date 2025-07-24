@@ -89,12 +89,15 @@
                   url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                 ></LTileLayer>
                 <template v-for="(user) in pedidosMapa?.users">
-                  <l-marker v-for="(pedido,i) in user?.pedidos?.pedidos" :key="i" :lat-lng="[parseFloat(pedido.pedido.cliente.Latitud), parseFloat(pedido.pedido.cliente.longitud)]">
-                    <l-tooltip :content="pedido.pedido.cliente.Nombres">
-                    </l-tooltip>
-                    <l-icon >
+                  <l-marker
+                    v-for="(pedido, i) in user?.pedidos?.pedidos.filter(p => p.pedido?.cliente?.Latitud && p.pedido?.cliente?.longitud)"
+                    :key="i"
+                    :lat-lng="[parseFloat(pedido.pedido.cliente.Latitud), parseFloat(pedido.pedido.cliente.longitud)]"
+                  >
+                    <l-tooltip :content="pedido.pedido.cliente.Nombres" />
+                    <l-icon>
                       <q-badge style="padding: 2px" :color="pedido.pedido.estado === 'CREADO' ? 'blue' : 'green'">
-                        {{pedido.pedido.idCli}}
+                        {{ pedido.pedido.idCli }}
                       </q-badge>
                     </l-icon>
                   </l-marker>
@@ -108,6 +111,38 @@
 <!--                </div>-->
 <!--              </template>-->
             </div>
+          </div>
+          <div class="col-12 q-mt-md">
+            <q-card flat bordered>
+              <q-card-section>
+                <div class="text-bold">Clientes con coordenadas faltantes</div>
+                <q-markup-table flat dense bordered v-if="pedidosInvalidos.length > 0">
+                  <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>Cliente</th>
+                    <th>ID Cliente</th>
+                    <th>Vendedor</th>
+                  </tr>
+                  </thead>
+                  <tbody>
+                  <tr v-for="(pedido, index) in pedidosInvalidos" :key="index">
+                    <td>{{ index + 1 }}</td>
+                    <td>
+                      {{ pedido.NroPed }}
+                      {{ pedido.nombre }}
+<!--                      <pre>{{pedido}}</pre>-->
+                    </td>
+                    <td>{{ pedido.idCli }}</td>
+                    <td>{{ pedido.vendedor }}</td>
+                  </tr>
+                  </tbody>
+                </q-markup-table>
+                <div v-else class="text-positive">
+                  Todos los pedidos tienen coordenadas.
+                </div>
+              </q-card-section>
+            </q-card>
           </div>
 <!--          <div class="col-12 col-md-12 ">-->
 <!--            <pre>{{pedidosMapa}}</pre>-->
@@ -198,6 +233,24 @@ export default {
     },
   },
   computed: {
+    pedidosInvalidos() {
+      const invalidos = [];
+      for (const user of this.pedidosMapa?.users || []) {
+        for (const pedidoObj of user?.pedidos?.pedidos || []) {
+          const cliente = pedidoObj?.pedido?.cliente;
+          if (!cliente || !cliente.Latitud || !cliente.longitud) {
+            // console.error(`Pedido sin coordenadas: ${pedidoObj.pedido.idCli}`, pedidoObj);
+            invalidos.push({
+              NroPed: pedidoObj.pedido.NroPed,
+              nombre: cliente?.Nombres || 'SIN NOMBRE',
+              idCli: pedidoObj.pedido.idCli,
+              vendedor: user.nombreCompleto,
+            });
+          }
+        }
+      }
+      return invalidos;
+    },
     total() {
       let sum = 0;
       for (let i = 0; i < this.pedidos?.users?.length; i++) {
