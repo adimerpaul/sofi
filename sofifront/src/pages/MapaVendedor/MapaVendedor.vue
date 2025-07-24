@@ -188,6 +188,10 @@ export default {
     this.buscar();
   },
   methods: {
+      toFloatOrZero(value) {
+    const num = parseFloat(value);
+    return isNaN(num) || !isFinite(num) ? 0 : num;
+  },
     enviarPedidosEmergencia(user) {
       this.loading = true;
       this.$api.post("enviarPedidosEmergencia", {
@@ -224,6 +228,7 @@ export default {
         fecha: this.fecha,
         tipo: this.tipo,
       }).then((res) => {
+        console.log(res.data);
         this.pedidos = res.data;
         this.pedidosMapa = {...res.data};
         this.pedidosAll = {...res.data};
