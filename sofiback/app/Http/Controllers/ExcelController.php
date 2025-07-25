@@ -411,7 +411,8 @@ class ExcelController extends Controller
     }
 
     public function generarXlsPollo($fecha){
-            $preventistas = DB::select("SELECT pe.Nombre1,pe.App1,pe.CodAut from personal pe inner join tbpedidos p on pe.CodAut=p.CIfunc
+            $preventistas = DB::select("SELECT pe.Nombre1,pe.App1,pe.CodAut
+            from personal pe inner join tbpedidos p on pe.CodAut=p.CIfunc
             where date(p.fecha)='$fecha' and tipo='POLLO' group by pe.Nombre1,pe.App1,pe.CodAut");
 
         $spreadsheet = \PhpOffice\PhpSpreadsheet\IOFactory::load('preparacion.xlsx');
@@ -422,7 +423,40 @@ class ExcelController extends Controller
         foreach ($preventistas as $value) {
             $sheet->setCellValue('F'.$c, trim($value->Nombre1).' '.trim($value->App1));
             $c++;
-            $pedidos=DB::select("SELECT c.Nombres,p.fact,p.pago,p.bs,p.bs2, CASE WHEN p.pago = 'CONTADO' THEN 'SI' ELSE 'NO' END as campo_pago
+            $pedidos=DB::select("SELECT c.Nombres,p.fact,p.pago,p.bs,p.bs2, CASE WHEN p.pago = 'CONTADO' THEN 'SI' ELSE 'NO' END as campo_pago,
+                        cbrasa5,
+            ubrasa5,
+            cbrasa6,
+            cubrasa6,
+            c104,
+            u104,
+            c105,
+            u105,
+            c106,
+            u106,
+            c107,
+            u107,
+            c108,
+            u108,
+            c109,
+            u109,
+            rango,
+            ala,
+            unidala,
+            cadera,
+            unidcadera,
+            pecho,
+            unidpecho,
+            pie,
+            unidpie,
+            filete,
+            unidfilete,
+            cuello,
+            unidcuello,
+            hueso,
+            unidhueso,
+            menu,
+            unidmenu
             from tbpedidos p  INNER join tbclientes c on p.idCli=c.Cod_Aut
             where p.CIfunc=".$value->CodAut." and date(fecha)='$fecha' and tipo='POLLO' AND estado='ENVIADO' ");
 
@@ -433,8 +467,169 @@ class ExcelController extends Controller
                 $sheet->setCellValue('D'.$c, $r->bs2);
                 $sheet->setCellValue('E'.$c, $r->bs);
                 $sheet->setCellValue('F'.$c, $r->Nombres);
-                $c++;
-            # code...
+      // productos por cliente
+            $productos = [];
+
+            // B5
+            if ($r->cbrasa5 != null || $r->ubrasa5 != null) {
+                if ($r->cbrasa5 != null) {
+                    $productos[] = ['B5', $r->cbrasa5 . ' CJA'];
+                } else {
+                    $productos[] = ['B5', $r->ubrasa5 . ' U'];
+                }
+            } else {
+                $productos[] = ['B5', ''];
+            }
+
+            // B6
+            if ($r->cbrasa6 != null || $r->cubrasa6 != null) {
+                if ($r->cbrasa6 != null) {
+                    $productos[] = ['B6', $r->cbrasa6 . ' CJA'];
+                } else {
+                    $productos[] = ['B6', $r->cubrasa6 . ' U'];
+                }
+            } else {
+                $productos[] = ['B6', ''];
+            }
+
+            // 104
+            if ($r->c104 != null || $r->u104 != null) {
+                if ($r->c104 != null) {
+                    $productos[] = ['104', $r->c104 . ' CJA'];
+                } else {
+                    $productos[] = ['104', $r->u104 . ' U'];
+                }
+            } else {
+                $productos[] = ['104', ''];
+            }
+
+            // 105
+            if ($r->c105 != null || $r->u105 != null) {
+                if ($r->c105 != null) {
+                    $productos[] = ['105', $r->c105 . ' CJA'];
+                } else {
+                    $productos[] = ['105', $r->u105 . ' U'];
+                }
+            } else {
+                $productos[] = ['105', ''];
+            }
+
+            // 106
+            if ($r->c106 != null || $r->u106 != null) {
+                if ($r->c106 != null) {
+                    $productos[] = ['106', $r->c106 . ' CJA'];
+                } else {
+                    $productos[] = ['106', $r->u106 . ' U'];
+                }
+            } else {
+                $productos[] = ['106', ''];
+            }
+
+            // 107
+            if ($r->c107 != null || $r->u107 != null) {
+                if ($r->c107 != null) {
+                    $productos[] = ['107', $r->c107 . ' CJA'];
+                } else {
+                    $productos[] = ['107', $r->u107 . ' U'];
+                }
+            } else {
+                $productos[] = ['107', ''];
+            }
+
+            // 108
+            if ($r->c108 != null || $r->u108 != null) {
+                if ($r->c108 != null) {
+                    $productos[] = ['108', $r->c108 . ' CJA'];
+                } else {
+                    $productos[] = ['108', $r->u108 . ' U'];
+                }
+            } else {
+                $productos[] = ['108', ''];
+            }
+
+            // 109
+            if ($r->c109 != null || $r->u109 != null) {
+                if ($r->c109 != null) {
+                    $productos[] = ['109', $r->c109 . ' CJA'];
+                } else {
+                    $productos[] = ['109', $r->u109 . ' U'];
+                }
+            } else {
+                $productos[] = ['109', ''];
+            }
+
+            // Rango (directo)
+            $productos[] = ['Rango', $r->rango ?? ''];
+
+            // Ala
+            if ($r->ala != null) {
+                $productos[] = ['Ala', $r->ala . ' ' . ($r->unidala ?? '')];
+            } else {
+                $productos[] = ['Ala', ''];
+            }
+
+            // Cadera
+            if ($r->cadera != null) {
+                $productos[] = ['Cadera', $r->cadera . ' ' . ($r->unidcadera ?? '')];
+            } else {
+                $productos[] = ['Cadera', ''];
+            }
+
+            // Pecho
+            if ($r->pecho != null) {
+                $productos[] = ['Pecho', $r->pecho . ' ' . ($r->unidpecho ?? '')];
+            } else {
+                $productos[] = ['Pecho', ''];
+            }
+
+            // Pie
+            if ($r->pie != null) {
+                $productos[] = ['Pie', $r->pie . ' ' . ($r->unidpie ?? '')];
+            } else {
+                $productos[] = ['Pie', ''];
+            }
+
+            // Filete
+            if ($r->filete != null) {
+                $productos[] = ['Filete', $r->filete . ' ' . ($r->unidfilete ?? '')];
+            } else {
+                $productos[] = ['Filete', ''];
+            }
+
+            // Cuello
+            if ($r->cuello != null) {
+                $productos[] = ['Cuello', $r->cuello . ' ' . ($r->unidcuello ?? '')];
+            } else {
+                $productos[] = ['Cuello', ''];
+            }
+
+            // Hueso
+            if ($r->hueso != null) {
+                $productos[] = ['Hueso', $r->hueso . ' ' . ($r->unidhueso ?? '')];
+            } else {
+                $productos[] = ['Hueso', ''];
+            }
+
+            // Menú
+            if ($r->menu != null) {
+                $productos[] = ['Menu', $r->menu . ' ' . ($r->unidmenu ?? '')];
+            } else {
+                $productos[] = ['Menu', ''];
+            }
+
+// iniciar en la columna G (índice 6, porque A=0)
+    $col = 7;
+
+    foreach ($productos as $prod) {
+        if($prod[1] != '') {
+            $sheet->setCellValueByColumnAndRow($col, $c, $prod[0]);     // Nombre
+            $sheet->setCellValueByColumnAndRow($col + 1, $c, $prod[1]); // Cantidad
+        
+        $col += 4;
+        }
+    }
+
+    $c++;
 
         }
     }
