@@ -10,7 +10,7 @@ use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
 use PhpOffice\PhpSpreadsheet\Style\Font;
 use PhpOffice\PhpSpreadsheet\Style\Fill;
-
+use PhpOffice\PhpSpreadsheet\Style\Color;
 class ExcelController extends Controller
 {
     /**
@@ -473,9 +473,9 @@ class ExcelController extends Controller
             // B5
             if ($r->cbrasa5 != null || $r->ubrasa5 != null) {
                 if ($r->cbrasa5 != null) {
-                    $productos[] = ['B5', $r->cbrasa5 . ' CJA'];
+                    $productos[] = ['B5', $r->cbrasa5 . ' cja'];
                 } else {
-                    $productos[] = ['B5', $r->ubrasa5 . ' U'];
+                    $productos[] = ['B5', $r->ubrasa5 . ' u'];
                 }
             } else {
                 $productos[] = ['B5', ''];
@@ -484,9 +484,9 @@ class ExcelController extends Controller
             // B6
             if ($r->cbrasa6 != null || $r->cubrasa6 != null) {
                 if ($r->cbrasa6 != null) {
-                    $productos[] = ['B6', $r->cbrasa6 . ' CJA'];
+                    $productos[] = ['B6', $r->cbrasa6 . ' cja'];
                 } else {
-                    $productos[] = ['B6', $r->cubrasa6 . ' U'];
+                    $productos[] = ['B6', $r->cubrasa6 . ' u'];
                 }
             } else {
                 $productos[] = ['B6', ''];
@@ -495,9 +495,9 @@ class ExcelController extends Controller
             // 104
             if ($r->c104 != null || $r->u104 != null) {
                 if ($r->c104 != null) {
-                    $productos[] = ['104', $r->c104 . ' CJA'];
+                    $productos[] = ['104', $r->c104 . ' cja'];
                 } else {
-                    $productos[] = ['104', $r->u104 . ' U'];
+                    $productos[] = ['104', $r->u104 . ' u'];
                 }
             } else {
                 $productos[] = ['104', ''];
@@ -506,9 +506,9 @@ class ExcelController extends Controller
             // 105
             if ($r->c105 != null || $r->u105 != null) {
                 if ($r->c105 != null) {
-                    $productos[] = ['105', $r->c105 . ' CJA'];
+                    $productos[] = ['105', $r->c105 . ' cja'];
                 } else {
-                    $productos[] = ['105', $r->u105 . ' U'];
+                    $productos[] = ['105', $r->u105 . ' u'];
                 }
             } else {
                 $productos[] = ['105', ''];
@@ -517,9 +517,9 @@ class ExcelController extends Controller
             // 106
             if ($r->c106 != null || $r->u106 != null) {
                 if ($r->c106 != null) {
-                    $productos[] = ['106', $r->c106 . ' CJA'];
+                    $productos[] = ['106', $r->c106 . ' cja'];
                 } else {
-                    $productos[] = ['106', $r->u106 . ' U'];
+                    $productos[] = ['106', $r->u106 . ' u'];
                 }
             } else {
                 $productos[] = ['106', ''];
@@ -528,9 +528,9 @@ class ExcelController extends Controller
             // 107
             if ($r->c107 != null || $r->u107 != null) {
                 if ($r->c107 != null) {
-                    $productos[] = ['107', $r->c107 . ' CJA'];
+                    $productos[] = ['107', $r->c107 . ' cja'];
                 } else {
-                    $productos[] = ['107', $r->u107 . ' U'];
+                    $productos[] = ['107', $r->u107 . ' u'];
                 }
             } else {
                 $productos[] = ['107', ''];
@@ -539,9 +539,9 @@ class ExcelController extends Controller
             // 108
             if ($r->c108 != null || $r->u108 != null) {
                 if ($r->c108 != null) {
-                    $productos[] = ['108', $r->c108 . ' CJA'];
+                    $productos[] = ['108', $r->c108 . ' cja'];
                 } else {
-                    $productos[] = ['108', $r->u108 . ' U'];
+                    $productos[] = ['108', $r->u108 . ' u'];
                 }
             } else {
                 $productos[] = ['108', ''];
@@ -550,69 +550,73 @@ class ExcelController extends Controller
             // 109
             if ($r->c109 != null || $r->u109 != null) {
                 if ($r->c109 != null) {
-                    $productos[] = ['109', $r->c109 . ' CJA'];
+                    $productos[] = ['109', $r->c109 . ' cja'];
                 } else {
-                    $productos[] = ['109', $r->u109 . ' U'];
+                    $productos[] = ['109', $r->u109 . ' u'];
                 }
             } else {
                 $productos[] = ['109', ''];
             }
 
             // Rango (directo)
-            $productos[] = ['Rango', $r->rango ?? ''];
+            if ($r->rango != null) {
+                $productos[] = ['Rango', $r->rango . ' u'];
+            } else {
+                $productos[] = ['Rango', ''];
+            }
 
             // Ala
             if ($r->ala != null) {
-                $productos[] = ['Ala', $r->ala . ' ' . ($r->unidala ?? '')];
+                $productos[] = ['Ala', $r->ala . ' ' . (strtolower($r->unidala) ?? '')];
             } else {
                 $productos[] = ['Ala', ''];
             }
 
             // Cadera
             if ($r->cadera != null) {
-                $productos[] = ['Cadera', $r->cadera . ' ' . ($r->unidcadera ?? '')];
+                $productos[] = ['Cadera', $r->cadera . ' ' . (strtolower($r->unidcadera) ?? '')];
             } else {
                 $productos[] = ['Cadera', ''];
             }
 
             // Pecho
             if ($r->pecho != null) {
-                $productos[] = ['Pecho', $r->pecho . ' ' . ($r->unidpecho ?? '')];
+                $productos[] = ['Pecho', $r->pecho . ' ' . (strtolower($r->unidpecho) ?? '')];
             } else {
                 $productos[] = ['Pecho', ''];
             }
 
             // Pie
             if ($r->pie != null) {
-                $productos[] = ['Pie', $r->pie . ' ' . ($r->unidpie ?? '')];
+                $productos[] = ['p/m', $r->pie . ' ' . (strtolower($r->unidpie) ?? '')];
             } else {
-                $productos[] = ['Pie', ''];
+                $productos[] = ['p/m', ''];
             }
 
             // Filete
             if ($r->filete != null) {
-                $productos[] = ['Filete', $r->filete . ' ' . ($r->unidfilete ?? '')];
+                $productos[] = ['Filete', $r->filete . ' ' . (strtolower($r->unidfilete) ?? '')];
             } else {
                 $productos[] = ['Filete', ''];
             }
 
             // Cuello
             if ($r->cuello != null) {
-                $productos[] = ['Cuello', $r->cuello . ' ' . ($r->unidcuello ?? '')];
+                $productos[] = ['Cuello', $r->cuello . ' ' . (strtolower($r->unidcuello) ?? '')];
             } else {
                 $productos[] = ['Cuello', ''];
             }
 
             // Hueso
             if ($r->hueso != null) {
-                $productos[] = ['Hueso', $r->hueso . ' ' . ($r->unidhueso ?? '')];
+                $productos[] = ['Hueso', $r->hueso . ' ' . (strtolower($r->unidhueso) ?? '')];
             } else {
                 $productos[] = ['Hueso', ''];
             }
 
             // Menú
             if ($r->menu != null) {
-                $productos[] = ['Menu', $r->menu . ' ' . ($r->unidmenu ?? '')];
+                $productos[] = ['Menu', $r->menu . ' ' . (strtolower($r->unidmenu) ?? '')];
             } else {
                 $productos[] = ['Menu', ''];
             }
@@ -621,12 +625,30 @@ class ExcelController extends Controller
     $col = 7;
 
     foreach ($productos as $prod) {
-        if($prod[1] != '') {
-            $sheet->setCellValueByColumnAndRow($col, $c, $prod[0]);     // Nombre
-            $sheet->setCellValueByColumnAndRow($col + 1, $c, $prod[1]); // Cantidad
-        
-        $col += 4;
+        if ($prod[1] != '') {
+            $colLetter1 = Coordinate::stringFromColumnIndex($col);       // por ejemplo 'A'
+            $colLetter2 = Coordinate::stringFromColumnIndex($col + 1);   // por ejemplo 'B'
+
+            $cell1 = $colLetter1 . $c; // ej: 'A5'
+            $cell2 = $colLetter2 . $c; // ej: 'B5'
+
+            $sheet->setCellValue($cell1, $prod[0]);     // Nombre
+            $sheet->setCellValue($cell2, $prod[1]);     // Cantidad
+
+            // Por defecto: color negro
+            $sheet->getStyle($cell1)->getFont()->setBold(false)->getColor()->setARGB('000000');
+            $sheet->getStyle($cell2)->getFont()->setBold(false)->getColor()->setARGB('000000');
+
+
+            // Si es 'Rango', color rojo
+            if ($prod[0] == 'Rango') {
+                $sheet->getStyle($cell1)->getFont()->setBold(true)->getColor()->setARGB('FF0000');
+                $sheet->getStyle($cell2)->getFont()->setBold(true)->getColor()->setARGB('FF0000');
+            }
+
+            $col += 4;
         }
+    
     }
 
     $c++;
