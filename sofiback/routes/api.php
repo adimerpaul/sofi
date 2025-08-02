@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\BonificacionController;
 use App\Http\Controllers\FacturaController;
+use App\Http\Controllers\MobilController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -157,3 +158,8 @@ Route::get('/reportePedido/{fecha}',[\App\Http\Controllers\PedidoController::cla
 Route::get('/reportePedidoZona/{fecha}/{placa}',[\App\Http\Controllers\PedidoController::class,'reportePedidoZona']);
 Route::get('/reportePedidoProductos/{fecha}', [\App\Http\Controllers\PedidoController::class,'reportePedidoProductos']);
 Route::get('/reportePedidoOnly/{id}',[\App\Http\Controllers\PedidoController::class,'reportePedidoOnly']);
+
+
+Route::post('/importPedido',[\App\Http\Controllers\MobilController::class,'importPedido']);
+Route::post('/exportar-pedidos', [MobilController::class, 'exportarPedidosFlutter']);
+
