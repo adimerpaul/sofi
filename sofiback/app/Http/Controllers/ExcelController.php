@@ -456,7 +456,8 @@ class ExcelController extends Controller
             hueso,
             unidhueso,
             menu,
-            unidmenu
+            unidmenu,
+            Observaciones
             from tbpedidos p  INNER join tbclientes c on p.idCli=c.Cod_Aut
             where p.CIfunc=".$value->CodAut." and date(fecha)='$fecha' and tipo='POLLO' AND estado='ENVIADO' ");
 
@@ -649,6 +650,19 @@ class ExcelController extends Controller
             $col += 4;
         }
     
+    }
+    if ($r->Observaciones != null) {
+         $colLetter1 = Coordinate::stringFromColumnIndex($col);
+         $cell1 = $colLetter1 . $c;
+        $sheet->setCellValue($cell1, $r->Observaciones);
+            $sheet->getStyle($cell1)->applyFromArray([
+        'alignment' => [
+            'horizontal' => Alignment::HORIZONTAL_LEFT,
+            //'vertical'   => Alignment::VERTICAL_TOP,
+            //'indent'     => 1, // Sangría (equivale a padding del lado izquierdo)
+            //'wrapText'   => true, // Opcional: si el texto es largo, se ajusta
+        ],
+    ]);
     }
 
     $c++;
