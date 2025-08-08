@@ -17,6 +17,7 @@ class PedidoDetalle extends Model
         'nombre',
         'precio',
         'cantidad',
+        'peso',
         'cantidad_texto',
         'subtotal',
     ];

@@ -1096,7 +1096,7 @@ class PedidoController extends Controller{
                 'CIfunc' => $request->user()->CodAut,
                 'idCli' => $request->idCli,
                 'bonificacion' => $request->bonificacion,
-                'bonificacionAprovacion' => $request->bonificacionAprovacion ?? '',
+                'bonificacionAprovacion' => $request->bonificacionAprovacion ?? null,
                 'bonificacionId' => $request->bonificacionId ?? null,
                 'Cant' => $p['cantidad'],
                 'precio' => $p['precio'],
@@ -1338,7 +1338,7 @@ class PedidoController extends Controller{
                     'cliente'    => $first->cliente,
                     'usuario'    => $first->user,
                     'bonificacion' => $first->bonificacion,
-                    'bonificacionAprovacion' => $first->bonificacionAprovacion ?? '',
+                    'bonificacionAprovacion' => $first->bonificacionAprovacion ?? null,
                     'bonificacionId' => $first->bonificacionId ?? null,
                     'pedidos'    => $items->map(function ($p) {
                         return [

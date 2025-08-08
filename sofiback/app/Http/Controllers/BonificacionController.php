@@ -7,14 +7,13 @@ use Carbon\Carbon;
 use Illuminate\Http\Request;
 
 class BonificacionController extends Controller{
-    public function listar(Request $request)
-    {
+    public function bonificaciones(Request $request){
         $fecha = $request->input('fecha', Carbon::now()->format('Y-m-d'));
 
         // Agrupamos por NroPed y cargamos relaciones
         $pedidosConBonificaciones = Pedido::with(['cliente', 'user', 'producto'])
             ->whereDate('fecha', $fecha)
-            ->whereRaw('(bonificacion = true OR bonificacionAprovacion IS NOT NULL)')
+            ->whereRaw("(bonificacion = true OR (bonificacionAprovacion IS NOT NULL && bonificacionAprovacion != ''))")
             ->get()
             ->groupBy('NroPed')
             ->map(function ($items, $nroPed) {

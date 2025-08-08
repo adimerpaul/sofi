@@ -148,7 +148,7 @@ Route::group(['middleware'=>'auth:sanctum'],function (){
     Route::get('/generarXlsCerdo/{fecha}',[\App\Http\Controllers\ExcelController::class,'generarXlsCerdo']);
     Route::get('/factura/{comanda}', [FacturaController::class, 'generarPDF']);
 
-    Route::get('/bonificaciones', [BonificacionController::class, 'listar']);
+    Route::get('/bonificaciones', [BonificacionController::class, 'bonificaciones']);
     Route::post('/bonificacioneAprobar', [BonificacionController::class, 'bonificacioneAprobar']);
 });
 Route::get('/facturaV/{comanda}', [FacturaController::class, 'generarPDF']);
