@@ -162,4 +162,5 @@ Route::get('/reportePedidoOnly/{id}',[\App\Http\Controllers\PedidoController::cl
 
 Route::post('/importPedido',[\App\Http\Controllers\MobilController::class,'importPedido']);
 Route::post('/exportar-pedidos', [MobilController::class, 'exportarPedidosFlutter']);
+Route::post('/reporteTotalProductos', [MobilController::class, 'reporteTotalProductos']);
 

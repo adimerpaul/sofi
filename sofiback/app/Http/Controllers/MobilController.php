@@ -7,8 +7,38 @@ use App\Models\Pedido;
 use App\Models\PedidoDetalle;
 use App\Models\PedidoSofia;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class MobilController extends Controller{
+    public function reporteTotalProductos(Request $request)
+    {
+        // fecha en formato YYYY-MM-DD; si no envían, toma hoy
+        $fecha = $request->input('fecha', now()->toDateString());
+
+        $tbpedidos  = (new Pedido)->getTable();      // "tbpedidos"
+        $tbproductos = (new \App\Models\Producto)->getTable(); // "tbproductos"
+
+        $rows = Pedido::query()
+            ->whereDate("$tbpedidos.fecha", $fecha)
+            ->where("$tbpedidos.estado", 'ENVIADO')
+            ->where("$tbpedidos.tipo", 'NORMAL')
+            ->join("$tbproductos as prod", "prod.cod_prod", "=", "$tbpedidos.cod_prod")
+            ->groupBy("$tbpedidos.cod_prod", "prod.Producto")
+            ->select([
+                "$tbpedidos.cod_prod",
+                DB::raw("COALESCE(prod.Producto, '') as nombre"),
+                DB::raw("SUM($tbpedidos.Cant) as total_cantidad"),
+                DB::raw("SUM($tbpedidos.subtotal) as total_subtotal"),
+            ])
+            ->orderByDesc('total_cantidad')
+            ->get();
+
+        return response()->json([
+            'status' => 'success',
+            'fecha'  => $fecha,
+            'data'   => $rows,
+        ]);
+    }
     function importPedido(Request $request){
         $fecha = $request->input('fecha');
         $color = $request->input('color');
