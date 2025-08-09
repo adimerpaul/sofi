@@ -275,7 +275,7 @@
 <!--              <q-input dense outlined v-model="clienteBonificacion" label="Cliente Bonificacion">-->
 <!--              </q-input>-->
               <q-select v-model="clienteBonificacion" dense outlined
-                        :options="clientes2" label="Cliente Bonificacion"
+                        :options="clientes2" label="Cliente Cambio"
                         option-label="Nombres"
                         option-value="Cod_Aut"
                         emit-value

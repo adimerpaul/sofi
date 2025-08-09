@@ -248,63 +248,63 @@ class PedidoController extends Controller{
         ]);
     }
 
-    function reportePedidoOnly2($id)
-    {
-        $pedidos = Pedido::where('NroPed', $id)
-            ->select('NroPed', 'fecha', 'idCli', 'CIfunc', 'estado', 'fact', 'comentario', 'pago', 'placa', 'horario', 'colorStyle')
-            ->where('estado', 'ENVIADO')
-            ->with(['cliente' => function ($query) {
-                $query->select('Cod_Aut', 'Nombres', 'Direccion', 'Telf', 'zona');
-            }])
-            ->with(['user' => function ($query) {
-                $query->select('CodAut', 'Nombre1', 'App1');
-            }])
-            ->groupBy('NroPed', 'fecha', 'idCli', 'CIfunc', 'estado', 'fact', 'comentario', 'pago', 'placa', 'horario', 'colorStyle')
-            ->orderBy('NroPed')
-            ->where('tipo', 'NORMAL')
-            ->get();
-        $pedidosAll = Pedido::where('NroPed', $id)
-            ->select('NroPed', 'cod_prod', 'precio', 'Cant', 'Canttxt', 'subtotal')
-            ->with(['producto' => function ($query) {
-                $query->select(DB::raw("TRIM(cod_prod) as cod_prod"), 'Producto');
-            }])
-            ->where('tipo', 'NORMAL')
-            ->get();
-        $resPedido = [];
-
-        $pedidosIds = $pedidos->pluck('NroPed');
-        Pedido::whereIn('NroPed', $pedidosIds)
-            ->where('impreso', 0)
-            ->update(['impreso' => 1]);
-
-        foreach ($pedidos as $p) {
-            $productos = $pedidosAll->where('NroPed', $p->NroPed);
-            $resProducto = [];
-            foreach ($productos as $pro) {
-                $resProducto[] = [
-                    'Nroped' => $pro->NroPed,
-                    'cod_prod' => $pro->cod_prod,
-                    'producto' => isset($pro->producto->Producto) ? $pro->producto->Producto : '',
-                    'precio' => $pro->precio,
-                    'Cant' => $pro->Cant,
-                    'Canttxt' => $pro->Canttxt,
-                    'subtotal' => $pro->subtotal
-                ];
-            }
-            $resPedido[] = [
-                'pedido' => $p,
-                'productos' => $productos
-            ];
-        }
-        $vehiculos = DB::table('vehiculo')->get();
-        $data = [
-            'pedidos' => $resPedido,
-            'vehiculos' => $vehiculos
-        ];
-//        return $data;
-        $pdf = PDF::loadView('pdf.reportePedido', $data);
-        return $pdf->stream('document.pdf');
-    }
+//    function reportePedidoOnly2($id)
+//    {
+//        $pedidos = Pedido::where('NroPed', $id)
+//            ->select('NroPed', 'fecha', 'idCli', 'CIfunc', 'estado', 'fact', 'comentario', 'pago', 'placa', 'horario', 'colorStyle')
+//            ->where('estado', 'ENVIADO')
+//            ->with(['cliente' => function ($query) {
+//                $query->select('Cod_Aut', 'Nombres', 'Direccion', 'Telf', 'zona');
+//            }])
+//            ->with(['user' => function ($query) {
+//                $query->select('CodAut', 'Nombre1', 'App1');
+//            }])
+//            ->groupBy('NroPed', 'fecha', 'idCli', 'CIfunc', 'estado', 'fact', 'comentario', 'pago', 'placa', 'horario', 'colorStyle')
+//            ->orderBy('NroPed')
+//            ->where('tipo', 'NORMAL')
+//            ->get();
+//        $pedidosAll = Pedido::where('NroPed', $id)
+//            ->select('NroPed', 'cod_prod', 'precio', 'Cant', 'Canttxt', 'subtotal')
+//            ->with(['producto' => function ($query) {
+//                $query->select(DB::raw("TRIM(cod_prod) as cod_prod"), 'Producto');
+//            }])
+//            ->where('tipo', 'NORMAL')
+//            ->get();
+//        $resPedido = [];
+//
+//        $pedidosIds = $pedidos->pluck('NroPed');
+//        Pedido::whereIn('NroPed', $pedidosIds)
+//            ->where('impreso', 0)
+//            ->update(['impreso' => 1]);
+//
+//        foreach ($pedidos as $p) {
+//            $productos = $pedidosAll->where('NroPed', $p->NroPed);
+//            $resProducto = [];
+//            foreach ($productos as $pro) {
+//                $resProducto[] = [
+//                    'Nroped' => $pro->NroPed,
+//                    'cod_prod' => $pro->cod_prod,
+//                    'producto' => isset($pro->producto->Producto) ? $pro->producto->Producto : '',
+//                    'precio' => $pro->precio,
+//                    'Cant' => $pro->Cant,
+//                    'Canttxt' => $pro->Canttxt,
+//                    'subtotal' => $pro->subtotal
+//                ];
+//            }
+//            $resPedido[] = [
+//                'pedido' => $p,
+//                'productos' => $productos
+//            ];
+//        }
+//        $vehiculos = DB::table('vehiculo')->get();
+//        $data = [
+//            'pedidos' => $resPedido,
+//            'vehiculos' => $vehiculos
+//        ];
+////        return $data;
+//        $pdf = PDF::loadView('pdf.reportePedido', $data);
+//        return $pdf->stream('document.pdf');
+//    }
     function reportePedidoOnly($id)
     {
         // 1. Obtener todos los pedidos principales (cabecera)
@@ -318,7 +318,7 @@ class PedidoController extends Controller{
             ->where('bonificacion', 0)
             ->select(
                 'NroPed', 'fecha', 'idCli', 'CIfunc', 'estado', 'fact',
-                'comentario', 'pago', 'placa', 'horario', 'colorStyle'
+                'comentario', 'pago', 'placa', 'horario', 'colorStyle','bonificacion', 'bonificacionAprovacion','bonificacionId'
             )
             ->orderBy('NroPed')
             ->get();
@@ -350,9 +350,17 @@ class PedidoController extends Controller{
             });
             return [
                 'pedido' => $pedido,
-                'productos' => $productos
+                'productos' => $productos,
+                'bonificacionCliente' => $pedido->bonificacionId ? Cliente::where('Cod_Aut', $pedido->bonificacionId)
+                    ->select('Cod_Aut', 'Nombres', 'Direccion', 'Telf', 'zona')
+                    ->first() : null
             ];
         });
+
+//        return response()->json([
+//            'status' => 'success',
+//            'pedidos' => $resPedido
+//        ]);
 
         // 5. Marcar como impresos los pedidos
         Pedido::whereIn('NroPed', $resPedido->pluck('pedido.NroPed'))

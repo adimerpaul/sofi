@@ -28,7 +28,7 @@
       :rows="bonificaciones"
       :columns="columns"
       row-key="codAut"
-      title="Bonificaciones Pendientes"
+      title="Cambios Pendientes"
       dense
       :rows-per-page-options="[0]"
       wrap-cells
