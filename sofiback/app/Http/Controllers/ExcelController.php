@@ -457,12 +457,15 @@ class ExcelController extends Controller
             unidhueso,
             menu,
             unidmenu,
-            Observaciones
+            Observaciones,
+            horario
             from tbpedidos p  INNER join tbclientes c on p.idCli=c.Cod_Aut
             where p.CIfunc=".$value->CodAut." and date(fecha)='$fecha' and tipo='POLLO' AND estado='ENVIADO' ");
 
             foreach ($pedidos as $r){
         //                $t.=" ".$r->Nombres;git
+                if ($r->horario==null) $r->horario='';
+                $sheet->setCellValue('A'.$c, $r->horario);
                 $sheet->setCellValue('B'.$c, $r->fact);
                 $sheet->setCellValue('C'.$c, $r->campo_pago);
                 $sheet->setCellValue('D'.$c, $r->bs2);
@@ -689,6 +692,145 @@ class ExcelController extends Controller
     unlink($filename);
 
     }
+
+        public function generarXlsBrasa($fecha){
+            $preventistas = DB::select("SELECT pe.Nombre1,pe.App1,pe.CodAut
+            from personal pe inner join tbpedidos p on pe.CodAut=p.CIfunc
+            where date(p.fecha)='$fecha' and tipo='POLLO' 
+             group by pe.Nombre1,pe.App1,pe.CodAut");
+
+        $spreadsheet = \PhpOffice\PhpSpreadsheet\IOFactory::load('preparacion.xlsx');
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->setCellValue('G1', $fecha);
+
+        $c=4;
+        foreach ($preventistas as $value) {
+
+            $pedidos=DB::select("SELECT c.Nombres,p.fact,p.pago,p.bs,p.bs2, CASE WHEN p.pago = 'CONTADO' THEN 'SI' ELSE 'NO' END as campo_pago,
+            cbrasa5,
+            ubrasa5,
+            cbrasa6,
+            cubrasa6,
+            rango,
+            Observaciones,
+            horario
+            from tbpedidos p  INNER join tbclientes c on p.idCli=c.Cod_Aut
+            where p.CIfunc=".$value->CodAut." and date(fecha)='$fecha' and tipo='POLLO' AND estado='ENVIADO' 
+            and (rango IS NOT NULL or ubrasa5 IS NOT NULL or cbrasa5 IS NOT NULL or cbrasa6 IS NOT NULL or cubrasa6 IS NOT NULL)");
+            if($pedidos==null){
+                continue;
+            }
+            $sheet->setCellValue('F'.$c, trim($value->Nombre1).' '.trim($value->App1));
+            $c++;
+            foreach ($pedidos as $r){
+        //                $t.=" ".$r->Nombres;git
+                if ($r->horario==null) $r->horario='';
+                $sheet->setCellValue('A'.$c, $r->horario);
+                $sheet->setCellValue('B'.$c, $r->fact);
+                $sheet->setCellValue('C'.$c, $r->campo_pago);
+                $sheet->setCellValue('D'.$c, $r->bs2);
+                $sheet->setCellValue('E'.$c, $r->bs);
+                $sheet->setCellValue('F'.$c, $r->Nombres);
+      // productos por cliente
+            $productos = [];
+
+            // B5
+            if ($r->cbrasa5 != null || $r->ubrasa5 != null) {
+                if ($r->cbrasa5 != null) {
+                    $productos[] = ['B5', $r->cbrasa5 . ' cja'];
+                } else {
+                    $productos[] = ['B5', $r->ubrasa5 . ' u'];
+                }
+            } else {
+                $productos[] = ['B5', ''];
+            }
+
+            // B6
+            if ($r->cbrasa6 != null || $r->cubrasa6 != null) {
+                if ($r->cbrasa6 != null) {
+                    $productos[] = ['B6', $r->cbrasa6 . ' cja'];
+                } else {
+                    $productos[] = ['B6', $r->cubrasa6 . ' u'];
+                }
+            } else {
+                $productos[] = ['B6', ''];
+            }
+           
+            if ($r->rango != null) {
+                $productos[] = ['Rango', $r->rango . ' u'];
+            } else {
+                $productos[] = ['Rango', ''];
+            }
+
+
+// iniciar en la columna G (índice 6, porque A=0)
+    $col = 7;
+
+    foreach ($productos as $prod) {
+        if ($prod[1] != '') {
+            $colLetter1 = Coordinate::stringFromColumnIndex($col);       // por ejemplo 'A'
+            $colLetter2 = Coordinate::stringFromColumnIndex($col + 1);   // por ejemplo 'B'
+
+            $cell1 = $colLetter1 . $c; // ej: 'A5'
+            $cell2 = $colLetter2 . $c; // ej: 'B5'
+
+            $sheet->setCellValue($cell1, $prod[0]);     // Nombre
+            $sheet->setCellValue($cell2, $prod[1]);     // Cantidad
+
+            // Por defecto: color negro
+            $sheet->getStyle($cell1)->getFont()->setBold(false)->getColor()->setARGB('000000');
+            $sheet->getStyle($cell2)->getFont()->setBold(false)->getColor()->setARGB('000000');
+
+
+            // Si es 'Rango', color rojo
+            if ($prod[0] == 'Rango') {
+                $sheet->getStyle($cell1)->getFont()->setBold(true)->getColor()->setARGB('FF0000');
+                $sheet->getStyle($cell2)->getFont()->setBold(true)->getColor()->setARGB('FF0000');
+            }
+
+            $col += 4;
+        }
+    
+    }
+    if ($r->Observaciones != null) {
+         $colLetter1 = Coordinate::stringFromColumnIndex($col);
+         $cell1 = $colLetter1 . $c;
+        $sheet->setCellValue($cell1, $r->Observaciones);
+            $sheet->getStyle($cell1)->applyFromArray([
+        'alignment' => [
+            'horizontal' => Alignment::HORIZONTAL_LEFT,
+            //'vertical'   => Alignment::VERTICAL_TOP,
+            //'indent'     => 1, // Sangría (equivale a padding del lado izquierdo)
+            //'wrapText'   => true, // Opcional: si el texto es largo, se ajusta
+        ],
+    ]);
+    }
+
+    $c++;
+
+        }
+    }
+    $date = date('d-m-y-'.substr((string)microtime(), 1, 8));
+    $date = str_replace(".", "", $date);
+    $filename = "Frial_Brasa_".$date.".xlsx";
+    $filePath = __DIR__ . DIRECTORY_SEPARATOR . $filename; //make sure you set the right permissions and change this to the path you want
+    try {
+        $writer = new Xlsx($spreadsheet);
+        $writer->save($filename);
+        $content = file_get_contents($filename);
+    } catch(Exception $e) {
+        exit($e->getMessage());
+    }
+
+    header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    header('Content-Disposition: attachment; filename="' . urlencode($filename) .'"' );
+
+    echo $content;  // this actually send the file content to the browser
+
+    unlink($filename);
+
+    }
+
 
         public function generarXlsCerdo($fecha){
             $preventistas = DB::select("SELECT pe.Nombre1,pe.App1,pe.CodAut from personal pe inner join tbpedidos p on pe.CodAut=p.CIfunc
