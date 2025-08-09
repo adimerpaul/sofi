@@ -65,6 +65,7 @@ const routes = [
       { path: '/mapavendedorvisita', component: () => import('pages/MapaVendedor/MapaVendedorVisita.vue') ,meta: {requiresAuth: true}},
       { path: '/mapacliente', component: () => import('pages/MapaCliente/MapaCliente.vue') ,meta: {requiresAuth: true}},
       { path: '/bonificaciones', component: () => import('pages/Bonificaciones/Bonificaciones.vue'), meta: { requiresAuth: true } },
+      { path: '/pedidos', component: () => import('pages/Pedidos/PedidosLista.vue'), meta: { requiresAuth: true } },
       { path: '/login', component: Login },
     ]
   },

@@ -9,7 +9,7 @@
             {{ $filters.capitalize($store.getters['login/user'].Nombre1 + ' ' + $store.getters['login/user'].App1) }}
           </template>
           <q-chip dense class="bg-orange text-white" size="10px">
-            {{ '11.2.11' }}
+            {{ '11.3.1' }}
           </q-chip>
         </q-toolbar-title>
         <!--        <div>Quasar v{{ $q.version }}</div>-->
@@ -405,6 +405,17 @@
             <q-item-label>Cambios</q-item-label>
           </q-item-section>
         </q-item>
+        <q-item clickable active-class="bg-primary text-white" exact to="pedidos"
+                v-if="vendores.includes($store.getters['login/user'].ci) || cobrador.includes($store.getters['login/user'].ci)">
+          <q-item-section avatar>
+            <q-icon name="shopping_cart"/>
+          </q-item-section>
+          <q-item-section>
+            <q-item-label>
+              Pedidos
+            </q-item-label>
+          </q-item-section>
+        </q-item>
         <q-item clickable active-class="bg-primary text-white" exact @click="irformulario2"
                 v-if="vendores.includes($store.getters['login/user'].ci) || cobrador.includes($store.getters['login/user'].ci)">
           <q-item-section avatar>
@@ -417,6 +428,7 @@
             </q-item-label>
           </q-item-section>
         </q-item>
+<!--        { path: '/pedidos', component: () => import('pages/Pedidos/PedidosLista.vue'), meta: { requiresAuth: true } },-->
         <!--        <q-item clickable exact to="asignar">-->
         <!--          <q-item-section avatar>-->
         <!--            <q-icon name="people" />-->

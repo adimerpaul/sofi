@@ -10,6 +10,54 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class MobilController extends Controller{
+    public function pedidosSimple(Request $request)
+    {
+        $from   = $request->query('from', now()->toDateString());
+        $to     = $request->query('to', now()->toDateString());
+        $search = trim((string) $request->query('search', ''));
+
+        $ps = (new PedidoSofia)->getTable();
+
+        $query = PedidoSofia::query()
+            ->with(['detalles' => function ($q) {
+                $q->select('id','pedido_id','cod_prod','nombre','precio','cantidad','peso','subtotal')
+                    ->orderBy('id');
+            }])
+            ->whereBetween("$ps.fecha", [$from, $to])
+            ->select([
+                "$ps.nro_pedido",
+                "$ps.fecha",
+                "$ps.cliente_nombre",
+                "$ps.cliente_direccion",
+                "$ps.confirmado",
+            ])
+            ->orderByDesc("$ps.fecha")
+            ->orderBy("$ps.nro_pedido");
+
+        if ($search !== '') {
+            $like = '%'.$search.'%';
+            $query->where(function ($w) use ($ps, $like) {
+                $w->where("$ps.nro_pedido", 'like', $like)
+                    ->orWhere("$ps.cliente_nombre", 'like', $like)
+                    ->orWhere("$ps.cliente_direccion", 'like', $like)
+                    ->orWhereHas('detalles', function ($d) use ($like) {
+                        $d->where('cod_prod', 'like', $like)
+                            ->orWhere('nombre', 'like', $like);
+                    });
+            });
+        }
+
+        $pedidos = $query->get();
+
+        return response()->json([
+            'status' => 'success',
+            'from'   => $from,
+            'to'     => $to,
+            'count'  => $pedidos->count(),
+            'data'   => $pedidos,
+        ]);
+    }
+
     public function reporteTotalProductos(Request $request)
     {
         // fecha en formato YYYY-MM-DD; si no envían, toma hoy
