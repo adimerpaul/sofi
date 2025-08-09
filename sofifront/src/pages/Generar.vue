@@ -15,6 +15,11 @@
                       target="_blank"
                       icon="list" :loading="loading" :disable="loading"/>
               </div>
+              <div class="col-3 flex flex-center">
+                <q-btn color="green" label="Pollo Brasa" type="a" :href="url+'generarXlsBrasa/'+fecha"
+                      target="_blank"
+                      icon="list" :loading="loading" :disable="loading"/>
+              </div>
             <div class="col-3 flex flex-center">
               <q-btn color="teal" label="Cerdo preparacion" type="a" :href="url+'generarXlsCerdo/'+fecha"
                      target="_blank"
