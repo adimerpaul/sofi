@@ -4,23 +4,23 @@
       <div class="col-12">
         <q-form @submit="consultar">
           <div class="row">
-            <div class="col-2">
+            <div class="col-md-2 col-xs-6">
               <q-input dense outlined label="fecha" v-model="fecha" type="date"/>
             </div>
-            <div class="col-3 flex flex-center">
+            <div class="col-md-3 col-xs-6 flex flex-center">
               <q-btn color="info" icon="search" label="Consultar" type="submit" :loading="loading" :disable="loading"/>
             </div>
-              <div class="col-3 flex flex-center">
+              <div class="col-md-3 col-xs-6 flex flex-center">
                 <q-btn color="green" label="Pollo preparacion" type="a" :href="url+'generarXlsPollo/'+fecha"
                       target="_blank"
                       icon="list" :loading="loading" :disable="loading"/>
               </div>
-              <div class="col-3 flex flex-center">
+              <div class="col-md-3 col-xs-6 flex flex-center">
                 <q-btn color="green" label="Pollo Brasa" type="a" :href="url+'generarXlsBrasa/'+fecha"
                       target="_blank"
                       icon="list" :loading="loading" :disable="loading"/>
               </div>
-            <div class="col-3 flex flex-center">
+            <div class="col-md-3 col-xs-6 flex flex-center">
               <q-btn color="teal" label="Cerdo preparacion" type="a" :href="url+'generarXlsCerdo/'+fecha"
                      target="_blank"
                      icon="list" :loading="loading" :disable="loading"/>  
