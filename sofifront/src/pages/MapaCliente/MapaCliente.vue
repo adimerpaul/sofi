@@ -338,18 +338,42 @@ export default {
         },
         {
           "id": 6,
-          "zona": "PROVINCIA",
+          "zona": "APOYO2",
+          "color": "green-9",
+          "colorStyle": "background-color: #2E7D32"
+        },
+        {
+          "id": 7,
+          "zona": "HUANUNI",
           "color": "deep-purple-4",
           "colorStyle": "background-color: #9575CD"
         },
         {
-          "id": 7,
+          "id": 8,
+          "zona": "CHALLAPATA",
+          "color": "red-10",
+          "colorStyle": "background-color: #B71C1C"
+        },
+        {
+          "id": 9,
+          "zona": "LLALLAGUA",
+          "color": "red-4",
+          "colorStyle": "background-color: #E57373"
+        },
+        {
+          "id": 10,
+          "zona": "CARACOLLO",
+          "color": "light-blue-8",
+          "colorStyle": "background-color: #0288D1"
+        },
+        {
+          "id": 11,
           "zona": "SUD",
           "color": "blue-4",
           "colorStyle": "background-color: #0D47A1"
         },
         {
-          "id": 8,
+          "id": 12,
           "zona": "SIN ZONA",
           "color": "grey-6",
           "colorStyle": "background-color: #757575"
