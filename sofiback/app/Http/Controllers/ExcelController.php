@@ -411,292 +411,231 @@ class ExcelController extends Controller
     }
 
     public function generarXlsPollo($fecha){
-            $preventistas = DB::select("SELECT pe.Nombre1,pe.App1,pe.CodAut
-            from personal pe inner join tbpedidos p on pe.CodAut=p.CIfunc
-            where date(p.fecha)='$fecha' and tipo='POLLO' group by pe.Nombre1,pe.App1,pe.CodAut");
+        // Traer preventistas
+        $preventistas = DB::select(
+            "SELECT pe.Nombre1, pe.App1, pe.CodAut
+         FROM personal pe
+         INNER JOIN tbpedidos p ON pe.CodAut = p.CIfunc
+         WHERE DATE(p.fecha) = ? AND p.tipo = 'POLLO'
+         GROUP BY pe.Nombre1, pe.App1, pe.CodAut",
+            [$fecha]
+        );
 
+        // Cargar la plantilla
         $spreadsheet = \PhpOffice\PhpSpreadsheet\IOFactory::load('preparacion.xlsx');
         $sheet = $spreadsheet->getActiveSheet();
         $sheet->setCellValue('G1', $fecha);
 
-        $c=4;
+        // Mapa de colores: nombre -> HEX (sin #)
+        $mapaColores = [
+            'deep-orange-4' => 'FF7043', // NORTE
+            'pink-4'        => 'F06292', // BOLIVAR
+            'blue-grey-4'   => '37474F', // SE RECOGE
+            'yellow'        => 'F5EE17', // CENTRO
+            'green-4'       => '1B5E20', // APOYO
+            'deep-purple-4' => '9575CD', // PROVINCIA
+            'blue-4'        => '0D47A1', // SUD
+            'grey-6'        => '757575', // SIN ZONA
+        ];
+
+        // Helper: determinar si un color de fondo es oscuro (para poner fuente blanca)
+        $isDark = function(string $hex) {
+            $r = hexdec(substr($hex, 0, 2));
+            $g = hexdec(substr($hex, 2, 2));
+            $b = hexdec(substr($hex, 4, 2));
+            $luminance = 0.2126*$r + 0.7152*$g + 0.0722*$b;
+            return $luminance < 150;
+        };
+
+        $c = 4;
+
         foreach ($preventistas as $value) {
+            // Nombre del preventista en columna F
             $sheet->setCellValue('F'.$c, trim($value->Nombre1).' '.trim($value->App1));
             $c++;
-            $pedidos=DB::select("SELECT c.Nombres,p.fact,p.pago,p.bs,p.bs2, CASE WHEN p.pago = 'CONTADO' THEN 'SI' ELSE 'NO' END as campo_pago,
-                        cbrasa5,
-            ubrasa5,
-            cbrasa6,
-            cubrasa6,
-            c104,
-            u104,
-            c105,
-            u105,
-            c106,
-            u106,
-            c107,
-            u107,
-            c108,
-            u108,
-            c109,
-            u109,
-            rango,
-            ala,
-            unidala,
-            cadera,
-            unidcadera,
-            pecho,
-            unidpecho,
-            pie,
-            unidpie,
-            filete,
-            unidfilete,
-            cuello,
-            unidcuello,
-            hueso,
-            unidhueso,
-            menu,
-            unidmenu,
-            Observaciones,
-            horario
-            from tbpedidos p  INNER join tbclientes c on p.idCli=c.Cod_Aut
-            where p.CIfunc=".$value->CodAut." and date(fecha)='$fecha' and tipo='POLLO' AND estado='ENVIADO' ");
 
-            foreach ($pedidos as $r){
-        //                $t.=" ".$r->Nombres;git
-                if ($r->horario==null) $r->horario='';
+            $pedidos = DB::select(
+                "SELECT
+                c.Nombres, p.fact, p.pago, p.bs, p.bs2,
+                CASE WHEN p.pago = 'CONTADO' THEN 'SI' ELSE 'NO' END AS campo_pago,
+                cbrasa5, ubrasa5, cbrasa6, cubrasa6,
+                c104, u104, c105, u105, c106, u106, c107, u107, c108, u108, c109, u109,
+                rango, ala, unidala, cadera, unidcadera, pecho, unidpecho, pie, unidpie,
+                filete, unidfilete, cuello, unidcuello, hueso, unidhueso, menu, unidmenu,
+                Observaciones, horario, color
+             FROM tbpedidos p
+             INNER JOIN tbclientes c ON p.idCli = c.Cod_Aut
+             WHERE p.CIfunc = ? AND DATE(p.fecha) = ? AND p.tipo = 'POLLO' AND p.estado = 'ENVIADO'",
+                [$value->CodAut, $fecha]
+            );
+
+            foreach ($pedidos as $r) {
+                if ($r->horario == null) $r->horario = '';
+
+                // Datos base de la fila
                 $sheet->setCellValue('A'.$c, $r->horario);
                 $sheet->setCellValue('B'.$c, $r->fact);
                 $sheet->setCellValue('C'.$c, $r->campo_pago);
                 $sheet->setCellValue('D'.$c, $r->bs2);
                 $sheet->setCellValue('E'.$c, $r->bs);
                 $sheet->setCellValue('F'.$c, $r->Nombres);
-      // productos por cliente
-            $productos = [];
 
-            // B5
-            if ($r->cbrasa5 != null || $r->ubrasa5 != null) {
-                if ($r->cbrasa5 != null) {
-                    $productos[] = ['B5', $r->cbrasa5 . ' cja'];
-                } else {
-                    $productos[] = ['B5', $r->ubrasa5 . ' u'];
+                // === Color SOLO en el nombre del cliente (F{fila}) ===
+                if (!empty($r->color) && isset($mapaColores[$r->color])) {
+                    $hex = $mapaColores[$r->color];
+                    $celdaNombre = "F{$c}";
+
+                    $sheet->getStyle($celdaNombre)->applyFromArray([
+                        'fill' => [
+                            'fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
+                            'color'    => ['rgb' => $hex]
+                        ]
+                    ]);
+
+                    // Contraste de la fuente para esa celda
+                    $fontColor = $isDark($hex) ? 'FFFFFF' : '000000';
+                    $sheet->getStyle($celdaNombre)->getFont()->getColor()->setRGB($fontColor);
                 }
-            } else {
-                $productos[] = ['B5', ''];
-            }
 
-            // B6
-            if ($r->cbrasa6 != null || $r->cubrasa6 != null) {
-                if ($r->cbrasa6 != null) {
-                    $productos[] = ['B6', $r->cbrasa6 . ' cja'];
-                } else {
-                    $productos[] = ['B6', $r->cubrasa6 . ' u'];
+                // ===================== Productos por cliente ======================
+                $productos = [];
+
+                // B5
+                if ($r->cbrasa5 != null || $r->ubrasa5 != null) {
+                    $productos[] = ['B5', ($r->cbrasa5 != null) ? ($r->cbrasa5.' cja') : ($r->ubrasa5.' u')];
+                } else { $productos[] = ['B5', '']; }
+
+                // B6
+                if ($r->cbrasa6 != null || $r->cubrasa6 != null) {
+                    $productos[] = ['B6', ($r->cbrasa6 != null) ? ($r->cbrasa6.' cja') : ($r->cubrasa6.' u')];
+                } else { $productos[] = ['B6', '']; }
+
+                // 104
+                if ($r->c104 != null || $r->u104 != null) {
+                    $productos[] = ['104', ($r->c104 != null) ? ($r->c104.' cja') : ($r->u104.' u')];
+                } else { $productos[] = ['104', '']; }
+
+                // 105
+                if ($r->c105 != null || $r->u105 != null) {
+                    $productos[] = ['105', ($r->c105 != null) ? ($r->c105.' cja') : ($r->u105.' u')];
+                } else { $productos[] = ['105', '']; }
+
+                // 106
+                if ($r->c106 != null || $r->u106 != null) {
+                    $productos[] = ['106', ($r->c106 != null) ? ($r->c106.' cja') : ($r->u106.' u')];
+                } else { $productos[] = ['106', '']; }
+
+                // 107
+                if ($r->c107 != null || $r->u107 != null) {
+                    $productos[] = ['107', ($r->c107 != null) ? ($r->c107.' cja') : ($r->u107.' u')];
+                } else { $productos[] = ['107', '']; }
+
+                // 108
+                if ($r->c108 != null || $r->u108 != null) {
+                    $productos[] = ['108', ($r->c108 != null) ? ($r->c108.' cja') : ($r->u108.' u')];
+                } else { $productos[] = ['108', '']; }
+
+                // 109
+                if ($r->c109 != null || $r->u109 != null) {
+                    $productos[] = ['109', ($r->c109 != null) ? ($r->c109.' cja') : ($r->u109.' u')];
+                } else { $productos[] = ['109', '']; }
+
+                // Rango
+                $productos[] = ['Rango', ($r->rango != null) ? ($r->rango.' u') : ''];
+
+                // Ala
+                $productos[] = ['Ala', ($r->ala != null) ? ($r->ala.' '.(strtolower($r->unidala) ?? '')) : ''];
+
+                // Cadera
+                $productos[] = ['Cadera', ($r->cadera != null) ? ($r->cadera.' '.(strtolower($r->unidcadera) ?? '')) : ''];
+
+                // Pecho
+                $productos[] = ['Pecho', ($r->pecho != null) ? ($r->pecho.' '.(strtolower($r->unidpecho) ?? '')) : ''];
+
+                // Pie
+                $productos[] = ['p/m', ($r->pie != null) ? ($r->pie.' '.(strtolower($r->unidpie) ?? '')) : ''];
+
+                // Filete
+                $productos[] = ['Filete', ($r->filete != null) ? ($r->filete.' '.(strtolower($r->unidfilete) ?? '')) : ''];
+
+                // Cuello
+                $productos[] = ['Cuello', ($r->cuello != null) ? ($r->cuello.' '.(strtolower($r->unidcuello) ?? '')) : ''];
+
+                // Hueso
+                $productos[] = ['Hueso', ($r->hueso != null) ? ($r->hueso.' '.(strtolower($r->unidhueso) ?? '')) : ''];
+
+                // Menú
+                $productos[] = ['Menu', ($r->menu != null) ? ($r->menu.' '.(strtolower($r->unidmenu) ?? '')) : ''];
+
+                // Inicia en columna G (índice 7)
+                $col = 7;
+
+                foreach ($productos as $prod) {
+                    if ($prod[1] != '') {
+                        $colLetter1 = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($col);
+                        $colLetter2 = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($col + 1);
+
+                        $cell1 = $colLetter1 . $c;
+                        $cell2 = $colLetter2 . $c;
+
+                        $sheet->setCellValue($cell1, $prod[0]); // nombre
+                        $sheet->setCellValue($cell2, $prod[1]); // cantidad
+
+                        // Texto por defecto
+                        $sheet->getStyle($cell1)->getFont()->setBold(false)->getColor()->setRGB('000000');
+                        $sheet->getStyle($cell2)->getFont()->setBold(false)->getColor()->setRGB('000000');
+
+                        // Si es "Rango": rojo y negrita
+                        if ($prod[0] === 'Rango') {
+                            $sheet->getStyle($cell1)->getFont()->setBold(true)->getColor()->setRGB('FF0000');
+                            $sheet->getStyle($cell2)->getFont()->setBold(true)->getColor()->setRGB('FF0000');
+                        }
+
+                        $col += 4;
+                    }
                 }
-            } else {
-                $productos[] = ['B6', ''];
-            }
 
-            // 104
-            if ($r->c104 != null || $r->u104 != null) {
-                if ($r->c104 != null) {
-                    $productos[] = ['104', $r->c104 . ' cja'];
-                } else {
-                    $productos[] = ['104', $r->u104 . ' u'];
+                // Observaciones
+                if ($r->Observaciones != null) {
+                    $colLetter1 = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($col);
+                    $cell1 = $colLetter1 . $c;
+                    $sheet->setCellValue($cell1, $r->Observaciones);
+                    $sheet->getStyle($cell1)->applyFromArray([
+                        'alignment' => [
+                            'horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_LEFT,
+                        ],
+                    ]);
                 }
-            } else {
-                $productos[] = ['104', ''];
+
+                $c++;
             }
-
-            // 105
-            if ($r->c105 != null || $r->u105 != null) {
-                if ($r->c105 != null) {
-                    $productos[] = ['105', $r->c105 . ' cja'];
-                } else {
-                    $productos[] = ['105', $r->u105 . ' u'];
-                }
-            } else {
-                $productos[] = ['105', ''];
-            }
-
-            // 106
-            if ($r->c106 != null || $r->u106 != null) {
-                if ($r->c106 != null) {
-                    $productos[] = ['106', $r->c106 . ' cja'];
-                } else {
-                    $productos[] = ['106', $r->u106 . ' u'];
-                }
-            } else {
-                $productos[] = ['106', ''];
-            }
-
-            // 107
-            if ($r->c107 != null || $r->u107 != null) {
-                if ($r->c107 != null) {
-                    $productos[] = ['107', $r->c107 . ' cja'];
-                } else {
-                    $productos[] = ['107', $r->u107 . ' u'];
-                }
-            } else {
-                $productos[] = ['107', ''];
-            }
-
-            // 108
-            if ($r->c108 != null || $r->u108 != null) {
-                if ($r->c108 != null) {
-                    $productos[] = ['108', $r->c108 . ' cja'];
-                } else {
-                    $productos[] = ['108', $r->u108 . ' u'];
-                }
-            } else {
-                $productos[] = ['108', ''];
-            }
-
-            // 109
-            if ($r->c109 != null || $r->u109 != null) {
-                if ($r->c109 != null) {
-                    $productos[] = ['109', $r->c109 . ' cja'];
-                } else {
-                    $productos[] = ['109', $r->u109 . ' u'];
-                }
-            } else {
-                $productos[] = ['109', ''];
-            }
-
-            // Rango (directo)
-            if ($r->rango != null) {
-                $productos[] = ['Rango', $r->rango . ' u'];
-            } else {
-                $productos[] = ['Rango', ''];
-            }
-
-            // Ala
-            if ($r->ala != null) {
-                $productos[] = ['Ala', $r->ala . ' ' . (strtolower($r->unidala) ?? '')];
-            } else {
-                $productos[] = ['Ala', ''];
-            }
-
-            // Cadera
-            if ($r->cadera != null) {
-                $productos[] = ['Cadera', $r->cadera . ' ' . (strtolower($r->unidcadera) ?? '')];
-            } else {
-                $productos[] = ['Cadera', ''];
-            }
-
-            // Pecho
-            if ($r->pecho != null) {
-                $productos[] = ['Pecho', $r->pecho . ' ' . (strtolower($r->unidpecho) ?? '')];
-            } else {
-                $productos[] = ['Pecho', ''];
-            }
-
-            // Pie
-            if ($r->pie != null) {
-                $productos[] = ['p/m', $r->pie . ' ' . (strtolower($r->unidpie) ?? '')];
-            } else {
-                $productos[] = ['p/m', ''];
-            }
-
-            // Filete
-            if ($r->filete != null) {
-                $productos[] = ['Filete', $r->filete . ' ' . (strtolower($r->unidfilete) ?? '')];
-            } else {
-                $productos[] = ['Filete', ''];
-            }
-
-            // Cuello
-            if ($r->cuello != null) {
-                $productos[] = ['Cuello', $r->cuello . ' ' . (strtolower($r->unidcuello) ?? '')];
-            } else {
-                $productos[] = ['Cuello', ''];
-            }
-
-            // Hueso
-            if ($r->hueso != null) {
-                $productos[] = ['Hueso', $r->hueso . ' ' . (strtolower($r->unidhueso) ?? '')];
-            } else {
-                $productos[] = ['Hueso', ''];
-            }
-
-            // Menú
-            if ($r->menu != null) {
-                $productos[] = ['Menu', $r->menu . ' ' . (strtolower($r->unidmenu) ?? '')];
-            } else {
-                $productos[] = ['Menu', ''];
-            }
-
-// iniciar en la columna G (índice 6, porque A=0)
-    $col = 7;
-
-    foreach ($productos as $prod) {
-        if ($prod[1] != '') {
-            $colLetter1 = Coordinate::stringFromColumnIndex($col);       // por ejemplo 'A'
-            $colLetter2 = Coordinate::stringFromColumnIndex($col + 1);   // por ejemplo 'B'
-
-            $cell1 = $colLetter1 . $c; // ej: 'A5'
-            $cell2 = $colLetter2 . $c; // ej: 'B5'
-
-            $sheet->setCellValue($cell1, $prod[0]);     // Nombre
-            $sheet->setCellValue($cell2, $prod[1]);     // Cantidad
-
-            // Por defecto: color negro
-            $sheet->getStyle($cell1)->getFont()->setBold(false)->getColor()->setARGB('000000');
-            $sheet->getStyle($cell2)->getFont()->setBold(false)->getColor()->setARGB('000000');
-
-
-            // Si es 'Rango', color rojo
-            if ($prod[0] == 'Rango') {
-                $sheet->getStyle($cell1)->getFont()->setBold(true)->getColor()->setARGB('FF0000');
-                $sheet->getStyle($cell2)->getFont()->setBold(true)->getColor()->setARGB('FF0000');
-            }
-
-            $col += 4;
         }
-    
-    }
-    if ($r->Observaciones != null) {
-         $colLetter1 = Coordinate::stringFromColumnIndex($col);
-         $cell1 = $colLetter1 . $c;
-        $sheet->setCellValue($cell1, $r->Observaciones);
-            $sheet->getStyle($cell1)->applyFromArray([
-        'alignment' => [
-            'horizontal' => Alignment::HORIZONTAL_LEFT,
-            //'vertical'   => Alignment::VERTICAL_TOP,
-            //'indent'     => 1, // Sangría (equivale a padding del lado izquierdo)
-            //'wrapText'   => true, // Opcional: si el texto es largo, se ajusta
-        ],
-    ]);
-    }
 
-    $c++;
+        $date = date('d-m-y-'.substr((string)microtime(), 1, 8));
+        $date = str_replace(".", "", $date);
+        $filename = "Frial_Pollo_".$date.".xlsx";
 
+        try {
+            $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
+            $writer->save($filename);
+            $content = file_get_contents($filename);
+        } catch (\Exception $e) {
+            exit($e->getMessage());
         }
-    }
-    $date = date('d-m-y-'.substr((string)microtime(), 1, 8));
-    $date = str_replace(".", "", $date);
-    $filename = "Frial_Pollo_".$date.".xlsx";
-    $filePath = __DIR__ . DIRECTORY_SEPARATOR . $filename; //make sure you set the right permissions and change this to the path you want
-    try {
-        $writer = new Xlsx($spreadsheet);
-        $writer->save($filename);
-        $content = file_get_contents($filename);
-    } catch(Exception $e) {
-        exit($e->getMessage());
+
+        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        header('Content-Disposition: attachment; filename="' . urlencode($filename) .'"' );
+
+        echo $content;
+        @unlink($filename);
     }
 
-    header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-    header('Content-Disposition: attachment; filename="' . urlencode($filename) .'"' );
 
-    echo $content;  // this actually send the file content to the browser
 
-    unlink($filename);
-
-    }
-
-        public function generarXlsBrasa($fecha){
+    public function generarXlsBrasa($fecha){
             $preventistas = DB::select("SELECT pe.Nombre1,pe.App1,pe.CodAut
             from personal pe inner join tbpedidos p on pe.CodAut=p.CIfunc
-            where date(p.fecha)='$fecha' and tipo='POLLO' 
+            where date(p.fecha)='$fecha' and tipo='POLLO'
              group by pe.Nombre1,pe.App1,pe.CodAut");
 
         $spreadsheet = \PhpOffice\PhpSpreadsheet\IOFactory::load('preparacion.xlsx');
@@ -715,7 +654,7 @@ class ExcelController extends Controller
             Observaciones,
             horario
             from tbpedidos p  INNER join tbclientes c on p.idCli=c.Cod_Aut
-            where p.CIfunc=".$value->CodAut." and date(fecha)='$fecha' and tipo='POLLO' AND estado='ENVIADO' 
+            where p.CIfunc=".$value->CodAut." and date(fecha)='$fecha' and tipo='POLLO' AND estado='ENVIADO'
             and (rango IS NOT NULL or ubrasa5 IS NOT NULL or cbrasa5 IS NOT NULL or cbrasa6 IS NOT NULL or cubrasa6 IS NOT NULL)");
             if($pedidos==null){
                 continue;
@@ -755,7 +694,7 @@ class ExcelController extends Controller
             } else {
                 $productos[] = ['B6', ''];
             }
-           
+
             if ($r->rango != null) {
                 $productos[] = ['Rango', $r->rango . ' u'];
             } else {
@@ -790,7 +729,7 @@ class ExcelController extends Controller
 
             $col += 4;
         }
-    
+
     }
     if ($r->Observaciones != null) {
          $colLetter1 = Coordinate::stringFromColumnIndex($col);
@@ -832,24 +771,58 @@ class ExcelController extends Controller
     }
 
 
-        public function generarXlsCerdo($fecha){
-            $preventistas = DB::select("SELECT pe.Nombre1,pe.App1,pe.CodAut from personal pe inner join tbpedidos p on pe.CodAut=p.CIfunc
-            where date(p.fecha)='$fecha' and tipo='CERDO' group by pe.Nombre1,pe.App1,pe.CodAut");
+    public function generarXlsCerdo($fecha){
+        $preventistas = DB::select(
+            "SELECT pe.Nombre1, pe.App1, pe.CodAut
+         FROM personal pe
+         INNER JOIN tbpedidos p ON pe.CodAut = p.CIfunc
+         WHERE DATE(p.fecha) = ? AND p.tipo = 'CERDO'
+         GROUP BY pe.Nombre1, pe.App1, pe.CodAut",
+            [$fecha]
+        );
 
         $spreadsheet = \PhpOffice\PhpSpreadsheet\IOFactory::load('prepcerdo.xlsx');
         $sheet = $spreadsheet->getActiveSheet();
         $sheet->setCellValue('J3', $fecha);
 
-        $c=6;
+        // Mapa de colores
+        $mapaColores = [
+            'deep-orange-4' => 'FF7043', // NORTE
+            'pink-4'        => 'F06292', // BOLIVAR
+            'blue-grey-4'   => '37474F', // SE RECOGE
+            'yellow'        => 'F5EE17', // CENTRO
+            'green-4'       => '1B5E20', // APOYO
+            'deep-purple-4' => '9575CD', // PROVINCIA
+            'blue-4'        => '0D47A1', // SUD
+            'grey-6'        => '757575', // SIN ZONA
+        ];
+
+        // Función para decidir si usar texto blanco o negro
+        $isDark = function(string $hex) {
+            $r = hexdec(substr($hex, 0, 2));
+            $g = hexdec(substr($hex, 2, 2));
+            $b = hexdec(substr($hex, 4, 2));
+            $luminance = 0.2126*$r + 0.7152*$g + 0.0722*$b;
+            return $luminance < 150;
+        };
+
+        $c = 6;
+
         foreach ($preventistas as $value) {
             $sheet->setCellValue('B'.$c, trim($value->Nombre1).' '.trim($value->App1));
             $c++;
-            $pedidos=DB::select("SELECT c.Nombres,p.fact,p.pago,p.total,p.entero,p.desmembre,p.corte,p.kilo,p.Observaciones, CASE WHEN p.pago = 'CONTADO' THEN 'SI' ELSE 'NO' END as campo_pago
-            from tbpedidos p  INNER join tbclientes c on p.idCli=c.Cod_Aut
-            where p.CIfunc=".$value->CodAut." and date(fecha)='$fecha' and tipo='CERDO' AND estado='ENVIADO' ");
 
-            foreach ($pedidos as $r){
-        //                $t.=" ".$r->Nombres;git
+            $pedidos = DB::select(
+                "SELECT c.Nombres, p.fact, p.pago, p.total, p.entero, p.desmembre, p.corte, p.kilo,
+                    p.Observaciones, p.color,
+                    CASE WHEN p.pago = 'CONTADO' THEN 'SI' ELSE 'NO' END AS campo_pago
+             FROM tbpedidos p
+             INNER JOIN tbclientes c ON p.idCli = c.Cod_Aut
+             WHERE p.CIfunc = ? AND DATE(p.fecha) = ? AND p.tipo = 'CERDO' AND p.estado = 'ENVIADO'",
+                [$value->CodAut, $fecha]
+            );
+
+            foreach ($pedidos as $r) {
                 $sheet->setCellValue('B'.$c, $r->Nombres);
                 $sheet->setCellValue('D'.$c, $r->total);
                 $sheet->setCellValue('E'.$c, $r->entero);
@@ -859,30 +832,44 @@ class ExcelController extends Controller
                 $sheet->setCellValue('J'.$c, $r->Observaciones);
                 $sheet->setCellValue('U'.$c, $r->campo_pago);
                 $sheet->setCellValue('V'.$c, $r->fact);
+
+                // === Color SOLO en el nombre del cliente (B{fila}) ===
+                if (!empty($r->color) && isset($mapaColores[$r->color])) {
+                    $hex = $mapaColores[$r->color];
+                    $celdaNombre = "B{$c}";
+
+                    $sheet->getStyle($celdaNombre)->applyFromArray([
+                        'fill' => [
+                            'fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
+                            'color'    => ['rgb' => $hex]
+                        ]
+                    ]);
+
+                    $fontColor = $isDark($hex) ? 'FFFFFF' : '000000';
+                    $sheet->getStyle($celdaNombre)->getFont()->getColor()->setRGB($fontColor);
+                }
+
                 $c++;
-            # code...
-
+            }
         }
-    }
-    $date = date('d-m-y-'.substr((string)microtime(), 1, 8));
-    $date = str_replace(".", "", $date);
-    $filename = "Frial_Cerdo_".$date.".xlsx";
-    $filePath = __DIR__ . DIRECTORY_SEPARATOR . $filename; //make sure you set the right permissions and change this to the path you want
-    try {
-        $writer = new Xlsx($spreadsheet);
-        $writer->save($filename);
-        $content = file_get_contents($filename);
-    } catch(Exception $e) {
-        exit($e->getMessage());
-    }
 
-    header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-    header('Content-Disposition: attachment; filename="' . urlencode($filename) .'"' );
+        $date = date('d-m-y-'.substr((string)microtime(), 1, 8));
+        $date = str_replace(".", "", $date);
+        $filename = "Frial_Cerdo_".$date.".xlsx";
 
-    echo $content;  // this actually send the file content to the browser
+        try {
+            $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
+            $writer->save($filename);
+            $content = file_get_contents($filename);
+        } catch (\Exception $e) {
+            exit($e->getMessage());
+        }
 
-    unlink($filename);
+        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        header('Content-Disposition: attachment; filename="' . urlencode($filename) .'"' );
 
+        echo $content;
+        @unlink($filename);
     }
 
     public function generarXlsPollo3($fecha)

@@ -378,7 +378,7 @@
             <q-icon name="computer"/>
           </q-item-section>
           <q-item-section>
-            <q-item-label>Mapa Cliente Pedido</q-item-label>
+            <q-item-label>Asignacion</q-item-label>
             <q-item-label caption>
               Monitoreo
             </q-item-label>
@@ -406,7 +406,7 @@
           </q-item-section>
         </q-item>
         <q-item clickable active-class="bg-primary text-white" exact to="pedidos"
-                v-if="vendores.includes($store.getters['login/user'].ci) || cobrador.includes($store.getters['login/user'].ci)">
+                v-if="encargados.includes($store.getters['login/user'].ci) || cobrador.includes($store.getters['login/user'].ci)">
           <q-item-section avatar>
             <q-icon name="shopping_cart"/>
           </q-item-section>
