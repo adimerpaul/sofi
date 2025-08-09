@@ -89,60 +89,92 @@ class MobilController extends Controller{
     }
     public function exportarPedidosFlutter(Request $request)
     {
-        $pedidos = $request->input('pedidos', []);
+        $payload = $request->input('pedidos', []);
+//        error_log(json_encode($payload));
 
-        foreach ($pedidos as $pedidoData) {
-            $pedido = PedidoSofia::updateOrCreate(
-                ['nro_pedido' => $pedidoData['nro_pedido']],
-                [
-                    'fecha' => $pedidoData['fecha'],
-                    'cliente_id' => $pedidoData['cliente_id'],
-                    'cliente_nombre' => $pedidoData['cliente_nombre'],
-                    'cliente_direccion' => $pedidoData['cliente_direccion'],
-                    'cliente_telefono' => $pedidoData['cliente_telefono'],
-                    'cliente_zona' => $pedidoData['cliente_zona'],
-                    'user_id' => $pedidoData['user_id'],
-                    'user_nombre' => $pedidoData['user_nombre'],
-                    'user_apellido' => $pedidoData['user_apellido'],
-                    'estado' => $pedidoData['estado'],
-                    'fact' => $pedidoData['fact'],
-                    'comentario' => $pedidoData['comentario'],
-                    'pago' => $pedidoData['pago'],
-                    'placa' => $pedidoData['placa'],
-                    'horario' => $pedidoData['horario'],
-                    'colorStyle' => $pedidoData['colorStyle'],
-                    'cod_prod' => $pedidoData['cod_prod'],
-                    'precio' => $pedidoData['precio'],
-                    'cantidad' => $pedidoData['cantidad'],
-                    'cantidad_texto' => $pedidoData['cantidad_texto'],
-                    'subtotal' => $pedidoData['subtotal'],
-                    'bonificacion' => $pedidoData['bonificacion'],
-                    'bonificacion_aprobacion' => $pedidoData['bonificacion_aprobacion'],
-                    'bonificacion_id' => $pedidoData['bonificacion_id'],
-                    'confirmado' => 1
-                ]
-            );
-
-            // Limpiar productos anteriores
-            PedidoDetalle::where('pedido_id', $pedido->nro_pedido)->delete();
-
-            // Insertar productos
-            foreach ($pedidoData['productos'] as $producto) {
-                PedidoDetalle::create([
-                    'pedido_id' => $pedido->nro_pedido,
-                    'cod_prod' => $producto['cod_prod'],
-                    'nombre' => $producto['nombre'],
-                    'precio' => $producto['precio'],
-                    'cantidad' => $producto['cantidad'],
-                    'cantidad_texto' => $producto['cantidad_texto'],
-                    'subtotal' => $producto['subtotal'],
-                ]);
-            }
+        if (!is_array($payload) || empty($payload)) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'No se recibieron pedidos para exportar'
+            ], 422);
         }
 
-        return response()->json([
-            'status' => 'success',
-            'message' => 'Pedidos exportados correctamente'
-        ]);
+        DB::beginTransaction();
+        try {
+            $countPedidos = 0;
+            $countDetalles = 0;
+
+            foreach ($payload as $pedidoData) {
+                // Campos mínimos
+                $nro = $pedidoData['nro_pedido'] ?? null;
+                if (!$nro) {
+                    throw new \Exception('Falta nro_pedido en un registro.');
+                }
+
+                $pedido = PedidoSofia::updateOrCreate(
+                    ['nro_pedido' => $nro],
+                    [
+                        'fecha' => $pedidoData['fecha'] ?? null,
+                        'cliente_id' => $pedidoData['cliente_id'] ?? null,
+                        'cliente_nombre' => $pedidoData['cliente_nombre'] ?? '',
+                        'cliente_direccion' => $pedidoData['cliente_direccion'] ?? '',
+                        'cliente_telefono' => $pedidoData['cliente_telefono'] ?? '',
+                        'cliente_zona' => $pedidoData['cliente_zona'] ?? '',
+                        'user_id' => $pedidoData['user_id'] ?? null,
+                        'user_nombre' => $pedidoData['user_nombre'] ?? '',
+                        'user_apellido' => $pedidoData['user_apellido'] ?? '',
+                        'estado' => $pedidoData['estado'] ?? 'ENVIADO',
+                        'fact' => $pedidoData['fact'] ?? '',
+                        'comentario' => $pedidoData['comentario'] ?? '',
+                        'pago' => $pedidoData['pago'] ?? 0,
+                        'placa' => $pedidoData['placa'] ?? '',
+                        'horario' => $pedidoData['horario'] ?? '',
+                        'colorStyle' => $pedidoData['colorStyle'] ?? '',
+                        'cod_prod' => $pedidoData['cod_prod'] ?? null,
+                        'precio' => $pedidoData['precio'] ?? 0,
+                        'cantidad' => $pedidoData['cantidad'] ?? 0,
+                        'cantidad_texto' => $pedidoData['cantidad_texto'] ?? '',
+                        'subtotal' => $pedidoData['subtotal'] ?? 0,
+                        'bonificacion' => $pedidoData['bonificacion'] ?? 0,
+                        'bonificacion_aprobacion' => $pedidoData['bonificacion_aprobacion'] ?? null,
+                        'bonificacion_id' => $pedidoData['bonificacion_id'] ?? null,
+                        'confirmado' => 1,
+                    ]
+                );
+                $countPedidos++;
+
+                // Borra detalles previos del mismo nro_pedido
+                PedidoDetalle::where('pedido_id', $pedido->nro_pedido)->delete();
+
+                $productos = $pedidoData['productos'] ?? [];
+                foreach ($productos as $prod) {
+                    PedidoDetalle::create([
+                        'pedido_id' => $pedido->nro_pedido,
+                        'cod_prod' => $prod['cod_prod'] ?? '',
+                        'nombre' => $prod['nombre'] ?? '',
+                        'precio' => $prod['precio'] ?? 0,
+                        'cantidad' => $prod['cantidad'] ?? 0,
+                        'peso' => $prod['peso'] ?? 0, // importante si la columna no admite null
+                        'cantidad_texto' => $prod['cantidad_texto'] ?? '',
+                        'subtotal' => $prod['subtotal'] ?? 0,
+                    ]);
+                    $countDetalles++;
+                }
+            }
+
+            DB::commit();
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Pedidos exportados correctamente',
+                'pedidos' => $countPedidos,
+                'detalles' => $countDetalles
+            ]);
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            return response()->json([
+                'status' => 'error',
+                'message' => $e->getMessage(),
+            ], 500);
+        }
     }
 }
