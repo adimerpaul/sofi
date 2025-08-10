@@ -374,6 +374,12 @@ export default {
         },
         {
           "id": 12,
+          "zona": "MOTO1",
+          "color": "amber-8",
+          "colorStyle": "background-color: #FFA000"
+        },
+        {
+          "id": 13,
           "zona": "SIN ZONA",
           "color": "grey-6",
           "colorStyle": "background-color: #757575"

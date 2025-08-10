@@ -792,8 +792,13 @@ class ExcelController extends Controller
             'blue-grey-4'   => '37474F', // SE RECOGE
             'yellow'        => 'F5EE17', // CENTRO
             'green-4'       => '1B5E20', // APOYO
-            'deep-purple-4' => '9575CD', // PROVINCIA
+            'green-8'       => '2E7D32', // APOYO2
+            'deep-purple-4' => '9575CD', // HUANUNI
+            'red-10'        => 'B71C1C', // CHALLAPATA
+            'red-4'         => 'E57373', // LLALLAGUA
+            'light-blue-8'  => '0288D1', // CARACOLLO
             'blue-4'        => '0D47A1', // SUD
+            'amber-8'       => 'FFB300', // MOTO1
             'grey-6'        => '757575', // SIN ZONA
         ];
 
