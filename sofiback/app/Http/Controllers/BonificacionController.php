@@ -59,6 +59,8 @@ class BonificacionController extends Controller{
         foreach ($pedidos as $pedido) {
             $pedido->bonificacionAprovacion = $request->user()->Nombre1;
             $pedido->bonificacion = false;
+            $pedido->estado = 'ENVIADO';
+            $pedido->envio = Carbon::now();
             $pedido->save();
         }
 

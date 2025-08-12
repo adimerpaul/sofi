@@ -208,10 +208,10 @@
         </q-card-section>
         <q-card-actions align="right" class="bg-white text-teal">
           <!--          alineadort betwe-->
-          <div style="display: flex; justify-content: space-between; width: 100%;">
-            <q-btn label="Clonar" color="green" @click="clonarpedido" :loading="loading" no-caps icon="content_copy"/>
-            <q-btn flat label="cerrar" color="negative" v-close-popup/>
-          </div>
+<!--          <div style="display: flex; justify-content: space-between; width: 100%;">-->
+<!--            <q-btn label="Clonar" color="green" @click="clonarpedido" :loading="loading" no-caps icon="content_copy"/>-->
+<!--            <q-btn flat label="cerrar" color="negative" v-close-popup/>-->
+<!--          </div>-->
         </q-card-actions>
       </q-card>
     </q-dialog>

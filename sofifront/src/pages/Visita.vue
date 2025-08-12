@@ -228,39 +228,34 @@
               <q-space/>
               <q-btn icon="close" flat @click="modalpedido=false" class="q-ma-xs" color="negative"/>
             </div>
-            <!-- <div class="text-bold col-6 flex flex-center">
-               -- <div class="q-gutter-sm col-md-6 col-sm-12" >
-                  <q-radio  dense v-model="pago" val="CONTADO" label="Contado" />
-                  <q-radio  dense v-model="pago" val="CREDITO" label="Credito" />
-  --              </div>
-            </div>-->
-            <div class="col-md-6 col-xs-6">
-              <!--            <q-select dense outlined v-model="pago" :options="tipopagos" label="Tip Pagos" />-->
-              <div>
-                <q-radio v-model="pago" checked-icon="task_alt" dense unchecked-icon="panorama_fish_eye" val="CONTADO"
-                         label="Contado"/>
+              <div :class="`col-md-6 col-xs-6 ${cliente.id == '61839000' || cliente.Id == '0023456' ? 'hidden' : ''}`">
+                <div>
+                  <q-radio v-model="pago" checked-icon="task_alt" dense unchecked-icon="panorama_fish_eye" val="CONTADO"
+                           label="Contado"/>
+                  <!--                <pre>{{pago}}</pre>-->
+                </div>
+                <div>
+                  <q-radio v-model="pago" checked-icon="task_alt" dense unchecked-icon="panorama_fish_eye" val="PAGO QR"
+                           label="Pago QR"/>
+                </div>
+                <div>
+                  <q-radio v-model="pago" checked-icon="task_alt" dense unchecked-icon="panorama_fish_eye" val="CREDITO"
+                           label="Credito"/>
+                </div>
+                <div>
+                  <q-radio v-model="pago" checked-icon="task_alt" dense unchecked-icon="panorama_fish_eye"
+                           val="BOLETA ANTERIOR" label="Boleta anterior"/>
+                </div>
               </div>
-              <div>
-                <q-radio v-model="pago" checked-icon="task_alt" dense unchecked-icon="panorama_fish_eye" val="PAGO QR"
-                         label="Pago QR"/>
+              <div :class="`col-md-6 col-xs-6 ${cliente.id == '61839000' || cliente.Id == '0023456' ? 'hidden' : ''}`">
+                <q-toggle
+                  :label="fact+' FACTURA'"
+                  color="green"
+                  false-value="NO"
+                  true-value="SI"
+                  v-model="fact"/>
+                <!--              <pre>{{fact}}</pre>-->
               </div>
-              <div>
-                <q-radio v-model="pago" checked-icon="task_alt" dense unchecked-icon="panorama_fish_eye" val="CREDITO"
-                         label="Credito"/>
-              </div>
-              <div>
-                <q-radio v-model="pago" checked-icon="task_alt" dense unchecked-icon="panorama_fish_eye"
-                         val="BOLETA ANTERIOR" label="Boleta anterior"/>
-              </div>
-            </div>
-            <div class="col-md-6 col-xs-6">
-              <q-toggle
-                :label="fact+' FACTURA'"
-                color="green"
-                false-value="NO"
-                true-value="SI"
-                v-model="fact"/>
-            </div>
             <div class="col-md-6 col-xs-6">
               <q-input label="Fecha" v-model="fecha" type="date" dense outlined :min="fechamenos"/>
             </div>
@@ -1259,6 +1254,14 @@ export default {
       this.modalopciones = false
       this.modalpedido = true
       this.misproductos = []
+      if (this.cliente.Id == '61839000' || this.cliente.Id == '0023456') {
+        this.pago = 'CREDITO'
+        this.fact = 'NO'
+      } else {
+        this.pago = ''
+        this.fact = ''
+      }
+
     },
     clickopciones(cliente) {
       this.modalopciones = true
