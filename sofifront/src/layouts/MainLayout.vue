@@ -8,7 +8,7 @@
           <template v-else>
             {{ $filters.capitalize($store.getters['login/user'].Nombre1 + ' ' + $store.getters['login/user'].App1) }}
           </template>
-          <q-chip dense class="bg-orange text-white" size="10px">
+          <q-chip dense class="bg-orange" size="10px">
             {{ '11.3.5' }}
           </q-chip>
         </q-toolbar-title>
