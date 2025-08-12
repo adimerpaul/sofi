@@ -818,7 +818,7 @@ class ExcelController extends Controller
             $c++;
 
             $pedidos = DB::select(
-                "SELECT c.Nombres, p.fact, p.pago, p.total, p.entero, p.desmembre, p.corte, p.kilo,
+                "SELECT c.Nombres, p.fact, p.pago, p.total, p.entero, p.desmembre, p.corte, p.kilo,p.pfrial,
                     p.Observaciones, p.color,
                     CASE WHEN p.pago = 'CONTADO' THEN 'SI' ELSE 'NO' END AS campo_pago
              FROM tbpedidos p
@@ -829,6 +829,7 @@ class ExcelController extends Controller
 
             foreach ($pedidos as $r) {
                 $sheet->setCellValue('B'.$c, $r->Nombres);
+                $sheet->setCellValue('C'.$c, $r->pfrial);
                 $sheet->setCellValue('D'.$c, $r->total);
                 $sheet->setCellValue('E'.$c, $r->entero);
                 $sheet->setCellValue('F'.$c, $r->desmembre);
