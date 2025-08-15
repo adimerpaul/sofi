@@ -826,11 +826,21 @@ class ExcelController extends Controller
              WHERE p.CIfunc = ? AND DATE(p.fecha) = ? AND p.tipo = 'CERDO' AND p.estado = 'ENVIADO'",
                 [$value->CodAut, $fecha]
             );
-
+            
             foreach ($pedidos as $r) {
+                $unid = 0;
+                if ($r->kilo)
+                    $unid = $r->kilo / 10;
+                $entero=0;
+                if ($r->entero) $entero = $r->entero ;
+                $desmembre=0;
+                if ($r->desmembre) $desmembre = $r->desmembre;
+                $corte =0;
+                if ($r->corte) $corte = $r->corte;
+                $total = $r->total ??   ($entero + $desmembre + $corte + $unid);
                 $sheet->setCellValue('B'.$c, $r->Nombres);
                 $sheet->setCellValue('C'.$c, $r->pfrial);
-                $sheet->setCellValue('D'.$c, $r->total);
+                $sheet->setCellValue('D'.$c, $total);
                 $sheet->setCellValue('E'.$c, $r->entero);
                 $sheet->setCellValue('F'.$c, $r->desmembre);
                 $sheet->setCellValue('H'.$c, $r->corte);
