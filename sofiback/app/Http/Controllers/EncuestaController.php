@@ -38,8 +38,35 @@ class EncuestaController extends Controller
     /**
      * (Opcional) Listar encuestas
      */
-    public function index()
+    public function index(Request $request)
     {
-        return Encuesta::latest()->paginate(20);
+        $request->validate([
+            'from'     => 'nullable|date',
+            'to'       => 'nullable|date',
+            'all'      => 'nullable|boolean',
+            'per_page' => 'nullable|integer|min:1|max:200',
+        ]);
+
+        $q = Encuesta::query();
+
+        if ($from = $request->input('from')) {
+            $q->whereDate('created_at', '>=', $from);
+        }
+        if ($to = $request->input('to')) {
+            $q->whereDate('created_at', '<=', $to);
+        }
+
+        $q->orderByDesc('created_at');
+
+        // Si piden todo, devolvemos una colección sin paginar
+        if ($request->boolean('all')) {
+            return response()->json($q->get());
+        }
+
+        $perPage = (int)($request->input('per_page', 25));
+        $perPage = max(1, min(200, $perPage));
+
+        return response()->json($q->paginate($perPage));
     }
+
 }

@@ -30,7 +30,6 @@ Route::post('/importData',[\App\Http\Controllers\AlmacenController::class,'impor
 Route::post('/exportData',[\App\Http\Controllers\AlmacenController::class,'exportData']);
 
 Route::post('encuestas', [EncuestaController::class, 'store']);
-Route::get('encuestas', [EncuestaController::class, 'index']);
 
 
 Route::post('/exportData',[\App\Http\Controllers\AlmacenController::class,'exportData']);
@@ -39,6 +38,9 @@ Route::group(['middleware'=>'auth:sanctum'],function (){
     Route::post('/me',[\App\Http\Controllers\UserController::class,'me']);
     Route::resource('/cliente',\App\Http\Controllers\ClienteController::class);
     Route::resource('/user',\App\Http\Controllers\UserController::class);
+
+    Route::get('encuestas', [EncuestaController::class, 'index']);
+
     Route::resource('/asignar',\App\Http\Controllers\AsignarController::class);
     Route::resource('/producto',\App\Http\Controllers\ProductoController::class);
     Route::resource('/pedido',\App\Http\Controllers\PedidoController::class);
