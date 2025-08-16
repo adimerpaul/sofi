@@ -69,6 +69,10 @@ const routes = [
       { path: '/login', component: Login },
     ]
   },
+  {
+    path: '/encuesta',
+    component: () => import('pages/encuesta/Encuesta.vue'),
+  },
 
   // Always leave this as last one,
   // but you can also remove it
