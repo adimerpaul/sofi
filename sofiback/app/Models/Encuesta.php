@@ -16,6 +16,7 @@ class Encuesta extends Model
         'ref_id',
         'ip',
         'ua',
+        'email',
     ];
     protected $hidden = [
         'created_at',
