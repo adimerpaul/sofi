@@ -9,7 +9,7 @@
             {{ $filters.capitalize($store.getters['login/user'].Nombre1 + ' ' + $store.getters['login/user'].App1) }}
           </template>
           <q-chip dense class="bg-orange" size="10px">
-            {{ '11.3.5' }}
+            {{ '11.3.8' }}
           </q-chip>
         </q-toolbar-title>
         <!--        <div>Quasar v{{ $q.version }}</div>-->
@@ -413,6 +413,17 @@
           <q-item-section>
             <q-item-label>
               Pedidos
+            </q-item-label>
+          </q-item-section>
+        </q-item>
+        <q-item clickable active-class="bg-primary text-white" exact to="encuestasIndex"
+                v-if="encargados.includes($store.getters['login/user'].ci) || cobrador.includes($store.getters['login/user'].ci)">
+          <q-item-section avatar>
+            <q-icon name="assignment"/>
+          </q-item-section>
+          <q-item-section>
+            <q-item-label>
+              Encuestas
             </q-item-label>
           </q-item-section>
         </q-item>
