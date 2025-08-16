@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\BonificacionController;
+use App\Http\Controllers\EncuestaController;
 use App\Http\Controllers\FacturaController;
 use App\Http\Controllers\MobilController;
 use Illuminate\Http\Request;
@@ -27,7 +28,12 @@ Route::get('/excel/{t}/{f1}/{f2}/{CodAut}',[\App\Http\Controllers\ExcelControlle
 Route::get('users',[\App\Http\Controllers\UserController::class,'users']);
 Route::post('/importData',[\App\Http\Controllers\AlmacenController::class,'importData']);
 Route::post('/exportData',[\App\Http\Controllers\AlmacenController::class,'exportData']);
-Route::get('/boletaentrega/{comanda}',[\App\Http\Controllers\EntregaController::class,'boletaentrega']);
+
+Route::post('encuestas', [EncuestaController::class, 'store']);
+Route::get('encuestas', [EncuestaController::class, 'index']);
+
+
+Route::post('/exportData',[\App\Http\Controllers\AlmacenController::class,'exportData']);
 
 Route::group(['middleware'=>'auth:sanctum'],function (){
     Route::post('/me',[\App\Http\Controllers\UserController::class,'me']);
