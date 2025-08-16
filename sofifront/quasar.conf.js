@@ -9,7 +9,7 @@
 /* eslint-env node */
 const ESLintPlugin = require('eslint-webpack-plugin')
 const { configure } = require('quasar/wrappers');
-
+// require('dotenv').config()
 module.exports = configure(function (ctx) {
   return {
     // https://quasar.dev/quasar-cli/supporting-ts
@@ -23,6 +23,7 @@ module.exports = configure(function (ctx) {
     // https://quasar.dev/quasar-cli/boot-files
     boot: [
       'axios',
+      'firebase',
     ],
 
     // https://quasar.dev/quasar-cli/quasar-conf-js#Property%3A-css
@@ -76,7 +77,17 @@ module.exports = configure(function (ctx) {
         API: ctx.dev
           ? 'http://localhost:8000/api/'
           : 'https://bsofia.tuprogam.com/api/',
-        VERSION: '1.0.0'
+        VERSION: '1.0.0',
+        // apiKey: "AIzaSyDbMGAIVkyjmE-YctHlWZBuLHAw_ar6SgM",
+        // authDomain: "sofia-d7be0.firebaseapp.com",
+        // projectId: "sofia-d7be0",
+        // storageBucket: "sofia-d7be0.firebasestorage.app",
+        // messagingSenderId: "324345481536",
+        // appId: "1:324345481536:web:a79861fe237fb1b9d8d2a5"
+        FB_API_KEY:     'AIzaSyDbMGAIVkyjmE-YctHlWZBuLHAw_ar6SgM',
+        FB_AUTH_DOMAIN: 'sofia-d7be0.firebaseapp.com',
+        FB_PROJECT_ID:  'sofia-d7be0',
+        FB_APP_ID:      '1:324345481536:web:a79861fe237fb1b9d8d2a5'
       }
     },
 
