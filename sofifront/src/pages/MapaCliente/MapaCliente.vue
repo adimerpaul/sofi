@@ -2,7 +2,7 @@
   <q-page class="bg-grey-3 q-pa-none">
     <q-card flat bordered>
       <q-card-section class="q-pa-none">
-       <div class="row">
+        <div class="row">
           <div class="col-xs-12 col-md-2 q-pa-xs">
             <q-input v-model="fecha" label="Fecha" type="date" dense outlined @update:model-value="buscar"/>
           </div>
@@ -33,31 +33,6 @@
                 :zoom="zoom"
                 :center="center"
               >
-<!--                <div class="overlay-menu">
-                  <div class="row" style="width: 100%; margin: 0; padding: 0;">
-                    <div class="col-xs-12 col-md-2 q-pa-xs">
-                      <q-input v-model="fecha" label="Fecha" type="date" dense outlined @update:model-value="buscar"/>
-                    </div>
-                    <div class="col-xs-12 col-md-2 q-pa-xs">
-                      <q-btn color="info" icon="search" label="Consultar" @click="buscar" :loading="loading" no-caps size="md"/>
-                   </div>
-                 <div class="col-xs-2 col-md-2 q-pa-xs">
-                      <q-btn color="purple" label="5" @click="loadGeoJson(5)" :loading="loading"/>
-                    </div>
-                    <div class="col-xs-2 col-md-2 q-pa-xs">
-                      <q-btn color="green" label="4" @click="loadGeoJson(4)" :loading="loading"/>
-                    </div>
-                    <div class="col-xs-2 col-md-2 q-pa-xs">
-                      <q-btn color="orange" label="3" @click="loadGeoJson(3)" :loading="loading"/>
-                    </div>
-                  </div>
-                  <div class="row">
-                    <div class="q-pa-xs col-md-2 col-xs-4 " v-for="vih in vehiculos" :key="vih"
-                         style="font-size: 12px;"><b>{{ vih.placa == '' ? 'SIN ASIGNAR' : vih.placa }} :
-                      {{ calculo(vih.placa) }}</b></div>
-                    <br>
-                  </div>
-                </div>-->
                 <LTileLayer
                   url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                 ></LTileLayer>
@@ -69,10 +44,29 @@
                   @click="toggleSeleccion(pedido)"
                 >
                   <l-tooltip
-                    :content="pedido.Nombres+' Total:' +pedido.importe+' Bs'"
-                    :permanent="false"
-                    :direction="'top'"
-                  />
+                    :options="tooltipOptions(pedido)"
+                  >
+                    <div class="tt-header">
+                      <span class="tt-title">{{ pedido.Nombres }}</span> <br>
+                      <span
+                        :class="pedido.ruta === 'SI' ? 'bg-green' : 'bg-red'"
+                      >
+      {{ pedido.ruta === 'SI' ? 'EN RUTA' : 'FUERA DE RUTA' }}
+    </span>
+                    </div>
+<!--                    <pre>{{pedido}}</pre>-->
+
+                    <div class="tt-row"><span class="tt-label">Territorio:</span> <b>{{ pedido.territorio || '-' }}</b>
+                    </div>
+                    <div class="tt-row"><span class="tt-label">Importe:</span>
+                      <b>{{ Number(pedido.importe || 0).toFixed(2) }} Bs</b></div>
+                    <div class="tt-row"><span class="tt-label">Vendedor:</span> {{ pedido.vendedor || '-' }}</div>
+                    <div class="tt-row"><span class="tt-label">Dirección:</span> {{ pedido.Direccion || '-' }}</div>
+                    <div class="tt-row" v-if="pedido.horario"><span class="tt-label">Horario:</span> {{
+                        pedido.horario
+                      }}
+                    </div>
+                  </l-tooltip>
                   <l-icon>
                     <q-badge
                       style="padding: 2px"
@@ -87,7 +81,7 @@
             </div>
             <br>
             <div class="col-12 col-md-12">
-<!--              <pre>{{ clientes }}</pre>-->
+              <!--              <pre>{{ clientes }}</pre>-->
               <div class="row">
                 <!--                <div class="col-12 col-md-2">-->
                 <!--                  <q-select-->
@@ -273,12 +267,13 @@
         </q-card-section>
 
         <q-card-section>
-          <q-select v-model="vehiculoSeleccionado" :options="vehiculos" option-label="placa" label="Vehículo" outlined dense />
+          <q-select v-model="vehiculoSeleccionado" :options="vehiculos" option-label="placa" label="Vehículo" outlined
+                    dense/>
         </q-card-section>
 
         <q-card-actions align="right">
-          <q-btn flat label="Cancelar" color="negative" v-close-popup />
-          <q-btn flat label="Aceptar" color="primary" @click="confirmarReporteZona" />
+          <q-btn flat label="Cancelar" color="negative" v-close-popup/>
+          <q-btn flat label="Aceptar" color="primary" @click="confirmarReporteZona"/>
         </q-card-actions>
       </q-card>
     </q-dialog>
@@ -707,6 +702,15 @@ export default {
   },
 
   methods: {
+    tooltipOptions(p) {
+      return {
+        permanent: false,
+        direction: 'top',
+        offset: [0, -10],
+        // clase para estilizar el contenedor del tooltip
+        className: 'pedido-tooltip'
+      }
+    },
     confirmarReporteZona() {
       if (!this.vehiculoSeleccionado || !this.vehiculoSeleccionado.placa) {
         this.$q.notify({
@@ -915,12 +919,12 @@ export default {
 <style scoped>
 .overlay-menu {
   position: absolute;
-  top: 10px;         /* más separación del borde superior */
-  left: 50px;        /* más separación del borde izquierdo */
+  top: 10px; /* más separación del borde superior */
+  left: 50px; /* más separación del borde izquierdo */
   z-index: 1000;
   background-color: white;
-  padding: 0;   /* padding interno más cómodo */
-  border-radius: 10px;  /* bordes más redondeados */
+  padding: 0; /* padding interno más cómodo */
+  border-radius: 10px; /* bordes más redondeados */
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2); /* sombra más suave */
   width: 90%; /* ancho completo del contenedor */
 }

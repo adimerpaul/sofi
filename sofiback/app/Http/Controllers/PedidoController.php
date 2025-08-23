@@ -7,6 +7,7 @@ use App\Models\Pedido;
 use App\Models\Producto;
 use App\Models\User;
 use Carbon\Carbon;
+use Facade\FlareClient\Http\Client;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -755,7 +756,39 @@ class PedidoController extends Controller{
             'personal_id' => $request->user()->CodAut
         ]);
         $data = [];
+//        Verificacion si esta en ruta
+        $clientesUsuario = Cliente::whereRaw('TRIM(CiVend) = ?', [trim($request->user()->ci)])->get();
+        $diaHoy = date('N');
+
         foreach ($request->productos as $p) {
+            $estaEnRuta = 'NO';
+
+            if ($clientesUsuario->count() > 0) {
+                $clientePedido = $clientesUsuario->where('Cod_Aut', $request->idCli)->first();
+
+                if ($clientePedido) {
+                    // OJO: revisa bien las mayúsculas según tu tabla
+                    $lu = $clientePedido->lu;
+                    $ma = $clientePedido->Ma;
+                    $mi = $clientePedido->Mi;
+                    $ju = $clientePedido->Ju;
+                    $vi = $clientePedido->Vi;
+                    $sa = $clientePedido->Sa;
+                    $do = $clientePedido->do;
+
+                    if (
+                        ($diaHoy == 1 && $lu == 1) ||
+                        ($diaHoy == 2 && $ma == 1) ||
+                        ($diaHoy == 3 && $mi == 1) ||
+                        ($diaHoy == 4 && $ju == 1) ||
+                        ($diaHoy == 5 && $vi == 1) ||
+                        ($diaHoy == 6 && $sa == 1) ||
+                        ($diaHoy == 7 && $do == 1)
+                    ) {
+                        $estaEnRuta = 'SI';
+                    }
+                }
+            }
             $imp = 0;
             if ($p['tipo'] == 'POLLO' || $p['tipo'] == 'RES' || $p['tipo'] == 'CERDO'){
                 $imp = 1;
@@ -874,6 +907,7 @@ class PedidoController extends Controller{
                 "comentario" => $comentario,
                 "bonificacion" => $bonificacion,
                 "bonificacionId" => $bonificacionId,
+                'ruta' => $estaEnRuta,
             ];
             array_push($data, $d);
         }
@@ -1700,20 +1734,6 @@ class PedidoController extends Controller{
     }
 
     public function mapClientes(Request $request){
-//        $tipo = $request->tipo;
-//        $resultado = DB::select("
-//        SELECT
-//            p.idCli, c.Id, c.Nombres, c.Latitud, c.longitud, c.territorio,
-//            CONCAT(TRIM(e.Nombre1), ' ', TRIM(e.App1)) AS vendedor,
-//            p.placa,p.horario,
-//            p.color,
-//            SUM(p.subtotal) AS importe
-//        FROM tbpedidos p
-//        INNER JOIN tbclientes c ON p.idCli = c.Cod_Aut
-//        INNER JOIN personal e ON p.CIfunc = e.CodAut
-//        WHERE DATE(p.fecha) = ? AND p.estado = 'ENVIADO' AND p.tipo = '$tipo'
-//        GROUP BY p.idCli, c.Id, c.Nombres, c.Latitud, c.longitud, c.territorio, e.Nombre1, e.App1, p.placa,p.horario,p.color
-//    ", [$request->fecha]);
         $tipo = $request->tipo;
         $fecha = $request->fecha;
 
@@ -1724,15 +1744,16 @@ class PedidoController extends Controller{
             placa,
             horario,
             color,
+            ruta,
             SUM(subtotal) as importe
         ')
             ->whereDate('fecha', $fecha)
             ->where('estado', 'ENVIADO')
             ->where('tipo', $tipo)
             ->where('bonificacion', 0)
-            ->groupBy('idCli', 'placa', 'horario', 'color', 'CIfunc')
-
+            ->groupBy('idCli', 'placa', 'horario', 'color', 'CIfunc', 'ruta')
             ->get()
+
             //return $resultados;
             ->map(function ($pedido) {
                 return [
@@ -1748,6 +1769,7 @@ class PedidoController extends Controller{
                     'horario'     => $pedido->horario,
                     'color'       => $pedido->color,
                     'importe'     => $pedido->importe,
+                    'ruta'        => $pedido->ruta ?? '',
                 ];
             });
 
