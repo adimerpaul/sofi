@@ -233,7 +233,6 @@
                   <q-radio v-model="pago" checked-icon="task_alt" dense unchecked-icon="panorama_fish_eye" val="CONTADO"
                            label="Contado"/>
                   <!--                <pre>{{pago}}</pre>-->
-                  <pre>{{cliente.id}}</pre>
                 </div>
                 <div>
                   <q-radio v-model="pago" checked-icon="task_alt" dense unchecked-icon="panorama_fish_eye" val="PAGO QR"
