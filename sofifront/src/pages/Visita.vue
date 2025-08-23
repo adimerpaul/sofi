@@ -228,11 +228,12 @@
               <q-space/>
               <q-btn icon="close" flat @click="modalpedido=false" class="q-ma-xs" color="negative"/>
             </div>
-              <div :class="`col-md-6 col-xs-6 ${cliente.id == '61839000' || cliente.Id == '0023456' ? 'hidden' : ''}`">
+              <div :class="`col-md-6 col-xs-6 ${cliente.Id == '61839000' || cliente.Id == '0023456' ? 'hidden' : ''}`">
                 <div>
                   <q-radio v-model="pago" checked-icon="task_alt" dense unchecked-icon="panorama_fish_eye" val="CONTADO"
                            label="Contado"/>
                   <!--                <pre>{{pago}}</pre>-->
+                  <pre>{{cliente.id}}</pre>
                 </div>
                 <div>
                   <q-radio v-model="pago" checked-icon="task_alt" dense unchecked-icon="panorama_fish_eye" val="PAGO QR"
@@ -247,7 +248,7 @@
                            val="BOLETA ANTERIOR" label="Boleta anterior"/>
                 </div>
               </div>
-              <div :class="`col-md-6 col-xs-6 ${cliente.id == '61839000' || cliente.Id == '0023456' ? 'hidden' : ''}`">
+              <div :class="`col-md-6 col-xs-6 ${cliente.Id == '61839000' || cliente.Id == '0023456' ? 'hidden' : ''}`">
                 <q-toggle
                   :label="fact+' FACTURA'"
                   color="green"
@@ -1353,7 +1354,8 @@ export default {
         else if (c.tipo === 'NO PEDIDO') resumen.nopedido++;
         else if (c.tipo === 'PARADO') resumen.parado++;
       });
-      resumen.total = this.clientes.length;
+      // resumen.total = this.clientes.length;
+      resumen.total = this.clientes.filter(c => c.Id !== '61839000' && c.Id !== '0023456').length;
       if (resumen.total > 0) {
         resumen.efectividad = ((resumen.pedido / resumen.total) * 100).toFixed(1);
       }
