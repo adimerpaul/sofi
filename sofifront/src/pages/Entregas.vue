@@ -29,7 +29,7 @@
       <q-table title="Entregas Pedidos" :rows="resumen" :columns="columns2" row-key="name" dense @rowClick="consultaRow" :rows-per-page-options="[0]">
         <template v-slot:top-right>
           <q-btn  color="indigo" label="Reporte Todos" dense @click="consulta('TODOS')" no-caps :loading="loading"/>
-          <q-btn  color="orange" label="Actualizar Datos" dense type="a" href="http://192.168.1.200:8000/api/migracion" no-caps :loading="loading"/>
+          <q-btn  color="orange" label="Actualizar Datos" dense type="a" href="http://192.168.1.200:8000/api/migracion" no-caps :loading="loading" target="_blank" />
         </template>
         <template v-slot:body-cell-op="props" >
           <q-td :props="props" auto-width>
