@@ -488,7 +488,7 @@ export default {
 
   async created () {
     // Si quieres fijar fecha por defecto:
-    this.fecha = '2025-09-01'
+    // this.fecha = '2025-09-01'
     await this.misclientes();
   },
 
