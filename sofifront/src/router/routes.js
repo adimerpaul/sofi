@@ -71,7 +71,7 @@ const routes = [
     ]
   },
   {
-    path: '/encuesta',
+    path: '/encuesta/:idcliente/:iduser',
     component: () => import('pages/encuesta/Encuesta.vue'),
   },
 

@@ -4,6 +4,14 @@
       <q-page class="flex flex-center bg-grey-1">
         <q-card class="enc-card q-pa-md">
 
+          <!-- Aviso de privacidad y elegibilidad -->
+          <q-banner class="q-mb-md bg-grey-2" rounded dense>
+            <div class="text-body2">
+              <b>Encuesta solo para clientes.</b> Tu respuesta es anónima frente al repartidor.
+              Registramos dominio, IP y navegador solo para verificar autenticidad.
+            </div>
+          </q-banner>
+
           <!-- Estado de sesión -->
           <q-banner
             class="q-mb-md"
@@ -17,7 +25,7 @@
                   <span class="text-weight-bold">{{ user.email }}</span>
                 </div>
                 <div v-else>
-                  Inicia sesión con Google para responder la encuesta
+                  (Opcional) Inicia sesión con Google para asociar tu correo
                 </div>
               </div>
               <div class="col-auto" v-if="user">
@@ -26,7 +34,7 @@
             </div>
           </q-banner>
 
-          <!-- Botón Google (solo si NO hay sesión) -->
+          <!-- Botón Google (si NO hay sesión) -->
           <div v-if="!user" class="q-mb-lg">
             <q-btn
               class="btn-google full-width"
@@ -41,8 +49,8 @@
             </q-btn>
           </div>
 
-          <!-- Encuesta (solo si HAY sesión) -->
-          <div v-else>
+          <!-- Encuesta -->
+          <div>
             <div class="row no-wrap items-center">
               <!-- Barra -->
               <div class="col-auto q-pr-md column items-center">
@@ -63,8 +71,6 @@
 
               <!-- Opciones -->
               <div class="col column justify-around q-gutter-md">
-
-                <!-- 10 -->
                 <q-item clickable v-ripple @click="select(10)" class="rounded-md">
                   <q-item-section avatar>
                     <q-btn round unelevated size="lg" :color="isSel(10) ? 'positive' : 'green-5'">
@@ -80,7 +86,6 @@
                   </q-item-section>
                 </q-item>
 
-                <!-- 5 -->
                 <q-item clickable v-ripple @click="select(5)" class="rounded-md">
                   <q-item-section avatar>
                     <q-btn round unelevated size="lg" :color="isSel(5) ? 'warning' : 'amber-5'">
@@ -96,7 +101,6 @@
                   </q-item-section>
                 </q-item>
 
-                <!-- 0 -->
                 <q-item clickable v-ripple @click="select(0)" class="rounded-md">
                   <q-item-section avatar>
                     <q-btn round unelevated size="lg" :color="isSel(0) ? 'negative' : 'red-5'">
@@ -129,15 +133,24 @@
                 placeholder="Comentario (opcional)"
                 :disable="loading"
               />
+              <q-checkbox
+                v-model="declaroCliente"
+                :disable="loading"
+                class="q-mt-sm"
+                label="Declaro que soy el cliente titular que recibió el servicio."
+              />
               <q-btn
                 class="q-mt-sm"
                 color="primary"
                 label="Enviar"
                 :loading="loading"
-                :disable="score === null"
+                :disable="score === null || !declaroCliente || yaRespondio"
                 @click="submit"
                 unelevated rounded icon="send"
               />
+              <div v-if="yaRespondio" class="q-mt-sm text-negative text-caption">
+                Ya se registró una respuesta hoy para este cliente y repartidor.
+              </div>
             </div>
           </div>
 
@@ -150,22 +163,23 @@
 <script>
 export default {
   name: 'EncuestaSatisfaccion',
-  props: {
-    refId: { type: [String, Number], default: null },
-    autoSubmit: { type: Boolean, default: true }
-  },
   data () {
     return {
+      // params
+      idcliente: null,
+      iduser: null,
+
       // encuesta
       score: null,
       comment: '',
+      declaroCliente: false,
       loading: false,
       sent: false,
+      yaRespondio: false,
 
-      // auth
+      // auth (si usas Firebase)
       user: null,          // { uid, email, name, photo, idToken }
       authLoading: false,
-      // _unsubAuth: null
     }
   },
   computed: {
@@ -176,12 +190,21 @@ export default {
       return 0
     }
   },
-  mounted () {
-    // rehidratar
+  async mounted () {
+    // leer params de ruta
+    this.idcliente = Number(this.$route.params.idcliente)
+    this.iduser    = Number(this.$route.params.iduser)
+
+    if (!this.idcliente || !this.iduser) {
+      this.$q.notify({ type: 'negative', message: 'URL inválida: faltan parámetros.' })
+      return
+    }
+
+    // rehídrata auth si la usas
     const saved = localStorage.getItem('enc_user')
     if (saved) { try { this.user = JSON.parse(saved) } catch (_) {} }
 
-    // escuchar auth de Firebase (inyectado por boot/firebase.js)
+    // hook a firebase si existe
     if (this.$firebase) {
       this._unsubAuth = this.$firebase.auth().onAuthStateChanged(async u => {
         if (u) {
@@ -200,29 +223,24 @@ export default {
         }
       })
     }
+
+    // check si ya respondió hoy
+    await this.checkDuplicado()
   },
-  // beforeDestroy () {
-  //   if (this._unsubAuth) this._unsubAuth()
-  // },
+  beforeUnmount () {
+    if (this._unsubAuth) this._unsubAuth()
+  },
   methods: {
     isSel (v) { return this.score === v },
-    async select (v) {
-      this.score = v
-      if (this.autoSubmit && this.user) await this.submit()
-      if (this.autoSubmit && !this.user) {
-        this.$q.notify({ type: 'warning', message: 'Inicia sesión con Google para enviar' })
-      }
-    },
+    async select (v) { this.score = v },
 
     async loginGoogle () {
       try {
         this.authLoading = true
-        // usa helper del boot si existe…
         if (this.$loginGoogle) {
           await this.$loginGoogle()
           return
         }
-        // …o fallback directo
         const provider = new this.$firebase.auth.GoogleAuthProvider()
         const res = await this.$firebase.auth().signInWithPopup(provider)
         const u = res.user
@@ -243,32 +261,55 @@ export default {
         else await this.$firebase.auth().signOut()
         this.user = null
         localStorage.removeItem('enc_user')
+      } catch (e) { console.error(e) }
+    },
+
+    async checkDuplicado () {
+      try {
+        const { data } = await this.$api.get('encuestas/check', {
+          params: { idcliente: this.idcliente, iduser: this.iduser }
+        })
+        this.yaRespondio = !!data.exists
       } catch (e) {
-        console.error(e)
+        // si falla el check, no bloqueamos; solo notificamos
+        this.$q.notify({ type: 'warning', message: 'No se pudo verificar duplicados.' })
       }
     },
 
     async submit () {
       if (this.score === null) return
-      if (!this.user) {
-        this.$q.notify({ type: 'warning', message: 'Inicia sesión para enviar' })
+      if (!this.declaroCliente) {
+        this.$q.notify({ type: 'warning', message: 'Debes declarar que eres el cliente titular.' })
         return
       }
+      if (this.yaRespondio) {
+        this.$q.notify({ type: 'negative', message: 'Ya existe una respuesta hoy.' })
+        return
+      }
+
       try {
         this.loading = true
         const payload = {
+          idcliente: this.idcliente,
+          iduser: this.iduser,
           score: this.score,
           comment: this.comment || null,
-          ref_id: this.refId,
-          email: this.user.email,       // << envía el email
+          email: this.user?.email || null,
           ua: navigator.userAgent
         }
         await this.$api.post('encuestas', payload)
         this.sent = true
-        this.$q.notify({ type: 'positive', message: '¡Enviado!' })
+        this.$q.notify({ type: 'positive', message: '¡Gracias! Tu respuesta fue enviada.' })
+        this.yaRespondio = true
       } catch (e) {
-        console.error(e)
-        this.$q.notify({ type: 'negative', message: 'Error al enviar' })
+        if (e?.response?.status === 403) {
+          this.$q.notify({ type: 'negative', message: 'Solo el cliente puede responder esta encuesta.' })
+        } else if (e?.response?.status === 409) {
+          this.$q.notify({ type: 'warning', message: 'Ya se registró una respuesta hoy.' })
+          this.yaRespondio = true
+        } else {
+          this.$q.notify({ type: 'negative', message: 'Error al enviar.' })
+        }
       } finally {
         this.loading = false
       }
@@ -278,7 +319,7 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-.enc-card { width: 380px; max-width: 92vw; border-radius: 16px; }
+.enc-card { width: 420px; max-width: 92vw; border-radius: 16px; }
 
 /* Google button */
 .btn-google {

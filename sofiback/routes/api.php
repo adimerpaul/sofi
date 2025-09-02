@@ -30,7 +30,7 @@ Route::post('/importData',[\App\Http\Controllers\AlmacenController::class,'impor
 Route::post('/exportData',[\App\Http\Controllers\AlmacenController::class,'exportData']);
 
 Route::post('encuestas', [EncuestaController::class, 'store']);
-
+Route::get('/encuestas/check', [EncuestaController::class, 'check']);
 
 Route::post('/exportData',[\App\Http\Controllers\AlmacenController::class,'exportData']);
 

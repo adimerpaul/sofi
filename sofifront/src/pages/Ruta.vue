@@ -529,8 +529,11 @@ export default {
         this.$q.notify({ message: 'Seleccione un cliente válido', color: 'warning' });
         return;
       }
+      // store user
+      const userId = this.$store.getters['login/user'].CodAut
+      console.log('User ID for survey link:', userId);
       // Construye el link encuestaIndex/<Cod_Aut>
-      this.qrLink = `${this.encuestaBase}/encuestaIndex/${encodeURIComponent(this.cliente.Cod_Aut)}`;
+      this.qrLink = `${this.encuestaBase}#/encuesta/${encodeURIComponent(this.cliente.Cod_Aut)}/${userId}`;
 
       // Genera QR mediante servicio liviano (sin libs)
       // Puedes cambiar size=220x220 o agregar margin & color si quieres
