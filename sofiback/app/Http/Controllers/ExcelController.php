@@ -819,14 +819,14 @@ class ExcelController extends Controller
 
             $pedidos = DB::select(
                 "SELECT c.Nombres, p.fact, p.pago, p.total, p.entero, p.desmembre, p.corte, p.kilo,p.pfrial,
-                    p.Observaciones, p.color,
+                    p.Observaciones, p.color,p.horario,p.comentario,
                     CASE WHEN p.pago = 'CONTADO' THEN 'SI' ELSE 'NO' END AS campo_pago
              FROM tbpedidos p
              INNER JOIN tbclientes c ON p.idCli = c.Cod_Aut
              WHERE p.CIfunc = ? AND DATE(p.fecha) = ? AND p.tipo = 'CERDO' AND p.estado = 'ENVIADO'",
                 [$value->CodAut, $fecha]
             );
-            
+
             foreach ($pedidos as $r) {
                 $unid = 0;
                 if ($r->kilo)
@@ -848,6 +848,8 @@ class ExcelController extends Controller
                 $sheet->setCellValue('J'.$c, $r->Observaciones);
                 $sheet->setCellValue('U'.$c, $r->campo_pago);
                 $sheet->setCellValue('V'.$c, $r->fact);
+                $sheet->setCellValue('W'.$c, $r->horario);
+                $sheet->setCellValue('X'.$c, $r->comentario);
 
                 // === Color SOLO en el nombre del cliente (B{fila}) ===
                 if (!empty($r->color) && isset($mapaColores[$r->color])) {
