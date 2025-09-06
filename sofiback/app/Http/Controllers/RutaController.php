@@ -30,25 +30,25 @@ class RutaController extends Controller
     /**
      * Store a newly created resource in storage.
      *
-     * @param  \Illuminate\Http\Request  $request
+     * @param \Illuminate\Http\Request $request
      * @return \Illuminate\Http\Response
      */
     public function store(Request $request)
     {
-       /* return DB::table('tbpedidos')
-            ->where('idCli',$request->id)
-            ->whereDate('fecha',$request->fecha)
-            ->where('tipo','NORMAL')
-            ->get();*/
-        $resul=[];
-        $list= DB::SELECT("SELECT c.CodAuto,c.CINIT,c.comanda,c.FechaEntreg,c.Importe,c.Tipago,
+        /* return DB::table('tbpedidos')
+             ->where('idCli',$request->id)
+             ->whereDate('fecha',$request->fecha)
+             ->where('tipo','NORMAL')
+             ->get();*/
+        $resul = [];
+        $list = DB::SELECT("SELECT c.CodAuto,c.CINIT,c.comanda,c.FechaEntreg,c.Importe,c.Tipago,
         (SELECT e.observacion from entregas e where e.cinit=c.CINIT and e.comanda=c.comanda order by e.estado asc limit 1 ) observacion,
         (SELECT e.estado from entregas e where e.cinit=c.CINIT and e.comanda=c.comanda order by e.estado asc limit 1 ) estado
         FROM tbctascobrar c WHERE c.CINIT='$request->id' and c.FechaEntreg='$request->fecha'
             and (c.CodAuto, c.comanda) in
                     (SELECT min(c2.CodAuto) ,c2.comanda
                           from tbctascobrar c2
-                          WHERE date(c2.FechaEntreg)='$request->fecha' and c2.CINIT='$request->id' and c.placa = '".$request->user()->placa."' group by c2.comanda)
+                          WHERE date(c2.FechaEntreg)='$request->fecha' and c2.CINIT='$request->id' and c.placa = '" . $request->user()->placa . "' group by c2.comanda)
 
         group by c.CodAuto,c.CINIT,c.comanda,c.FechaEntreg,c.Importe,c.Tipago,c.Observacion");
 
@@ -56,10 +56,10 @@ class RutaController extends Controller
         foreach ($list as $r) {
             # code...
             //return $rcomanda;
-            $prod=DB::SELECT("SELECT p.cod_prod,p.Producto,v.PVentUnit,v.cant,v.Monto from tbventas v inner join tbproductos p on v.cod_pro=p.cod_prod
-            where v.Comanda=".$r->comanda);
-            $r->detalle=$prod;
-            array_push($resul,$r);
+            $prod = DB::SELECT("SELECT p.cod_prod,p.Producto,v.PVentUnit,v.cant,v.Monto from tbventas v inner join tbproductos p on v.cod_pro=p.cod_prod
+            where v.Comanda=" . $r->comanda);
+            $r->detalle = $prod;
+            array_push($resul, $r);
         }
 
         return json_encode($resul);
@@ -67,13 +67,13 @@ class RutaController extends Controller
 
     public function repComanda(Request $request)
     {
-        $consulta='';
-        if($request->placa!='TODOS'){
-            $consulta="and c.placa = '".$request->placa."'";
+        $consulta = '';
+        if ($request->placa != 'TODOS') {
+            $consulta = "and c.placa = '" . $request->placa . "'";
         }
 
-        $resul=[];
-        $list= DB::SELECT("SELECT c.CodAuto,c.CINIT,c.comanda,c.FechaEntreg,c.Importe,c.Tipago,
+        $resul = [];
+        $list = DB::SELECT("SELECT c.CodAuto,c.CINIT,c.comanda,c.FechaEntreg,c.Importe,c.Tipago,
         (SELECT e.observacion from entregas e where e.cinit=c.CINIT and e.comanda=c.comanda order by e.estado asc limit 1 ) observacion,
         (SELECT e.estado from entregas e where e.cinit=c.CINIT and e.comanda=c.comanda order by e.estado asc limit 1 ) estado
         FROM tbctascobrar c WHERE c.CINIT='$request->id' and c.FechaEntreg='$request->fecha'
@@ -87,10 +87,10 @@ class RutaController extends Controller
         //return $list;
         foreach ($list as $r) {
             # code...
-            $prod=DB::SELECT("SELECT p.cod_prod,p.Producto,v.PVentUnit,v.cant,v.Monto from tbventas v inner join tbproductos p on v.cod_pro=p.cod_prod
-            where v.Comanda=".$r->comanda);
-            $r->detalle=$prod;
-            array_push($resul,$r);
+            $prod = DB::SELECT("SELECT p.cod_prod,p.Producto,v.PVentUnit,v.cant,v.Monto from tbventas v inner join tbproductos p on v.cod_pro=p.cod_prod
+            where v.Comanda=" . $r->comanda);
+            $r->detalle = $prod;
+            array_push($resul, $r);
         }
 
         return json_encode($resul);
@@ -99,26 +99,26 @@ class RutaController extends Controller
     /**
      * Display the specified resource.
      *
-     * @param  int  $id
+     * @param int $id
      * @return \Illuminate\Http\Response
      */
     public function show($fecha, Request $request)
     {
-       /* return DB::select("
-        SELECT p.idCli,c.Id,c.Nombres,c.Telf,c.Direccion,c.Latitud,c.longitud,p.estados
-FROM tbpedidos p
-INNER JOIN tbclientes c ON c.Cod_Aut=p.idCli
-WHERE date(p.fecha)='".$fecha."'
-GROUP BY p.idCli,c.Id,c.Nombres,c.Telf,c.Direccion,c.Latitud,c.longitud,p.estados;
-");*/
-        $user= $request->user();
-    return DB::select(" SELECT c.Cod_Aut,p.CINIT,c.Id,c.Nombres,c.Telf,c.Direccion,c.Latitud,c.longitud,
+        /* return DB::select("
+         SELECT p.idCli,c.Id,c.Nombres,c.Telf,c.Direccion,c.Latitud,c.longitud,p.estados
+ FROM tbpedidos p
+ INNER JOIN tbclientes c ON c.Cod_Aut=p.idCli
+ WHERE date(p.fecha)='".$fecha."'
+ GROUP BY p.idCli,c.Id,c.Nombres,c.Telf,c.Direccion,c.Latitud,c.longitud,p.estados;
+ ");*/
+        $user = $request->user();
+        return DB::select(" SELECT c.Cod_Aut,p.CINIT,c.Id,c.Nombres,c.Telf,c.Direccion,c.Latitud,c.longitud,
         (select e.estado from entregas e
             where e.cliente_id=c.Cod_Aut and e.fechaEntreg='$fecha' order by e.estado asc limit 1  ) estado
     FROM tbctascobrar p
     INNER JOIN tbclientes c ON c.Id=p.CINIT
-    WHERE date(p.FechaEntreg)='".$fecha."'
-    and p.placa='".$user->placa."'
+    WHERE date(p.FechaEntreg)='" . $fecha . "'
+    and p.placa='" . $user->placa . "'
     GROUP BY c.Cod_Aut,p.CINIT,c.Id,c.Nombres,c.Telf,c.Direccion,c.Latitud,c.longitud
     order by estado asc
     ");
@@ -193,15 +193,15 @@ GROUP BY p.idCli,c.Id,c.Nombres,c.Telf,c.Direccion,c.Latitud,c.longitud,p.estado
             return $resDatos;
         }
 */
-$parametros = [$request->fecha, $request->fecha];
-$condiciones = ["DATE(p.FechaEntreg) = ?"];
+        $parametros = [$request->fecha, $request->fecha];
+        $condiciones = ["DATE(p.FechaEntreg) = ?"];
 
-if ($request->placa !== 'TODOS') {
-    $condiciones[] = "p.placa = ?";
-    $parametros[] = $request->placa;
-}
+        if ($request->placa !== 'TODOS') {
+            $condiciones[] = "p.placa = ?";
+            $parametros[] = $request->placa;
+        }
 
-$sql = "SELECT c.Cod_Aut, p.CINIT, c.Id, c.Nombres, c.Telf, c.Direccion, c.Latitud, c.longitud,
+        $sql = "SELECT c.Cod_Aut, p.CINIT, c.Id, c.Nombres, c.Telf, c.Direccion, c.Latitud, c.longitud,
                (SELECT e.estado FROM entregas e
                 WHERE e.cliente_id = c.Cod_Aut
                 AND e.fechaEntreg = ?
@@ -212,28 +212,29 @@ $sql = "SELECT c.Cod_Aut, p.CINIT, c.Id, c.Nombres, c.Telf, c.Direccion, c.Latit
         GROUP BY c.Cod_Aut, p.CINIT, c.Id, c.Nombres, c.Telf, c.Direccion, c.Latitud, c.longitud
         ORDER BY estado ASC";
 
-$datos = DB::select($sql, $parametros);
+        $datos = DB::select($sql, $parametros);
 
-return ($request->grupo === 'TODOS') ? $datos : $this->filtrarPorGrupo($datos, $request);
-}
+        return ($request->grupo === 'TODOS') ? $datos : $this->filtrarPorGrupo($datos, $request);
+    }
 
-public function filtrarPorGrupo($datos, $request) {
-$grupos = [
-    'CARNE POLLO'   => [3],
-    'CARNE CERDO'   => [2],
-    'PODIUM'        => [9],
-    'POLLO CERDO'   => [2, 3],
-    'OTROS'         => ['NOT IN', [2, 3, 9]]
-];
+    public function filtrarPorGrupo($datos, $request)
+    {
+        $grupos = [
+            'CARNE POLLO' => [3],
+            'CARNE CERDO' => [2],
+            'PODIUM' => [9],
+            'POLLO CERDO' => [2, 3],
+            'OTROS' => ['NOT IN', [2, 3, 9]]
+        ];
 
-$grupoFiltro = $grupos[$request->grupo] ?? ['NOT IN', [2, 3, 9]];
-$operador = is_array($grupoFiltro) ? "IN" : $grupoFiltro[0];
-$valores = implode(",", is_array($grupoFiltro) ? $grupoFiltro : $grupoFiltro[1]);
+        $grupoFiltro = $grupos[$request->grupo] ?? ['NOT IN', [2, 3, 9]];
+        $operador = is_array($grupoFiltro) ? "IN" : $grupoFiltro[0];
+        $valores = implode(",", is_array($grupoFiltro) ? $grupoFiltro : $grupoFiltro[1]);
 
-$CINITs = array_column($datos, 'CINIT');
-if (empty($CINITs)) return [];
+        $CINITs = array_column($datos, 'CINIT');
+        if (empty($CINITs)) return [];
 
-$sqlGrupo = "SELECT DISTINCT c.CINIT
+        $sqlGrupo = "SELECT DISTINCT c.CINIT
              FROM tbctascobrar c
              INNER JOIN tbventas v ON c.comanda = v.comanda
              INNER JOIN tbproductos p ON v.cod_pro = p.cod_prod
@@ -242,20 +243,21 @@ $sqlGrupo = "SELECT DISTINCT c.CINIT
              AND c.FechaEntreg = ?
              AND g.Cod_pdr $operador ($valores)";
 //return ($sqlGrupo, array_merge($CINITs, [$request->fecha]));
-$clientesFiltrados = DB::select($sqlGrupo, array_merge($CINITs, [$request->fecha]));
+        $clientesFiltrados = DB::select($sqlGrupo, array_merge($CINITs, [$request->fecha]));
 //return $clientesFiltrados;
-$clientesFiltradosIds = array_column($clientesFiltrados, 'CINIT');
+        $clientesFiltradosIds = array_column($clientesFiltrados, 'CINIT');
 //return $clientesFiltradosIds;
 
-return array_values(array_filter($datos, fn($item) => in_array($item->CINIT, $clientesFiltradosIds)));
- }
+        return array_values(array_filter($datos, fn($item) => in_array($item->CINIT, $clientesFiltradosIds)));
+    }
 
-    public function listEntrega($fecha){
+    public function listEntrega($fecha)
+    {
         return DB::select(" SELECT c.Cod_Aut,p.CINIT,c.Id,c.Nombres,c.Telf,c.Direccion,c.Latitud,c.longitud,
         (select e.estado from entregas e where e.cliente_id=c.Cod_Aut and e.fechaEntreg='$fecha' order by e.estado asc limit 1  ) estado
         FROM tbctascobrar p
         INNER JOIN tbclientes c ON c.Id=p.CINIT
-        WHERE date(p.FechaEntreg)='".$fecha."'
+        WHERE date(p.FechaEntreg)='" . $fecha . "'
         GROUP BY c.Cod_Aut,p.CINIT,c.Id,c.Nombres,c.Telf,c.Direccion,c.Latitud,c.longitud
         order by estado asc
         ");
@@ -263,12 +265,12 @@ return array_values(array_filter($datos, fn($item) => in_array($item->CINIT, $cl
 
     public function listRuta(Request $request)
     {
-        $consulta='';
-        if($request->placa!='TODOS'){
-            $consulta="and c.placa = '".$request->placa."'";
+        $consulta = '';
+        if ($request->placa != 'TODOS') {
+            $consulta = "and c.placa = '" . $request->placa . "'";
         }
-        $user= $request->user();
-    return DB::select(" SELECT e.hora,c.CINIT,l.Nombres,c.comanda,c.placa,e.despachador,e.estado,e.distancia,e.pago,e.observacion, l.Latitud latitud,l.longitud
+        $user = $request->user();
+        return DB::select(" SELECT e.hora,c.CINIT,l.Nombres,c.comanda,c.placa,e.despachador,e.estado,e.distancia,e.pago,e.observacion, l.Latitud latitud,l.longitud
     from tbctascobrar c inner join tbclientes l on c.CINIT=l.Id
     left join entregas e on e.comanda=c.comanda where c.FechaEntreg='$request->fecha'
     and (c.CodAuto, c.comanda) in
@@ -284,56 +286,89 @@ return array_values(array_filter($datos, fn($item) => in_array($item->CINIT, $cl
     ");
     }
 
-    public function reportContable($fecha){
+    public function reportContable($fecha)
+    {
         return DB::SELECT("SELECT e.despachador,sum(pago) cobro,
         (select sum(monto) from entregas e2 where e2.despachador=e.despachador and e2.tipago='CONTADO' and e2.fechaEntreg='$fecha') tcontado,
         (select sum(monto) from entregas e2 where e2.despachador=e.despachador and e2.tipago='CRÉDITO' and e2.fechaEntreg='$fecha') tcredito
         from entregas e where fechaEntreg='$fecha' and estado='ENTREGADO' group by e.despachador;");
     }
 
-    public function listPedidos(Request $request){
+    public function listPedidos(Request $request)
+    {
         return DB::SELECT("SELECT c.CINIT,l.Nombres,c.comanda,c.Tipago,p.Nombre1,p.App1
           from tbctascobrar c inner join tbclientes l on c.CINIT=l.Id inner join personal p on p.ci=c.CIFunc
         where c.FechaEntreg='$request->fecha' order by c.comanda desc;");
     }
 
-    public function resumenEntrega(Request $request){
-       /* return DB::SELECT("SELECT c.placa,c.fechaEntreg, COUNT(DISTINCT(c.comanda)) total,
-        (select count(*) from entregas e
-            WHERE e.fechaEntreg=c.FechaEntreg and c.placa=e.placa and e.estado='ENTREGADO') entreg,
-        (select count(*) from entregas e
-            WHERE e.fechaEntreg=c.FechaEntreg and c.placa=e.placa and e.estado='NO ENTREGADO') noentreg,
-        (select count(*) from entregas e
-            WHERE e.fechaEntreg=c.FechaEntreg and c.placa=e.placa and e.estado='RECHAZADO') rechazado
-         from tbctascobrar c where c.FechaEntreg='$request->fecha' and c.placa!='' GROUP by c.placa,c.fechaEntreg ");*/
+    public function resumenEntrega(Request $request)
+    {
+        $fecha = $request->fecha;
+        $pedidos = DB::SELECT("SELECT color,placa from tbpedidos where date(fecha)='$fecha' group by color,placa;");
+        $placas = [];
+        foreach ($pedidos as $p) {
+            if (!in_array($p->placa, $placas)) {
+                array_push($placas, $p->placa);
+            }
+        }
 
-         return DB::SELECT("SELECT c.placa,c.fechaEntreg, COUNT(DISTINCT(c.CINIT)) total,
+
+        $entregas = DB::SELECT("SELECT c.placa,c.fechaEntreg, COUNT(DISTINCT(c.CINIT)) total,
 	        (Select count(DISTINCT(e.cinit)) from entregas e where e.placa=c.placa and e.estado='ENTREGADO' and e.fecha='$request->fecha' ) AS entreg,
     	(Select count(DISTINCT(e.cinit)) from entregas e where e.placa=c.placa and e.estado='NO ENTREGADO' and e.fecha='$request->fecha' ) AS noentreg,
         	(Select count(DISTINCT(e.cinit)) from entregas e where e.placa=c.placa and e.estado='RECHAZADO' and e.fecha='$request->fecha' ) AS rechazado
-         from tbctascobrar c where c.FechaEntreg='$request->fecha' and c.placa!='' GROUP by c.placa,c.fechaEntreg;");
+         from tbctascobrar c
+         where c.FechaEntreg='$request->fecha'
+            and c.placa in ('" . implode("','", $placas) . "')
+           and c.placa!='' GROUP by c.placa,c.fechaEntreg;");
+
+        $fecha = $request->fecha;
+
+        $colores = DB::SELECT("SELECT id,zona,color,colorStyle from colores order by id;");
+        $entregasResult = [];
+        foreach ($entregas as $e) {
+            $zonas = '';
+            foreach ($pedidos as $p) {
+                if ($p->placa == $e->placa) {
+                    foreach ($colores as $c) {
+                        if ($c->color == $p->color) {
+                            if ($zonas == '') {
+                                $zonas = $c->zona;
+                            } else {
+                                $zonas = $zonas . ',' . $c->zona;
+                            }
+                        }
+                    }
+                }
+            }
+            $e->zonas = $zonas;
+            array_push($entregasResult, $e);
+        }
+        return $entregasResult;
     }
 
-    public function reporteDes(Request $request){
-        $resul=[];
-        $list= DB::SELECT("SELECT c.CINIT,l.Nombres,c.comanda,c.Importe,c.placa,e.despachador,c.Tipago,e.observacion
+    public function reporteDes(Request $request)
+    {
+        $resul = [];
+        $list = DB::SELECT("SELECT c.CINIT,l.Nombres,c.comanda,c.Importe,c.placa,e.despachador,c.Tipago,e.observacion
         from tbctascobrar c inner join tbclientes l on c.CINIT=l.Id inner join entregas e on e.comanda=c.comanda
-         where c.FechaEntreg='$request->fecha' and e.estado='ENTREGADO' and e.placa='".$request->user()->placa."' order by c.CINIT");
+         where c.FechaEntreg='$request->fecha' and e.estado='ENTREGADO' and e.placa='" . $request->user()->placa . "' order by c.CINIT");
 
         foreach ($list as $r) {
             # code...
-            $prod=DB::SELECT("SELECT p.cod_prod,p.Producto,v.PVentUnit,v.cant,v.Monto from tbventas v inner join tbproductos p on v.cod_pro=p.cod_prod
-            where v.Comanda=".$r->comanda);
-            $r->detalle=$prod;
-            array_push($resul,$r);
+            $prod = DB::SELECT("SELECT p.cod_prod,p.Producto,v.PVentUnit,v.cant,v.Monto from tbventas v inner join tbproductos p on v.cod_pro=p.cod_prod
+            where v.Comanda=" . $r->comanda);
+            $r->detalle = $prod;
+            array_push($resul, $r);
         }
 
         return json_encode($resul);
     }
+
     /**
      * Show the form for editing the specified resource.
      *
-     * @param  int  $id
+     * @param int $id
      * @return \Illuminate\Http\Response
      */
     public function edit($id)
@@ -344,8 +379,8 @@ return array_values(array_filter($datos, fn($item) => in_array($item->CINIT, $cl
     /**
      * Update the specified resource in storage.
      *
-     * @param  \Illuminate\Http\Request  $request
-     * @param  int  $id
+     * @param \Illuminate\Http\Request $request
+     * @param int $id
      * @return \Illuminate\Http\Response
      */
     public function update(Request $request, $id)
@@ -356,7 +391,7 @@ return array_values(array_filter($datos, fn($item) => in_array($item->CINIT, $cl
     /**
      * Remove the specified resource from storage.
      *
-     * @param  int  $id
+     * @param int $id
      * @return \Illuminate\Http\Response
      */
     public function destroy($id)
