@@ -754,8 +754,32 @@ export default {
     //   color:'red',
     //   icon:'error'
     // })
+    this.clientesBonificacion()
   },
   methods: {
+    clientesBonificacion() {
+      this.$api.get('cliente').then(res => {
+        this.clientes2 = []
+        res.data.forEach(r => {
+          let d = r
+          if (parseFloat(r.Latitud) != NaN && parseFloat(r.longitud) != NaN && r.Latitud != '' && r.longitud != '') {
+            d.Latitud = parseFloat(r.Latitud)
+            d.longitud = parseFloat(r.longitud)
+          } else {
+            d.Latitud = 0
+            d.longitud = 0
+          }
+
+          this.clientes2.push(d)
+        })
+        // this.clientes2 = [...this.clientes]
+        this.clientes2.sort((a, b) => {
+          if (a.Nombres < b.Nombres) return -1;
+          if (a.Nombres > b.Nombres) return 1;
+          return 0;
+        });
+      })
+    },
     modcomentario() {
       console.log(this.comentario)
       this.$api.post('updateComentario', this.comentario).then(res => {
@@ -791,12 +815,6 @@ export default {
 
           this.clientes.push(d)
         })
-        this.clientes2 = [...this.clientes]
-        this.clientes2.sort((a, b) => {
-          if (a.Nombres < b.Nombres) return -1;
-          if (a.Nombres > b.Nombres) return 1;
-          return 0;
-        });
       }).catch(err => {
         // this.loading=false
         // console.log(err.response)
