@@ -1070,6 +1070,8 @@ class PedidoController extends Controller{
                     'pago'        => $pedido->pago,
                     'fecha'       => $pedido->fecha,
                     'bonificacion' => $pedido->bonificacion,
+                    'bonificacionId' => $pedido->bonificacionId,
+                    'clienteBonificacion' => $pedido->bonificacionId ? Cliente::where('Cod_Aut', $pedido->bonificacionId)->value('Nombres') : null,
                     'fact'        => $pedido->fact,
                     'estado'      => $pedido->estado,
                     'cliente'     => $pedido->cliente, // Objeto completo del cliente

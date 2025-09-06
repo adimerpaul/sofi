@@ -131,4 +131,7 @@ class Pedido extends Model{
         return $this->hasMany(Pedido::class, 'NroPed', 'NroPed')
             ->where('NroPed', '<>', $this->NroPed);
     }
+    public function bonificacionCliente(){
+        return $this->belongsTo(Cliente::class,'bonificacionId','id');
+    }
 }
