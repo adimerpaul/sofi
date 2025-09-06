@@ -132,6 +132,10 @@ class ExcelController extends Controller
             $sheet->setCellValue('E2', trim($persona->Nombre1).' '.trim($persona->App1));
             $sheet->setCellValue('AB2', $f1);
             foreach ($query as $r){
+                $clienteBonificacion = '';
+                if ($r->bonificacionId) {
+                    $clienteBonificacion = DB::table('tbclientes')->where('Cod_Aut', $r->bonificacionId)->value('Nombres');
+                }
 //                $t.=" ".$r->Nombres;git
                 $sheet->setCellValue('B'.$c, $r->Nombres);
                 $sheet->setCellValue('C'.$c, $r->cbrasa5);
@@ -165,7 +169,7 @@ class ExcelController extends Controller
                 $sheet->setCellValue('AE'.$c, $r->Observaciones);
                 $sheet->setCellValue('AF'.$c, $r->fact);
                 $sheet->setCellValue('AG'.$c, $r->horario);
-                $sheet->setCellValue('AH'.$c, $r->comentario);
+                $sheet->setCellValue('AH'.$c, $r->comentario." ".($r->bonificacionAprovacion?'Bonif.aprobada por: '.$r->bonificacionAprovacion.' Cliente: '.$clienteBonificacion:''));
                 $c++;
             }
 //            return $t;
@@ -264,6 +268,10 @@ class ExcelController extends Controller
             $sheet->setCellValue('C3', trim($persona->Nombre1).' '.trim($persona->App1));
             $sheet->setCellValue('J3', $f1);
             foreach ($query as $r){
+                $clienteBonificacion = '';
+                if ($r->bonificacionId) {
+                    $clienteBonificacion = DB::table('tbclientes')->where('Cod_Aut', $r->bonificacionId)->value('Nombres');
+                }
         //                $t.=" ".$r->Nombres;git
                 $sheet->setCellValue('B'.$c, $r->Nombres);
                 $sheet->setCellValue('C'.$c, $r->pfrial);
@@ -276,7 +284,7 @@ class ExcelController extends Controller
                 $sheet->setCellValue('U'.$c, $r->pago=='CONTADO'?'si':'no');
                 $sheet->setCellValue('V'.$c, $r->fact);
                 $sheet->setCellValue('W'.$c, $r->horario);
-                $sheet->setCellValue('X'.$c, $r->comentario);
+                $sheet->setCellValue('X'.$c, $r->comentario." ".($r->bonificacionAprovacion?'Bonif.aprobada por: '.$r->bonificacionAprovacion.' Cliente: '.$clienteBonificacion:''));
                 $c++;
             }
         //            return $t;

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Cliente;
 use App\Models\Pedido;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -22,6 +23,8 @@ class BonificacionController extends Controller{
                     'cliente' => $items->first()->cliente,
                     'comentario' => $items->first()->comentario,
                     'aprobacion' => $items->first()->bonificacionAprovacion,
+                    'bonificacionId' => $items->first()->bonificacionId,
+                    'clienteBonificacion' => $items->first()->bonificacionId ? Cliente::where('Cod_Aut', $items->first()->bonificacionId)->value('Nombres') : null,
                     'usuario' => $items->first()->user->Nombre1 ?? 'Desconocido',
                     'productos' => $items->map(function ($item) {
                         return [
