@@ -87,15 +87,13 @@
             :lat-lng="[c.Latitud, c.longitud]"
             @click="clickopciones(c)"
           >
-            <l-icon :icon-size="[32, 32]" :icon-anchor="[16, 28]">
-              <div
-                class="q-pa-xs marker-wrapper"
-                :class="badgeClass(c.estado)"
-              >
-                <q-badge class="q-pa-xs bg-white text-dark text-weight-medium">
-                  {{ i + 1 }}
-                </q-badge>
-              </div>
+            <l-icon >
+              <q-badge
+                :class="c.estado=='ENTREGADO'?'bg-green text-italic':c.estado=='NO ENTREGADO'?'bg-yellow text-italic':c.estado=='RECHAZADO'?'bg-red text-italic':'bg-blue'"
+                style="padding: 2px"
+
+              >{{i+1}}
+              </q-badge>
             </l-icon>
           </l-marker>
         </l-map>
