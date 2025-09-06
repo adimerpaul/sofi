@@ -104,23 +104,29 @@ class RutaController extends Controller
      */
     public function show($fecha, Request $request)
     {
-        /* return DB::select("
-         SELECT p.idCli,c.Id,c.Nombres,c.Telf,c.Direccion,c.Latitud,c.longitud,p.estados
- FROM tbpedidos p
- INNER JOIN tbclientes c ON c.Cod_Aut=p.idCli
- WHERE date(p.fecha)='".$fecha."'
- GROUP BY p.idCli,c.Id,c.Nombres,c.Telf,c.Direccion,c.Latitud,c.longitud,p.estados;
- ");*/
         $user = $request->user();
-        return DB::select(" SELECT c.Cod_Aut,p.CINIT,c.Id,c.Nombres,c.Telf,c.Direccion,c.Latitud,c.longitud,
-        (select e.estado from entregas e
-            where e.cliente_id=c.Cod_Aut and e.fechaEntreg='$fecha' order by e.estado asc limit 1  ) estado
-    FROM tbctascobrar p
-    INNER JOIN tbclientes c ON c.Id=p.CINIT
-    WHERE date(p.FechaEntreg)='" . $fecha . "'
-    and p.placa='" . $user->placa . "'
-    GROUP BY c.Cod_Aut,p.CINIT,c.Id,c.Nombres,c.Telf,c.Direccion,c.Latitud,c.longitud
-    order by estado asc
+
+        return DB::select("
+        SELECT c.Cod_Aut,p.CINIT,c.Id,c.Nombres,c.Telf,c.Direccion,c.Latitud,c.longitud,
+            (SELECT e.estado
+             FROM entregas e
+             WHERE e.cliente_id=c.Cod_Aut
+               AND e.fechaEntreg='$fecha'
+             ORDER BY e.estado ASC
+             LIMIT 1) estado
+        FROM tbctascobrar p
+        INNER JOIN tbclientes c ON c.Id=p.CINIT
+        WHERE DATE(p.FechaEntreg)='" . $fecha . "'
+          AND p.placa='" . $user->placa . "'
+        GROUP BY c.Cod_Aut,p.CINIT,c.Id,c.Nombres,c.Telf,c.Direccion,c.Latitud,c.longitud
+        ORDER BY
+            CASE
+                WHEN estado = 'NO ENTREGADO' THEN 1
+                WHEN estado IS NULL THEN 2
+                WHEN estado = 'ENTREGADO' THEN 3
+                WHEN estado = 'RECHAZADO' THEN 4
+                ELSE 5
+            END
     ");
     }
 
