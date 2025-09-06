@@ -39,6 +39,13 @@
             <q-btn color="info" icon="print" dense @click="impresion(props.row);$event.stopPropagation()"/>
           </q-td>
         </template>
+        <template v-slot:body-cell-placa="props" >
+          <q-td :props="props" auto-width>
+            {{props.row.placa}}
+            <br>
+            <span class="text-caption" v-if="props.row.zonas">({{props.row.zonas}})</span>
+          </q-td>
+        </template>
         <template v-slot:body-cell-total="props" >
           <q-td :props="props" auto-width>
             {{ ( props.row.entreg+props.row.noentreg+props.row.rechazado)>props.row.total?props.row.total:( props.row.entreg+props.row.noentreg+props.row.rechazado) }}
