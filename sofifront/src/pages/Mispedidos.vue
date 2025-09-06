@@ -37,6 +37,9 @@
                      :label="props.row.estado=='CREADO'?'Modificar':'Enviado'" icon="shop" size="xs" dense no-caps/>
               <q-btn @click="imprimirboleta(props.row)" color="info" icon="print" size="xs"
                      v-if="props.row.estado=='ENVIADO'" class="q-ml-xs"/>
+<!--              quiero un chip si su bonificaion es true-->
+              <br>
+              <q-chip v-if="props.row.bonificacion==1" color="orange" text-color="white" size="xs" class="q-ml-xs" :label="props.row.clienteBonificacion"/>
             </q-td>
           </template>
           <template v-slot:top-right>
