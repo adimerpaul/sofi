@@ -32,6 +32,18 @@
       <div class="col-12 col-sm-2 flex items-center">
         <q-btn :loading="loading" color="primary" icon="search" label="Buscar" no-caps class="full-width" @click="load" />
       </div>
+      <div class="col-12 col-sm-2 flex items-center">
+        <q-btn
+          color="negative"
+          icon="picture_as_pdf"
+          label="Exportar PDF"
+          no-caps
+          class="full-width"
+          @click="openPdf"
+          size="10px"
+          :disable="loading"
+        />
+      </div>
 
       <div class="col-12 q-mt-sm">
         <q-badge color="grey-8" text-color="white" class="q-pa-sm">
@@ -45,6 +57,10 @@
         </q-badge>
         <q-badge v-if="rows.length" color="red-7" text-color="white" class="q-pa-sm q-ml-sm">
           0: {{ rows.filter(r => r.score === 0).length }}
+        </q-badge>
+        <b>Promedio:</b>
+        <q-badge v-if="rows.length" color="blue-7" text-color="white" class="q-pa-sm q-ml-sm">
+          {{ (rows.reduce((sum, r) => sum + (r.score || 0), 0) / rows.length).toFixed(2) }}
         </q-badge>
       </div>
     </div>
@@ -166,6 +182,23 @@ export default {
       // abrevia un poco
       if (ua.length <= 48) return ua
       return ua.slice(0, 48) + '…'
+    },
+    openPdf () {
+      // Construye la misma query de filtros
+      const params = new URLSearchParams({
+        from:    this.filters.from || '',
+        to:      this.filters.to   || '',
+        usuario: this.filters.usuario || '',
+        score:   this.filters.score ?? ''
+      })
+
+      // Si usas boot axios con baseURL, puedes obtenerla así:
+      // const base = this.$api.defaults.baseURL.replace(/\/+$/, '')
+      // Si no, pon tu URL base manualmente:
+      const base = this.$api?.defaults?.baseURL?.replace(/\/+$/, '') || 'http://localhost:8000/api'
+
+      const url = `${base}/encuestas/report-pdf?${params.toString()}`
+      window.open(url, '_blank') // abrir en nueva pestaña
     },
     async load () {
       this.loading = true

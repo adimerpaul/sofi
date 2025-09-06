@@ -39,6 +39,12 @@
             <q-td :props="props">
               <q-btn @click="listpedidos(props.row)" :color="props.row.estado=='CREADO'?'primary':'warning'"
                      :label="props.row.estado=='CREADO'?'Modificar':'Enviado'" icon="shop" size="xs" dense no-caps/>
+              <br>
+              <q-chip v-if="props.row.clienteBonificacion" color="orange-9" text-color="white" size="xs"
+                      class="q-ml-xs">
+                <q-icon name="star" class="q-mr-xs"/>
+                {{ props.row.clienteBonificacion }}
+              </q-chip>
 <!--              <q-btn @click="imprimirboleta(props.row)" color="info" icon="print" size="xs"-->
 <!--                     v-if="props.row.estado=='ENVIADO'" class="q-ml-xs"/>-->
             </q-td>
