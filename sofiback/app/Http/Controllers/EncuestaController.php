@@ -3,13 +3,84 @@
 // app/Http/Controllers/EncuestaController.php
 namespace App\Http\Controllers;
 
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use App\Models\Encuesta;
 use Carbon\Carbon;
 
-class EncuestaController extends Controller
-{
+class EncuestaController extends Controller{
+    public function reportPdf(Request $request)
+    {
+        $request->validate([
+            'from'    => 'nullable|date',
+            'to'      => 'nullable|date',
+            'usuario' => 'nullable|string',
+            'score'   => 'nullable|in:0,5,10',
+        ]);
+
+        $q = Encuesta::query();
+
+        // Fechas (encuesta_date en tu modelo)
+        if ($from = $request->input('from')) {
+            $q->whereDate('encuesta_date', '>=', $from);
+        }
+        if ($to = $request->input('to')) {
+            $q->whereDate('encuesta_date', '<=', $to);
+        }
+
+        // Score exacto
+        if ($request->filled('score')) {
+            $q->where('score', (int) $request->score);
+        }
+
+        // Usuario: si es número => usuario_cod_aut; si es texto => nombre/ci/correo
+        if ($request->filled('usuario')) {
+            $u = trim($request->usuario);
+            if (is_numeric($u)) {
+                $q->where('usuario_cod_aut', (int)$u);
+            } else {
+                $q->where(function ($qq) use ($u) {
+                    $like = '%' . str_replace('%', '\%', $u) . '%';
+                    $qq->where('usuario_nombre', 'like', $like)
+                        ->orWhere('usuario_ci', 'like', $like)
+                        ->orWhere('usuario_correo', 'like', $like);
+                });
+            }
+        }
+
+        $rows = $q->orderByDesc('created_at')->get();
+
+        // Totales para cabecera
+        $total = $rows->count();
+        $t10   = $rows->where('score', 10)->count();
+        $t5    = $rows->where('score', 5)->count();
+        $t0    = $rows->where('score', 0)->count();
+
+        // Metadatos de filtros para mostrar en el PDF
+        $filters = [
+            'from'    => $request->input('from'),
+            'to'      => $request->input('to'),
+            'usuario' => $request->input('usuario'),
+            'score'   => $request->input('score'),
+        ];
+
+        // Opciones útiles (evitar warnings por HTML5, etc.)
+        $pdf = Pdf::loadView('pdf.report', [
+            'rows'    => $rows,
+            'filters' => $filters,
+            'total'   => $total,
+            't10'     => $t10,
+            't5'      => $t5,
+            't0'      => $t0,
+            'now'     => now('America/La_Paz'),
+        ])->setPaper('a4', 'portrait');
+
+        $filename = 'reporte-encuestas-' . now('America/La_Paz')->format('Ymd_His') . '.pdf';
+
+        // stream() para abrir en el navegador; download() si prefieres descarga directa
+        return $pdf->stream($filename);
+    }
     /**
      * POST /api/encuestas
      * Body esperado:

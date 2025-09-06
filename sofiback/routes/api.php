@@ -31,6 +31,7 @@ Route::post('/exportData',[\App\Http\Controllers\AlmacenController::class,'expor
 
 Route::post('encuestas', [EncuestaController::class, 'store']);
 Route::get('/encuestas/check', [EncuestaController::class, 'check']);
+Route::get('encuestas/report-pdf', [EncuestaController::class, 'reportPdf']);
 
 Route::post('/exportData',[\App\Http\Controllers\AlmacenController::class,'exportData']);
 
