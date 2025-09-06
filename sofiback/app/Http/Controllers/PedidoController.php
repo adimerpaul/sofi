@@ -1091,8 +1091,39 @@ class PedidoController extends Controller{
         GROUP by p.NroPed,Cod_Aut,Id,Cod_ciudad,Cod_Nacio,cod_car,Nombres,Telf,Direccion,EstCiv,edad,Empresa,Categoria,Imp_pieza,CiVend,ListBlanck,MotivoListBlack,ListBlack,TipoPaciente,SupraCanal,Canal,subcanal,zona,Latitud,longitud,transporte,territorio,codcli,clinew,p.estado");
 
     }
-
     public function enviarpedidos(Request $request)
+    {
+        // Extraer todos los NroPed de clientes en un array
+        $nrosPedidos = collect($request->clientes)->pluck('NroPed')->toArray();
+
+        if (empty($nrosPedidos)) {
+            return response()->json(['message' => 'No hay pedidos para actualizar.'], 400);
+        }
+
+        // Hacer un solo update masivo
+        $updated = DB::table('tbpedidos as p')
+            ->whereIn('p.NroPed', $nrosPedidos)
+            ->where('p.bonificacion', 0)
+            ->where('p.estado', '<>', 'ENVIADO') // evita re-actualizar los ya enviados
+            ->whereExists(function ($query) {
+                $query->select(DB::raw(1))
+                    ->from('tbclientes as c')
+                    ->whereColumn('c.Cod_Aut', 'p.idCli')
+                    ->where('c.venta', 'ACTIVO');
+            })
+            ->update([
+                'p.estado' => 'ENVIADO',
+                'p.envio'  => now(),
+            ]);
+
+        return response()->json([
+            'message' => "Se actualizaron $updated pedidos correctamente.",
+            'updated_count' => $updated
+        ]);
+    }
+
+
+    public function enviarpedidos2(Request $request)
     {
         foreach ($request->clientes as $p) {
             DB::select("UPDATE tbpedidos p set p.estado='ENVIADO' , p.envio = NOW()  where p.bonificacion=0 and p.NroPed='" . $p['NroPed'] . "' and (SELECT c.venta from tbclientes c where c.Cod_Aut=p.idCli)='ACTIVO'");
