@@ -76,6 +76,7 @@
         </q-td>
       </template>
     </q-table>
+<!--    <pre>{{bonificaciones}}</pre>-->
     <q-dialog full-width full-height v-model="modalpedido">
       <q-card>
         <q-card-section>
@@ -743,6 +744,13 @@ export default {
           name: 'aprobado',
           label: 'Aprobado',
           field: row => row.aprobacion || '—',
+          align: 'left'
+        },
+        // clienteBonificacion
+        {
+          name: 'clienteBonificacion',
+          label: 'Tipo',
+          field: row => row.clienteBonificacion || '—',
           align: 'left'
         },
       ],
