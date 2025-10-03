@@ -405,6 +405,15 @@
             <q-item-label>Cambios</q-item-label>
           </q-item-section>
         </q-item>
+        <q-item clickable active-class="bg-primary text-white" exact to="clientefotografias"
+                v-if="supervisor.includes($store.getters['login/user'].ci) || $store.getters['login/user'].ci=='123321'">
+          <q-item-section avatar>
+            <q-icon name="photo_camera"/>
+          </q-item-section>
+          <q-item-section>
+            <q-item-label>Clientes Fotografias</q-item-label>
+          </q-item-section>
+        </q-item>
         <q-item clickable active-class="bg-primary text-white" exact to="pedidos"
                 v-if="encargados.includes($store.getters['login/user'].ci) || cobrador.includes($store.getters['login/user'].ci)">
           <q-item-section avatar>

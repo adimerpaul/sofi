@@ -95,7 +95,31 @@ class ClienteController extends Controller{
             }
         });
 
-        $misClientes = $misClientes->sortByDesc('tipo')->values()->all();
+// ───── FOTOS: traer todas en 1 query y agrupar por cliente_id ─────
+        $fotosRows = [];
+        if (!empty($codAuts)) {
+            $fotosRows = DB::table('cliente_photos')
+                ->select('cliente_id', 'photo_path')
+                ->whereIn('cliente_id', $codAuts)
+                ->orderByDesc('id')
+                ->get();
+        }
+
+        $byCliente = [];
+        $base = url('/'); // porque guardas en /public/cliente_photos/...
+        foreach ($fotosRows as $r) {
+            $byCliente[$r->cliente_id][] = $base . '/' . ltrim($r->photo_path, '/');
+        }
+
+// Adjuntar SIN usar []= (una sola asignación)
+        foreach ($misClientes as $cliente) {
+            $lista = $byCliente[$cliente->Cod_Aut] ?? [];
+            // si quieres limitar a las 3 más recientes: $lista = array_slice($lista, 0, 3);
+            $cliente->fotografias = $lista;           // ✅ asignación directa
+            // opcional:
+            // $cliente->fotos_count = count($lista);
+        }
+
 
         return $misClientes;
     }
@@ -287,6 +311,31 @@ class ClienteController extends Controller{
             ->union($clientesExtraQuery)
             ->orderByDesc('tipo')
             ->get();
+        $codAuts = $clientes->pluck('Cod_Aut')->filter()->values()->all();
+
+        $mapFotos = [];
+        if (!empty($codAuts)) {
+            $rows = DB::table('cliente_photos')
+                ->select('cliente_id', 'photo_path')
+                ->whereIn('cliente_id', $codAuts)
+                ->orderByDesc('id')
+                ->get();
+
+            $base = url('/'); // porque guardas bajo /public
+            foreach ($rows as $r) {
+                $mapFotos[$r->cliente_id][] = $base . '/' . ltrim($r->photo_path, '/');
+            }
+        }
+
+        // Adjuntar SIN usar []= (evita "Indirect modification ...")
+        $clientes = $clientes->map(function ($cli) use ($mapFotos) {
+            $lista = $mapFotos[$cli->Cod_Aut] ?? [];
+            // si quieres limitar, por ejemplo, a 3 más recientes:
+            // $lista = array_slice($lista, 0, 3);
+            $cli->fotografias = $lista;                 // asignación directa ✅
+            $cli->fotos_count = count($lista);          // opcional
+            return $cli;
+        });
 
         return $clientes;
     }

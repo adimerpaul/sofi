@@ -159,6 +159,10 @@ Route::group(['middleware'=>'auth:sanctum'],function (){
 
     Route::get('/bonificaciones', [BonificacionController::class, 'bonificaciones']);
     Route::post('/bonificacioneAprobar', [BonificacionController::class, 'bonificacioneAprobar']);
+
+    Route::get('/cliente-photos', [\App\Http\Controllers\ClientePhotoController::class, 'index']);
+    Route::post('/cliente-photos', [\App\Http\Controllers\ClientePhotoController::class, 'store']);
+    Route::delete('/cliente-photos/{id}', [\App\Http\Controllers\ClientePhotoController::class, 'destroy']);
 });
 Route::get('/facturaV/{comanda}', [FacturaController::class, 'generarPDF']);
 Route::get('/generarXlsPollo/{fecha}',[\App\Http\Controllers\ExcelController::class,'generarXlsPollo']);

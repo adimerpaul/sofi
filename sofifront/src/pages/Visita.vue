@@ -176,6 +176,15 @@
                 <q-badge :color="cliente.venta=='ACTIVO'?'green':'negative'" class="text-h5">{{ cliente.venta }}
                 </q-badge>
               </div>
+              <div>
+<!--                <pre>{{ cliente.fotografias }}</pre>-->
+<!--                <q-img :src="cliente.fotografias" style="max-width: 150px; max-height: 150px"/>-->
+                <template v-for="( img, index ) in cliente.fotografias" :key="index">
+                  <a :href="img" target="_blank">
+                    <q-img :src="img" style="max-width: 150px; max-height: 150px" class="q-mr-sm q-mb-sm"/>
+                  </a>
+                </template>
+              </div>
 
 
             </div>
