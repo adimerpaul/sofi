@@ -309,7 +309,7 @@ class RutaController extends Controller
 
     public function resumenEntrega(Request $request)
     {
-        $fecha = $request->fecha;
+       /* $fecha = $request->fecha;
         $pedidos = DB::SELECT("SELECT color,placa from tbpedidos where date(fecha)='$fecha' group by color,placa;");
         $placas = [];
         foreach ($pedidos as $p) {
@@ -350,7 +350,13 @@ class RutaController extends Controller
             $e->zonas = $zonas;
             array_push($entregasResult, $e);
         }
-        return $entregasResult;
+        return $entregasResult;*/
+        
+         return DB::SELECT("SELECT c.placa,c.fechaEntreg, COUNT(DISTINCT(c.CINIT)) total,
+	        (Select count(DISTINCT(e.cinit)) from entregas e where e.placa=c.placa and e.estado='ENTREGADO' and e.fecha='$request->fecha' ) AS entreg,
+    	(Select count(DISTINCT(e.cinit)) from entregas e where e.placa=c.placa and e.estado='NO ENTREGADO' and e.fecha='$request->fecha' ) AS noentreg,
+        	(Select count(DISTINCT(e.cinit)) from entregas e where e.placa=c.placa and e.estado='RECHAZADO' and e.fecha='$request->fecha' ) AS rechazado
+         from tbctascobrar c where c.FechaEntreg='$request->fecha' and c.placa!='' GROUP by c.placa,c.fechaEntreg;");
     }
 
     public function reporteDes(Request $request)
