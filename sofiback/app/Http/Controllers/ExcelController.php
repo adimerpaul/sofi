@@ -832,12 +832,15 @@ class ExcelController extends Controller
             $pedidos = DB::select(
                 "SELECT c.Nombres, p.fact, p.pago, p.total, p.entero, p.desmembre, p.corte, p.kilo,p.pfrial,
                     p.Observaciones, p.color,p.horario,p.comentario,
-                    CASE WHEN p.pago = 'CONTADO' THEN 'SI' ELSE 'NO' END AS campo_pago
+                    CASE WHEN p.pago = 'CONTADO' THEN 'SI' ELSE 'NO' END AS campo_pago,
+                    bonificacionId
              FROM tbpedidos p
              INNER JOIN tbclientes c ON p.idCli = c.Cod_Aut
              WHERE p.CIfunc = ? AND DATE(p.fecha) = ? AND p.tipo = 'CERDO' AND p.estado = 'ENVIADO'",
                 [$value->CodAut, $fecha]
             );
+            $cliente3070 = DB::table('tbclientes')->where('Cod_Aut', 3070)->value('Nombres');
+            $cliente2728 = DB::table('tbclientes')->where('Cod_Aut', 2728)->value('Nombres');
 
             foreach ($pedidos as $r) {
                 $unid = 0;
@@ -850,7 +853,7 @@ class ExcelController extends Controller
                 $corte =0;
                 if ($r->corte) $corte = $r->corte;
                 $total = $r->total ??   ($entero + $desmembre + $corte + $unid);
-                $sheet->setCellValue('B'.$c, $r->Nombres);
+                $sheet->setCellValue('B'.$c, $r->Nombres == null ? '' : ($r->bonificacionId == null ? $r->Nombres : ($r->bonificacionId == 3070 ? $cliente3070 : ($r->bonificacionId == 2728 ? $cliente2728 : $r->Nombres))));
                 $sheet->setCellValue('C'.$c, $r->pfrial);
                 $sheet->setCellValue('D'.$c, $total);
                 $sheet->setCellValue('E'.$c, $r->entero);
