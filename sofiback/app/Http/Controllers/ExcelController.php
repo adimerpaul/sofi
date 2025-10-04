@@ -611,7 +611,9 @@ class ExcelController extends Controller
                 if ($r->Observaciones != null) {
                     $colLetter1 = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($col);
                     $cell1 = $colLetter1 . $c;
-                    $sheet->setCellValue($cell1, $r->Observaciones);
+//                    $sheet->setCellValue($cell1, $r->Observaciones);
+                    $sheet->setCellValue($cell1, $r->bonificacionId == null ?
+                        $r->Observaciones : $r->Nombres.' - '.$r->Observaciones);
                     $sheet->getStyle($cell1)->applyFromArray([
                         'alignment' => [
                             'horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_LEFT,
@@ -853,7 +855,7 @@ class ExcelController extends Controller
                 $corte =0;
                 if ($r->corte) $corte = $r->corte;
                 $total = $r->total ??   ($entero + $desmembre + $corte + $unid);
-                $sheet->setCellValue('B'.$c, $r->Nombres == null ? '' : ($r->bonificacionId == null ? $r->Nombres : ($r->bonificacionId == 3070 ? $cliente3070 : ($r->bonificacionId == 2728 ? $cliente2728 : $r->Nombres))));
+                $sheet->setCellValue('B'.$c, $r->bonificacionId == null ? $r->Nombres : ($r->bonificacionId == 3070 ? $cliente3070 : ($r->bonificacionId == 2728 ? $cliente2728 : $r->Nombres)) );
                 $sheet->setCellValue('C'.$c, $r->pfrial);
                 $sheet->setCellValue('D'.$c, $total);
                 $sheet->setCellValue('E'.$c, $r->entero);
@@ -864,7 +866,8 @@ class ExcelController extends Controller
                 $sheet->setCellValue('U'.$c, $r->campo_pago);
                 $sheet->setCellValue('V'.$c, $r->fact);
                 $sheet->setCellValue('W'.$c, $r->horario);
-                $sheet->setCellValue('X'.$c, $r->comentario);
+//                $sheet->setCellValue('X'.$c,$r->comentario);
+                $sheet->setCellValue('X'.$c,$r->bonificacionId == null ? $r->comentario : $r->Nombres. $r->comentario);
 
                 // === Color SOLO en el nombre del cliente (B{fila}) ===
                 if (!empty($r->color) && isset($mapaColores[$r->color])) {
