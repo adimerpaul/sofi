@@ -470,12 +470,14 @@ class ExcelController extends Controller
                 c104, u104, c105, u105, c106, u106, c107, u107, c108, u108, c109, u109,
                 rango, ala, unidala, cadera, unidcadera, pecho, unidpecho, pie, unidpie,
                 filete, unidfilete, cuello, unidcuello, hueso, unidhueso, menu, unidmenu,
-                Observaciones, horario, color
+                Observaciones, horario, color, bonificacionId
              FROM tbpedidos p
              INNER JOIN tbclientes c ON p.idCli = c.Cod_Aut
              WHERE p.CIfunc = ? AND DATE(p.fecha) = ? AND p.tipo = 'POLLO' AND p.estado = 'ENVIADO'",
                 [$value->CodAut, $fecha]
             );
+            $cliente3070 = DB::table('tbclientes')->where('Cod_Aut', 3070)->value('Nombres');
+            $cliente2728 = DB::table('tbclientes')->where('Cod_Aut', 2728)->value('Nombres');
 
             foreach ($pedidos as $r) {
                 if ($r->horario == null) $r->horario = '';
@@ -486,7 +488,9 @@ class ExcelController extends Controller
                 $sheet->setCellValue('C'.$c, $r->campo_pago);
                 $sheet->setCellValue('D'.$c, $r->bs2);
                 $sheet->setCellValue('E'.$c, $r->bs);
-                $sheet->setCellValue('F'.$c, $r->Nombres);
+                $sheet->setCellValue('F'.$c, $r->bonificacionId == null ?
+                    $r->Nombres :
+                    ($r->bonificacionId == 3070 ? $cliente3070 : ($r->bonificacionId == 2728 ? $cliente2728 : $r->Nombres)) );
 
                 // === Color SOLO en el nombre del cliente (F{fila}) ===
                 if (!empty($r->color) && isset($mapaColores[$r->color])) {
