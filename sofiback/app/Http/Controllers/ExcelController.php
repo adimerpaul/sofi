@@ -131,13 +131,15 @@ class ExcelController extends Controller
             $c=4;
             $sheet->setCellValue('E2', trim($persona->Nombre1).' '.trim($persona->App1));
             $sheet->setCellValue('AB2', $f1);
+            $cliente2728 = DB::table('tbclientes')->where('Cod_Aut', '2728')->value('Nombres');
+            $cliente3070 = DB::table('tbclientes')->where('Cod_Aut', '3070')->value('Nombres');
             foreach ($query as $r){
                 $clienteBonificacion = '';
                 if ($r->bonificacionId) {
                     $clienteBonificacion = DB::table('tbclientes')->where('Cod_Aut', $r->bonificacionId)->value('Nombres');
                 }
 //                $t.=" ".$r->Nombres;git
-                $sheet->setCellValue('B'.$c, $r->Nombres);
+                $sheet->setCellValue('B'.$c, $r->bonificaionId == null ? $r->Nombres : ($r->bonificaionId == '2728' ? $cliente2728 : ($r->bonificaionId == '3070' ? $cliente3070 : $clienteBonificacion)));
                 $sheet->setCellValue('C'.$c, $r->cbrasa5);
                 $sheet->setCellValue('D'.$c, $r->ubrasa5);
                 $sheet->setCellValue('E'.$c, $r->cbrasa6);
@@ -169,7 +171,8 @@ class ExcelController extends Controller
                 $sheet->setCellValue('AE'.$c, $r->Observaciones);
                 $sheet->setCellValue('AF'.$c, $r->fact);
                 $sheet->setCellValue('AG'.$c, $r->horario);
-                $sheet->setCellValue('AH'.$c, $r->comentario." ".($r->bonificacionAprovacion?'Bonif.aprobada por: '.$r->bonificacionAprovacion.' Cliente: '.$clienteBonificacion:''));
+//                $sheet->setCellValue('AH'.$c, $r->comentario." ".($r->bonificacionAprovacion?'Bonif.aprobada por: '.$r->bonificacionAprovacion.' Cliente: '.$clienteBonificacion:''));
+                $sheet->setCellValue('AH'.$c, $r->bonificacionId == null ? $r->comentario : $r->Nombres.$r->comentario);
                 $c++;
             }
 //            return $t;
