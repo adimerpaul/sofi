@@ -74,79 +74,152 @@
     </div>
 
     <q-dialog full-width v-model="modalopciones">
-      <q-card >
+      <q-card>
         <q-card-section>
           <div class="row">
-          <div class="col-md-6 col-xs-12"><div class="text-subtitle2 ">{{cliente.Cod_Aut}} {{cliente.Nombres}} </div>
-          <div class="text-subtitle2">Cel: {{cliente.Telf}}</div>
-          <div class="text-subtitle2">{{cliente.Direccion}}</div>
-          <div class="text-subtitle2">{{cliente.Canal}}</div>
-          <div class="text-subtitle2" >Monto Deuda: <q-badge color="negative">{{cliente.totdeuda}} Bs </q-badge> NumPedidos: <q-badge color="negative">{{cliente.cantdeuda}}</q-badge></div>
-          <div class="text-subtitle2" >Fecha minima: <q-badge color="negative">{{cliente.fechaminima}} </q-badge> </div>
-          <div class="text-h5" >Estado para pedidos: <q-badge :color="cliente.venta=='ACTIVO'?'green':'negative'" class="text-h5">{{cliente.venta}} </q-badge> </div>
+            <div class="col-md-6 col-xs-12">
+              <div class="text-subtitle2 ">{{ cliente.Cod_Aut }} {{ cliente.Nombres }}</div>
+              <div class="text-subtitle2">Cel: {{ cliente.Telf }}</div>
+              <div class="text-subtitle2">{{ cliente.Direccion }}</div>
+              <div class="text-subtitle2">{{ cliente.Canal }}</div>
+              <div class="text-subtitle2">Monto Deuda:
+                <q-badge color="negative">{{ cliente.totdeuda }} Bs</q-badge>
+                NumPedidos:
+                <q-badge color="negative">{{ cliente.cantdeuda }}</q-badge>
+              </div>
+              <div class="text-subtitle2">Fecha minima:
+                <q-badge color="negative">{{ cliente.fechaminima }}</q-badge>
+              </div>
+              <div class="text-h5">Estado para pedidos:
+                <q-badge :color="cliente.venta=='ACTIVO'?'green':'negative'" class="text-h5">{{ cliente.venta }}
+                </q-badge>
+              </div>
+              <div>
+                <!--                <pre>{{ cliente.fotografias }}</pre>-->
+                <!--                <q-img :src="cliente.fotografias" style="max-width: 150px; max-height: 150px"/>-->
+                <template v-for="( img, index ) in cliente.fotografias" :key="index">
+                  <a :href="img" target="_blank">
+                    <q-img :src="img" style="max-width: 150px; max-height: 150px" class="q-mr-sm q-mb-sm"/>
+                  </a>
+                </template>
+              </div>
 
 
-        </div>
-        <div class="col-md-6 col-xs-12"><q-input dense outlined v-model="comentario.observacion" label="Comentario" >
-          <template v-slot:after>
-            <q-btn round dense flat icon="edit" @click="modcomentario"/>
-          </template>
-      </q-input></div></div>
+            </div>
+            <div class="col-md-6 col-xs-12">
+              <q-input dense outlined v-model="comentario.observacion" label="Comentario">
+                <template v-slot:after>
+                  <q-btn round dense flat icon="edit" @click="modcomentario"/>
+                </template>
+              </q-input>
+            </div>
+            <!--            <div class="col-12">-->
+            <!--              <pre>{{cliente}}</pre>-->
+            <!--            </div>-->
+          </div>
 
         </q-card-section>
         <q-card-section class="q-pt-none">
-<!--          <pre>{{cliente}}</pre>-->
+          <!--          <pre>{{cliente}}</pre>-->
           <div class="row">
-            <div class="col-12 col-sm-6" >
-              <q-btn class="q-ma-xs" @click="clickpedido" label="realizar pedido" color="positive" style="width: 100%;" icon="shopping_cart" />
+            <div class="col-12 col-sm-6">
+              <q-btn :loading="loading" class="q-ma-xs" @click="clickpedido" label="realizar pedido" color="positive"
+                     style="width: 100%;" icon="shopping_cart"/>
             </div>
             <div class="col-12 col-sm-6">
-              <q-btn class="q-ma-xs" @click="clickretornar" label="retornar" color="warning" style="width: 100%;" icon="schedule" />
+              <q-btn :loading="loading" class="q-ma-xs" @click="clickretornar" label="retornar" color="warning"
+                     style="width: 100%;" icon="schedule"/>
             </div>
             <div class="col-12 col-sm-6">
-              <q-btn class="q-ma-xs" @click="clicknopedido" label="no pedido" color="negative" style="width: 100%;" icon="highlight_off" />
+              <q-btn :loading="loading" class="q-ma-xs" @click="clicknopedido" label="no pedido" color="negative"
+                     style="width: 100%;" icon="highlight_off"/>
             </div>
             <div class="col-12 col-sm-6">
-              <q-btn class="q-ma-xs" label="generar ruta" color="accent" style="width: 100%;" icon="maps" type="a" target="_blank" :href="'https://www.google.com.bo/maps/place/'+cliente.Latitud+','+cliente.longitud+'/@'+cliente.Latitud+','+cliente.longitud+',17z/data=!3m1!4b1!4m6!3m5!1s0x0:0xeda9371aeb8c1574!7e2!8m2!3d-17.981432!4d-67.1061122?hl=es'"/>
+              <q-btn :loading="loading" class="q-ma-xs" label="generar ruta" color="accent" style="width: 100%;"
+                     icon="maps" type="a" target="_blank"
+                     :href="'https://www.google.com.bo/maps/place/'+cliente.Latitud+','+cliente.longitud+'/@'+cliente.Latitud+','+cliente.longitud+',17z/data=!3m1!4b1!4m6!3m5!1s0x0:0xeda9371aeb8c1574!7e2!8m2!3d-17.981432!4d-67.1061122?hl=es'"/>
             </div>
           </div>
         </q-card-section>
         <q-card-actions align="right" class="bg-white text-teal">
-          <q-btn flat label="OK" v-close-popup />
+          <q-btn flat label="OK" v-close-popup/>
         </q-card-actions>
       </q-card>
     </q-dialog>
-    <q-dialog full-width full-height v-model="modalpedido">
-      <q-card >
+    <q-dialog full-width full-height v-model="modalpedido" persistent>
+      <q-card>
         <q-card-section>
           <div class="row">
+            <div class="col-12 row items-center">
+              {{ cliente.Cod_Aut }} {{ cliente.Nombres }}
+              <q-space/>
+              <q-btn icon="close" flat @click="modalpedido=false" class="q-ma-xs" color="negative"/>
+            </div>
+            <div :class="`col-md-6 col-xs-6 ${cliente.Id == '61839000' || cliente.Id == '0023456' ? 'hidden' : ''}`">
+              <div>
+                <q-radio v-model="pago" checked-icon="task_alt" dense unchecked-icon="panorama_fish_eye" val="CONTADO"
+                         label="Contado"/>
+                <!--                <pre>{{pago}}</pre>-->
+              </div>
+              <div>
+                <q-radio v-model="pago" checked-icon="task_alt" dense unchecked-icon="panorama_fish_eye" val="PAGO QR"
+                         label="Pago QR"/>
+              </div>
+              <div>
+                <q-radio v-model="pago" checked-icon="task_alt" dense unchecked-icon="panorama_fish_eye" val="CREDITO"
+                         label="Credito"/>
+              </div>
+              <div>
+                <q-radio v-model="pago" checked-icon="task_alt" dense unchecked-icon="panorama_fish_eye"
+                         val="BOLETA ANTERIOR" label="Boleta anterior"/>
+              </div>
+            </div>
+            <div :class="`col-md-6 col-xs-6 ${cliente.Id == '61839000' || cliente.Id == '0023456' ? 'hidden' : ''}`">
+              <q-toggle
+                :label="fact+' FACTURA'"
+                color="green"
+                false-value="NO"
+                true-value="SI"
+                v-model="fact"/>
+              <!--              <pre>{{fact}}</pre>-->
+            </div>
+            <div class="col-md-6 col-xs-6">
+              <q-input label="Fecha" v-model="fecha" type="date" dense outlined :min="fechamenos"/>
+            </div>
+            <div class="col-md-6 col-xs-6">
+              <q-select dense outlined v-model="horario" :options="horarios" label="Horario"/>
+            </div>
             <div class="col-12">
-              {{cliente.Cod_Aut}} {{cliente.Nombres}}
+              <q-input dense outlined v-model="coment" label="Comentario"/>
             </div>
-          <div class="text-bold col-6 flex flex-center">
-<!--               <div class="q-gutter-sm col-md-6 col-sm-12" >-->
-                <q-radio  dense v-model="pago" val="CONTADO" label="Contado" />
-                <q-radio  dense v-model="pago" val="CREDITO" label="Credito" />
-<!--              </div>-->
-          </div>
-          <div class="col-6">
-            <q-toggle
-            :label="fact+' FACTURA'"
-            color="green"
-            false-value="NO"
-            true-value="SI"
-            v-model="fact"/>
-            </div>
-            <div class="col-6">
-              <q-input label="Fecha" v-model="fecha" type="date" dense outlined :min="fechamenos" />
+            <!--            $idsExtra = ['61839000', '0023456'];-->
+            <div class="col-12" v-if="cliente.Id == '61839000' || cliente.Id == '0023456'">
+              <!--              <q-input dense outlined v-model="clienteBonificacion" label="Cliente Bonificacion">-->
+              <!--              </q-input>-->
+              <q-select v-model="clienteBonificacion" dense outlined
+                        :options="clientes2" label="Cliente Cambio"
+                        option-label="Nombres"
+                        option-value="Cod_Aut"
+                        emit-value
+                        map-options
+              >
+                <template v-slot:no-option>
+                  <q-item>
+                    <q-item-section class="text-grey">
+                      No results
+                    </q-item-section>
+                  </q-item>
+                </template>
+              </q-select>
+              <!--              <pre>{{clienteBonificacion}}</pre>-->
             </div>
           </div>
         </q-card-section>
         <q-card-section class="q-pt-none">
-
           <div class="row">
             <div class="col-10">
-              <q-select label="Productos" dense outlined class="q-ma-xs" use-input input-debounce="0"  @filter="filterFn" :options="productos" v-model="producto">
+              <q-select label="Productos" dense outlined class="q-ma-xs" use-input input-debounce="0" @filter="filterFn"
+                        :options="productos" v-model="producto">
                 <template v-slot:no-option>
                   <q-item>
                     <q-item-section class="text-grey">
@@ -157,40 +230,50 @@
               </q-select>
             </div>
             <div class="col-2 flex flex-center">
-              <q-btn  class="q-pa-xs q-ma-none" color="primary" icon="add_circle" @click="agregarpedido"/>
+              <q-btn class="q-pa-xs q-ma-none" color="primary" icon="add_circle" @click="agregarpedido"/>
             </div>
             <div class="col-12">
-              <q-table :rows="misproductos"  :filter="filteproducto" :columns="columnsproducto" :rows-per-page-options="[0]">
-                <template v-slot:body-cell-subtotal="props" >
-                  <q-td :props="props" auto-width >
-                    <q-btn flat @click="seleccionartipo(props.row)" class="q-ma-none q-pa-none" color="accent" icon="tune"/>
-                    {{props.row.subtotal}}
-                    <q-badge :color="props.row.tipo=='NORMAL'?'primary':props.row.tipo=='POLLO'?'secondary':props.row.tipo=='CERDO'?'info':'positive'" >{{props.row.tipo.substring(0,1)}}</q-badge>
+              <q-table dense :rows="misproductos" :filter="filteproducto" :columns="columnsproducto"
+                       :rows-per-page-options="[0]"
+                       style="height: 300px">
+                >
+                <template v-slot:body-cell-subtotal="props">
+                  <q-td :props="props" auto-width>
+                    <q-btn flat @click="seleccionartipo(props.row)" class="q-ma-none q-pa-none" color="accent"
+                           icon="tune"/>
+                    {{ props.row.subtotal }}
+                    <q-badge
+                      :color="props.row.tipo=='NORMAL'?'primary':props.row.tipo=='POLLO'?'secondary':props.row.tipo=='CERDO'?'info':'positive'">
+                      {{ props.row.tipo.substring(0, 1) }}
+                    </q-badge>
                   </q-td>
                 </template>
-                <template v-slot:body-cell-cantidad="props" >
-                  <q-td :props="props" auto-width >
+                <template v-slot:body-cell-cantidad="props">
+                  <q-td :props="props" auto-width>
                     <template v-if="props.row.tipo=='NORMAL'">
-                      <q-btn flat @click="agregar(props.row)" class="q-ma-none q-pa-none" color="positive" icon="add_circle"/>
-                      <input type="number" @keyup="tecleado(props.row)" v-model="props.row.cantidad" style="width: 2.5em"  >
+                      <q-btn flat @click="agregar(props.row)" class="q-ma-none q-pa-none" color="positive"
+                             icon="add_circle"/>
+                      <input type="number" @keyup="tecleado(props.row)" v-model="props.row.cantidad"
+                             style="width: 2.5em">
                     </template>
-                    <q-btn flat @click="quitar(props.row,props.rowIndex)"  class="q-ma-none q-pa-none" color="negative" icon="remove_circle"/>
+                    <q-btn flat @click="quitar(props.row,props.rowIndex)" class="q-ma-none q-pa-none" color="negative"
+                           icon="remove_circle"/>
                   </q-td>
                 </template>
-                <template v-slot:body-cell-precio="props" >
-                  <q-td :props="props" auto-width >
-                    <input type="number" @keyup="tecleado(props.row)" v-model="props.row.precio" style="width: 3em"  >
+                <template v-slot:body-cell-precio="props">
+                  <q-td :props="props" auto-width>
+                    <input type="number" @keyup="tecleado(props.row)" v-model="props.row.precio" style="width: 3em">
                   </q-td>
                 </template>
                 <template v-slot:top-right>
                   <div class="row">
-                    <div class="col-1 text-bold flex flex-center" >
-                      {{misproductos.length}}
+                    <div class="col-1 text-bold flex flex-center">
+                      {{ misproductos.length }}
                     </div>
                     <div class="col-11">
                       <q-input outlined dense v-model="filteproducto" placeholder="Buscar pedido">
                         <template v-slot:append>
-                          <q-icon name="search" />
+                          <q-icon name="search"/>
                         </template>
                       </q-input>
                     </div>
@@ -199,19 +282,20 @@
                 <template v-slot:bottom-row>
                   <q-tr>
                     <q-td colspan="100%">
-                      <div class="text-subtitle2">Total: {{total}} Bs.</div>
-<!--                      <div class="text-subtitle2">Cantidad de pedidos: {{misproductos.length}}</div>-->
+                      <div class="text-subtitle2">Total: {{ total }} Bs.</div>
+                      <!--                      <div class="text-subtitle2">Cantidad de pedidos: {{misproductos.length}}</div>-->
                     </q-td>
                   </q-tr>
                 </template>
               </q-table>
-              <q-btn @click="enviarpedido" style="width: 100%" label="Realizar pedido" icon="send" color="positive" />
+              <q-btn @click="enviarpedido" style="width: 100%" label="Realizar pedido" icon="send" color="positive"
+                     :loading="loading"/>
             </div>
           </div>
 
         </q-card-section>
         <q-card-actions align="right" class="bg-white text-teal">
-          <q-btn flat label="cerrar"  color="negative" v-close-popup />
+          <q-btn flat label="cerrar" color="negative" v-close-popup/>
         </q-card-actions>
       </q-card>
     </q-dialog>
@@ -455,6 +539,7 @@ export default {
   },
   data() {
     return {
+      clienteBonificacion: null,
       fecha:date.formatDate(new Date(),'YYYY-MM-DD'),
       fechamenos:date.formatDate(addToDate(new Date(), { days: 0}),'YYYY-MM-DD'),
       filteproducto:'',
@@ -521,8 +606,32 @@ export default {
     //   color:'red',
     //   icon:'error'
     // })
+    this.clientesBonificacion()
   },
   methods: {
+    clientesBonificacion() {
+      this.$api.get('cliente').then(res => {
+        this.clientes2 = []
+        res.data.forEach(r => {
+          let d = r
+          if (parseFloat(r.Latitud) != NaN && parseFloat(r.longitud) != NaN && r.Latitud != '' && r.longitud != '') {
+            d.Latitud = parseFloat(r.Latitud)
+            d.longitud = parseFloat(r.longitud)
+          } else {
+            d.Latitud = 0
+            d.longitud = 0
+          }
+
+          this.clientes2.push(d)
+        })
+        // this.clientes2 = [...this.clientes]
+        this.clientes2.sort((a, b) => {
+          if (a.Nombres < b.Nombres) return -1;
+          if (a.Nombres > b.Nombres) return 1;
+          return 0;
+        });
+      })
+    },
     diaChange(value){
       localStorage.setItem('dia', JSON.stringify(value))
     },
