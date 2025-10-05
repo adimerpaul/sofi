@@ -141,7 +141,7 @@ class ExcelController extends Controller
                     $clienteBonificacion = DB::table('tbclientes')->where('Cod_Aut', $r->bonificacionId)->value('Nombres');
                 }
 //                $t.=" ".$r->Nombres;git
-                $sheet->setCellValue('B' . $c, $r->bonificaionId == null ? $r->Nombres : ($r->bonificaionId == '2728' ? $cliente2728 : ($r->bonificaionId == '3070' ? $cliente3070 : $clienteBonificacion)));
+                $sheet->setCellValue('B' . $c, $r->bonificacionId == null ? $r->Nombres : ($r->bonificacionId == '2728' ? $cliente2728 : ($r->bonificacionId == '3070' ? $cliente3070 : $clienteBonificacion)));
                 $sheet->setCellValue('C' . $c, $r->cbrasa5);
                 $sheet->setCellValue('D' . $c, $r->ubrasa5);
                 $sheet->setCellValue('E' . $c, $r->cbrasa6);
