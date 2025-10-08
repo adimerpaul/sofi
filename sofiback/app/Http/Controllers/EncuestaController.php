@@ -237,7 +237,7 @@ class EncuestaController extends Controller{
         if ($to   = $request->input('to'))   $q->whereDate('encuesta_date', '<=', $to);
         $q->orderByDesc('created_at');
 
-        $perPage = (int)($request->input('per_page', 25));
+        $perPage = (int)($request->input('per_page', 10000));
         $perPage = max(1, min(200, $perPage));
 
         return response()->json($q->paginate($perPage));
