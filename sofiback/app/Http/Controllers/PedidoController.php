@@ -596,119 +596,91 @@ class PedidoController extends Controller{
             : collect();
 
         // 5) Agrupar por NroPed → estructura que espera tu Blade
-        $resPedido = $rows->groupBy('NroPed')->map(function ($g) use ($bonis) {
-            $r = $g->first();
+$resPedido = $rows->groupBy('NroPed')->map(function ($g) use ($bonis) {
+    // ✅ Filtrar solo productos tipo NORMAL
+    $productosNormales = $g->filter(fn($x) => $x->pr_tipo === 'NORMAL');
+    $gMostrar = $productosNormales->isNotEmpty() ? $productosNormales : $g;
 
-            // pedido como OBJETO
-            $pedidoObj = (object) [
-                'NroPed'    => $r->NroPed,
-                'fecha'     => $r->fecha,
-                'idCli'     => $r->idCli,
-                'CIfunc'    => $r->CIfunc,
-                'estado'    => $r->estado,
-                'fact'      => $r->fact,
-                'comentario'=> $r->comentario,
-                'pago'      => $r->pago,
-                'placa'     => $r->placa,
-                'horario'   => $r->horario,
-                'colorStyle'=> $r->colorStyle,
-                'cod_prod'  => $r->cod_prod,
-                'precio'    => $r->precio,
-                'Cant'      => $r->Cant,
-                'Canttxt'   => $r->Canttxt,
-                'subtotal'  => $r->subtotal,
-                'bonificacion'             => $r->bonificacion,
-                'bonificacionAprovacion'   => $r->bonificacionAprovacion,
-                'bonificacionId'           => $r->bonificacionId,
-                'cliente' => (object) [
-                    'id'        => (string) $r->c_Cod_Aut,
-                    'Cod_Aut'   => $r->c_Cod_Aut,
-                    'Nombres'   => $r->c_Nombres,
-                    'Direccion' => $r->c_Direccion,
-                    'Telf'      => $r->c_Telf,
-                    'zona'      => $r->c_zona,
-                ],
-                'user' => (object) [
-                    'CodAut'  => $r->u_CodAut,
-                    'Nombre1' => $r->u_Nombre1,
-                    'App1'    => $r->u_App1,
-                ],
-                // “producto” del primer renglón (tu JSON ejemplo lo incluye)
-                'producto' => (object) [
-                    'CodAut'       => $r->pr_CodAut,
-                    'cod_prod'     => $r->pr_cod_prod,
-                    'cod_grup'     => $r->pr_cod_grup,
-                    'cod_pdr'      => $r->pr_cod_pdr,
-                    'Producto'     => $r->pr_Producto,
-                    'Nomcomer'     => $r->pr_Nomcomer,
-                    'TipPro'       => $r->pr_TipPro,
-                    'Precio'       => $r->pr_Precio,
-                    'Precio_Costo' => $r->pr_Precio_Costo,
-                    'Precio3'      => $r->pr_Precio3,
-                    'Precio4'      => $r->pr_Precio4,
-                    'Precio5'      => $r->pr_Precio5,
-                    'Precio6'      => $r->pr_Precio6,
-                    'Precio7'      => $r->pr_Precio7,
-                    'Precio8'      => $r->pr_Precio8,
-                    'Precio9'      => $r->pr_Precio9,
-                    'Precio10'     => $r->pr_Precio10,
-                    'Precio11'     => $r->pr_Precio11,
-                    'Precio12'     => $r->pr_Precio12,
-                    'Precio13'     => $r->pr_Precio13,
-                    'PreCosto'     => $r->pr_PreCosto,
-                    'stock'        => $r->pr_stock,
-                    'Imprime'      => $r->pr_Imprime,
-                    'codUnid'      => $r->pr_codUnid,
-                    'UnidCja'      => $r->pr_UnidCja,
-                    'CantPren'     => $r->pr_CantPren,
-                    'Peso'         => $r->pr_Peso,
-                    'tipo'         => $r->pr_tipo,
-                    'oferta'       => $r->pr_oferta,
-                    'codProdSin'   => $r->pr_codProdSin,
-                    'pqsiramento'  => $r->pr_pqsiramento,
-                    'codgruppasin' => $r->pr_codgruppasin,
-                    'credit'       => $r->pr_credit,
-                ],
+    $r = $gMostrar->first();
+
+    // pedido como OBJETO
+    $pedidoObj = (object) [
+        'NroPed'    => $r->NroPed,
+        'fecha'     => $r->fecha,
+        'idCli'     => $r->idCli,
+        'CIfunc'    => $r->CIfunc,
+        'estado'    => $r->estado,
+        'fact'      => $r->fact,
+        'comentario'=> $r->comentario,
+        'pago'      => $r->pago,
+        'placa'     => $r->placa,
+        'horario'   => $r->horario,
+        'colorStyle'=> $r->colorStyle,
+        'cod_prod'  => $r->cod_prod,
+        'precio'    => $r->precio,
+        'Cant'      => $r->Cant,
+        'Canttxt'   => $r->Canttxt,
+        'subtotal'  => $r->subtotal,
+        'bonificacion'             => $r->bonificacion,
+        'bonificacionAprovacion'   => $r->bonificacionAprovacion,
+        'bonificacionId'           => $r->bonificacionId,
+        'cliente' => (object) [
+            'id'        => (string) $r->c_Cod_Aut,
+            'Cod_Aut'   => $r->c_Cod_Aut,
+            'Nombres'   => $r->c_Nombres,
+            'Direccion' => $r->c_Direccion,
+            'Telf'      => $r->c_Telf,
+            'zona'      => $r->c_zona,
+        ],
+        'user' => (object) [
+            'CodAut'  => $r->u_CodAut,
+            'Nombre1' => $r->u_Nombre1,
+            'App1'    => $r->u_App1,
+        ],
+        // producto principal (ahora solo si es NORMAL)
+        'producto' => (object) [
+            'CodAut'       => $r->pr_CodAut,
+            'cod_prod'     => $r->pr_cod_prod,
+            'Producto'     => $r->pr_Producto,
+            'tipo'         => $r->pr_tipo,
+        ],
+    ];
+
+    // ✅ Solo productos tipo NORMAL en el detalle
+    $productosArr = $gMostrar->map(function ($it) {
+        return [
+            'Nroped'   => $it->NroPed,
+            'cod_prod' => $it->cod_prod,
+            'producto' => $it->pr_Producto ?? '',
+            'precio'   => $it->precio,
+            'Cant'     => $it->Cant,
+            'Canttxt'  => $it->Canttxt,
+            'subtotal' => $it->subtotal,
+        ];
+    })->values()->all();
+
+    // bonificación como objeto (o null)
+    $bonificacionClienteObj = $r->bonificacionId
+        ? (function () use ($bonis, $r) {
+            $bc = $bonis->get($r->bonificacionId);
+            if (!$bc) return null;
+            return (object) [
+                'Cod_Aut'   => $bc->Cod_Aut,
+                'Nombres'   => $bc->Nombres,
+                'Direccion' => $bc->Direccion,
+                'Telf'      => $bc->Telf,
+                'zona'      => $bc->zona,
             ];
+        })()
+        : null;
 
-            // productos como ARRAY DE ARRAYS (para $producto['...'] en Blade)
-            $productosArr = $g->map(function ($it) {
-                return [
-                    'Nroped'   => $it->NroPed,
-                    'cod_prod' => $it->cod_prod,
-                    'producto' => $it->pr_Producto ?? '',
-                    'precio'   => $it->precio,
-                    'Cant'     => $it->Cant,
-                    'Canttxt'  => $it->Canttxt,
-                    'subtotal' => $it->subtotal,
-                ];
-            })
-                // Si detectas duplicados reales, descomenta el unique:
-                // ->unique(fn($x) => $x['cod_prod'].'|'.$x['Cant'].'|'.$x['Canttxt'].'|'.$x['precio'].'|'.$x['subtotal'])
-                ->values()
-                ->all(); // ← convierte a array plano
+    return [
+        'pedido' => $pedidoObj,
+        'productos' => $productosArr,
+        'bonificacionCliente' => $bonificacionClienteObj,
+    ];
+})->values();
 
-            // bonificación como objeto (o null)
-            $bonificacionClienteObj = $r->bonificacionId
-                ? (function () use ($bonis, $r) {
-                    $bc = $bonis->get($r->bonificacionId);
-                    if (!$bc) return null;
-                    return (object) [
-                        'Cod_Aut'   => $bc->Cod_Aut,
-                        'Nombres'   => $bc->Nombres,
-                        'Direccion' => $bc->Direccion,
-                        'Telf'      => $bc->Telf,
-                        'zona'      => $bc->zona,
-                    ];
-                })()
-                : null;
-
-            return [
-                'pedido' => $pedidoObj,                     // objeto
-                'productos' => $productosArr,               // array de arrays
-                'bonificacionCliente' => $bonificacionClienteObj, // objeto|null
-            ];
-        })->values();
 
         // 6) UPDATE único de impresos
         $nros = $resPedido->pluck('pedido.NroPed')->unique()->values();
