@@ -437,7 +437,7 @@ class PedidoController extends Controller{
         $pdf = PDF::loadView('pdf.reportePedido', $data);
         return $pdf->stream('document.pdf');
     }
-    function reportePedido(Request $request, $fecha)
+    function reportePedido3(Request $request, $fecha)
     {
         $pedidos = Pedido::with([
             'cliente:id,Cod_Aut,Nombres,Direccion,Telf,zona',
@@ -497,6 +497,235 @@ class PedidoController extends Controller{
             'pedidos' => $resPedido,
             'vehiculos' => $vehiculos
         ]);
+        return $pdf->stream('document.pdf');
+    }
+
+    public function reportePedido(Request $request, $fecha)
+    {
+        // 1) Rango por fecha (no whereDate para no romper índices)
+        $desde = $fecha . ' 00:00:00';
+        $hasta = $fecha . ' 23:59:59';
+
+        // 2) Tablas desde los modelos
+        $pTable  = (new \App\Models\Pedido())->getTable();    // tbpedidos
+        $cTable  = (new \App\Models\Cliente())->getTable();   // clientes
+        $uTable  = (new \App\Models\User())->getTable();      // users
+        $prTable = (new \App\Models\Producto())->getTable();  // productos
+
+        // 3) ÚNICA consulta: pedidos + cliente + user + producto
+        $rows = \DB::table("$pTable as p")
+            ->leftJoin("$cTable as c", 'c.Cod_Aut', '=', 'p.idCli')
+            ->leftJoin("$uTable as u", 'u.CodAut', '=', 'p.CIfunc')
+            ->leftJoin("$prTable as pr", 'pr.cod_prod', '=', 'p.cod_prod')
+            ->whereBetween('p.fecha', [$desde, $hasta])
+            ->where('p.estado', 'ENVIADO')
+            ->where('p.tipo', 'NORMAL')
+            ->where('p.bonificacion', 0)
+            ->orderBy('p.NroPed')
+            ->select([
+                // Pedido
+                'p.NroPed','p.fecha','p.idCli','p.CIfunc','p.estado','p.fact',
+                'p.comentario','p.pago','p.placa','p.horario','p.colorStyle',
+                'p.cod_prod','p.precio','p.Cant','p.Canttxt','p.subtotal',
+                'p.bonificacion','p.bonificacionAprovacion','p.bonificacionId',
+
+                // Cliente
+                \DB::raw('c.Cod_Aut as c_Cod_Aut'),
+                \DB::raw('c.Nombres as c_Nombres'),
+                \DB::raw('c.Direccion as c_Direccion'),
+                \DB::raw('c.Telf as c_Telf'),
+                \DB::raw('c.zona as c_zona'),
+
+                // User
+                \DB::raw('u.CodAut as u_CodAut'),
+                \DB::raw('u.Nombre1 as u_Nombre1'),
+                \DB::raw('u.App1 as u_App1'),
+
+                // Producto
+                \DB::raw('pr.CodAut as pr_CodAut'),
+                \DB::raw('pr.cod_prod as pr_cod_prod'),
+                \DB::raw('pr.cod_grup as pr_cod_grup'),
+                \DB::raw('pr.cod_pdr as pr_cod_pdr'),
+                \DB::raw('pr.Producto as pr_Producto'),
+                \DB::raw('pr.Nomcomer as pr_Nomcomer'),
+                \DB::raw('pr.TipPro as pr_TipPro'),
+                \DB::raw('pr.Precio as pr_Precio'),
+                \DB::raw('pr.Precio_Costo as pr_Precio_Costo'),
+                \DB::raw('pr.Precio3 as pr_Precio3'),
+                \DB::raw('pr.Precio4 as pr_Precio4'),
+                \DB::raw('pr.Precio5 as pr_Precio5'),
+                \DB::raw('pr.Precio6 as pr_Precio6'),
+                \DB::raw('pr.Precio7 as pr_Precio7'),
+                \DB::raw('pr.Precio8 as pr_Precio8'),
+                \DB::raw('pr.Precio9 as pr_Precio9'),
+                \DB::raw('pr.Precio10 as pr_Precio10'),
+                \DB::raw('pr.Precio11 as pr_Precio11'),
+                \DB::raw('pr.Precio12 as pr_Precio12'),
+                \DB::raw('pr.Precio13 as pr_Precio13'),
+                \DB::raw('pr.PreCosto as pr_PreCosto'),
+                \DB::raw('pr.stock as pr_stock'),
+                \DB::raw('pr.Imprime as pr_Imprime'),
+                \DB::raw('pr.codUnid as pr_codUnid'),
+                \DB::raw('pr.UnidCja as pr_UnidCja'),
+                \DB::raw('pr.CantPren as pr_CantPren'),
+                \DB::raw('pr.Peso as pr_Peso'),
+                \DB::raw('pr.tipo as pr_tipo'),
+                \DB::raw('pr.oferta as pr_oferta'),
+                \DB::raw('pr.codProdSin as pr_codProdSin'),
+                \DB::raw('pr.pqsiramento as pr_pqsiramento'),
+                \DB::raw('pr.codgruppasin as pr_codgruppasin'),
+                \DB::raw('pr.credit as pr_credit'),
+            ])
+            ->get();
+
+        if ($rows->isEmpty()) {
+            $pdf = \PDF::loadView('pdf.reportePedido', [
+                'pedidos'   => collect(),
+                'vehiculos' => collect(),
+            ]);
+            return $pdf->stream('document.pdf');
+        }
+
+        // 4) Prefetch bonificación (sin N+1)
+        $bonifIds = $rows->pluck('bonificacionId')->filter()->unique()->values();
+        $bonis = $bonifIds->isNotEmpty()
+            ? \DB::table($cTable)
+                ->whereIn('Cod_Aut', $bonifIds)
+                ->select('Cod_Aut','Nombres','Direccion','Telf','zona')
+                ->get()->keyBy('Cod_Aut')
+            : collect();
+
+        // 5) Agrupar por NroPed → estructura que espera tu Blade
+        $resPedido = $rows->groupBy('NroPed')->map(function ($g) use ($bonis) {
+            $r = $g->first();
+
+            // pedido como OBJETO
+            $pedidoObj = (object) [
+                'NroPed'    => $r->NroPed,
+                'fecha'     => $r->fecha,
+                'idCli'     => $r->idCli,
+                'CIfunc'    => $r->CIfunc,
+                'estado'    => $r->estado,
+                'fact'      => $r->fact,
+                'comentario'=> $r->comentario,
+                'pago'      => $r->pago,
+                'placa'     => $r->placa,
+                'horario'   => $r->horario,
+                'colorStyle'=> $r->colorStyle,
+                'cod_prod'  => $r->cod_prod,
+                'precio'    => $r->precio,
+                'Cant'      => $r->Cant,
+                'Canttxt'   => $r->Canttxt,
+                'subtotal'  => $r->subtotal,
+                'bonificacion'             => $r->bonificacion,
+                'bonificacionAprovacion'   => $r->bonificacionAprovacion,
+                'bonificacionId'           => $r->bonificacionId,
+                'cliente' => (object) [
+                    'id'        => (string) $r->c_Cod_Aut,
+                    'Cod_Aut'   => $r->c_Cod_Aut,
+                    'Nombres'   => $r->c_Nombres,
+                    'Direccion' => $r->c_Direccion,
+                    'Telf'      => $r->c_Telf,
+                    'zona'      => $r->c_zona,
+                ],
+                'user' => (object) [
+                    'CodAut'  => $r->u_CodAut,
+                    'Nombre1' => $r->u_Nombre1,
+                    'App1'    => $r->u_App1,
+                ],
+                // “producto” del primer renglón (tu JSON ejemplo lo incluye)
+                'producto' => (object) [
+                    'CodAut'       => $r->pr_CodAut,
+                    'cod_prod'     => $r->pr_cod_prod,
+                    'cod_grup'     => $r->pr_cod_grup,
+                    'cod_pdr'      => $r->pr_cod_pdr,
+                    'Producto'     => $r->pr_Producto,
+                    'Nomcomer'     => $r->pr_Nomcomer,
+                    'TipPro'       => $r->pr_TipPro,
+                    'Precio'       => $r->pr_Precio,
+                    'Precio_Costo' => $r->pr_Precio_Costo,
+                    'Precio3'      => $r->pr_Precio3,
+                    'Precio4'      => $r->pr_Precio4,
+                    'Precio5'      => $r->pr_Precio5,
+                    'Precio6'      => $r->pr_Precio6,
+                    'Precio7'      => $r->pr_Precio7,
+                    'Precio8'      => $r->pr_Precio8,
+                    'Precio9'      => $r->pr_Precio9,
+                    'Precio10'     => $r->pr_Precio10,
+                    'Precio11'     => $r->pr_Precio11,
+                    'Precio12'     => $r->pr_Precio12,
+                    'Precio13'     => $r->pr_Precio13,
+                    'PreCosto'     => $r->pr_PreCosto,
+                    'stock'        => $r->pr_stock,
+                    'Imprime'      => $r->pr_Imprime,
+                    'codUnid'      => $r->pr_codUnid,
+                    'UnidCja'      => $r->pr_UnidCja,
+                    'CantPren'     => $r->pr_CantPren,
+                    'Peso'         => $r->pr_Peso,
+                    'tipo'         => $r->pr_tipo,
+                    'oferta'       => $r->pr_oferta,
+                    'codProdSin'   => $r->pr_codProdSin,
+                    'pqsiramento'  => $r->pr_pqsiramento,
+                    'codgruppasin' => $r->pr_codgruppasin,
+                    'credit'       => $r->pr_credit,
+                ],
+            ];
+
+            // productos como ARRAY DE ARRAYS (para $producto['...'] en Blade)
+            $productosArr = $g->map(function ($it) {
+                return [
+                    'Nroped'   => $it->NroPed,
+                    'cod_prod' => $it->cod_prod,
+                    'producto' => $it->pr_Producto ?? '',
+                    'precio'   => $it->precio,
+                    'Cant'     => $it->Cant,
+                    'Canttxt'  => $it->Canttxt,
+                    'subtotal' => $it->subtotal,
+                ];
+            })
+                // Si detectas duplicados reales, descomenta el unique:
+                // ->unique(fn($x) => $x['cod_prod'].'|'.$x['Cant'].'|'.$x['Canttxt'].'|'.$x['precio'].'|'.$x['subtotal'])
+                ->values()
+                ->all(); // ← convierte a array plano
+
+            // bonificación como objeto (o null)
+            $bonificacionClienteObj = $r->bonificacionId
+                ? (function () use ($bonis, $r) {
+                    $bc = $bonis->get($r->bonificacionId);
+                    if (!$bc) return null;
+                    return (object) [
+                        'Cod_Aut'   => $bc->Cod_Aut,
+                        'Nombres'   => $bc->Nombres,
+                        'Direccion' => $bc->Direccion,
+                        'Telf'      => $bc->Telf,
+                        'zona'      => $bc->zona,
+                    ];
+                })()
+                : null;
+
+            return [
+                'pedido' => $pedidoObj,                     // objeto
+                'productos' => $productosArr,               // array de arrays
+                'bonificacionCliente' => $bonificacionClienteObj, // objeto|null
+            ];
+        })->values();
+
+        // 6) UPDATE único de impresos
+        $nros = $resPedido->pluck('pedido.NroPed')->unique()->values();
+        \DB::table($pTable)
+            ->whereIn('NroPed', $nros)
+            ->where('impreso', 0)
+            ->update(['impreso' => 1]);
+
+        // 7) Vehículos
+        $vehiculos = \DB::table('vehiculo')->get();
+
+        // 8) PDF
+        $pdf = \PDF::loadView('pdf.reportePedido', [
+            'pedidos'   => $resPedido,   // Collection de arrays (cada uno con 'pedido' objeto)
+            'vehiculos' => $vehiculos,
+        ]);
+
         return $pdf->stream('document.pdf');
     }
     function reportePedidoZona(Request $request, $fecha,$placa)
