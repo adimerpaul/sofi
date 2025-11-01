@@ -162,6 +162,68 @@
       </tr>
       </tbody>
     </q-markup-table>
+    <!-- ====== RESÚMENES ====== -->
+    <div class="q-mt-xl">
+
+      <!-- Resumen General -->
+      <div class="text-subtitle1 text-weight-bold q-mb-sm">RESUMEN GENERAL</div>
+      <div class="badge-row q-mb-md">
+        <q-badge color="grey-7"  text-color="white" class="q-pa-sm">Total: {{ summary.total }}</q-badge>
+        <q-badge color="green-7" text-color="white" class="q-pa-sm">10: {{ summary.c10 }}</q-badge>
+        <q-badge color="amber-7" text-color="white" class="q-pa-sm">5: {{ summary.c5 }}</q-badge>
+        <q-badge color="red-7"   text-color="white" class="q-pa-sm">0: {{ summary.c0 }}</q-badge>
+        <q-badge color="blue-7"  text-color="white" class="q-pa-sm">Promedio: {{ summary.avg.toFixed(2) }}</q-badge>
+      </div>
+
+      <!-- Barra tipo termómetro general -->
+      <div class="gauge q-mb-xl">
+        <div class="gauge-track">
+          <div class="gauge-end gauge-min">–</div>
+          <div class="gauge-end gauge-max">+</div>
+
+          <!-- Marcador/puntero -->
+          <div class="gauge-thumb" :style="{ left: percent(summary.avg) + '%' }">
+            <div class="gauge-dot"></div>
+          </div>
+
+          <!-- Camioncito (SVG inline) -->
+          <div class="gauge-truck" :style="{ left: percent(summary.avg) + '%' }" v-html="truckSvg"></div>
+        </div>
+      </div>
+
+      <!-- Resumen por camión/usuario -->
+      <div class="text-subtitle1 text-weight-bold q-mb-sm">RESUMEN POR CAMIÓN</div>
+
+      <div
+        v-for="u in byUsuario"
+        :key="u.key"
+        class="q-mb-lg"
+      >
+        <div class="text-body1 text-weight-medium q-mb-xs">{{ u.nombre }}</div>
+
+        <div class="gauge q-mb-sm">
+          <div class="gauge-track">
+            <div class="gauge-end gauge-min">–</div>
+            <div class="gauge-end gauge-max">+</div>
+
+            <div class="gauge-thumb" :style="{ left: percent(u.avg) + '%' }">
+              <div class="gauge-dot"></div>
+            </div>
+
+            <div class="gauge-truck" :style="{ left: percent(u.avg) + '%' }" v-html="truckSvg"></div>
+          </div>
+        </div>
+
+        <div class="badge-row">
+          <q-badge color="grey-7"  text-color="white" class="q-pa-xs">Total: {{ u.total }}</q-badge>
+          <q-badge color="green-7" text-color="white" class="q-pa-xs">10: {{ u.c10 }}</q-badge>
+          <q-badge color="amber-7" text-color="white" class="q-pa-xs">5: {{ u.c5 }}</q-badge>
+          <q-badge color="red-7"   text-color="white" class="q-pa-xs">0: {{ u.c0 }}</q-badge>
+          <q-badge color="blue-7"  text-color="white" class="q-pa-xs">Promedio: {{ u.avg.toFixed(2) }}</q-badge>
+        </div>
+      </div>
+    </div>
+
   </q-page>
 </template>
 
@@ -184,7 +246,62 @@ export default {
       }
     }
   },
+  computed: {
+    summary () {
+      const total = this.rows.length
+      const c10 = this.rows.filter(r => r.score === 10).length
+      const c5  = this.rows.filter(r => r.score === 5).length
+      const c0  = this.rows.filter(r => r.score === 0).length
+      const sum = this.rows.reduce((s, r) => s + (r.score || 0), 0)
+      const avg = total ? (sum / total) : 0
+      return { total, c10, c5, c0, avg }
+    },
+    byUsuario () {
+      // Agrupar por usuario (usa CodAut si existe, si no, el nombre)
+      const map = new Map()
+      for (const r of this.rows) {
+        const key = (r.usuario_cod_aut ?? r.usuario_nombre ?? 'Sin usuario') + ''
+        if (!map.has(key)) {
+          map.set(key, {
+            key,
+            nombre: r.usuario_nombre || `CodAut ${r.usuario_cod_aut ?? ''}`,
+            total: 0, c10: 0, c5: 0, c0: 0, sum: 0
+          })
+        }
+        const it = map.get(key)
+        it.total += 1
+        if (r.score === 10) it.c10 += 1
+        else if (r.score === 5) it.c5 += 1
+        else if (r.score === 0) it.c0 += 1
+        it.sum += (r.score || 0)
+      }
+      const arr = Array.from(map.values()).map(it => ({
+        ...it,
+        avg: it.total ? it.sum / it.total : 0
+      }))
+      // ordena por nombre o por promedio, como prefieras
+      return arr.sort((a, b) => a.nombre.localeCompare(b.nombre))
+    },
+    truckSvg () {
+      // Camioncito SVG inline (evitas imagen externa). Puedes reemplazar por <img src="/images/truck.png">
+      return `
+      <svg width="70" height="36" viewBox="0 0 70 36" xmlns="http://www.w3.org/2000/svg">
+        <rect x="2" y="10" width="34" height="16" rx="2" fill="#e0e0e0" stroke="#9e9e9e"/>
+        <rect x="36" y="14" width="15" height="12" rx="2" fill="#eeeeee" stroke="#9e9e9e"/>
+        <polygon points="55,26 65,26 67,22 57,22" fill="#e53935"/>
+        <circle cx="18" cy="30" r="4.5" fill="#212121"/>
+        <circle cx="18" cy="30" r="2.2" fill="#bdbdbd"/>
+        <circle cx="50" cy="30" r="4.5" fill="#212121"/>
+        <circle cx="50" cy="30" r="2.2" fill="#bdbdbd"/>
+      </svg>`
+    }
+  },
   methods: {
+    percent (avg) {
+      // 0..10 -> 0..100
+      const p = (Number(avg) || 0) * 10
+      return Math.max(0, Math.min(100, p))
+    },
     formatDateTime (val) {
       if (!val) return ''
       return date.formatDate(val, 'YYYY-MM-DD HH:mm')
@@ -317,4 +434,51 @@ export default {
 
 <style scoped>
 .ellipsis { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 360px; display: inline-block; }
+
+.badge-row > .q-badge { margin-right: 8px; }
+
+.gauge {
+  width: 100%;
+}
+
+.gauge-track {
+  position: relative;
+  height: 20px;
+  border-radius: 999px;
+  /* Gradiente rojo -> amarillo -> verde */
+  background: linear-gradient(90deg, #e53935 0%, #ff9800 30%, #ffc107 50%, #8bc34a 80%, #43a047 100%);
+  box-shadow: inset 0 0 0 2px rgba(0,0,0,0.05);
+}
+
+.gauge-end {
+  position: absolute;
+  top: -18px;
+  font-weight: 700;
+  font-size: 14px;
+  color: #666;
+}
+.gauge-min { left: 8px; }
+.gauge-max { right: 8px; }
+
+.gauge-thumb {
+  position: absolute;
+  top: 100%;
+  transform: translate(-50%, -2px);
+}
+.gauge-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #000;
+  box-shadow: 0 0 0 3px rgba(0,0,0,0.08);
+  margin-top: 6px; /* baja el punto bajo la barra */
+}
+
+.gauge-truck {
+  position: absolute;
+  bottom: 22px;           /* altura “sobre” la barra */
+  transform: translateX(-50%);
+  pointer-events: none;   /* no interfiera con clicks */
+}
+
 </style>
