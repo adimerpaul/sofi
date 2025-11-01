@@ -32,7 +32,7 @@
       <div class="col-12 col-sm-2 flex items-center">
         <q-btn :loading="loading" color="primary" icon="search" label="Buscar" no-caps class="full-width" @click="load" />
       </div>
-      <div class="col-12 col-sm-2 flex items-center">
+      <div class="col-12 col-sm-2">
         <q-btn
           color="negative"
           icon="picture_as_pdf"
@@ -42,6 +42,17 @@
           @click="openPdf"
           size="10px"
           :disable="loading"
+        />
+        <q-btn
+          color="teal"
+          icon="grid_on"
+          label="Exportar Excel"
+          no-caps
+          class="q-ml-sm full-width"
+          size="10px"
+
+          :disable="!rows.length || loading"
+          @click="exportXlsx"
         />
       </div>
 
@@ -155,6 +166,7 @@
 </template>
 
 <script>
+import xlsx from 'json-as-xlsx'
 import { date } from 'quasar'
 
 export default {
@@ -182,6 +194,81 @@ export default {
       // abrevia un poco
       if (ua.length <= 48) return ua
       return ua.slice(0, 48) + '…'
+    },
+    async exportXlsx () {
+      try {
+        if (!this.rows.length) {
+          this.$q.notify({ type: 'warning', message: 'No hay datos para exportar' })
+          return
+        }
+
+        // 1) Contenido: tomamos SOLO lo que ya está en rows (lo visible)
+        const content = this.rows.map((r, i) => ({
+          n: i + 1,
+          encuesta_date: r.encuesta_date || '',
+          created_at_fmt: r.created_at ? date.formatDate(r.created_at, 'YYYY-MM-DD HH:mm') : '',
+          cliente_nombre: r.cliente_nombre || '',
+          cliente_cod_aut: r.cliente_cod_aut ?? '',
+          cliente_id: r.cliente_id ?? '',
+          cliente_dir: r.cliente_dir || '',
+          cliente_zona: r.cliente_zona || '',
+          usuario_nombre: r.usuario_nombre || '',
+          usuario_cod_aut: r.usuario_cod_aut ?? '',
+          usuario_ci: r.usuario_ci || '',
+          usuario_correo: r.usuario_correo || '',
+          score: r.score ?? '',
+          comment: r.comment || '',
+          email: r.email || '',
+          client_ip: r.client_ip || '',
+          origin_host: r.origin_host || '',
+          origin_scheme: r.origin_scheme || '',
+          origin_path: r.origin_path || '',
+          user_agent: r.user_agent || ''
+        }))
+
+        // 2) Columnas en el mismo orden que la tabla
+        const columns = [
+          { label: '#', value: 'n' },
+          { label: 'Fecha encuesta', value: 'encuesta_date' },
+          { label: 'Creado', value: 'created_at_fmt' },
+          { label: 'Cliente nombre', value: 'cliente_nombre' },
+          { label: 'Cliente Cod_Aut', value: 'cliente_cod_aut' },
+          { label: 'Cliente ID', value: 'cliente_id' },
+          { label: 'Cliente dir', value: 'cliente_dir' },
+          { label: 'Cliente zona', value: 'cliente_zona' },
+          { label: 'Usuario nombre', value: 'usuario_nombre' },
+          { label: 'Usuario CodAut', value: 'usuario_cod_aut' },
+          { label: 'Usuario CI', value: 'usuario_ci' },
+          { label: 'Usuario correo', value: 'usuario_correo' },
+          { label: 'Score', value: 'score' },
+          { label: 'Comentario', value: 'comment' },
+          { label: 'Email', value: 'email' },
+          { label: 'IP', value: 'client_ip' },
+          { label: 'Host', value: 'origin_host' },
+          { label: 'Esquema', value: 'origin_scheme' },
+          { label: 'Path', value: 'origin_path' },
+          { label: 'Navegador (UA)', value: 'user_agent' }
+        ]
+
+        // 3) Definición del archivo
+        const data = [{
+          sheet: 'Encuestas',
+          columns,
+          content
+        }]
+
+        const now = date.formatDate(Date.now(), 'YYYYMMDD_HHmmss')
+        const settings = {
+          fileName: `reporte-encuestas_${now}`,
+          extraLength: 3
+        }
+
+        // 4) Exportar
+        xlsx(data, settings)
+      } catch (e) {
+        console.error(e)
+        this.$q.notify({ type: 'negative', message: 'No se pudo exportar el Excel' })
+      }
     },
     openPdf () {
       // Construye la misma query de filtros
