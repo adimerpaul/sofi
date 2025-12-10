@@ -215,7 +215,7 @@
           </q-item-section>
         </q-item>
         <q-item clickable active-class="bg-primary text-white" exact to="genreporte"
-                v-if="supervisor.includes($store.getters['login/user'].ci) || encargados.includes($store.getters['login/user'].ci)">
+                v-if="supervisor.includes($store.getters['login/user'].ci) ||supervisor2.includes($store.getters['login/user'].ci) ||  encargados.includes($store.getters['login/user'].ci)">
           <q-item-section avatar>
             <q-icon name="receipt_long"/>
           </q-item-section>
@@ -239,7 +239,7 @@
           </q-item-section>
         </q-item>
         <q-item clickable active-class="bg-primary text-white" exact to="despacho"
-                v-if="despachador.includes($store.getters['login/user'].ci)">
+                v-if="despachador.includes($store.getters['login/user'].ci) || supervisor2.includes($store.getters['login/user'].ci)">
           <q-item-section avatar>
             <q-icon name="description"/>
           </q-item-section>
@@ -349,7 +349,7 @@
           </q-item-section>
         </q-item>
         <q-item clickable active-class="bg-primary text-white" exact to="mapavendedor"
-                v-if="supervisor.includes($store.getters['login/user'].ci) || $store.getters['login/user'].ci=='123321'">
+                v-if="supervisor.includes($store.getters['login/user'].ci) || supervisor2.includes($store.getters['login/user'].ci) || $store.getters['login/user'].ci=='123321'">
           <q-item-section avatar>
             <q-icon name="computer"/>
           </q-item-section>
@@ -361,12 +361,12 @@
           </q-item-section>
         </q-item>
         <q-item clickable active-class="bg-primary text-white" exact to="mapavendedorvisita"
-                v-if="supervisor.includes($store.getters['login/user'].ci) || $store.getters['login/user'].ci=='123321'">
+                v-if="supervisor.includes($store.getters['login/user'].ci) || supervisor2.includes($store.getters['login/user'].ci) || $store.getters['login/user'].ci=='123321'">
           <q-item-section avatar>
             <q-icon name="map"/>
           </q-item-section>
           <q-item-section>
-            <q-item-label>Mapa vendeor visita</q-item-label>
+            <q-item-label>Mapa vendedor visita</q-item-label>
 <!--            <q-item-label caption>-->
 <!--              Monitoreo-->
 <!--            </q-item-label>-->
@@ -500,13 +500,14 @@ export default {
   data() {
     return {
       leftDrawerOpen: false,
-      vendores: ['5572091','10060810', '3779602', '12612870', '1593578', '33555433', '3520335', '5676554', '7422201', '9876785', '7360035', '5067737', '7331330', '7308976', '7377278', '5938578', '7351953', '7329688', '7288817', '7306963', '5773491', '3544875019', '7312297', '7326952'],
+      vendores: ['5726715','5572091','10060810', '3779602', '12612870', '1593578', '33555433', '3520335', '5676554', '7422201', '9876785', '7360035', '5067737', '7331330', '7308976', '7377278', '5938578', '7351953', '7329688', '7288817', '7306963', '5773491', '3544875019', '7312297', '7326952'],
       encargados: ['123321', '7205489', '7277481'],
       asignar: ['7205489', '7308976', '123321', '7277481'],
       almacen: ['7308976', '7377278', '7205489', '7277481'],
       cobrador: ['4035534'],
       despachador: ['7205489', 'A1SUD', 'A2NORTE', 'A3CENTRO', 'A4BOLIVAR', 'A5APOYO','A6APOYO2', 'C1RECOGE', 'B3LLALLAGUA','B4CARACOLLO', '7277481', 'B1HUANUNI', 'MOTO1', 'MOTO2', 'B2CHALLAPATA'],
       supervisor: ['7308976', '7329688', '7288817', '7312297', '7205489', '7277481'],
+      supervisor2: ['5726715'],
       digitador: ['1223334444', '7308976',  '7329688', '7277481', '123321','7205489','7312297']
     }
   },

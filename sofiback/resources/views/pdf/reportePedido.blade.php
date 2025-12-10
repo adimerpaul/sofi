@@ -126,7 +126,7 @@
                     </td>
                 </tr>
                 <tr>
-                    <td colspan="4" style="padding: 4px; font-weight: bold;">
+                    <td colspan="2" style="padding: 4px; font-weight: bold;">
                         <div>
                             Encargado:
                             {{ $pedido['pedido']->user->Nombre1 }}
@@ -136,6 +136,9 @@
                             Observaciones:
                             {{ $pedido['pedido']->comentario }}
                         </div>
+                    </td>
+                    <td colspan="2">
+                        <b>Territorio : </b> {{$pedido['pedido']->cliente->territorio}}
                     </td>
                 </tr>
             </table>

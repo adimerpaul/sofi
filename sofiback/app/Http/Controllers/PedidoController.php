@@ -310,7 +310,7 @@ class PedidoController extends Controller{
     {
         // 1. Obtener todos los pedidos principales (cabecera)
         $pedidos = Pedido::with([
-            'cliente:id,Cod_Aut,Nombres,Direccion,Telf,zona',
+            'cliente:id,Cod_Aut,Nombres,Direccion,Telf,zona,territorio',
             'user:CodAut,Nombre1,App1'
         ])
             ->where('NroPed', $id)
@@ -385,7 +385,7 @@ class PedidoController extends Controller{
             ->select('NroPed', 'fecha', 'idCli', 'CIfunc', 'estado', 'fact', 'comentario', 'pago', 'placa', 'horario', 'colorStyle')
             ->where('estado', 'ENVIADO')
             ->with(['cliente' => function ($query) {
-                $query->select('Cod_Aut', 'Nombres', 'Direccion', 'Telf', 'zona');
+                $query->select('Cod_Aut', 'Nombres', 'Direccion', 'Telf', 'zona', 'territorio');
             }])
             ->with(['user' => function ($query) {
                 $query->select('CodAut', 'Nombre1', 'App1');
@@ -440,7 +440,7 @@ class PedidoController extends Controller{
     function reportePedido3(Request $request, $fecha)
     {
         $pedidos = Pedido::with([
-            'cliente:id,Cod_Aut,Nombres,Direccion,Telf,zona',
+            'cliente:id,Cod_Aut,Nombres,Direccion,Telf,zona,territorio',
             'user:CodAut,Nombre1,App1',
         ])
             ->whereDate('fecha', $fecha)
@@ -535,6 +535,7 @@ class PedidoController extends Controller{
                 \DB::raw('c.Direccion as c_Direccion'),
                 \DB::raw('c.Telf as c_Telf'),
                 \DB::raw('c.zona as c_zona'),
+                \DB::raw('c.territorio as c_territorio'),
 
                 // User
                 \DB::raw('u.CodAut as u_CodAut'),
@@ -591,7 +592,7 @@ class PedidoController extends Controller{
         $bonis = $bonifIds->isNotEmpty()
             ? \DB::table($cTable)
                 ->whereIn('Cod_Aut', $bonifIds)
-                ->select('Cod_Aut','Nombres','Direccion','Telf','zona')
+                ->select('Cod_Aut','Nombres','Direccion','Telf','zona','territorio')
                 ->get()->keyBy('Cod_Aut')
             : collect();
 
@@ -631,6 +632,7 @@ $resPedido = $rows->groupBy('NroPed')->map(function ($g) use ($bonis) {
             'Direccion' => $r->c_Direccion,
             'Telf'      => $r->c_Telf,
             'zona'      => $r->c_zona,
+            'territorio'=> $r->c_territorio,
         ],
         'user' => (object) [
             'CodAut'  => $r->u_CodAut,
@@ -670,6 +672,7 @@ $resPedido = $rows->groupBy('NroPed')->map(function ($g) use ($bonis) {
                 'Direccion' => $bc->Direccion,
                 'Telf'      => $bc->Telf,
                 'zona'      => $bc->zona,
+                'territorio'=> $bc->territorio,
             ];
         })()
         : null;
@@ -704,7 +707,7 @@ $resPedido = $rows->groupBy('NroPed')->map(function ($g) use ($bonis) {
     {
         // Obtener pedidos con cliente, usuario y producto relacionados
         $pedidos = Pedido::with([
-            'cliente:id,Cod_Aut,Nombres,Direccion,Telf,zona',
+            'cliente:id,Cod_Aut,Nombres,Direccion,Telf,zona,territorio',
             'user:CodAut,Nombre1,App1',
         ])
             ->leftJoin('tbproductos as prod', DB::raw('TRIM(tbpedidos.cod_prod)'), '=', DB::raw('TRIM(prod.cod_prod)'))
