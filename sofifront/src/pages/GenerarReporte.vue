@@ -207,9 +207,11 @@ export default {
               {label: "cliente", value: "Nombres"},
               {label: "NroPed", value: "NroPed"},
               {label: "cod_prod", value: "cod_prod"},
-              {label: "Cant", value: "Cant"},
+              //{label: "Cant", value: "Cant"}, converit en entero o cambiar el punto por coma
+              {label: "Cant", value: row => parseFloat(row.Cant).toFixed(2).replace('.', ',')},
               {label: "Producto", value: "Producto"},
-              {label: "precio", value: "precio"},
+              //{label: "precio", value: "precio"},
+              {label: "precio", value: row => parseFloat(row.precio).toFixed(2).replace('.', ',')},
               {label: "observaciones", value: "Observaciones"},
               {label: "pago", value: row => row.pago == 'CONTADO' ? 'si' : 'no'},
               {label: "fact", value: "fact"},
