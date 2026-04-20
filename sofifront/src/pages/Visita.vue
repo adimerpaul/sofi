@@ -25,6 +25,28 @@
       <l-tile-layer
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
       ></l-tile-layer>
+      <l-polygon
+        v-for="zona in zonasFondo"
+        :key="`zona-fondo-${zona.id}`"
+        :lat-lngs="zona.coordenadas"
+        :color="zona.color"
+        :fill-color="zona.color"
+        :fill="true"
+        :fill-opacity="0.4"
+        :opacity="0.35"
+        :weight="1"
+        :interactive="false"
+      >
+        <l-tooltip
+          :options="{
+            permanent: true,
+            direction: 'center',
+            className: 'zona-tooltip'
+          }"
+        >
+          {{ zona.nombre }}
+        </l-tooltip>
+      </l-polygon>
       <!--      <l-control-layers />-->
       <!--      <l-marker :lat-lng="[-17.970491, -67.113511]" draggable @moveend="log('moveend')">-->
       <!--        <l-tooltip>-->
@@ -697,6 +719,7 @@ export default {
     LIcon,
     LTileLayer,
     LMarker,
+    LPolygon,
     // LControlLayers,
     // LTooltip,
     // LPopup,
@@ -725,6 +748,7 @@ export default {
       zoom: 16,
       iconWidth: 25,
       iconHeight: 40,
+      zonasFondo: [],
       clientes: [],
       clientes2: [],
       cliente: {},
@@ -755,6 +779,7 @@ export default {
   },
 
   created() {
+    this.cargarZonasFondo()
     this.listhoy()
     //this.misclientes()
     this.consultamisproductos()
@@ -766,6 +791,26 @@ export default {
     this.clientesBonificacion()
   },
   methods: {
+    async cargarZonasFondo() {
+      try {
+        const response = await fetch('https://bsofiafactu.tuprogam.com/api/public/mapa-zona/2')
+        const data = await response.json()
+
+        this.zonasFondo = (data.poligonos || [])
+          .filter(poligono => Array.isArray(poligono.coordenadas) && poligono.coordenadas.length > 2)
+          .map(poligono => ({
+            id: poligono.id,
+            nombre: poligono.nombre || '',
+            color: poligono.color || '#1976d2',
+            coordenadas: poligono.coordenadas
+              .map(punto => [parseFloat(punto.lat), parseFloat(punto.lng)])
+              .filter(punto => !Number.isNaN(punto[0]) && !Number.isNaN(punto[1]))
+          }))
+          .filter(poligono => poligono.coordenadas.length > 2)
+      } catch (error) {
+        console.error('No se pudo cargar el mapa de zonas publico', error)
+      }
+    },
     clientesBonificacion() {
       this.$api.get('cliente').then(res => {
         this.clientes2 = []
@@ -1426,4 +1471,17 @@ export default {
   &.q-table--loading thead tr:last-child th
     /* height of all previous header rows */
     top: 48px
+
+.zona-tooltip
+  background: rgba(255,255,255,0.9)
+  border: 1px solid rgba(0,0,0,0.12)
+  border-radius: 6px
+  box-shadow: 0 1px 4px rgba(0,0,0,0.18)
+  color: #1f2937
+  font-size: 11px
+  font-weight: 700
+  padding: 3px 7px
+
+.zona-tooltip:before
+  display: none
 </style>
