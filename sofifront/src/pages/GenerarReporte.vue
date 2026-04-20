@@ -89,6 +89,43 @@ export default {
     this.consultar()
   },
   methods: {
+    toNumber(value) {
+      const parsed = parseFloat(value)
+      return Number.isNaN(parsed) ? 0 : parsed
+    },
+    formatDecimal(value) {
+      return this.toNumber(value).toFixed(2).replace('.', ',')
+    },
+    getEmbutidoContentWithTotal(rows) {
+      const content = rows.map(row => ({
+        ...row,
+        importe: this.toNumber(row.Cant) * this.toNumber(row.precio)
+      }))
+      const totalGeneral = content.reduce((acc, row) => acc + this.toNumber(row.importe), 0)
+
+      content.push({
+        fecha: '',
+        Nombre1: '',
+        App1: '',
+        Apm: '',
+        Id: '',
+        Nombres: 'TOTAL GENERAL',
+        NroPed: '',
+        cod_prod: '',
+        Cant: '',
+        Producto: '',
+        precio: '',
+        importe: totalGeneral,
+        Observaciones: '',
+        estado_ruta: '',
+        pago: '',
+        fact: '',
+        horario: '',
+        comentario: '',
+      })
+
+      return content
+    },
     exportPollo() {
       this.$q.loading.show()
 
@@ -197,6 +234,7 @@ export default {
           })
           return false
         }
+        const content = this.getEmbutidoContentWithTotal(res.data)
         let datacaja = [
           {
             sheet: "Embutido",
@@ -208,17 +246,19 @@ export default {
               {label: "NroPed", value: "NroPed"},
               {label: "cod_prod", value: "cod_prod"},
               //{label: "Cant", value: "Cant"}, converit en entero o cambiar el punto por coma
-              {label: "Cant", value: row => parseFloat(row.Cant).toFixed(2).replace('.', ',')},
+              {label: "Cant", value: row => row.Cant === '' ? '' : this.formatDecimal(row.Cant)},
               {label: "Producto", value: "Producto"},
               //{label: "precio", value: "precio"},
-              {label: "precio", value: row => parseFloat(row.precio).toFixed(2).replace('.', ',')},
+              {label: "precio", value: row => row.precio === '' ? '' : this.formatDecimal(row.precio)},
+              {label: "importe", value: row => row.importe === '' ? '' : this.formatDecimal(row.importe)},
               {label: "observaciones", value: "Observaciones"},
+              {label: "ruta", value: "estado_ruta"},
               {label: "pago", value: row => row.pago == 'CONTADO' ? 'si' : 'no'},
               {label: "fact", value: "fact"},
               {label: "horario", value: "horario"},
               {label: "comentario", value: "comentario"},
             ],
-            content: res.data
+            content
           },
         ]
 
@@ -247,10 +287,14 @@ export default {
       })
     },
 
-    generarConsulta(per) {
-      this.getCerdo(per)
-      this.getEmbutido(per)
-      this.getPollo(per)
+    async generarConsulta(per) {
+      await Promise.all([
+        this.getCerdo(per),
+        this.getEmbutido(per),
+        this.getPollo(per)
+      ])
+
+      const embutidoContent = this.getEmbutidoContentWithTotal(this.pedido)
       let datacaja = [
         {
           sheet: "Cerdo",
@@ -282,10 +326,12 @@ export default {
             {label: "cliente", value: row => row.bonificacionId == null? row.Nombres : row.bonificacionId == 2728 ? this.cliente2728 : this.cliente3070},
             {label: "NroPed", value: "NroPed"},
             {label: "cod_prod", value: "cod_prod"},
-            {label: "Cant", value: "Cant"},
+            {label: "Cant", value: row => row.Cant === '' ? '' : this.formatDecimal(row.Cant)},
             {label: "Producto", value: "Producto"},
-            {label: "precio", value: "precio"},
+            {label: "precio", value: row => row.precio === '' ? '' : this.formatDecimal(row.precio)},
+            {label: "importe", value: row => row.importe === '' ? '' : this.formatDecimal(row.importe)},
             {label: "observaciones", value: "Observaciones"},
+            {label: "ruta", value: "estado_ruta"},
             {label: "pago", value: row => row.pago == 'CONTADO' ? 'si' : 'no'},
             {label: "fact", value: "fact"},
             {label: "horario", value: "horario"},
@@ -293,7 +339,7 @@ export default {
             {label: "comentario", value: row => row.bonificacionId == null? row.comentario : row.Nombres+ ' '+ row.comentario},
 
           ],
-          content: this.pedido
+          content: embutidoContent
         },
         {
           sheet: "Pollo",
@@ -351,7 +397,7 @@ export default {
     },
 
     getCerdo(per) {
-      this.$api.post('reporteCerdo', {ini: this.fecha, fin: this.fecha2, codaut: per.CodAut}).then(res => {
+      return this.$api.post('reporteCerdo', {ini: this.fecha, fin: this.fecha2, codaut: per.CodAut}).then(res => {
         this.pedCerdo = res.data
         if (res.data.length == 0) {
           this.$q.notify({
@@ -366,7 +412,7 @@ export default {
     },
 
     getEmbutido(per) {
-      this.$api.post('reporteEmbutido', {ini: this.fecha, fin: this.fecha2, codaut: per.CodAut}).then(res => {
+      return this.$api.post('reporteEmbutido', {ini: this.fecha, fin: this.fecha2, codaut: per.CodAut}).then(res => {
         this.pedido = res.data
         if (res.data.length == 0) {
           this.$q.notify({
@@ -380,7 +426,7 @@ export default {
     },
 
     getPollo(per) {
-      this.$api.post('reportePollo', {ini: this.fecha, fin: this.fecha2, codaut: per.CodAut}).then(res => {
+      return this.$api.post('reportePollo', {ini: this.fecha, fin: this.fecha2, codaut: per.CodAut}).then(res => {
         console.log(res.data)
         this.pedPollo = res.data
         if (res.data.length == 0) {

@@ -323,9 +323,56 @@ class ExcelController extends Controller
 
     public function reporteEmbutido(Request $request)
     {
-        return DB::SELECT("SELECT c.Id, c.Nombres, c.Direccion, c.Telf, p.NroPed, p.cod_prod, p.idCli , p.Cant , p.precio , p.fecha , p.Observaciones , p.subtotal, u.Producto, p.pago,p.fact,p.horario.p.comentario
-         FROM tbpedidos p inner join tbclientes c on p.idCli=c.Cod_Aut inner join tbproductos u on u.cod_prod=p.cod_prod
-          where p.tipo='NORMAL' AND date(p.fecha)>='$request->ini' and date(p.fecha)<='$request->fin' and p.estado='ENVIADO' AND CIfunc='$request->codaut'");
+        return DB::SELECT("
+        SELECT
+            c.Id,
+            c.Nombres,
+            c.Direccion,
+            c.Telf,
+            c.CiVend,
+            c.lu,
+            c.Ma,
+            c.Mi,
+            c.Ju,
+            c.Vi,
+            c.Sa,
+            c.do,
+            p.NroPed,
+            p.cod_prod,
+            p.idCli,
+            p.Cant,
+            p.precio,
+            p.fecha,
+            p.Observaciones,
+            p.subtotal,
+            u.Producto,
+            p.pago,
+            p.fact,
+            p.horario,
+            p.comentario,
+            e.Nombre1,
+            e.App1,
+            e.Apm,
+            CASE
+                WHEN TRIM(COALESCE(c.CiVend, '')) <> '' AND TRIM(COALESCE(c.CiVend, '')) <> TRIM(COALESCE(e.ci, '')) THEN 'FUERA DE RUTA'
+                WHEN DAYOFWEEK(p.fecha) = 1 AND IFNULL(c.do, 0) = 1 THEN 'EN RUTA'
+                WHEN DAYOFWEEK(p.fecha) = 2 AND IFNULL(c.lu, 0) = 1 THEN 'EN RUTA'
+                WHEN DAYOFWEEK(p.fecha) = 3 AND IFNULL(c.Ma, 0) = 1 THEN 'EN RUTA'
+                WHEN DAYOFWEEK(p.fecha) = 4 AND IFNULL(c.Mi, 0) = 1 THEN 'EN RUTA'
+                WHEN DAYOFWEEK(p.fecha) = 5 AND IFNULL(c.Ju, 0) = 1 THEN 'EN RUTA'
+                WHEN DAYOFWEEK(p.fecha) = 6 AND IFNULL(c.Vi, 0) = 1 THEN 'EN RUTA'
+                WHEN DAYOFWEEK(p.fecha) = 7 AND IFNULL(c.Sa, 0) = 1 THEN 'EN RUTA'
+                ELSE 'FUERA DE RUTA'
+            END AS estado_ruta
+        FROM tbpedidos p
+        INNER JOIN tbclientes c ON p.idCli = c.Cod_Aut
+        INNER JOIN tbproductos u ON u.cod_prod = p.cod_prod
+        INNER JOIN personal e ON p.CIfunc = e.CodAut
+        WHERE p.tipo = 'NORMAL'
+          AND DATE(p.fecha) >= '$request->ini'
+          AND DATE(p.fecha) <= '$request->fin'
+          AND p.estado = 'ENVIADO'
+          AND p.CIfunc = '$request->codaut'");
     }
 
     public function reporteCerdo(Request $request)
@@ -344,10 +391,54 @@ class ExcelController extends Controller
 
     public function reporteEmbutidoTodo(Request $request)
     {
-        return DB::SELECT("SELECT c.Id, c.Nombres, c.Direccion, c.Telf, p.NroPed, p.cod_prod, p.idCli , p.Cant , p.precio , p.fecha , p.Observaciones , p.subtotal,
-         u.Producto, p.pago,p.fact, e.Nombre1,e.App1,e.Apm,p.horario,p.comentario
-         FROM tbpedidos p inner join tbclientes c on p.idCli=c.Cod_Aut inner join tbproductos u on u.cod_prod=p.cod_prod inner join personal e on p.CIfunc=e.CodAut
-          where p.tipo='NORMAL' AND date(p.fecha)>='$request->ini' and date(p.fecha)<='$request->fin'  ");
+        return DB::SELECT("
+        SELECT
+            c.Id,
+            c.Nombres,
+            c.Direccion,
+            c.Telf,
+            c.CiVend,
+            c.lu,
+            c.Ma,
+            c.Mi,
+            c.Ju,
+            c.Vi,
+            c.Sa,
+            c.do,
+            p.NroPed,
+            p.cod_prod,
+            p.idCli,
+            p.Cant,
+            p.precio,
+            p.fecha,
+            p.Observaciones,
+            p.subtotal,
+            u.Producto,
+            p.pago,
+            p.fact,
+            e.Nombre1,
+            e.App1,
+            e.Apm,
+            p.horario,
+            p.comentario,
+            CASE
+                WHEN TRIM(COALESCE(c.CiVend, '')) <> '' AND TRIM(COALESCE(c.CiVend, '')) <> TRIM(COALESCE(e.ci, '')) THEN 'FUERA DE RUTA'
+                WHEN DAYOFWEEK(p.fecha) = 1 AND IFNULL(c.do, 0) = 1 THEN 'EN RUTA'
+                WHEN DAYOFWEEK(p.fecha) = 2 AND IFNULL(c.lu, 0) = 1 THEN 'EN RUTA'
+                WHEN DAYOFWEEK(p.fecha) = 3 AND IFNULL(c.Ma, 0) = 1 THEN 'EN RUTA'
+                WHEN DAYOFWEEK(p.fecha) = 4 AND IFNULL(c.Mi, 0) = 1 THEN 'EN RUTA'
+                WHEN DAYOFWEEK(p.fecha) = 5 AND IFNULL(c.Ju, 0) = 1 THEN 'EN RUTA'
+                WHEN DAYOFWEEK(p.fecha) = 6 AND IFNULL(c.Vi, 0) = 1 THEN 'EN RUTA'
+                WHEN DAYOFWEEK(p.fecha) = 7 AND IFNULL(c.Sa, 0) = 1 THEN 'EN RUTA'
+                ELSE 'FUERA DE RUTA'
+            END AS estado_ruta
+        FROM tbpedidos p
+        INNER JOIN tbclientes c ON p.idCli = c.Cod_Aut
+        INNER JOIN tbproductos u ON u.cod_prod = p.cod_prod
+        INNER JOIN personal e ON p.CIfunc = e.CodAut
+        WHERE p.tipo = 'NORMAL'
+          AND DATE(p.fecha) >= '$request->ini'
+          AND DATE(p.fecha) <= '$request->fin'  ");
     }// and p.estado='ENVIADO'
 
     public function reportePollo(Request $request)
