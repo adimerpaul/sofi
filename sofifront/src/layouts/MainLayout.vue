@@ -513,7 +513,7 @@ export default {
   },
   methods: {
     irformulario() {
-      var win = window.open('https://form.jotform.com/261046889989683', '_blank');
+      var win = window.open('https://form.jotform.com/261335471332653', '_blank');
       // Cambiar el foco al nuevo tab (punto opcional)
       win.focus();
     },
