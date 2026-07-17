@@ -1,0 +1,150 @@
+- generic [ref=e1]:
+  - generic [ref=e3]:
+    - banner [ref=e4]:
+      - generic [ref=e5]:
+        - button "Menu" [ref=e6] [cursor=pointer]:
+          - img [ref=e8]: menu
+        - generic [ref=e9]:
+          - text: Ventas generales
+          - generic [ref=e10]: 11.5.6
+        - button "Salir" [ref=e80] [cursor=pointer]:
+          - generic [ref=e81]:
+            - img [ref=e82]: logout
+            - generic [ref=e83]: Salir
+    - complementary [ref=e12]:
+      - generic [ref=e14]:
+        - generic [ref=e15]: Opciones
+        - link "Principal Principal" [ref=e16] [cursor=pointer]:
+          - /url: "#/"
+          - generic [ref=e17]: home
+          - generic [ref=e19]:
+            - generic [ref=e20]: Principal
+            - generic [ref=e21]: Principal
+        - link "Mis pedidos totales Mis pedidos totales" [ref=e84] [cursor=pointer]:
+          - /url: "#/mispedidostotales"
+          - generic [ref=e85]: list
+          - generic [ref=e87]:
+            - generic [ref=e88]: Mis pedidos totales
+            - generic [ref=e89]: Mis pedidos totales
+        - link "Listado Pedidos Registrados" [ref=e90] [cursor=pointer]:
+          - /url: "#/listpedido"
+          - generic [ref=e91]: shopping_cart
+          - generic [ref=e93]:
+            - generic [ref=e94]: Listado Pedidos
+            - generic [ref=e95]: Registrados
+        - link "Horarios de Envio Envio automatico de pedidos" [ref=e96] [cursor=pointer]:
+          - /url: "#/horariosenvio"
+          - generic [ref=e97]: schedule_send
+          - generic [ref=e99]:
+            - generic [ref=e100]: Horarios de Envio
+            - generic [ref=e101]: Envio automatico de pedidos
+        - link "Exportar excel Exportar excel" [ref=e102] [cursor=pointer]:
+          - /url: "#/generar"
+          - generic [ref=e103]: money
+          - generic [ref=e105]:
+            - generic [ref=e106]: Exportar excel
+            - generic [ref=e107]: Exportar excel
+        - link "Exportar excel Pedidos Pedidos Rango Fecha" [ref=e108] [cursor=pointer]:
+          - /url: "#/genreporte"
+          - generic [ref=e109]: receipt_long
+          - generic [ref=e111]:
+            - generic [ref=e112]: Exportar excel Pedidos
+            - generic [ref=e113]: Pedidos Rango Fecha
+        - link "Reporte Entrega Entregas" [ref=e114] [cursor=pointer]:
+          - /url: "#/entrega"
+          - generic [ref=e115]: dvr
+          - generic [ref=e117]:
+            - generic [ref=e118]: Reporte Entrega
+            - generic [ref=e119]: Entregas
+        - link "Reporte entrega Clientes entregas" [ref=e120] [cursor=pointer]:
+          - /url: "#/reporte"
+          - generic [ref=e121]: list
+          - generic [ref=e123]:
+            - generic [ref=e124]: Reporte entrega
+            - generic [ref=e125]: Clientes entregas
+        - link "Resumen de Preventa Monitoreo" [ref=e126] [cursor=pointer]:
+          - /url: "#/mapavendedor"
+          - generic [ref=e127]: computer
+          - generic [ref=e129]:
+            - generic [ref=e130]: Resumen de Preventa
+            - generic [ref=e131]: Monitoreo
+        - link "Mapa vendedor visita" [ref=e132] [cursor=pointer]:
+          - /url: "#/mapavendedorvisita"
+          - generic [ref=e133]: map
+        - link "Asignacion Monitoreo" [ref=e137] [cursor=pointer]:
+          - /url: "#/mapacliente"
+          - generic [ref=e138]: computer
+          - generic [ref=e140]:
+            - generic [ref=e141]: Asignacion
+            - generic [ref=e142]: Monitoreo
+        - link "Cambios" [ref=e143] [cursor=pointer]:
+          - /url: "#/bonificaciones"
+          - generic [ref=e144]: no_food
+        - link "Clientes Fotografias" [ref=e148] [cursor=pointer]:
+          - /url: "#/clientefotografias"
+          - generic [ref=e149]: photo_camera
+        - link "Pedidos" [ref=e153] [cursor=pointer]:
+          - /url: "#/pedidos"
+          - generic [ref=e154]: shopping_cart
+        - link "Encuestas" [ref=e158] [cursor=pointer]:
+          - /url: "#/encuestasIndex"
+          - generic [ref=e159]: assignment
+        - generic [ref=e163] [cursor=pointer]:
+          - generic [ref=e164]: logout
+          - generic [ref=e166]:
+            - generic [ref=e167]: Salir
+            - generic [ref=e168]: Salir del sistema
+    - main [ref=e171]:
+      - generic [ref=e173]:
+        - generic [ref=e174]:
+          - generic [ref=e175]:
+            - generic [ref=e176]: HORARIOS DE ENVIO AUTOMATICO
+            - button "Nuevo horario" [ref=e179] [cursor=pointer]:
+              - generic [ref=e180]:
+                - img [ref=e181]: add
+                - generic [ref=e182]: Nuevo horario
+          - table [ref=e184]:
+            - rowgroup [ref=e185]:
+              - row [ref=e186]:
+                - columnheader "Hora" [ref=e187] [cursor=pointer]:
+                  - text: Hora
+                  - generic [ref=e188]: arrow_upward
+                - columnheader "Dias" [ref=e189]
+                - columnheader "Activo" [ref=e190]
+                - columnheader "Ultima ejecucion" [ref=e191]
+                - columnheader "Filas enviadas" [ref=e192]
+                - columnheader "Acciones" [ref=e193]
+            - rowgroup [ref=e202]:
+              - row "23:00:00 Todos los dias 0" [ref=e203]:
+                - cell "23:00:00" [ref=e204]
+                - cell "Todos los dias" [ref=e205]
+                - cell [ref=e206]:
+                  - checkbox [checked] [ref=e207] [cursor=pointer]
+                - cell [ref=e211]
+                - cell "0" [ref=e212]
+                - cell [ref=e213]:
+                  - button [ref=e214] [cursor=pointer]:
+                    - img [ref=e216]: edit
+                  - button [ref=e217] [cursor=pointer]:
+                    - img [ref=e219]: delete
+          - generic [ref=e194]: 1-1 de 1
+        - generic [ref=e196]: El sistema revisa cada minuto los horarios activos. Cuando llega la hora configurada, envia automaticamente todos los pedidos del dia en estado CREADO (sin bonificaciones y solo de clientes ACTIVOS) y los marca como enviados por sistema.
+  - generic [ref=e223]:
+    - generic [ref=e224]: Nuevo horario
+    - generic [ref=e226]:
+      - generic [ref=e230]:
+        - textbox "Hora de envio" [ref=e231]
+        - generic: Hora de envio
+      - generic [ref=e232]: Dias que se ejecuta
+      - generic [ref=e233]:
+        - checkbox "Lun" [checked] [ref=e235] [cursor=pointer]
+        - checkbox "Mar" [checked] [ref=e242] [cursor=pointer]
+        - checkbox "Mie" [checked] [ref=e249] [cursor=pointer]
+        - checkbox "Jue" [checked] [ref=e256] [cursor=pointer]
+        - checkbox "Vie" [checked] [ref=e263] [cursor=pointer]
+        - checkbox "Sab" [checked] [ref=e270] [cursor=pointer]
+        - checkbox "Dom" [checked] [ref=e277] [cursor=pointer]
+      - checkbox "Activo" [checked] [ref=e283] [cursor=pointer]
+    - generic [ref=e288]:
+      - button "Cancelar" [ref=e289] [cursor=pointer]
+      - button "Guardar" [disabled] [ref=e292]

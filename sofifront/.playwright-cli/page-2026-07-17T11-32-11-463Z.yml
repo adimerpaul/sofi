@@ -1,0 +1,55 @@
+- generic [ref=e3]:
+  - banner [ref=e4]:
+    - generic [ref=e5]:
+      - button "Menu" [ref=e6] [cursor=pointer]:
+        - img [ref=e8]: menu
+      - generic [ref=e9]:
+        - text: Sofia
+        - generic [ref=e10]: 11.5.6
+  - complementary [ref=e12]:
+    - generic [ref=e14]:
+      - generic [ref=e15]: Opciones
+      - link "Principal Principal" [ref=e16] [cursor=pointer]:
+        - /url: "#/"
+        - generic [ref=e17]: home
+        - generic [ref=e19]:
+          - generic [ref=e20]: Principal
+          - generic [ref=e21]: Principal
+      - link "Ingresar Ingresar al sistema" [ref=e22] [cursor=pointer]:
+        - /url: "#/login"
+        - generic [ref=e23]: login
+        - generic [ref=e25]:
+          - generic [ref=e26]: Ingresar
+          - generic [ref=e27]: Ingresar al sistema
+  - main [ref=e29]:
+    - generic [ref=e33]:
+      - tablist [ref=e34]:
+        - tab "Ingresar" [selected] [ref=e36] [cursor=pointer]
+      - separator [ref=e40]
+      - tabpanel [ref=e42]:
+        - generic [ref=e43]:
+          - generic [ref=e44]: Ingresar al sistemas
+          - text: Por favor colocar ci y contraseña
+          - generic [ref=e46]:
+            - generic [ref=e49]:
+              - generic [ref=e50]:
+                - generic [ref=e51]: email
+                - generic [ref=e53]:
+                  - textbox "CI*" [ref=e54]
+                  - generic: CI*
+              - generic [ref=e55]: Porfavor ingresar email
+            - generic [ref=e60]:
+              - generic [ref=e61]:
+                - generic [ref=e62]: lock
+                - generic [ref=e64]:
+                  - textbox "password*" [ref=e65]
+                  - generic: password*
+                - generic [ref=e66]: visibility_off
+              - generic [ref=e68]: Porfavor ingresar password
+            - generic [ref=e71]:
+              - button "INGRESAR" [ref=e72] [cursor=pointer]:
+                - generic [ref=e73]:
+                  - img [ref=e74]: login
+                  - generic [ref=e75]: INGRESAR
+              - link "Olvidate tu contraseña?" [ref=e77] [cursor=pointer]:
+                - /url: https://api.whatsapp.com/send?phone=59169603027&text=olvide mi contraseña

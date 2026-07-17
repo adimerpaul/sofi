@@ -1,0 +1,97 @@
+- generic [ref=e3]:
+  - banner [ref=e4]:
+    - generic [ref=e5]:
+      - button "Menu" [ref=e6] [cursor=pointer]:
+        - img [ref=e8]: menu
+      - generic [ref=e9]:
+        - text: Ventas generales
+        - generic [ref=e10]: 11.5.6
+      - button "Salir" [ref=e80] [cursor=pointer]:
+        - generic [ref=e81]:
+          - img [ref=e82]: logout
+          - generic [ref=e83]: Salir
+  - complementary [ref=e12]:
+    - generic [ref=e14]:
+      - generic [ref=e15]: Opciones
+      - link "Principal Principal" [ref=e16] [cursor=pointer]:
+        - /url: "#/"
+        - generic [ref=e17]: home
+        - generic [ref=e19]:
+          - generic [ref=e20]: Principal
+          - generic [ref=e21]: Principal
+      - link "Mis pedidos totales Mis pedidos totales" [ref=e84] [cursor=pointer]:
+        - /url: "#/mispedidostotales"
+        - generic [ref=e85]: list
+        - generic [ref=e87]:
+          - generic [ref=e88]: Mis pedidos totales
+          - generic [ref=e89]: Mis pedidos totales
+      - link "Listado Pedidos Registrados" [ref=e90] [cursor=pointer]:
+        - /url: "#/listpedido"
+        - generic [ref=e91]: shopping_cart
+        - generic [ref=e93]:
+          - generic [ref=e94]: Listado Pedidos
+          - generic [ref=e95]: Registrados
+      - link "Horarios de Envio Envio automatico de pedidos" [ref=e96] [cursor=pointer]:
+        - /url: "#/horariosenvio"
+        - generic [ref=e97]: schedule_send
+        - generic [ref=e99]:
+          - generic [ref=e100]: Horarios de Envio
+          - generic [ref=e101]: Envio automatico de pedidos
+      - link "Exportar excel Exportar excel" [ref=e102] [cursor=pointer]:
+        - /url: "#/generar"
+        - generic [ref=e103]: money
+        - generic [ref=e105]:
+          - generic [ref=e106]: Exportar excel
+          - generic [ref=e107]: Exportar excel
+      - link "Exportar excel Pedidos Pedidos Rango Fecha" [ref=e108] [cursor=pointer]:
+        - /url: "#/genreporte"
+        - generic [ref=e109]: receipt_long
+        - generic [ref=e111]:
+          - generic [ref=e112]: Exportar excel Pedidos
+          - generic [ref=e113]: Pedidos Rango Fecha
+      - link "Reporte Entrega Entregas" [ref=e114] [cursor=pointer]:
+        - /url: "#/entrega"
+        - generic [ref=e115]: dvr
+        - generic [ref=e117]:
+          - generic [ref=e118]: Reporte Entrega
+          - generic [ref=e119]: Entregas
+      - link "Reporte entrega Clientes entregas" [ref=e120] [cursor=pointer]:
+        - /url: "#/reporte"
+        - generic [ref=e121]: list
+        - generic [ref=e123]:
+          - generic [ref=e124]: Reporte entrega
+          - generic [ref=e125]: Clientes entregas
+      - link "Resumen de Preventa Monitoreo" [ref=e126] [cursor=pointer]:
+        - /url: "#/mapavendedor"
+        - generic [ref=e127]: computer
+        - generic [ref=e129]:
+          - generic [ref=e130]: Resumen de Preventa
+          - generic [ref=e131]: Monitoreo
+      - link "Mapa vendedor visita" [ref=e132] [cursor=pointer]:
+        - /url: "#/mapavendedorvisita"
+        - generic [ref=e133]: map
+      - link "Asignacion Monitoreo" [ref=e137] [cursor=pointer]:
+        - /url: "#/mapacliente"
+        - generic [ref=e138]: computer
+        - generic [ref=e140]:
+          - generic [ref=e141]: Asignacion
+          - generic [ref=e142]: Monitoreo
+      - link "Cambios" [ref=e143] [cursor=pointer]:
+        - /url: "#/bonificaciones"
+        - generic [ref=e144]: no_food
+      - link "Clientes Fotografias" [ref=e148] [cursor=pointer]:
+        - /url: "#/clientefotografias"
+        - generic [ref=e149]: photo_camera
+      - link "Pedidos" [ref=e153] [cursor=pointer]:
+        - /url: "#/pedidos"
+        - generic [ref=e154]: shopping_cart
+      - link "Encuestas" [ref=e158] [cursor=pointer]:
+        - /url: "#/encuestasIndex"
+        - generic [ref=e159]: assignment
+      - generic [ref=e163] [cursor=pointer]:
+        - generic [ref=e164]: logout
+        - generic [ref=e166]:
+          - generic [ref=e167]: Salir
+          - generic [ref=e168]: Salir del sistema
+  - main [ref=e169]:
+    - img "Quasar logo" [ref=e170]
