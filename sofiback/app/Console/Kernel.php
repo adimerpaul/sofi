@@ -17,6 +17,7 @@ class Kernel extends ConsoleKernel
     protected function schedule(Schedule $schedule)
     {
 //         $schedule->command('inspire')->hourly();
+        $schedule->command('pedidos:enviar-automatico')->everyMinute();
         $schedule->call(function () {
             DB::SELECT("UPDATE tbclientes set venta='ACTIVO'");
 

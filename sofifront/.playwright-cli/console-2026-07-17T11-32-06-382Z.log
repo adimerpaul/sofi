@@ -1,0 +1,23 @@
+[    4693ms] [INFO] [Quasar] Running SPA. @ webpack-internal:///./.quasar/client-entry.js:41
+[    4709ms] [WARNING] Feature flag __VUE_PROD_HYDRATION_MISMATCH_DETAILS__ is not explicitly defined. You are running the esm-bundler build of Vue, which expects these compile-time feature flags to be globally injected via the bundler config in order to get better tree-shaking in the production bundle.
+
+For more details, see https://link.vuejs.org/feature-flags. @ webpack-internal:///./node_modules/@vue/runtime-core/dist/runtime-core.esm-bundler.js:4801
+[    4812ms] [WARNING] [webpack-dev-server] Warnings while compiling. @ webpack-internal:///./node_modules/webpack-dev-server/client/modules/logger/index.js:555
+[    4813ms] [WARNING] [webpack-dev-server] WARNING in ./src/pages/MapaCliente/MapaCliente.vue?vue&type=template&id=ac296c72&scoped=true (./node_modules/@quasar/app/lib/webpack/loader.js.transform-quasar-imports.js!./node_modules/babel-loader/lib/index.js??clonedRuleSet-2.use[0]!./node_modules/vue-loader/dist/templateLoader.js??ruleSet[1].rules[3]!./node_modules/@quasar/app/lib/webpack/loader.vue.auto-import-quasar.js??ruleSet[0].use[0]!./node_modules/vue-loader/dist/index.js??ruleSet[0].use[1]!./src/pages/MapaCliente/MapaCliente.vue?vue&type=template&id=ac296c72&scoped=true)
+Module Warning (from ./node_modules/vue-loader/dist/templateLoader.js):
+(Emitted value instead of an instance of Error) <tr> cannot be child of <table>, according to HTML specifications. This can cause hydration errors or potentially disrupt future functionality.
+201|          <q-card-section>
+202|            <table>
+203|              <tr>
+   |              ^^^^
+204|                <th>PEDIDO</th>
+   |  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+205|                <th>CODIGO</th>
+   |  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+206|                <th>CANTIDAD</th>
+   |  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+207|                <th>PRODUCTO</th>
+   |  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+208|              </tr>
+   |  ^^^^^^^^^^^^^^^^^ @ webpack-internal:///./node_modules/webpack-dev-server/client/modules/logger/index.js:555
+[    5000ms] [VERBOSE] [DOM] Input elements should have autocomplete attributes (suggested: "current-password"): (More info: https://goo.gl/9p2vKq) %o @ http://localhost:8081/#/login:0

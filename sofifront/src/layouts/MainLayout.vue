@@ -202,6 +202,18 @@
             </q-item-label>
           </q-item-section>
         </q-item>
+        <q-item clickable active-class="bg-primary text-white" exact to="horariosenvio"
+                v-if="encargados.includes($store.getters['login/user'].ci)">
+          <q-item-section avatar>
+            <q-icon name="schedule_send"/>
+          </q-item-section>
+          <q-item-section>
+            <q-item-label>Horarios de Envio</q-item-label>
+            <q-item-label caption>
+              Envio automatico de pedidos
+            </q-item-label>
+          </q-item-section>
+        </q-item>
         <q-item clickable active-class="bg-primary text-white" exact to="generar"
                 v-if="encargados.includes($store.getters['login/user'].ci)">
           <q-item-section avatar>

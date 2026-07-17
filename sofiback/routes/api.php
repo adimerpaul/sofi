@@ -54,6 +54,7 @@ Route::group(['middleware'=>'auth:sanctum'],function (){
     Route::resource('/ruta',\App\Http\Controllers\RutaController::class);
     Route::resource('/entrega',\App\Http\Controllers\EntregaController::class);
     Route::resource('/prestamo',\App\Http\Controllers\PrestamoController::class);
+    Route::resource('/horarioenvio',\App\Http\Controllers\HorarioEnvioController::class);
 
     Route::get('/listdeudores',[\App\Http\Controllers\CobrarController::class,'listdeudores']);
     Route::get('/listProducto',[\App\Http\Controllers\ProductoController::class,'listProducto']);
