@@ -17,6 +17,8 @@ class ProductoController extends Controller{
             'tipo',
             DB::raw('(SELECT SUM(s.cant - s.saldo) FROM tbstock s WHERE s.cod_prod = tbproductos.cod_prod) as cantidad')
         ])
+//            que no tena el texto inactivo
+            ->where('Producto', 'not like', '%inactivo%')
             ->orderByDesc('cantidad')
             ->get();
 
