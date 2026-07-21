@@ -12,491 +12,51 @@
             {{ '11.5.6' }}
           </q-chip>
         </q-toolbar-title>
-        <!--        <div>Quasar v{{ $q.version }}</div>-->
         <div>
-          <!--          <q-input dense bg-color="white" v-model="$store.state.login.url" outlined label="url" />-->
-                    <q-btn v-if="$store.getters['login/isLoggedIn']" @click="logout" size="xs" label="Salir" icon="logout" color="negative" dense no-caps/>
+          <q-btn v-if="$store.getters['login/isLoggedIn']" @click="logout" size="xs" label="Salir" icon="logout" color="negative" dense no-caps/>
         </div>
       </q-toolbar>
     </q-header>
     <q-drawer v-model="leftDrawerOpen" show-if-above bordered
-              :width="200"
+              :width="210"
               :breakpoint="500">
-      <q-list dense>
-        <q-item-label header>Opciones</q-item-label>
-        <q-item clickable active-class="bg-primary text-white" exact to="/">
-          <q-item-section avatar>
-            <q-icon name="home"/>
+      <q-list dense class="menu-list">
+        <q-item-label header class="menu-header">Opciones</q-item-label>
+
+        <q-item
+          v-for="(item, index) in menuItems"
+          :key="index"
+          clickable
+          exact
+          dense
+          class="menu-item"
+          active-class="menu-item--active"
+          :to="item.to"
+          @click="onMenuClick(item)"
+        >
+          <q-item-section avatar class="menu-avatar">
+            <q-icon :name="item.icon" size="18px"/>
           </q-item-section>
           <q-item-section>
-            <q-item-label>Principal</q-item-label>
-            <q-item-label caption>
-              Principal
-            </q-item-label>
-          </q-item-section>
-        </q-item>
-        <q-item v-if="!$store.getters['login/isLoggedIn']" exact to="login">
-          <q-item-section avatar>
-            <q-icon name="login"/>
-          </q-item-section>
-          <q-item-section>
-            <q-item-label>Ingresar</q-item-label>
-            <q-item-label caption>
-              Ingresar al sistema
-            </q-item-label>
-          </q-item-section>
-        </q-item>
-        <q-item clickable active-class="bg-primary text-white" exact to="visita"
-                v-if="vendores.includes($store.getters['login/user'].ci)">
-          <q-item-section avatar>
-            <q-icon name="map"/>
-          </q-item-section>
-          <q-item-section>
-            <q-item-label>Realizar Visita</q-item-label>
-            <q-item-label caption>
-              Realizar Visita
-            </q-item-label>
-          </q-item-section>
-        </q-item>
-        <q-item clickable active-class="bg-primary text-white" exact to="clientevisita"
-                v-if="vendores.includes($store.getters['login/user'].ci)">
-          <q-item-section avatar>
-            <q-icon name="map"/>
-          </q-item-section>
-          <q-item-section>
-            <q-item-label>Ver Clientes Dia</q-item-label>
-            <q-item-label caption>
-              ver la semana
-            </q-item-label>
-          </q-item-section>
-        </q-item>
-        <q-item clickable active-class="bg-primary text-white" exact to="mispedidos"
-                v-if="vendores.includes($store.getters['login/user'].ci)">
-          <q-item-section avatar>
-            <q-icon name="list"/>
-          </q-item-section>
-          <q-item-section>
-            <q-item-label>Mis pedidos</q-item-label>
-            <q-item-label caption>
-              Mis pedidos
-            </q-item-label>
-          </q-item-section>
-        </q-item>
-        <q-item clickable active-class="bg-primary text-white" exact to="mispedidostotales"
-                v-if="digitador.includes($store.getters['login/user'].ci)">
-          <q-item-section avatar>
-            <q-icon name="list"/>
-          </q-item-section>
-          <q-item-section>
-            <q-item-label>Mis pedidos totales</q-item-label>
-            <q-item-label caption>
-              Mis pedidos totales
-            </q-item-label>
-          </q-item-section>
-        </q-item>
-        <q-item clickable active-class="bg-primary text-white" exact to="clientes"
-                v-if="$store.getters['login/user'].ci=='7329536'">
-          <q-item-section avatar>
-            <q-icon name="people"/>
-          </q-item-section>
-          <q-item-section>
-            <q-item-label>Lista Clientes</q-item-label>
-            <q-item-label caption>
-              Habilitar Cliente
-            </q-item-label>
-          </q-item-section>
-        </q-item>
-        <q-item clickable active-class="bg-primary text-white" exact to="pendientes"
-                v-if="$store.getters['login/user'].ci=='7329536'">
-          <q-item-section avatar>
-            <q-icon name="local_grocery_store"/>
-          </q-item-section>
-          <q-item-section>
-            <q-item-label>Pedidos Pendientes</q-item-label>
-            <q-item-label caption>
-              Faltantes
-            </q-item-label>
-          </q-item-section>
-        </q-item>
-        <q-item clickable active-class="bg-primary text-white" exact to="clientepedido"
-                v-if="$store.getters['login/user'].ci=='7329536'">
-          <q-item-section avatar>
-            <q-icon name="local_mall"/>
-          </q-item-section>
-          <q-item-section>
-            <q-item-label>Pedidos</q-item-label>
-            <q-item-label caption>
-              Registrados
-            </q-item-label>
-          </q-item-section>
-        </q-item>
-        <q-item clickable active-class="bg-primary text-white" exact to="listpedido"
-                v-if="digitador.includes($store.getters['login/user'].ci)">
-          <q-item-section avatar>
-            <q-icon name="shopping_cart"/>
-          </q-item-section>
-          <q-item-section>
-            <q-item-label>Listado Pedidos</q-item-label>
-            <q-item-label caption>
-              Registrados
-            </q-item-label>
-          </q-item-section>
-        </q-item>
-        <q-item clickable active-class="bg-primary text-white" exact to="cobrosrealizados"
-                v-if="vendores.includes($store.getters['login/user'].ci) || cobrador.includes($store.getters['login/user'].ci) || $store.getters['login/user'].ci=='7329536'">
-          <q-item-section avatar>
-            <q-icon name="monetization_on"/>
-          </q-item-section>
-          <q-item-section>
-            <q-item-label>Cobros realizados</q-item-label>
-            <q-item-label caption>
-              Cobros realizados
-            </q-item-label>
-          </q-item-section>
-        </q-item>
-        <q-item clickable active-class="bg-primary text-white" exact to="cobranza"
-                v-if="vendores.includes($store.getters['login/user'].ci) || cobrador.includes($store.getters['login/user'].ci)">
-          <q-item-section avatar>
-            <q-icon name="receipt"/>
-          </q-item-section>
-          <q-item-section>
-            <q-item-label>Cobranzas</q-item-label>
-            <q-item-label caption>
-              Cobro a cliente
-            </q-item-label>
-          </q-item-section>
-        </q-item>
-        <q-item clickable active-class="bg-primary text-white" exact to="miscobranzas"
-                v-if="vendores.includes($store.getters['login/user'].ci) || cobrador.includes($store.getters['login/user'].ci)">
-          <q-item-section avatar>
-            <q-icon name="money"/>
-          </q-item-section>
-          <q-item-section>
-            <q-item-label>Mis Cobros</q-item-label>
-            <q-item-label caption>
-              Mis Cobros
-            </q-item-label>
-          </q-item-section>
-        </q-item>
-        <q-item clickable active-class="bg-primary text-white" exact to="productos"
-                v-if="vendores.includes($store.getters['login/user'].ci)">
-          <q-item-section avatar>
-            <q-icon name="list"/>
-          </q-item-section>
-          <q-item-section>
-            <q-item-label>Productos</q-item-label>
-            <q-item-label caption>
-              Mis Productos
-            </q-item-label>
-          </q-item-section>
-        </q-item>
-        <q-item clickable active-class="bg-primary text-white" exact to="nopedido"
-                v-if="vendores.includes($store.getters['login/user'].ci)">
-          <q-item-section avatar>
-            <q-icon name="list"/>
-          </q-item-section>
-          <q-item-section>
-            <q-item-label>Cliente No Pedido</q-item-label>
-            <q-item-label caption>
-              No pedido
-            </q-item-label>
-          </q-item-section>
-        </q-item>
-        <q-item clickable active-class="bg-primary text-white" exact to="horariosenvio"
-                v-if="encargados.includes($store.getters['login/user'].ci)">
-          <q-item-section avatar>
-            <q-icon name="schedule_send"/>
-          </q-item-section>
-          <q-item-section>
-            <q-item-label>Horarios de Envio</q-item-label>
-            <q-item-label caption>
-              Envio automatico de pedidos
-            </q-item-label>
-          </q-item-section>
-        </q-item>
-        <q-item clickable active-class="bg-primary text-white" exact to="generar"
-                v-if="encargados.includes($store.getters['login/user'].ci)">
-          <q-item-section avatar>
-            <q-icon name="money"/>
-          </q-item-section>
-          <q-item-section>
-            <q-item-label>Exportar excel</q-item-label>
-            <q-item-label caption>
-              Exportar excel
-            </q-item-label>
-          </q-item-section>
-        </q-item>
-        <q-item clickable active-class="bg-primary text-white" exact to="genreporte"
-                v-if="supervisor.includes($store.getters['login/user'].ci) ||supervisor2.includes($store.getters['login/user'].ci) ||  encargados.includes($store.getters['login/user'].ci)">
-          <q-item-section avatar>
-            <q-icon name="receipt_long"/>
-          </q-item-section>
-          <q-item-section>
-            <q-item-label>Exportar excel Pedidos</q-item-label>
-            <q-item-label caption>
-              Pedidos Rango Fecha
-            </q-item-label>
-          </q-item-section>
-        </q-item>
-        <q-item clickable active-class="bg-primary text-white" exact to="ruta"
-                v-if="despachador.includes($store.getters['login/user'].ci)">
-          <q-item-section avatar>
-            <q-icon name="map"/>
-          </q-item-section>
-          <q-item-section>
-            <q-item-label>Ruta de Entregas</q-item-label>
-            <q-item-label caption>
-              Ruta de Entregas
-            </q-item-label>
-          </q-item-section>
-        </q-item>
-        <q-item clickable active-class="bg-primary text-white" exact to="despacho"
-                v-if="despachador.includes($store.getters['login/user'].ci) || supervisor2.includes($store.getters['login/user'].ci)">
-          <q-item-section avatar>
-            <q-icon name="description"/>
-          </q-item-section>
-          <q-item-section>
-            <q-item-label>Reporte Entrega</q-item-label>
-            <q-item-label caption>
-              Entregas
-            </q-item-label>
-          </q-item-section>
-        </q-item>
-        <q-item clickable active-class="bg-primary text-white" exact to="avance"
-                v-if="vendores.includes($store.getters['login/user'].ci)">
-          <q-item-section avatar>
-            <q-icon name="summarize"/>
-          </q-item-section>
-          <q-item-section>
-            <q-item-label>Reporte Pedidos / Entregas</q-item-label>
-            <q-item-label caption>
-              Resumen
-            </q-item-label>
-          </q-item-section>
-        </q-item>
-        <q-item clickable active-class="bg-primary text-white" exact to="entrega"
-                v-if="supervisor.includes($store.getters['login/user'].ci) || encargados.includes($store.getters['login/user'].ci)">
-          <q-item-section avatar>
-            <q-icon name="dvr"/>
-          </q-item-section>
-          <q-item-section>
-            <q-item-label>Reporte Entrega</q-item-label>
-            <q-item-label caption>
-              Entregas
-            </q-item-label>
-          </q-item-section>
-        </q-item>
-        <q-item clickable active-class="bg-primary text-white" exact to="reporte"
-                v-if="encargados.includes($store.getters['login/user'].ci)">
-          <q-item-section avatar>
-            <q-icon name="list"/>
-          </q-item-section>
-          <q-item-section>
-            <q-item-label>Reporte entrega</q-item-label>
-            <q-item-label caption>
-              Clientes entregas
-            </q-item-label>
-          </q-item-section>
-        </q-item>
-        <q-item clickable active-class="bg-primary text-white" exact to="almacen"
-                v-if="almacen.includes($store.getters['login/user'].ci)">
-          <q-item-section avatar>
-            <q-icon name="o_store"/>
-          </q-item-section>
-          <q-item-section>
-            <q-item-label>Almacen</q-item-label>
-            <q-item-label caption>
-              Almacen
-            </q-item-label>
-          </q-item-section>
-        </q-item>
-        <q-item clickable active-class="bg-primary text-white" exact to="almacenVerificar"
-                v-if="almacen.includes($store.getters['login/user'].ci)">
-          <q-item-section avatar>
-            <!--            icono pendiente-->
-            <q-icon name="o_store"/>
-          </q-item-section>
-          <q-item-section>
-            <q-item-label>Verificar Almacen</q-item-label>
-            <q-item-label caption>
-              Verificar Almacen
-            </q-item-label>
-          </q-item-section>
-        </q-item>
-        <q-item clickable active-class="bg-primary text-white" exact to="almacenVerificado"
-                v-if="almacen.includes($store.getters['login/user'].ci)">
-          <q-item-section avatar>
-            <q-icon name="o_store"/>
-          </q-item-section>
-          <q-item-section>
-            <q-item-label>Verificado Almacen</q-item-label>
-            <q-item-label caption>
-              Verificado Almacen
-            </q-item-label>
-          </q-item-section>
-        </q-item>
-        <q-item clickable active-class="bg-primary text-white" exact to="modifica"
-                v-if="supervisor.includes($store.getters['login/user'].ci)">
-          <q-item-section avatar>
-            <q-icon name="people"/>
-          </q-item-section>
-          <q-item-section>
-            <q-item-label>Asignar preventista</q-item-label>
-            <q-item-label caption>
-              Modifica al preventista
+            <q-item-label lines="1" class="menu-label">{{ item.label }}</q-item-label>
+            <q-item-label v-if="item.caption" lines="1" caption class="menu-caption">
+              {{ item.caption }}
             </q-item-label>
           </q-item-section>
         </q-item>
 
-        <q-item clickable active-class="bg-primary text-white" exact to="monitoreo"
-                v-if="supervisor.includes($store.getters['login/user'].ci)">
-          <q-item-section avatar>
-            <q-icon name="computer"/>
-          </q-item-section>
-          <q-item-section>
-            <q-item-label>Monitoreo</q-item-label>
-            <q-item-label caption>
-              Monitoreo
-            </q-item-label>
-          </q-item-section>
-        </q-item>
-        <q-item clickable active-class="bg-primary text-white" exact to="mapavendedor"
-                v-if="supervisor.includes($store.getters['login/user'].ci) || supervisor2.includes($store.getters['login/user'].ci) || $store.getters['login/user'].ci=='123321'">
-          <q-item-section avatar>
-            <q-icon name="computer"/>
-          </q-item-section>
-          <q-item-section>
-            <q-item-label>Resumen de Preventa</q-item-label>
-            <q-item-label caption>
-              Monitoreo
-            </q-item-label>
-          </q-item-section>
-        </q-item>
-        <q-item clickable active-class="bg-primary text-white" exact to="mapavendedorvisita"
-                v-if="supervisor.includes($store.getters['login/user'].ci) || supervisor2.includes($store.getters['login/user'].ci) || $store.getters['login/user'].ci=='123321'">
-          <q-item-section avatar>
-            <q-icon name="map"/>
-          </q-item-section>
-          <q-item-section>
-            <q-item-label>Mapa vendedor visita</q-item-label>
-<!--            <q-item-label caption>-->
-<!--              Monitoreo-->
-<!--            </q-item-label>-->
-          </q-item-section>
-        </q-item>
-        <q-item clickable active-class="bg-primary text-white" exact to="mapacliente"
-                v-if="asignar.includes($store.getters['login/user'].ci) ">
-          <q-item-section avatar>
-            <q-icon name="computer"/>
-          </q-item-section>
-          <q-item-section>
-            <q-item-label>Asignacion</q-item-label>
-            <q-item-label caption>
-              Monitoreo
-            </q-item-label>
-          </q-item-section>
-        </q-item>
-        <q-item clickable active-class="bg-primary text-white" exact @click="irformulario"
-                v-if="vendores.includes($store.getters['login/user'].ci) || cobrador.includes($store.getters['login/user'].ci)">
-          <q-item-section avatar>
-            <q-icon name="people"/>
-          </q-item-section>
-          <q-item-section>
-            <q-item-label>Alta Cliente</q-item-label>
-            <q-item-label caption>
-              Formulario
-            </q-item-label>
-          </q-item-section>
-        </q-item>
-        <q-item clickable active-class="bg-primary text-white" exact to="bonificaciones"
-            v-if="supervisor.includes($store.getters['login/user'].ci) || $store.getters['login/user'].ci=='123321'">
-          <q-item-section avatar>
-            <q-icon name="no_food"/>
-          </q-item-section>
-          <q-item-section>
-            <q-item-label>Cambios</q-item-label>
-          </q-item-section>
-        </q-item>
-        <q-item clickable active-class="bg-primary text-white" exact to="clientefotografias"
-                v-if="supervisor.includes($store.getters['login/user'].ci) || $store.getters['login/user'].ci=='123321'">
-          <q-item-section avatar>
-            <q-icon name="photo_camera"/>
-          </q-item-section>
-          <q-item-section>
-            <q-item-label>Clientes Fotografias</q-item-label>
-          </q-item-section>
-        </q-item>
-        <q-item clickable active-class="bg-primary text-white" exact to="pedidos"
-                v-if="encargados.includes($store.getters['login/user'].ci) || cobrador.includes($store.getters['login/user'].ci)">
-          <q-item-section avatar>
-            <q-icon name="shopping_cart"/>
-          </q-item-section>
-          <q-item-section>
-            <q-item-label>
-              Pedidos
-            </q-item-label>
-          </q-item-section>
-        </q-item>
-        <q-item clickable active-class="bg-primary text-white" exact to="encuestasIndex"
-                v-if="encargados.includes($store.getters['login/user'].ci) || cobrador.includes($store.getters['login/user'].ci)">
-          <q-item-section avatar>
-            <q-icon name="assignment"/>
-          </q-item-section>
-          <q-item-section>
-            <q-item-label>
-              Encuestas
-            </q-item-label>
-          </q-item-section>
-        </q-item>
-        <q-item clickable active-class="bg-primary text-white" exact @click="irformulario2"
-                v-if="vendores.includes($store.getters['login/user'].ci) || cobrador.includes($store.getters['login/user'].ci)">
-          <q-item-section avatar>
-            <q-icon name="people"/>
-          </q-item-section>
-          <q-item-section>
-            <q-item-label>Cambios por Calidad</q-item-label>
-            <q-item-label caption>
-              Formulario
-            </q-item-label>
-          </q-item-section>
-        </q-item>
-<!--        { path: '/pedidos', component: () => import('pages/Pedidos/PedidosLista.vue'), meta: { requiresAuth: true } },-->
-        <!--        <q-item clickable exact to="asignar">-->
-        <!--          <q-item-section avatar>-->
-        <!--            <q-icon name="people" />-->
-        <!--          </q-item-section>-->
-        <!--          <q-item-section>-->
-        <!--            <q-item-label>Repartidor </q-item-label>-->
-        <!--            <q-item-label caption>-->
-        <!--              Repartidor-->
-        <!--            </q-item-label>-->
-        <!--          </q-item-section>-->
-        <!--        </q-item>-->
-
-        <!--        <q-item clickable exact to="misasignaciones">-->
-        <!--          <q-item-section avatar>-->
-        <!--            <q-icon name="shop" />-->
-        <!--          </q-item-section>-->
-        <!--          <q-item-section>-->
-        <!--            <q-item-label>Mis asignaciones </q-item-label>-->
-        <!--            <q-item-label caption>-->
-        <!--              Mis asignaciones-->
-        <!--            </q-item-label>-->
-        <!--          </q-item-section>-->
-        <!--        </q-item>-->
-
-
-        <q-item v-if="$store.getters['login/isLoggedIn']" clickable @click="logout">
-          <q-item-section avatar>
-            <q-icon name="logout"/>
-          </q-item-section>
-          <q-item-section>
-            <q-item-label>Salir</q-item-label>
-            <q-item-label caption>
-              Salir del sistema
-            </q-item-label>
-          </q-item-section>
-        </q-item>
+        <template v-if="$store.getters['login/isLoggedIn']">
+          <q-separator spaced class="q-mx-sm"/>
+          <q-item clickable dense class="menu-item menu-item--logout" @click="logout">
+            <q-item-section avatar class="menu-avatar">
+              <q-icon name="logout" size="18px"/>
+            </q-item-section>
+            <q-item-section>
+              <q-item-label lines="1" class="menu-label">Salir</q-item-label>
+              <q-item-label lines="1" caption class="menu-caption">Salir del sistema</q-item-label>
+            </q-item-section>
+          </q-item>
+        </template>
       </q-list>
     </q-drawer>
 
@@ -523,19 +83,77 @@ export default {
       digitador: ['1223334444', '7308976',  '7329688', '7277481', '123321','7205489','7312297']
     }
   },
+  computed: {
+    ci() {
+      return this.$store.getters['login/user'].ci
+    },
+    menuItems() {
+      const ci = this.ci
+      const esVendedor = this.vendores.includes(ci)
+      const esEncargado = this.encargados.includes(ci)
+      const esAsignar = this.asignar.includes(ci)
+      const esAlmacen = this.almacen.includes(ci)
+      const esCobrador = this.cobrador.includes(ci)
+      const esDespachador = this.despachador.includes(ci)
+      const esSupervisor = this.supervisor.includes(ci)
+      const esSupervisor2 = this.supervisor2.includes(ci)
+      const esDigitador = this.digitador.includes(ci)
+
+      const items = [
+        { label: 'Principal', icon: 'home', to: '/', show: true },
+        { label: 'Ingresar', caption: 'Ingresar al sistema', icon: 'login', to: 'login', show: !this.$store.getters['login/isLoggedIn'] },
+        { label: 'Realizar Visita', icon: 'map', to: 'visita', show: esVendedor },
+        { label: 'Clientes del Día', caption: 'Ver la semana', icon: 'today', to: 'clientevisita', show: esVendedor },
+        { label: 'Mis Pedidos', icon: 'list', to: 'mispedidos', show: esVendedor },
+        { label: 'Pedidos Totales', icon: 'list_alt', to: 'mispedidostotales', show: esDigitador },
+        { label: 'Lista Clientes', caption: 'Habilitar cliente', icon: 'people', to: 'clientes', show: ci === '7329536' },
+        { label: 'Pedidos Pendientes', caption: 'Faltantes', icon: 'local_grocery_store', to: 'pendientes', show: ci === '7329536' },
+        { label: 'Pedidos', caption: 'Registrados', icon: 'local_mall', to: 'clientepedido', show: ci === '7329536' },
+        { label: 'Listado Pedidos', caption: 'Registrados', icon: 'shopping_cart', to: 'listpedido', show: esDigitador },
+        { label: 'Cobros Realizados', icon: 'monetization_on', to: 'cobrosrealizados', show: esVendedor || esCobrador || ci === '7329536' },
+        { label: 'Cobranzas', caption: 'Cobro a cliente', icon: 'receipt', to: 'cobranza', show: esVendedor || esCobrador },
+        { label: 'Mis Cobros', icon: 'money', to: 'miscobranzas', show: esVendedor || esCobrador },
+        { label: 'Productos', icon: 'inventory_2', to: 'productos', show: esVendedor },
+        { label: 'Clientes sin Pedido', icon: 'person_off', to: 'nopedido', show: esVendedor },
+        { label: 'Horarios de Envío', caption: 'Envío automático', icon: 'schedule_send', to: 'horariosenvio', show: esEncargado },
+        { label: 'Exportar Excel', icon: 'table_chart', to: 'generar', show: esEncargado },
+        { label: 'Excel Pedidos', caption: 'Rango de fechas', icon: 'receipt_long', to: 'genreporte', show: esSupervisor || esSupervisor2 || esEncargado },
+        { label: 'Ruta de Entregas', icon: 'map', to: 'ruta', show: esDespachador },
+        { label: 'Reporte Entrega', icon: 'description', to: 'despacho', show: esDespachador || esSupervisor2 },
+        { label: 'Pedidos / Entregas', caption: 'Resumen', icon: 'summarize', to: 'avance', show: esVendedor },
+        { label: 'Reporte Entrega', icon: 'dvr', to: 'entrega', show: esSupervisor || esEncargado },
+        { label: 'Reporte Entrega', caption: 'Clientes entregas', icon: 'list', to: 'reporte', show: esEncargado },
+        { label: 'Almacén', icon: 'o_store', to: 'almacen', show: esAlmacen },
+        { label: 'Verificar Almacén', icon: 'fact_check', to: 'almacenVerificar', show: esAlmacen },
+        { label: 'Almacén Verificado', icon: 'task_alt', to: 'almacenVerificado', show: esAlmacen },
+        { label: 'Asignar Preventista', icon: 'people', to: 'modifica', show: esSupervisor },
+        { label: 'Monitoreo', icon: 'computer', to: 'monitoreo', show: esSupervisor },
+        { label: 'Resumen de Preventa', caption: 'Monitoreo', icon: 'query_stats', to: 'mapavendedor', show: esSupervisor || esSupervisor2 || ci === '123321' },
+        { label: 'Mapa Visitas', icon: 'map', to: 'mapavendedorvisita', show: esSupervisor || esSupervisor2 || ci === '123321' },
+        { label: 'Asignación', caption: 'Monitoreo', icon: 'computer', to: 'mapacliente', show: esAsignar },
+        { label: 'Alta Cliente', caption: 'Formulario', icon: 'person_add', handler: 'irformulario', show: esVendedor || esCobrador },
+        { label: 'Cambios', icon: 'no_food', to: 'bonificaciones', show: esSupervisor || ci === '123321' },
+        { label: 'Clientes Fotografías', icon: 'photo_camera', to: 'clientefotografias', show: esSupervisor || ci === '123321' },
+        { label: 'Pedidos', icon: 'shopping_cart', to: 'pedidos', show: esEncargado || esCobrador },
+        { label: 'Encuestas', icon: 'assignment', to: 'encuestasIndex', show: esEncargado || esCobrador },
+        { label: 'Cambios por Calidad', caption: 'Formulario', icon: 'published_with_changes', handler: 'irformulario2', show: esVendedor || esCobrador }
+      ]
+      return items.filter(item => item.show)
+    }
+  },
   methods: {
+    onMenuClick(item) {
+      if (item.handler) {
+        this[item.handler]()
+      }
+    },
     irformulario() {
       var win = window.open('https://form.jotform.com/261335471332653', '_blank');
-      // Cambiar el foco al nuevo tab (punto opcional)
       win.focus();
     },
     irformulario2() {
       var win = window.open('https://docs.google.com/forms/d/e/1FAIpQLSfkfb6iu-mdPgVXBlemyrwLi1RRblI15J_paQQV-siiIbPQgA/viewform', '_blank');
-      // Cambiar el foco al nuevo tab (punto opcional)
       win.focus();
-    },
-    validar() {
-      return this.vendores.includes();
     },
     toggleLeftDrawer() {
       this.leftDrawerOpen = !this.leftDrawerOpen
@@ -549,16 +167,55 @@ export default {
         })
     }
   }
-  // setup () {
-  //   cons t leftDrawerOpen = ref(false)
-  //
-  //   return {
-  //     essentialLinks: linksList,
-  //     leftDrawerOpen,
-  //     toggleLeftDrawer () {
-  //       leftDrawerOpen.value = !leftDrawerOpen.value
-  //     }
-  //   }
-  // }
 }
 </script>
+
+<style scoped>
+.menu-list {
+  padding: 4px 6px 12px;
+}
+.menu-header {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #90a4ae;
+  padding: 10px 10px 6px;
+}
+.menu-item {
+  border-radius: 8px;
+  min-height: 34px;
+  padding: 2px 8px;
+  margin-bottom: 2px;
+  color: #455a64;
+}
+.menu-avatar {
+  min-width: 30px;
+  padding-right: 6px;
+  color: #78909c;
+}
+.menu-label {
+  font-size: 12.5px;
+  font-weight: 500;
+  line-height: 1.2;
+}
+.menu-caption {
+  font-size: 10.5px;
+  line-height: 1.1;
+  color: #90a4ae;
+}
+.menu-item--active {
+  background: var(--q-primary);
+  color: #fff;
+}
+.menu-item--active .menu-avatar,
+.menu-item--active .menu-caption {
+  color: rgba(255, 255, 255, 0.85);
+}
+.menu-item--logout {
+  color: #c62828;
+}
+.menu-item--logout .menu-avatar {
+  color: #c62828;
+}
+</style>

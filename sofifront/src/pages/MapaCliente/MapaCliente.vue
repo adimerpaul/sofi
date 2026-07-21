@@ -200,18 +200,22 @@
         </q-card-section>
         <q-card-section>
           <table>
-            <tr>
-              <th>PEDIDO</th>
-              <th>CODIGO</th>
-              <th>CANTIDAD</th>
-              <th>PRODUCTO</th>
-            </tr>
-            <tr v-for="pedido in detalle.contenido" :key="pedido">
-              <td>{{ pedido.NroPed }}</td>
-              <td>{{ pedido.cod_prod }}</td>
-              <td>{{ pedido.Cant }}</td>
-              <td>{{ pedido.Producto }}</td>
-            </tr>
+            <thead>
+              <tr>
+                <th>PEDIDO</th>
+                <th>CODIGO</th>
+                <th>CANTIDAD</th>
+                <th>PRODUCTO</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="pedido in detalle.contenido" :key="pedido">
+                <td>{{ pedido.NroPed }}</td>
+                <td>{{ pedido.cod_prod }}</td>
+                <td>{{ pedido.Cant }}</td>
+                <td>{{ pedido.Producto }}</td>
+              </tr>
+            </tbody>
           </table>
         </q-card-section>
         <q-card-actions align="right">
