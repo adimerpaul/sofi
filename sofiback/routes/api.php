@@ -37,6 +37,9 @@ Route::post('/exportData',[\App\Http\Controllers\AlmacenController::class,'expor
 
 Route::group(['middleware'=>'auth:sanctum'],function (){
     Route::post('/me',[\App\Http\Controllers\UserController::class,'me']);
+    Route::get('/permisosList',[\App\Http\Controllers\UserController::class,'permisosList']);
+    Route::get('/usuarioPermisos/{id}',[\App\Http\Controllers\UserController::class,'usuarioPermisos']);
+    Route::post('/usuarioPermisos/{id}',[\App\Http\Controllers\UserController::class,'updateUsuarioPermisos']);
     Route::resource('/cliente',\App\Http\Controllers\ClienteController::class);
     Route::resource('/user',\App\Http\Controllers\UserController::class);
 

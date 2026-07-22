@@ -536,6 +536,12 @@ class ExcelController extends Controller
 
         // Cargar la plantilla
         $spreadsheet = \PhpOffice\PhpSpreadsheet\IOFactory::load('preparacion.xlsx');
+        // Nombres definidos rotos (#REF! sin hoja) hacen fallar removeRow
+        foreach ($spreadsheet->getDefinedNames() as $definedName) {
+            if ($definedName->getWorksheet() === null) {
+                $spreadsheet->removeDefinedName($definedName->getName(), $definedName->getScope());
+            }
+        }
         $sheet = $spreadsheet->getActiveSheet();
         $sheet->setCellValue('G1', $fecha);
 
@@ -728,16 +734,15 @@ class ExcelController extends Controller
                     }
                 }
 
-                // Observaciones
+                // Observaciones: siempre en la columna fija AE (a la derecha de la grilla)
                 if ($r->Observaciones != null) {
-                    $colLetter1 = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($col);
-                    $cell1 = $colLetter1 . $c;
-//                    $sheet->setCellValue($cell1, $r->Observaciones);
+                    $cell1 = 'AE' . $c;
                     $sheet->setCellValue($cell1, $r->bonificacionId == null ?
                         $r->Observaciones : $r->Nombres . ' - ' . $r->Observaciones);
                     $sheet->getStyle($cell1)->applyFromArray([
                         'alignment' => [
                             'horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_LEFT,
+                            'vertical' => \PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER,
                         ],
                     ]);
                 }
@@ -745,6 +750,26 @@ class ExcelController extends Controller
                 $c++;
             }
         }
+
+        // Encabezado y ancho de la columna de observaciones
+        $sheet->setCellValue('AE3', 'OBSERVACION');
+        $sheet->getStyle('AE3')->getFont()->setBold(true);
+        $sheet->getColumnDimension('AE')->setWidth(45);
+
+        // Quitar las filas sobrantes de la plantilla (deja 2 filas libres al final)
+        $ultimaFila = $sheet->getHighestRow();
+        if ($ultimaFila > $c + 1) {
+            $sheet->removeRow($c + 2, $ultimaFila - $c - 1);
+            // removeRow no limpia los altos de fila; sin esto las filas vacias siguen ocupando espacio
+            for ($fila = $c + 2; $fila <= $ultimaFila; $fila++) {
+                $sheet->getRowDimension($fila)->setRowHeight(-1);
+            }
+        }
+        $sheet->getPageSetup()->setPrintArea('A1:AE' . ($c + 1));
+
+        // Vista normal (la plantilla venia en vista previa de salto de pagina)
+        $sheet->getSheetView()->setView(\PhpOffice\PhpSpreadsheet\Worksheet\SheetView::SHEETVIEW_NORMAL);
+        $sheet->getSheetView()->setZoomScale(100);
 
         $date = date('d-m-y-' . substr((string)microtime(), 1, 8));
         $date = str_replace(".", "", $date);

@@ -9,6 +9,7 @@ export function auth_success(state, data){
   state.status = 'success'
   state.token = data.token
   state.user = data.user
+  state.permisos = (data.user && data.user.permisos) || []
   // state.usuarios=data.user.permisos.find(p=>p.id===1)!=undefined
   // state.clientes=data.user.permisos.find(p=>p.id===2)!=undefined
   // state.productos=data.user.permisos.find(p=>p.id===3)!=undefined
@@ -38,6 +39,7 @@ export function salir(state){
   state.status = ''
   state.token = ''
   state.user = {}
+  state.permisos = []
   // state.usuarios=false
   // state.clientes=false
   // state.productos=false

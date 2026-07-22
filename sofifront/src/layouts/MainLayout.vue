@@ -71,72 +71,55 @@
 export default {
   data() {
     return {
-      leftDrawerOpen: false,
-      vendores: ['4035534','5726715','5572091','10060810', '3779602', '12612870', '1593578', '33555433', '3520335', '5676554', '7422201', '9876785', '7360035', '5067737', '7331330', '7308976', '7377278', '5938578', '7351953', '7329688', '7288817', '7306963', '5773491', '3544875019', '7312297', '7326952'],
-      encargados: ['123321', '7205489', '7277481'],
-      asignar: ['7205489', '7308976', '123321', '7277481'],
-      almacen: ['7308976', '7377278', '7205489', '7277481'],
-      cobrador: ['4035534'],
-      despachador: ['7205489', 'A1SUD', 'A2NORTE', 'A3CENTRO', 'A4BOLIVAR', 'A5APOYO','A6APOYO2', 'C1RECOGE', 'B3LLALLAGUA','B4CARACOLLO', '7277481', 'B1HUANUNI', 'MOTO1', 'MOTO2', 'B2CHALLAPATA'],
-      supervisor: ['7308976', '7329688', '7288817', '7312297', '7205489', '7277481'],
-      supervisor2: ['5726715'],
-      digitador: ['1223334444', '7308976',  '7329688', '7277481', '123321','7205489','7312297']
+      leftDrawerOpen: false
     }
   },
   computed: {
-    ci() {
-      return this.$store.getters['login/user'].ci
+    can() {
+      return this.$store.getters['login/can']
     },
     menuItems() {
-      const ci = this.ci
-      const esVendedor = this.vendores.includes(ci)
-      const esEncargado = this.encargados.includes(ci)
-      const esAsignar = this.asignar.includes(ci)
-      const esAlmacen = this.almacen.includes(ci)
-      const esCobrador = this.cobrador.includes(ci)
-      const esDespachador = this.despachador.includes(ci)
-      const esSupervisor = this.supervisor.includes(ci)
-      const esSupervisor2 = this.supervisor2.includes(ci)
-      const esDigitador = this.digitador.includes(ci)
+      const can = this.can
 
       const items = [
         { label: 'Principal', icon: 'home', to: '/', show: true },
         { label: 'Ingresar', caption: 'Ingresar al sistema', icon: 'login', to: 'login', show: !this.$store.getters['login/isLoggedIn'] },
-        { label: 'Realizar Visita', icon: 'map', to: 'visita', show: esVendedor },
-        { label: 'Clientes del Día', caption: 'Ver la semana', icon: 'today', to: 'clientevisita', show: esVendedor },
-        { label: 'Mis Pedidos', icon: 'list', to: 'mispedidos', show: esVendedor },
-        { label: 'Pedidos Totales', icon: 'list_alt', to: 'mispedidostotales', show: esDigitador },
-        { label: 'Lista Clientes', caption: 'Habilitar cliente', icon: 'people', to: 'clientes', show: ci === '7329536' },
-        { label: 'Pedidos Pendientes', caption: 'Faltantes', icon: 'local_grocery_store', to: 'pendientes', show: ci === '7329536' },
-        { label: 'Pedidos', caption: 'Registrados', icon: 'local_mall', to: 'clientepedido', show: ci === '7329536' },
-        { label: 'Listado Pedidos', caption: 'Registrados', icon: 'shopping_cart', to: 'listpedido', show: esDigitador },
-        { label: 'Cobros Realizados', icon: 'monetization_on', to: 'cobrosrealizados', show: esVendedor || esCobrador || ci === '7329536' },
-        { label: 'Cobranzas', caption: 'Cobro a cliente', icon: 'receipt', to: 'cobranza', show: esVendedor || esCobrador },
-        { label: 'Mis Cobros', icon: 'money', to: 'miscobranzas', show: esVendedor || esCobrador },
-        { label: 'Productos', icon: 'inventory_2', to: 'productos', show: esVendedor },
-        { label: 'Clientes sin Pedido', icon: 'person_off', to: 'nopedido', show: esVendedor },
-        { label: 'Horarios de Envío', caption: 'Envío automático', icon: 'schedule_send', to: 'horariosenvio', show: esEncargado },
-        { label: 'Exportar Excel', icon: 'table_chart', to: 'generar', show: esEncargado },
-        { label: 'Excel Pedidos', caption: 'Rango de fechas', icon: 'receipt_long', to: 'genreporte', show: esSupervisor || esSupervisor2 || esEncargado },
-        { label: 'Ruta de Entregas', icon: 'map', to: 'ruta', show: esDespachador },
-        { label: 'Reporte Entrega', icon: 'description', to: 'despacho', show: esDespachador || esSupervisor2 },
-        { label: 'Pedidos / Entregas', caption: 'Resumen', icon: 'summarize', to: 'avance', show: esVendedor },
-        { label: 'Reporte Entrega', icon: 'dvr', to: 'entrega', show: esSupervisor || esEncargado },
-        { label: 'Reporte Entrega', caption: 'Clientes entregas', icon: 'list', to: 'reporte', show: esEncargado },
-        { label: 'Almacén', icon: 'o_store', to: 'almacen', show: esAlmacen },
-        { label: 'Verificar Almacén', icon: 'fact_check', to: 'almacenVerificar', show: esAlmacen },
-        { label: 'Almacén Verificado', icon: 'task_alt', to: 'almacenVerificado', show: esAlmacen },
-        { label: 'Asignar Preventista', icon: 'people', to: 'modifica', show: esSupervisor },
-        { label: 'Monitoreo', icon: 'computer', to: 'monitoreo', show: esSupervisor },
-        { label: 'Resumen de Preventa', caption: 'Monitoreo', icon: 'query_stats', to: 'mapavendedor', show: esSupervisor || esSupervisor2 || ci === '123321' },
-        { label: 'Mapa Visitas', icon: 'map', to: 'mapavendedorvisita', show: esSupervisor || esSupervisor2 || ci === '123321' },
-        { label: 'Asignación', caption: 'Monitoreo', icon: 'computer', to: 'mapacliente', show: esAsignar },
-        { label: 'Alta Cliente', caption: 'Formulario', icon: 'person_add', handler: 'irformulario', show: esVendedor || esCobrador },
-        { label: 'Cambios', icon: 'no_food', to: 'bonificaciones', show: esSupervisor || ci === '123321' },
-        { label: 'Clientes Fotografías', icon: 'photo_camera', to: 'clientefotografias', show: esSupervisor || ci === '123321' },
-        { label: 'Pedidos', icon: 'shopping_cart', to: 'pedidos', show: esEncargado || esCobrador },
-        { label: 'Encuestas', icon: 'assignment', to: 'encuestasIndex', show: esEncargado || esCobrador },
-        { label: 'Cambios por Calidad', caption: 'Formulario', icon: 'published_with_changes', handler: 'irformulario2', show: esVendedor || esCobrador }
+        { label: 'Realizar Visita', icon: 'map', to: 'visita', show: can('visita') },
+        { label: 'Clientes del Día', caption: 'Ver la semana', icon: 'today', to: 'clientevisita', show: can('clientevisita') },
+        { label: 'Mis Pedidos', icon: 'list', to: 'mispedidos', show: can('mispedidos') },
+        { label: 'Pedidos Totales', icon: 'list_alt', to: 'mispedidostotales', show: can('mispedidostotales') },
+        { label: 'Lista Clientes', caption: 'Habilitar cliente', icon: 'people', to: 'clientes', show: can('clientes') },
+        { label: 'Pedidos Pendientes', caption: 'Faltantes', icon: 'local_grocery_store', to: 'pendientes', show: can('pendientes') },
+        { label: 'Pedidos', caption: 'Registrados', icon: 'local_mall', to: 'clientepedido', show: can('clientepedido') },
+        { label: 'Listado Pedidos', caption: 'Registrados', icon: 'shopping_cart', to: 'listpedido', show: can('listpedido') },
+        { label: 'Cobros Realizados', icon: 'monetization_on', to: 'cobrosrealizados', show: can('cobrosrealizados') },
+        { label: 'Cobranzas', caption: 'Cobro a cliente', icon: 'receipt', to: 'cobranza', show: can('cobranza') },
+        { label: 'Mis Cobros', icon: 'money', to: 'miscobranzas', show: can('miscobranzas') },
+        { label: 'Productos', icon: 'inventory_2', to: 'productos', show: can('productos') },
+        { label: 'Clientes sin Pedido', icon: 'person_off', to: 'nopedido', show: can('nopedido') },
+        { label: 'Horarios de Envío', caption: 'Envío automático', icon: 'schedule_send', to: 'horariosenvio', show: can('horariosenvio') },
+        { label: 'Exportar Excel', icon: 'table_chart', to: 'generar', show: can('generar') },
+        { label: 'Excel Pedidos', caption: 'Rango de fechas', icon: 'receipt_long', to: 'genreporte', show: can('genreporte') },
+        { label: 'Ruta de Entregas', icon: 'map', to: 'ruta', show: can('ruta') },
+        { label: 'Reporte Entrega', icon: 'description', to: 'despacho', show: can('despacho') },
+        { label: 'Pedidos / Entregas', caption: 'Resumen', icon: 'summarize', to: 'avance', show: can('avance') },
+        { label: 'Reporte Entrega', icon: 'dvr', to: 'entrega', show: can('entrega') },
+        { label: 'Reporte Entrega', caption: 'Clientes entregas', icon: 'list', to: 'reporte', show: can('reporte') },
+        { label: 'Almacén', icon: 'o_store', to: 'almacen', show: can('almacen') },
+        { label: 'Verificar Almacén', icon: 'fact_check', to: 'almacenVerificar', show: can('almacenVerificar') },
+        { label: 'Almacén Verificado', icon: 'task_alt', to: 'almacenVerificado', show: can('almacenVerificado') },
+        { label: 'Asignar Preventista', icon: 'people', to: 'modifica', show: can('modifica') },
+        { label: 'Monitoreo', icon: 'computer', to: 'monitoreo', show: can('monitoreo') },
+        { label: 'Resumen de Preventa', caption: 'Monitoreo', icon: 'query_stats', to: 'mapavendedor', show: can('mapavendedor') },
+        { label: 'Mapa Visitas', icon: 'map', to: 'mapavendedorvisita', show: can('mapavendedorvisita') },
+        { label: 'Asignación', caption: 'Monitoreo', icon: 'computer', to: 'mapacliente', show: can('mapacliente') },
+        { label: 'Alta Cliente', caption: 'Formulario', icon: 'person_add', handler: 'irformulario', show: can('altacliente') },
+        { label: 'Cambios', icon: 'no_food', to: 'bonificaciones', show: can('bonificaciones') },
+        { label: 'Clientes Fotografías', icon: 'photo_camera', to: 'clientefotografias', show: can('clientefotografias') },
+        { label: 'Pedidos', icon: 'shopping_cart', to: 'pedidos', show: can('pedidos') },
+        { label: 'Encuestas', icon: 'assignment', to: 'encuestasIndex', show: can('encuestasIndex') },
+        { label: 'Cambios por Calidad', caption: 'Formulario', icon: 'published_with_changes', handler: 'irformulario2', show: can('cambioscalidad') },
+        { label: 'Usuarios', caption: 'Roles y permisos', icon: 'manage_accounts', to: 'usuario', show: can('usuario') }
       ]
       return items.filter(item => item.show)
     }
