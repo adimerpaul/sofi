@@ -751,10 +751,26 @@ class ExcelController extends Controller
             }
         }
 
-        // Encabezado y ancho de la columna de observaciones
+        // Encabezado de la columna de observaciones
         $sheet->setCellValue('AE3', 'OBSERVACION');
         $sheet->getStyle('AE3')->getFont()->setBold(true);
-        $sheet->getColumnDimension('AE')->setWidth(45);
+
+        // Ancho de columnas por defecto (la plantilla trae anchos personalizados)
+        foreach ($sheet->getColumnDimensions() as $colDim) {
+            $colDim->setWidth(-1);
+            $colDim->setAutoSize(false);
+        }
+        // FACTURA / CONTADO / P. TROZADO / P. POLLO comprimidas y CLIENTE ancha
+        foreach (['B', 'C', 'D', 'E'] as $colComprimida) {
+            $sheet->getColumnDimension($colComprimida)->setWidth(7);
+        }
+        $sheet->getColumnDimension('F')->setWidth(35);
+
+        // Letra 12 y alto de fila por defecto en toda la grilla de datos
+        $sheet->getStyle('A4:AE' . ($c + 1))->getFont()->setSize(12);
+        for ($fila = 4; $fila <= $c + 1; $fila++) {
+            $sheet->getRowDimension($fila)->setRowHeight(-1);
+        }
 
         // Quitar las filas sobrantes de la plantilla (deja 2 filas libres al final)
         $ultimaFila = $sheet->getHighestRow();
@@ -769,7 +785,7 @@ class ExcelController extends Controller
 
         // Vista normal (la plantilla venia en vista previa de salto de pagina)
         $sheet->getSheetView()->setView(\PhpOffice\PhpSpreadsheet\Worksheet\SheetView::SHEETVIEW_NORMAL);
-        $sheet->getSheetView()->setZoomScale(100);
+        $sheet->getSheetView()->setZoomScale(70);
 
         $date = date('d-m-y-' . substr((string)microtime(), 1, 8));
         $date = str_replace(".", "", $date);
