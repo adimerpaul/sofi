@@ -4,6 +4,7 @@ export default function () {
     url: 'http://localhost:8000/',
     token: localStorage.getItem('tokensofia') || '',
     user : {},
+    permisos: [],
     // pedido:[],
     // usuarios:false,
     // clientes:false,

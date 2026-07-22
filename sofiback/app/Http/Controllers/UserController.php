@@ -6,6 +6,8 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Spatie\Permission\Models\Permission;
+use Spatie\Permission\Models\Role;
 
 class UserController extends Controller{
 
@@ -20,6 +22,34 @@ class UserController extends Controller{
             TRIM(CONCAT_WS(" ", NULLIF(TRIM(Nombre1), ""), NULLIF(TRIM(Nombre2), ""), NULLIF(TRIM(App1), ""), NULLIF(TRIM(Apm), ""))) nombre
         FROM personal';
         return DB::select($sql);
+    }
+    public function permisosList(){
+        return response()->json([
+            'permisos'=>Permission::orderBy('name')->pluck('name'),
+            'roles'=>Role::with('permissions')->orderBy('name')->get()->map(function($rol){
+                return ['name'=>$rol->name,'permisos'=>$rol->permissions->pluck('name')];
+            }),
+        ]);
+    }
+    public function usuarioPermisos($id){
+        $user=User::findOrFail($id);
+        return response()->json([
+            'user'=>['CodAut'=>$user->CodAut,'ci'=>trim($user->ci),'nombre'=>trim($user->Nombre1.' '.$user->App1)],
+            'roles'=>$user->getRoleNames(),
+            'permisos'=>$user->getDirectPermissions()->pluck('name'),
+            'efectivos'=>$user->getAllPermissions()->pluck('name'),
+        ]);
+    }
+    public function updateUsuarioPermisos(Request $request,$id){
+        $user=User::findOrFail($id);
+        $user->syncRoles($request->roles ?? []);
+        $user->syncPermissions($request->permisos ?? []);
+        $user=User::findOrFail($id);
+        return response()->json([
+            'roles'=>$user->getRoleNames(),
+            'permisos'=>$user->getDirectPermissions()->pluck('name'),
+            'efectivos'=>$user->getAllPermissions()->pluck('name'),
+        ]);
     }
 
     public function login(Request $request){
@@ -39,6 +69,7 @@ class UserController extends Controller{
 //            ->with('permisos')
                 ->firstOrFail();
             $token=$user->createToken('auth_token')->plainTextToken;
+            $user->permisos=$user->getAllPermissions()->pluck('name');
             return response()->json(['token'=>$token,'user'=>$user],200);
         }else{
             return response()->json(['res'=>'Usuario no encontrado'],400);
@@ -107,6 +138,7 @@ class UserController extends Controller{
 //            ->with('unid')
 //            ->with('permisos')
             ->firstOrFail();
+        $user->permisos=$user->getAllPermissions()->pluck('name');
         return $user;
 
 //        return User::where('id',1)->with('unid')->get();

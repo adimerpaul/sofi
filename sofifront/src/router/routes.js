@@ -70,6 +70,7 @@ const routes = [
       { path: '/horariosenvio', component: () => import('pages/HorariosEnvio.vue'), meta: { requiresAuth: true } },
       // ClienteFotografias
       { path: '/clientefotografias', component: () => import('pages/ClienteFotografias/ClienteFotografias.vue'), meta: { requiresAuth: true } },
+      { path: '/usuario', component: () => import('pages/Usuario.vue'), meta: { requiresAuth: true } },
       { path: '/login', component: Login },
     ]
   },

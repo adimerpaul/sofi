@@ -685,6 +685,13 @@ $resPedido = $rows->groupBy('NroPed')->map(function ($g) use ($bonis) {
 })->values();
 
 
+        // Orden por zona/color cuando se pide el reporte total por zona
+        if ($request->ordenZona) {
+            $resPedido = $resPedido->sortBy(function ($item) {
+                return ($item['pedido']->colorStyle ?? 'zzz') . '|' . ($item['pedido']->cliente->zona ?? '') . '|' . $item['pedido']->NroPed;
+            })->values();
+        }
+
         // 6) UPDATE único de impresos
         $nros = $resPedido->pluck('pedido.NroPed')->unique()->values();
         \DB::table($pTable)
@@ -703,6 +710,13 @@ $resPedido = $rows->groupBy('NroPed')->map(function ($g) use ($bonis) {
 
         return $pdf->stream('document.pdf');
     }
+    // Imprime todos los pedidos del dia ordenados por zona (colores)
+    public function reportePedidoZonaTotal(Request $request, $fecha)
+    {
+        $request->merge(['ordenZona' => 1]);
+        return $this->reportePedido($request, $fecha);
+    }
+
     function reportePedidoZona(Request $request, $fecha,$placa)
     {
         // Obtener pedidos con cliente, usuario y producto relacionados

@@ -1,62 +1,54 @@
 <template>
   <q-page class="q-pa-xs">
     <div class="row">
-      <div class="col-12 col-md-2 q-pa-xs">
-        <q-input dense outlined v-model="fecha1" label="Fecha Ini" type="date" @update:model-value="mispendiente"/>
-      </div>
-      <div class="col-12 col-md-2 q-pa-xs">
-        <q-btn :loading="loading" dense color="green" label="Buscar" @click="mispendiente" no-caps icon="search"/>
-      </div>
-      <div class="col-12 col-md-2 q-pa-xs">
-<!--        <q-select square outlined v-model="vehiculo" :options="vehiculos" option-label="placa" label="Vehiculo" dense/>-->
-      </div>
-      <!--
-      <div class="col-12 col-md-2 q-pa-xs">
-        <q-btn :loading="loading" dense color="orange" label="Actulizar Comandas" href="http://192.168.1.200:3000/ventas" target="_blank" no-caps/>
-      </div>
-      <div class="col-12 col-md-2 q-pa-xs">
-        <q-btn :loading="loading" dense color="orange" label="Actulizar Productos" href="http://192.168.1.200:3000/cuentas" target="_blank" no-caps/>
-      </div>-->
-      <!--  http://192.168.1.200:3000/ventas-->
-      <div class="col-12 col-md-2 q-pa-xs text-right">
-        <!--    <q-btn :loading="loading" dense color="positive"  label="Descargar"  icon="picture_as_pdf" no-caps @click="generarPdf"/>-->
-        <q-btn-dropdown color="info" icon="print" label="Reportes" no-caps>
-          <q-list>
-                    <q-item clickable @click="generarPdf" v-close-popup>
-                      <q-item-section avatar>
-                        <q-icon name="print"/>
-                      </q-item-section>
-                      <q-item-section>Imprimir Pedidos</q-item-section>
-                    </q-item>
-            <q-item clickable @click="dialogVehiculo = true" v-close-popup>
-              <q-item-section avatar>
-                <q-icon name="print"/>
-              </q-item-section>
-              <q-item-section>Imprimir Pedidos Por Zona</q-item-section>
-            </q-item>
-            <q-item clickable @click="generarPdfProductos" v-close-popup>
-              <q-item-section avatar>
-                <q-icon name="print"/>
-              </q-item-section>
-              <q-item-section>Imprimir Productos Totales</q-item-section>
-            </q-item>
-          </q-list>
-        </q-btn-dropdown>
+      <div class="col-12 q-pa-xs">
+        <div class="row items-center q-gutter-x-xs q-gutter-y-xs">
+          <q-input dense outlined v-model="fecha1" label="Fecha Ini" type="date" class="input-fecha"
+                   @update:model-value="mispendiente"/>
+          <q-btn :loading="loading" dense unelevated size="sm" color="green" label="Buscar" @click="mispendiente" no-caps icon="search"/>
+          <q-btn-dropdown color="info" icon="print" label="Reportes" no-caps dense unelevated size="sm">
+            <q-list dense>
+              <q-item clickable @click="generarPdf" v-close-popup>
+                <q-item-section avatar>
+                  <q-icon name="print"/>
+                </q-item-section>
+                <q-item-section>Imprimir Pedidos</q-item-section>
+              </q-item>
+              <q-item clickable @click="dialogVehiculo = true" v-close-popup>
+                <q-item-section avatar>
+                  <q-icon name="print"/>
+                </q-item-section>
+                <q-item-section>Imprimir Pedidos Por Zona</q-item-section>
+              </q-item>
+              <q-item clickable @click="generarPdfZonaTotal" v-close-popup>
+                <q-item-section avatar>
+                  <q-icon name="print"/>
+                </q-item-section>
+                <q-item-section>Imprimir Pedidos Por Zona Total</q-item-section>
+              </q-item>
+              <q-item clickable @click="generarPdfProductos" v-close-popup>
+                <q-item-section avatar>
+                  <q-icon name="print"/>
+                </q-item-section>
+                <q-item-section>Imprimir Productos Totales</q-item-section>
+              </q-item>
+            </q-list>
+          </q-btn-dropdown>
+          <q-space/>
+          <q-input outlined dense debounce="300" v-model="filter" placeholder="Buscar" clearable class="input-buscar">
+            <template v-slot:append>
+              <q-icon name="search" size="18px"/>
+            </template>
+          </q-input>
+        </div>
       </div>
       <div class="col-12 q-pa-xs">
-        <q-table :rows-per-page-options="[0]" dense title="Listado de pedidos " :columns="columns" :rows="clientes"
-                 :filter="filter">
-          <template v-slot:top-right>
-            <q-input outlined dense debounce="300" v-model="filter" placeholder="Buscar">
-              <template v-slot:append>
-                <q-icon name="search"/>
-              </template>
-            </q-input>
-          </template>
+        <q-table :rows-per-page-options="[0]" dense title="Listado de pedidos" :columns="columns" :rows="clientes"
+                 :filter="filter" flat bordered class="tabla-densa">
           <template v-slot:body="props">
             <q-tr :props="props" :class="{'bg-blue-3':props.row.impreso==1}">
               <q-td key="op" :props="props">
-                <q-btn color="positive" dense flat icon="print" size="12px" style="height: 0"
+                <q-btn color="positive" dense flat icon="print" size="10px" style="height: 0"
                        @click="generarPdfOnly(props.row)"/>
               </q-td>
               <q-td key="NroPed" :props="props">
@@ -75,9 +67,9 @@
                 {{ props.row.envio }}
               </q-td>
               <q-td key="pago" :props="props">
-                <q-chip :color="props.row.pago=='CONTADO'?'red-7':'indigo'" dense text-color="white">
+                <q-badge :color="props.row.pago=='CONTADO'?'red-7':'indigo'" class="badge-pago">
                   {{ props.row.pago }}
-                </q-chip>
+                </q-badge>
               </q-td>
               <q-td key="fact" :props="props">
                 {{ props.row.fact }}
@@ -87,18 +79,6 @@
               </q-td>
             </q-tr>
           </template>
-          <!--      <template v-slot:body-cell-pago="props">-->
-          <!--        <q-td :props="props">-->
-          <!--          <q-chip :color="props.row.pago=='CONTADO'?'red-7':'indigo'" dense text-color="white">-->
-          <!--            {{props.row.pago}}-->
-          <!--          </q-chip>-->
-          <!--        </q-td>-->
-          <!--      </template>-->
-          <!--      <template v-slot:body-cell-op="props">-->
-          <!--        <q-td :props="props">-->
-          <!--           <q-btn color="info" dense flat icon="print" size="9"/>-->
-          <!--        </q-td>-->
-          <!--      </template>-->
         </q-table>
       </div>
 
@@ -200,6 +180,11 @@ export default {
       const urlapi = `${this.url}reportePedidoZona/${this.fecha1}/${this.vehiculo.placa}`
       window.open(urlapi, '_blank')
     },
+    generarPdfZonaTotal() {
+      const urlapi = `${this.url}reportePedidoZonaTotal/${this.fecha1}`
+      window.open(urlapi, '_blank')
+      this.mispendiente()
+    },
     generarPdfProductos() {
       const urlapi = `${this.url}reportePedidoProductos/${this.fecha1}`
       window.open(urlapi, '_blank')
@@ -271,5 +256,31 @@ export default {
 </script>
 
 <style scoped>
-
+.input-fecha {
+  width: 145px;
+}
+.input-buscar {
+  width: 170px;
+}
+.tabla-densa :deep(.q-table__title) {
+  font-size: 13px;
+  font-weight: 600;
+}
+.tabla-densa :deep(th) {
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: #607d8b;
+  padding: 2px 6px;
+}
+.tabla-densa :deep(td) {
+  font-size: 11px;
+  padding: 1px 6px;
+  height: 24px;
+}
+.badge-pago {
+  font-size: 9.5px;
+  padding: 2px 5px;
+}
 </style>
