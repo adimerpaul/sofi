@@ -30,7 +30,6 @@
               v-model.trim="ci"
               label="Carnet de identidad"
               autofocus
-              inputmode="numeric"
               autocomplete="username"
               :disable="loading"
               hide-bottom-space
