@@ -1,234 +1,257 @@
 <template>
-  <q-page class="q-pa-md">
-    <div class="row">
-      <div class="col-12 col-md-2"></div>
-      <div class="col-12 col-md-8">
-        <q-card>
-          <q-tabs
-            v-model="tab"
-            dense
-            class="text-grey"
-            active-color="primary"
-            indicator-color="primary"
-            align="justify"
-            narrow-indicator
-          >
-            <q-tab name="login" label="Ingresar" />
-            <!--            <q-tab name="registro" label="Registrarse" />-->
-          </q-tabs>
-          <q-separator />
-          <q-tab-panels v-model="tab" animated>
-            <q-tab-panel name="login">
-              <div class="text-h6">Ingresar al sistemas</div>
-              Por favor colocar ci y contraseña
-              <q-form @submit.prevent="login">
-                <div class="row">
-                  <div class="col-12 ">
-                    <q-input  outlined v-model="ci" label="CI*" hint="Porfavor ingresar email" :rules="rule">
-                      <template v-slot:prepend>
-                        <q-icon name="email" />
-                      </template>
-                    </q-input>
-                  </div>
-                  <div class="col-12 q-pt-md">
-                    <q-input outlined v-model="pasw" label="password*" :type="isPwd ? 'password' : 'text'" hint="Porfavor ingresar password" >
-                      <template v-slot:prepend>
-                        <q-icon name="lock" />
-                      </template>
-                      <template v-slot:append>
-                        <q-icon
-                          :name="isPwd ? 'visibility_off' : 'visibility'"
-                          class="cursor-pointer"
-                          @click="isPwd = !isPwd"
-                        />
-                      </template>
-                    </q-input>
-                  </div>
-                  <div class="col-12 q-py-md">
-                    <q-btn label="INGRESAR" color="primary" icon="login" class="full-width" type="submit"/>
-                    <!--                    <q-btn label="Registrate" color="secondary" icon="how_to_reg" @click="tab='registro'" class="full-width q-mt-xs" />-->
-                    <div class="text-caption q-py-xs">
-                      <a target="_blank" href="https://api.whatsapp.com/send?phone=59169603027&text=olvide mi contraseña">Olvidate tu contraseña?</a>
-                    </div>
+  <q-page class="login-page flex flex-center q-pa-md">
+    <div class="login-wrapper">
+      <q-card class="login-card" flat bordered>
+        <div class="login-header">
+          <div class="login-logo">
+            <img src="logo.png" alt="Sofia" @error="logoError = true" v-if="!logoError">
+            <q-icon v-else name="storefront" size="42px" color="primary"/>
+          </div>
+          <div class="text-h5 text-weight-bold text-white">Sistema Sofia</div>
+          <div class="text-caption text-white text-opacity">Ingresa con tu carnet de identidad</div>
+        </div>
 
-                  </div>
-                </div>
-              </q-form>
-            </q-tab-panel>
-            <q-tab-panel name="registro">
-              <div class="text-h6">Registrate </div>
-              Registro unico para usuarios de la Gamo
-              <q-form @submit.prevent="registrar">
-                <div class="row">
-                  <div class="col-12">
-                    <!--                    color="purple-12"-->
-                    <q-input outlined type="email" v-model="user.email" label="Email*" hint="Porfavor ingresar email" :rules="rule" required>
-                      <template v-slot:prepend>
-                        <q-icon name="email" />
-                      </template>
-                    </q-input>
-                  </div>
-                  <div class="col-12 q-pt-md">
-                    <q-input outlined v-model="user.carnet" label="Carnet o NIT*" hint="Porfavor ingresar carnet o nit" :rules="rule">
-                      <template v-slot:prepend>
-                        <q-icon name="credit_card" />
-                      </template>
-                    </q-input>
-                  </div>
-                  <div class="col-12 q-pt-md">
-                    <q-input outlined v-model="user.name" label="Nombre completo*" hint="Porfavor ingresar nombre completo" :rules="rule">
-                      <template v-slot:prepend>
-                        <q-icon name="people" />
-                      </template>
-                    </q-input>
-                  </div>
-                  <div class="col-12 q-pt-md">
-                    <q-input outlined v-model="user.password" label="password*" :type="isPwd ? 'password' : 'text'" hint="Porfavor ingresar carnet de identidad" >
-                      <template v-slot:prepend>
-                        <q-icon name="lock" />
-                      </template>
-                      <template v-slot:append>
-                        <q-icon
-                          :name="isPwd ? 'visibility_off' : 'visibility'"
-                          class="cursor-pointer"
-                          @click="isPwd = !isPwd"
-                        />
-                      </template>
-                    </q-input>
-                  </div>
-                  <div class="col-12 q-pt-md">
-                    <q-select use-input @filter="filterFn" outlined v-model="user.unit" label="Unidad*" :options="units" option-label="nombre"  hint="Porfavor ingresar unidad"  >
-                      <template v-slot:prepend>
-                        <q-icon name="home" />
-                      </template>
-                    </q-select>
-                  </div>
-                  <!--                  <div class="col-12">-->
-                  <!--                    <q-input outlined v-model="user.direccion" label="Direccion*" hint="Direccion de donde vives" :rules="rule">-->
-                  <!--                      <template v-slot:prepend>-->
-                  <!--                        <q-icon name="home" />-->
-                  <!--                      </template>-->
-                  <!--                    </q-input>-->
-                  <!--                  </div>-->
-                  <div class="col-12 q-py-md">
-                    <q-btn label="Crea tu cuenta" color="primary" icon="login" class="full-width" type="submit"/>
-                    <q-btn label="Ingresa" color="secondary" icon="how_to_reg" @click="tab='login'" class="full-width q-mt-xs" />
-                    <div class="text-caption q-py-xs">
-                      <a target="_blank" href="https://api.whatsapp.com/send?phone=59169603027&text=olvide mi contraseña gamo">Olvidate tu contraseña?</a>
-                    </div>
-                  </div>
-                </div>
-              </q-form>
-            </q-tab-panel>
-          </q-tab-panels>
-        </q-card>
-      </div>
-      <div class="col-12 col-md-2">
-      </div>
+        <q-card-section class="q-pt-lg">
+          <q-banner
+            v-if="error"
+            dense
+            rounded
+            class="bg-red-1 text-red-9 q-mb-md login-error"
+          >
+            <template v-slot:avatar>
+              <q-icon name="error_outline" color="negative"/>
+            </template>
+            {{ error }}
+          </q-banner>
+
+          <q-form @submit.prevent="login" ref="formRef" greedy>
+            <q-input
+              outlined
+              v-model.trim="ci"
+              label="Carnet de identidad"
+              autofocus
+              inputmode="numeric"
+              autocomplete="username"
+              :disable="loading"
+              hide-bottom-space
+              lazy-rules
+              :rules="ciRules"
+              @update:model-value="error = ''"
+            >
+              <template v-slot:prepend>
+                <q-icon name="badge"/>
+              </template>
+            </q-input>
+
+            <q-input
+              class="q-mt-md"
+              outlined
+              v-model="pasw"
+              label="Contraseña"
+              :type="isPwd ? 'password' : 'text'"
+              autocomplete="current-password"
+              :disable="loading"
+              hide-bottom-space
+              lazy-rules
+              :rules="paswRules"
+              @update:model-value="error = ''"
+            >
+              <template v-slot:prepend>
+                <q-icon name="lock"/>
+              </template>
+              <template v-slot:append>
+                <q-icon
+                  :name="isPwd ? 'visibility_off' : 'visibility'"
+                  class="cursor-pointer"
+                  @click="isPwd = !isPwd"
+                />
+              </template>
+            </q-input>
+
+            <q-btn
+              label="INGRESAR"
+              color="primary"
+              icon="login"
+              class="full-width q-mt-lg"
+              size="md"
+              unelevated
+              no-caps
+              type="submit"
+              :loading="loading"
+            >
+              <template v-slot:loading>
+                <q-spinner-dots class="q-mr-sm"/>
+                Verificando...
+              </template>
+            </q-btn>
+          </q-form>
+        </q-card-section>
+
+        <q-separator/>
+
+        <q-card-section class="text-center q-py-sm">
+          <a
+            class="text-caption text-grey-7 login-link"
+            target="_blank"
+            rel="noopener"
+            href="https://api.whatsapp.com/send?phone=59169603027&text=olvide mi contraseña"
+          >
+            <q-icon name="help_outline" size="16px"/>
+            ¿Olvidaste tu contraseña?
+          </a>
+        </q-card-section>
+      </q-card>
     </div>
   </q-page>
 </template>
 
 <script>
 export default {
-  data(){
-    return{
-      rule:[
-        val => (val && val.length > 0) || 'Porfavor ingresar dato'
+  data () {
+    return {
+      ci: '',
+      pasw: '',
+      isPwd: true,
+      loading: false,
+      error: '',
+      logoError: false,
+      ciRules: [
+        val => (!!val && val.length > 0) || 'Ingresa tu carnet de identidad'
       ],
-      ci:'',
-      pasw:'',
-      tab:'login',
-      user:{},
-      isPwd:true,
-      units:[],
-      units2:[],
+      paswRules: [
+        val => (!!val && val.length > 0) || 'Ingresa tu contraseña'
+      ]
     }
   },
-  created() {
-    if (this.$store.getters["login/isLoggedIn"]){
+  created () {
+    if (this.$store.getters['login/isLoggedIn']) {
       this.$router.push('/')
     }
-
-        // this.$api.post('ctacobrar').then(res=>{
-        //   console.log(res.data);
-        // })
-
-    // this.$q.loading.show()
-    // this.$axios.get(process.env.API+'/unit').then(res=>{
-    //   this.units=res.data
-    //   this.units2=res.data
-    //   // this.user.unit=res.data[0]
-    //   this.$q.loading.hide()
-    // })
   },
   methods: {
-    filterFn (val, update) {
-      if (val === '') {
-        update(() => {
-          this.units = this.units2
-          // here you have access to "ref" which
-          // is the Vue reference of the QSelect
-        })
-        return
+    // Traduce cualquier fallo del login a un mensaje entendible.
+    // Antes se leia err.response.data.res directo y reventaba (sin mostrar nada)
+    // cuando el backend estaba caido o respondia otro formato.
+    mensajeDeError (err) {
+      if (err && err.response) {
+        const data = err.response.data || {}
+        if (data.res) return data.res
+        if (data.errors) {
+          return Object.values(data.errors).flat().join(' ')
+        }
+        switch (err.response.status) {
+          case 400:
+          case 401:
+          case 404:
+            return 'Usuario o contraseña incorrectos'
+          case 403:
+            return 'Tu usuario no tiene permiso para ingresar'
+          case 419:
+            return 'La sesión expiró, vuelve a intentarlo'
+          case 429:
+            return 'Demasiados intentos, espera un momento'
+          default:
+            return 'Error del servidor (' + err.response.status + '). Intenta más tarde'
+        }
       }
-      update(() => {
-        const needle = val.toLowerCase()
-        this.units = this.units2.filter(v => v.nombre.toLowerCase().indexOf(needle) > -1)
-      })
+      if (err && (err.code === 'ECONNABORTED' || String(err.message || '').includes('timeout'))) {
+        return 'El servidor tardó demasiado en responder. Revisa tu conexión'
+      }
+      return 'No se pudo conectar con el servidor. Revisa tu conexión a internet'
     },
-    registrar(){
-      // console.log(this.user.unit_id)
-      if (this.user.unit=='' || this.user.unit==undefined){
-        this.$q.notify({
-          message:'Debes seleccionar unidad',
-          color:'red',
-          icon:'error'
-        })
-        return false
-      }
-      this.$q.loading.show()
-      this.user.unit_id=this.user.unit.id
-      this.$store.dispatch('login/register', this.user).then(() =>{
-        this.$q.loading.hide()
-        this.$router.push('/')
-      })
-        .catch(err => {
-          this.$q.loading.hide();
-          // console.log(err.response.data.errors)
-          let text=''
-          Object.entries(err.response.data.errors).forEach(([key, value]) => {
-            // console.log(`${key} ${value}`);
-            text+=' '+`${key}: ${value},`
-          });
+    async login () {
+      const valido = await this.$refs.formRef.validate()
+      if (!valido) return
+
+      this.loading = true
+      this.error = ''
+      this.$store.dispatch('login/login', { ci: this.ci, pasw: this.pasw })
+        .then(() => {
+          this.loading = false
           this.$q.notify({
-            message:text,
-            color:'red',
-            icon:'error'
+            message: 'Bienvenido',
+            color: 'positive',
+            icon: 'check_circle',
+            position: 'top',
+            timeout: 1500
+          })
+          this.$router.push('/')
+        })
+        .catch(err => {
+          this.loading = false
+          this.error = this.mensajeDeError(err)
+          this.pasw = ''
+          this.$q.notify({
+            message: this.error,
+            color: 'negative',
+            icon: 'error',
+            position: 'top',
+            timeout: 4000
           })
         })
-    },
-    login () {
-      this.$q.loading.show()
-      this.$store.dispatch('login/login', { ci:this.ci, pasw:this.pasw }).then(res=>{
-        this.$q.loading.hide()
-        // console.log(res.data)
-        // return false
-        this.$router.push('/')
-      })
-        .catch(err => {
-          this.$q.loading.hide();
-          console.log(err.response.data.res)
-          this.$q.notify({
-            message:err.response.data.res,
-            color:'red',
-            icon:'error'
-          })
-        })
-    },
-  },
+    }
+  }
 }
 </script>
 
 <style scoped>
+/* MainLayout aplica style="min-height:0" al router-view (estilo inline),
+   por eso hace falta !important para que el fondo cubra toda la pantalla. */
+.login-page {
+  min-height: calc(100vh - 50px) !important;
+  background: linear-gradient(160deg, #ED1C24 0%, #a1121a 55%, #5c0a0e 100%);
+}
+
+.login-wrapper {
+  width: 100%;
+  max-width: 400px;
+}
+
+.login-card {
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, .28);
+}
+
+.login-header {
+  background: linear-gradient(135deg, #ED1C24 0%, #b3151b 100%);
+  padding: 22px 16px 18px;
+  text-align: center;
+}
+
+.login-logo {
+  width: 72px;
+  height: 72px;
+  margin: 0 auto 10px;
+  border-radius: 50%;
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, .2);
+}
+
+.login-logo img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  padding: 6px;
+}
+
+.text-opacity {
+  opacity: .85;
+}
+
+.login-error {
+  border-left: 4px solid var(--q-negative);
+}
+
+.login-link {
+  text-decoration: none;
+}
+
+.login-link:hover {
+  text-decoration: underline;
+}
 </style>
