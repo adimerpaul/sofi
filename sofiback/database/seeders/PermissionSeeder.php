@@ -57,6 +57,7 @@ class PermissionSeeder extends Seeder
             'encuestasIndex',
             'cambioscalidad',
             'usuario',
+            'ventas',
         ];
         foreach ($permisos as $permiso) {
             Permission::firstOrCreate(['name' => $permiso, 'guard_name' => 'web']);
@@ -73,7 +74,7 @@ class PermissionSeeder extends Seeder
             ],
             'encargado' => [
                 'horariosenvio', 'generar', 'genreporte', 'entrega', 'reporte',
-                'pedidos', 'encuestasIndex', 'usuario',
+                'pedidos', 'encuestasIndex', 'usuario', 'ventas',
             ],
             'digitador' => [
                 'mispedidostotales', 'listpedido',
@@ -83,10 +84,10 @@ class PermissionSeeder extends Seeder
             ],
             'supervisor' => [
                 'genreporte', 'entrega', 'modifica', 'monitoreo', 'mapavendedor',
-                'mapavendedorvisita', 'bonificaciones', 'clientefotografias',
+                'mapavendedorvisita', 'bonificaciones', 'clientefotografias', 'ventas',
             ],
             'supervisor2' => [
-                'genreporte', 'despacho', 'mapavendedor', 'mapavendedorvisita',
+                'genreporte', 'despacho', 'mapavendedor', 'mapavendedorvisita', 'ventas',
             ],
             'almacen' => [
                 'almacen', 'almacenVerificar', 'almacenVerificado',
