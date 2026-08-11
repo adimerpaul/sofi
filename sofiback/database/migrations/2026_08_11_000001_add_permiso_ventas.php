@@ -1,9 +1,8 @@
 <?php
 
 use Illuminate\Database\Migrations\Migration;
-use Spatie\Permission\Models\Permission;
-use Spatie\Permission\Models\Role;
-use Spatie\Permission\PermissionRegistrar;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 
 class AddPermisoVentas extends Migration
 {
@@ -11,37 +10,84 @@ class AddPermisoVentas extends Migration
     private $roles = ['encargado', 'supervisor', 'supervisor2'];
 
     /**
-     * Agrega el permiso de la pantalla de Ventas.
+     * Crea el permiso 'ventas' de la pantalla de Ventas.
      *
-     * No se reejecuta PermissionSeeder a proposito: ese hace syncPermissions
-     * y borraria los permisos que el administrador haya ajustado desde la app.
-     * Aca solo se suma el permiso nuevo.
+     * Se usa Query Builder en vez de los modelos de spatie a proposito:
+     * Eloquent escribe los timestamps con Carbon, y la version instalada
+     * (2.60) revienta en PHP 8.2+, que es lo que tumba `php artisan` en
+     * algunos entornos. Con SQL plano la migracion corre en cualquier PHP.
+     *
+     * Tampoco se reejecuta PermissionSeeder: ese hace syncPermissions y
+     * borraria los permisos que el administrador haya ajustado desde la app.
      */
     public function up()
     {
-        app()[PermissionRegistrar::class]->forgetCachedPermissions();
+        $ahora = date('Y-m-d H:i:s');
 
-        $permiso = Permission::firstOrCreate(['name' => 'ventas', 'guard_name' => 'web']);
+        $permisoId = DB::table('permissions')
+            ->where('name', 'ventas')
+            ->where('guard_name', 'web')
+            ->value('id');
 
-        foreach ($this->roles as $nombre) {
-            $rol = Role::where('name', $nombre)->where('guard_name', 'web')->first();
-            if ($rol && !$rol->hasPermissionTo($permiso)) {
-                $rol->givePermissionTo($permiso);
+        if (!$permisoId) {
+            $permisoId = DB::table('permissions')->insertGetId([
+                'name'       => 'ventas',
+                'guard_name' => 'web',
+                'created_at' => $ahora,
+                'updated_at' => $ahora,
+            ]);
+        }
+
+        $rolesIds = DB::table('roles')
+            ->whereIn('name', $this->roles)
+            ->where('guard_name', 'web')
+            ->pluck('id');
+
+        foreach ($rolesIds as $rolId) {
+            $yaAsignado = DB::table('role_has_permissions')
+                ->where('permission_id', $permisoId)
+                ->where('role_id', $rolId)
+                ->exists();
+
+            if (!$yaAsignado) {
+                DB::table('role_has_permissions')->insert([
+                    'permission_id' => $permisoId,
+                    'role_id'       => $rolId,
+                ]);
             }
         }
 
-        app()[PermissionRegistrar::class]->forgetCachedPermissions();
+        $this->olvidarCache();
     }
 
     public function down()
     {
-        app()[PermissionRegistrar::class]->forgetCachedPermissions();
+        $permisoId = DB::table('permissions')
+            ->where('name', 'ventas')
+            ->where('guard_name', 'web')
+            ->value('id');
 
-        $permiso = Permission::where('name', 'ventas')->where('guard_name', 'web')->first();
-        if ($permiso) {
-            $permiso->delete();
+        if ($permisoId) {
+            DB::table('role_has_permissions')->where('permission_id', $permisoId)->delete();
+            DB::table('model_has_permissions')->where('permission_id', $permisoId)->delete();
+            DB::table('permissions')->where('id', $permisoId)->delete();
         }
 
-        app()[PermissionRegistrar::class]->forgetCachedPermissions();
+        $this->olvidarCache();
+    }
+
+    /**
+     * spatie cachea permisos 24 horas; sin esto el permiso nuevo no surte
+     * efecto hasta que expire. Va en try/catch para que un problema de cache
+     * nunca deje la migracion a medias.
+     */
+    private function olvidarCache()
+    {
+        try {
+            Cache::forget(config('permission.cache.key', 'spatie.permission.cache'));
+        } catch (\Throwable $e) {
+            // Si el store de cache no esta disponible basta con
+            // `php artisan permission:cache-reset` despues de migrar.
+        }
     }
 }
