@@ -60,20 +60,38 @@ class UserController extends Controller{
 //            return response()->json(['res'=>'Su usuario sobre paso el limite de ingreso'],400);
 //        }
 
-//        $user =User::where('TRIM(ci)',$request->ci)->where('TRIM(pasw)',$request->pasw)->get();
-        $user=DB::select("SELECT * FROM `personal` WHERE TRIM(ci)='".$request->ci."' AND TRIM(pasw)='".$request->pasw."'");
-//        return sizeof($user);
-        if (sizeof($user)==1){
-            $user=User::where('ci',$request->ci)
+        $ci=trim($request->ci ?? '');
+        $pasw=trim($request->pasw ?? '');
+
+        if ($ci==='' || $pasw===''){
+            return response()->json(['res'=>'Debes ingresar tu carnet de identidad y tu contraseña'],400);
+        }
+
+        // Se busca primero solo por CI para poder diferenciar
+        // "no existe el usuario" de "contraseña incorrecta".
+        $porCi=DB::select("SELECT * FROM `personal` WHERE TRIM(ci)=?",[$ci]);
+        if (sizeof($porCi)==0){
+            return response()->json(['res'=>'No existe un usuario con el carnet '.$ci],400);
+        }
+
+        $user=DB::select("SELECT * FROM `personal` WHERE TRIM(ci)=? AND TRIM(pasw)=?",[$ci,$pasw]);
+        if (sizeof($user)==0){
+            return response()->json(['res'=>'La contraseña es incorrecta'],400);
+        }
+        if (sizeof($user)>1){
+            return response()->json(['res'=>'El carnet '.$ci.' está registrado más de una vez, avisa al administrador'],400);
+        }
+
+        $user=User::whereRaw('TRIM(ci)=?',[$ci])
 //            ->with('unid')
 //            ->with('permisos')
-                ->firstOrFail();
-            $token=$user->createToken('auth_token')->plainTextToken;
-            $user->permisos=$user->getAllPermissions()->pluck('name');
-            return response()->json(['token'=>$token,'user'=>$user],200);
-        }else{
-            return response()->json(['res'=>'Usuario no encontrado'],400);
+            ->first();
+        if ($user==null){
+            return response()->json(['res'=>'El usuario no está habilitado en el sistema, avisa al administrador'],400);
         }
+        $token=$user->createToken('auth_token')->plainTextToken;
+        $user->permisos=$user->getAllPermissions()->pluck('name');
+        return response()->json(['token'=>$token,'user'=>$user],200);
 
 //        $validar= DB::SELECT("SELECT * from personal where TRIM(ci)='$request->ci' and TRIM(pasw) ='$request->pass' ");
 //        if(sizeof($validar)==1)

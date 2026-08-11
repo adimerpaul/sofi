@@ -62,6 +62,13 @@ Route::group(['middleware'=>'auth:sanctum'],function (){
     Route::get('/listdeudores',[\App\Http\Controllers\CobrarController::class,'listdeudores']);
     Route::get('/listProducto',[\App\Http\Controllers\ProductoController::class,'listProducto']);
     Route::get('/verProducto',[\App\Http\Controllers\ProductoController::class,'verProducto']);
+    Route::get('/productosPaginado',[\App\Http\Controllers\ProductoController::class,'paginado']);
+    Route::get('/filtrosProducto',[\App\Http\Controllers\ProductoController::class,'filtrosProducto']);
+
+    Route::get('/ventas',[\App\Http\Controllers\VentaController::class,'index']);
+    Route::get('/ventas/resumen',[\App\Http\Controllers\VentaController::class,'resumen']);
+    Route::get('/ventas/filtros',[\App\Http\Controllers\VentaController::class,'filtros']);
+    Route::get('/ventas/{nroped}/detalle',[\App\Http\Controllers\VentaController::class,'detalle']);
     Route::post('/cxcobrar/{ci}',[\App\Http\Controllers\CobrarController::class,'cxcobrar']);
     Route::post('/insertcobro',[\App\Http\Controllers\CobrarController::class,'insertcobro']);
     Route::post('/miscobros',[\App\Http\Controllers\CobrarController::class,'miscobros']);

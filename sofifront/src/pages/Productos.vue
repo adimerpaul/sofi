@@ -1,94 +1,210 @@
 <template>
-    <q-page class="q-pa-xs">
-    <div class="row">
-
-      <div class="col-12">
-        <q-table dense title="PRODUCTOS" :columns="columns" :rows="productos" :filter="filter">
-
-          <template v-slot:top-right>
-            <q-input outlined dense debounce="300" v-model="filter" placeholder="Buscar">
-              <template v-slot:append>
-                <q-icon name="search" />
-              </template>
-            </q-input>
-          </template>
-        </q-table>
+  <q-page class="q-pa-md">
+    <div class="row items-center q-col-gutter-sm q-mb-md">
+      <div class="col-12 col-md">
+        <div class="text-h6 text-weight-bold">Productos</div>
+        <div class="text-caption text-grey-7">Catálogo con precios y stock disponible</div>
       </div>
-    
-          
+      <div class="col-auto">
+        <q-chip square dense color="primary" text-color="white" icon="inventory_2">
+          <span class="text-caption">Resultados:</span>&nbsp;<b>{{ pagination.rowsNumber }}</b>
+        </q-chip>
+      </div>
     </div>
-    </q-page>
-    </template>
-    
-    <script>
-    import {date} from "quasar";
-    export default {
-      data(){
-        return{
-          filter:'',
-          asignaciones:[],
-          asignar:{},
-          cliente:{label:''},
-          productos:[],
-          fecha2:date.formatDate(Date.now(),'YYYY-MM-DD'),
-          user:{label:''},
-          clientes:[],
-          usuarios:[],
-          options:[],
-          options2:[],
-          listado:[],
-          ccliente:{},
-          cxcobrar:[],
-          cxcdatos:[],
-          monto:0,
-          dialog_cc:false,
-          columns:[
-            {label:'cod_prod',name:'cod_prod',field:'cod_prod',sortable:true},
-            {label:'Producto',name:'Producto',field:'Producto',align:'left',sortable:true},
-            {label:'Precio',name:'Precio',field:'Precio',align:'left',sortable:true},
-            {label:'Precio_Costo',name:'Precio_Costo',field:'Precio_Costo',align:'left',sortable:true},
-            {label:'Precio3',name:'Precio3',field:'Precio3',align:'left',sortable:true},
-            {label:'Precio4',name:'Precio4',field:'Precio4',align:'left',sortable:true},
-            {label:'Precio5',name:'Precio5',field:'Precio5',align:'left',sortable:true},
-            {label:'Precio6',name:'Precio6',field:'Precio6',align:'left',sortable:true},
-            {label:'Precio7',name:'Precio7',field:'Precio7',align:'left',sortable:true},
-            {label:'Precio8',name:'Precio8',field:'Precio8',align:'left',sortable:true},
-            {label:'Precio9',name:'Precio9',field:'Precio9',align:'left',sortable:true},
-            {label:'Precio10',name:'Precio10',field:'Precio10',align:'left',sortable:true},
-            {label:'Precio11',name:'Precio11',field:'Precio11',align:'left',sortable:true},
-            {label:'Precio12',name:'Precio12',field:'Precio12',align:'left',sortable:true},
-            {label:'Precio13',name:'Precio13',field:'Precio13',align:'left',sortable:true},
-            {label:'PreCosto',name:'PreCosto',field:'PreCosto',align:'left',sortable:true},
-    
-          ],
 
-          fecha:date.formatDate(Date.now(),'YYYY-MM-DD')
-        }
-      },
-      created() {
-        this.misproductos()
-      },
-      methods:{
-   
-        misproductos(){
-          // this.clientes=[]
-          this.$q.loading.show()
-          this.$api.get('verProducto').then(res=>{
-            console.log(res.data)
-            this.$q.loading.hide()
-              this.productos=res.data
-          })
-    
-        },
+    <q-card flat bordered class="q-pa-sm q-mb-md">
+      <div class="row q-col-gutter-sm">
+        <div class="col-12 col-md-4">
+          <q-input
+            v-model="filtros.search"
+            dense outlined clearable debounce="400"
+            label="Buscar por código o nombre"
+            @update:model-value="recargar"
+          >
+            <template v-slot:append><q-icon name="search"/></template>
+          </q-input>
+        </div>
+        <div class="col-12 col-sm-6 col-md-3">
+          <q-select
+            v-model="filtros.grupo"
+            dense outlined clearable emit-value map-options
+            label="Grupo"
+            :options="grupos"
+            @update:model-value="recargar"
+          />
+        </div>
+        <div class="col-12 col-sm-6 col-md-2">
+          <q-select
+            v-model="filtros.unidad"
+            dense outlined clearable
+            label="Unidad"
+            :options="unidades"
+            @update:model-value="recargar"
+          />
+        </div>
+        <div class="col-12 col-md-3 row items-center q-gutter-x-md">
+          <q-toggle
+            v-model="filtros.conStock"
+            dense label="Solo con stock" color="primary"
+            @update:model-value="recargar"
+          />
+          <q-toggle
+            v-model="filtros.incluirInactivos"
+            dense label="Ver inactivos" color="grey-7"
+            @update:model-value="recargar"
+          />
+        </div>
+      </div>
+    </q-card>
 
-      },
-      computed:{
+    <q-table
+      flat bordered dense
+      :rows="productos"
+      :columns="columns"
+      row-key="CodAut"
+      v-model:pagination="pagination"
+      :loading="loading"
+      :visible-columns="visibleColumns"
+      :rows-per-page-options="[10, 20, 50, 100]"
+      binary-state-sort
+      @request="onRequest"
+    >
+      <template v-slot:top-right>
+        <q-select
+          v-model="visibleColumns"
+          multiple dense outlined options-dense emit-value map-options
+          display-value="Columnas"
+          :options="columnasOpcionales"
+          option-value="name"
+          style="min-width: 140px"
+        />
+      </template>
 
-      }
+      <template v-slot:body-cell-cantidad="props">
+        <q-td :props="props" class="text-right">
+          <q-badge :color="Number(props.value) > 0 ? 'green-6' : 'grey-5'" text-color="white">
+            {{ num(props.value) }}
+          </q-badge>
+        </q-td>
+      </template>
+
+      <template v-slot:no-data>
+        <div class="full-width row flex-center q-pa-md text-grey-7">
+          <q-icon name="inventory_2" size="20px" class="q-mr-sm"/>
+          No se encontraron productos con esos filtros
+        </div>
+      </template>
+    </q-table>
+  </q-page>
+</template>
+
+<script>
+export default {
+  name: 'ProductosPage',
+  data () {
+    return {
+      productos: [],
+      grupos: [],
+      unidades: [],
+      loading: false,
+      filtros: {
+        search: '',
+        grupo: null,
+        unidad: null,
+        conStock: false,
+        incluirInactivos: false
+      },
+      pagination: {
+        sortBy: 'Producto',
+        descending: false,
+        page: 1,
+        rowsPerPage: 20,
+        rowsNumber: 0
+      },
+      // Precio3..Precio13 quedan ocultas por defecto: son 11 columnas que
+      // hacen ilegible la tabla, pero el usuario puede activarlas.
+      visibleColumns: ['cod_prod', 'Producto', 'grupo', 'codUnid', 'Precio', 'Precio_Costo', 'cantidad'],
+      columns: [
+        { name: 'cod_prod', label: 'Código', field: 'cod_prod', align: 'left', sortable: true },
+        { name: 'Producto', label: 'Producto', field: 'Producto', align: 'left', sortable: true },
+        { name: 'grupo', label: 'Grupo', field: 'grupo', align: 'left', sortable: true },
+        { name: 'codUnid', label: 'Unidad', field: 'codUnid', align: 'center', sortable: true },
+        { name: 'Precio', label: 'Precio', field: 'Precio', align: 'right', sortable: true, format: v => Number(v || 0).toFixed(2) },
+        { name: 'Precio_Costo', label: 'P. Costo', field: 'Precio_Costo', align: 'right', format: v => Number(v || 0).toFixed(2) },
+        { name: 'PreCosto', label: 'PreCosto', field: 'PreCosto', align: 'right', sortable: true, format: v => Number(v || 0).toFixed(2) },
+        { name: 'cantidad', label: 'Stock', field: 'cantidad', align: 'right', sortable: true }
+      ]
     }
-    </script>
-    
-    <style scoped>
-    
-    </style>
-    
+  },
+  computed: {
+    columnasOpcionales () {
+      return this.columns.map(c => ({ name: c.name, label: c.label }))
+    }
+  },
+  created () {
+    // Precio3..Precio13 se agregan por código para no repetir 11 definiciones.
+    for (let i = 3; i <= 13; i++) {
+      this.columns.push({
+        name: 'Precio' + i,
+        label: 'Precio ' + i,
+        field: 'Precio' + i,
+        align: 'right',
+        format: v => Number(v || 0).toFixed(2)
+      })
+    }
+    this.cargarFiltros()
+    this.onRequest({ pagination: this.pagination })
+  },
+  methods: {
+    num (v) {
+      return Number(v || 0).toFixed(2)
+    },
+    cargarFiltros () {
+      this.$api.get('filtrosProducto').then(res => {
+        this.grupos = res.data.grupos || []
+        this.unidades = res.data.unidades || []
+      }).catch(() => {
+        // Los selects quedan vacíos; la tabla sigue siendo usable con la búsqueda.
+      })
+    },
+    recargar () {
+      this.pagination.page = 1
+      this.onRequest({ pagination: this.pagination })
+    },
+    onRequest (props) {
+      const { page, rowsPerPage, sortBy, descending } = props.pagination
+      this.loading = true
+
+      this.$api.get('productosPaginado', {
+        params: {
+          page,
+          perPage: rowsPerPage,
+          sortBy,
+          descending,
+          search: this.filtros.search || '',
+          grupo: this.filtros.grupo || '',
+          unidad: this.filtros.unidad || '',
+          conStock: this.filtros.conStock ? 1 : 0,
+          incluirInactivos: this.filtros.incluirInactivos ? 1 : 0
+        }
+      }).then(res => {
+        this.productos = res.data.data
+        this.pagination.page = res.data.current_page
+        this.pagination.rowsPerPage = Number(res.data.per_page)
+        this.pagination.rowsNumber = res.data.total
+        this.pagination.sortBy = sortBy
+        this.pagination.descending = descending
+      }).catch(err => {
+        this.$q.notify({
+          message: err.response?.data?.message || 'No se pudo cargar el catálogo de productos',
+          color: 'negative',
+          icon: 'error',
+          position: 'top'
+        })
+      }).finally(() => {
+        this.loading = false
+      })
+    }
+  }
+}
+</script>
