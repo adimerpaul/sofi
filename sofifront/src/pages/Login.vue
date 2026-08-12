@@ -28,6 +28,8 @@
             <q-input
               outlined
               v-model.trim="ci"
+              type="text"
+              inputmode="text"
               label="Carnet de identidad"
               autofocus
               autocomplete="username"
