@@ -47,16 +47,16 @@
 
 <script>
 import {date} from "quasar";
-var $  = require( 'jquery' );
-require( 'datatables.net-buttons/js/buttons.html5.js' )();
-require( 'datatables.net-buttons/js/buttons.print.js' )();
-require('datatables.net-buttons/js/dataTables.buttons');
-require('datatables.net-dt/css/jquery.dataTables.min.css');
+import $ from 'jquery';
+import 'datatables.net-dt/css/jquery.dataTables.min.css';
+import 'datatables.net-buttons/js/dataTables.buttons';
+import 'datatables.net-buttons/js/buttons.html5.js';
 import print from 'datatables.net-buttons/js/buttons.print';
 import jszip from 'jszip/dist/jszip';
 import pdfMake from 'pdfmake/build/pdfmake';
 import pdfFonts from 'pdfmake/build/vfs_fonts';
-pdfMake.vfs=pdfFonts.pdfMake.vfs;
+// pdfmake >= 0.2.8 exporta el vfs directamente; antes venia en .pdfMake.vfs
+pdfMake.vfs=pdfFonts.pdfMake ? pdfFonts.pdfMake.vfs : pdfFonts;
 window.JSZip=jszip;
 import { jsPDF } from "jspdf";
 export default {

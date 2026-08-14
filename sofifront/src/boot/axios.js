@@ -11,7 +11,9 @@ import moment from "moment";
 // for each client)
 const api = axios.create({ baseURL: process.env.API })
 
-export default boot(({ app,store }) => {
+// Nota: @quasar/app-vite v2 ya no inyecta `store` en los boot files, por lo que
+// se usa la instancia importada arriba desde src/store.
+export default boot(({ app }) => {
   // app.use(HighchartsVue)
   // for use inside Vue files (Options API) through this.$axios and this.$api
   // console.log(store.state.login.url)

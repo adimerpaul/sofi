@@ -30,7 +30,7 @@ export default route(function (/* { store, ssrContext } */) {
     // console.log(store().getters['showcase/isLoggedIn'])
     if(to.matched.some(record => record.meta.requiresAuth)) {
       // console.log(store().getters.l)
-      if (store().getters['login/isLoggedIn']) {
+      if (store.getters['login/isLoggedIn']) {
         next()
         return
       }

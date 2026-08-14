@@ -1,29 +1,23 @@
-import { store } from 'quasar/wrappers'
 import { createStore } from 'vuex'
 
 // import example from './module-example'
 import login from './login'
 
 /*
- * If not building with SSR mode, you can
- * directly export the Store instantiation;
- *
- * The function below can be async too; either use
- * async/await or return a Promise which resolves
- * with the Store instance.
+ * @quasar/app-vite v2 ya no instancia el store por nosotros (solo soporta
+ * Pinia), asi que aqui se exporta directamente la instancia de Vuex.
+ * El registro en la app se hace en /src/boot/vuex.js.
  */
 
-export default store(function (/* { ssrContext } */) {
-  const Store = createStore({
-    modules: {
-      // example
-      login
-    },
+const Store = createStore({
+  modules: {
+    // example
+    login
+  },
 
-    // enable strict mode (adds overhead!)
-    // for dev mode and --debug builds only
-    strict: process.env.DEBUGGING
-  })
-
-  return Store
+  // enable strict mode (adds overhead!)
+  // for dev mode and --debug builds only
+  strict: process.env.DEBUGGING
 })
+
+export default Store

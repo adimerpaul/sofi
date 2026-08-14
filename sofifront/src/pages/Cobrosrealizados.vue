@@ -42,7 +42,7 @@ import {date} from "quasar"
 import {jsPDF} from "jspdf";
 import xlsx from "json-as-xlsx"
 
-const conversor = require('conversor-numero-a-letras-es-ar');
+import conversor from 'conversor-numero-a-letras-es-ar';
 export default {
   name: `Cobrosrealizados`,
   data(){

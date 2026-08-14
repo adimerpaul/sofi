@@ -21,7 +21,7 @@ Este frontend depende del backend Laravel del repositorio. Cualquier cambio visu
 - Framework principal: Quasar
 - Base del front: Vue 3 con estructura Quasar del proyecto actual
 - Router: `src/router/routes.js`
-- Configuracion general: `quasar.conf.js`
+- Configuracion general: `quasar.config.js` (Quasar CLI con Vite, `@quasar/app-vite`)
 
 ## Prioridades Funcionales
 - Lo principal del sistema es la venta.

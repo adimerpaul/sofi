@@ -9,21 +9,26 @@
       v-model="zoom"
       :zoom="zoom"
       :center="center"
-      @move="log('move')"
     >
       <l-tile-layer
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
       ></l-tile-layer>
   <!--    @click="clickopciones(c)"-->
-      <l-marker v-for="(c,i) in clientes" :key="c.Cod_Aut" :lat-lng="[c.Latitud, c.longitud]"  >
+      <l-marker v-for="(c,i) in clientesMapa" :key="c.Cod_Aut" :lat-lng="[c._lat, c._lng]"  >
         <l-icon><q-badge  class=" text-italic q-pa-none" color="info" >{{i+1}}</q-badge></l-icon>
       </l-marker>
       <l-marker :lat-lng="center"  >
       </l-marker>
     </l-map>
     </div>
+  <div class="col-12 q-px-sm q-py-xs text-caption text-grey-8">
+    Mostrando {{clientesMapa.length}} de {{clientesConMapa.length}} clientes con ubicación.
+    <span v-if="clientesEnVista.length > maxMarcadores">
+      Acerca el mapa para ver los {{clientesEnVista.length - maxMarcadores}} restantes de esta zona.
+    </span>
+  </div>
   <div class="col-12">
-    <q-table :rows-per-page-options="[20,50,100,0]" dense title="CLIENTES" :columns="columns" :rows="clientes" :filter="filter">
+    <q-table :rows-per-page-options="[20,50,100]" dense title="CLIENTES" :columns="columns" :rows="filasTabla" :filter="filter">
       <template v-slot:body-cell-opcion="props">
         <q-td :props="props">
 <!--          <q-btn @click="cambiar(props.row)"  color="teal"  icon="check" size="xs"  />-->
@@ -33,6 +38,7 @@
       </template>
 
      <template v-slot:top-right>
+       <q-toggle dense class="q-mr-md" v-model="soloEnMapa" label="Solo los del mapa" />
        <q-btn icon="refresh" label="actualizar" @click="misclientes" color="primary" />
         <q-input outlined dense debounce="300" v-model="filter" placeholder="Buscar">
           <template v-slot:append>
@@ -100,6 +106,12 @@ export default {
       dialog_mod:false,
       center:[-17.970371, -67.112303],
       zoom:16,
+      map:null,
+      // Limites visibles del mapa; mientras sea null no se dibuja ningun marcador.
+      limites:null,
+      // Tope de marcadores dibujados a la vez: mas que esto congela el navegador.
+      maxMarcadores:300,
+      soloEnMapa:false,
       asignaciones:[],
       asignar:{},
       cliente:{},
@@ -131,6 +143,33 @@ export default {
     this.misclientes()
 
 
+  },
+  beforeUnmount() {
+    if (this.map) {
+      this.map.off('moveend zoomend', this.actualizarLimites)
+      this.map = null
+    }
+  },
+  computed:{
+    clientesConMapa(){
+      return this.clientes.filter(c => c._ubicado)
+    },
+    // Clientes dentro del recuadro visible del mapa.
+    clientesEnVista(){
+      const l = this.limites
+      if (!l) return []
+      return this.clientesConMapa.filter(c =>
+        c._lat >= l.sur && c._lat <= l.norte && c._lng >= l.oeste && c._lng <= l.este
+      )
+    },
+    // Lo que realmente se dibuja: la vista actual, recortada al tope.
+    clientesMapa(){
+      return this.clientesEnVista.slice(0, this.maxMarcadores)
+    },
+    filasTabla(){
+      if (!this.soloEnMapa) return this.clientes
+      return this.clientesEnVista
+    }
   },
   methods:{
       modificar(){
@@ -191,44 +230,47 @@ export default {
       this.clientes=[]
       this.$q.loading.show()
       this.$api.get('listaclientes').then(res=>{
-        // console.log(res.data)
-        this.clientes=[]
-        // this.clientes=res.data
-        res.data.forEach(r=>{
-          let d=r
-
-          d.user=this.usuarios.find(u=>u.ci==r.CiVend)
-          if ((parseFloat(r.Latitud)!=NaN || parseFloat(r.longitud)!=NaN) && (r.Latitud!='' || r.longitud!='') ){
-            // console.log( 'id='+r.Cod_Aut+'  '+(r.Latitud!='' && r.longitud!='' )+' R='+parseFloat(r.Latitud)+'---'+parseFloat(r.longitud))
-            d.Latitud=parseFloat(r.Latitud)
-            d.longitud=parseFloat(r.longitud)
-          }else{
-            // console.log( (r.Latitud!='' && r.longitud!='' )+' R='+r.Latitud+'---'+r.longitud)
-            d.Latitud=0
-            d.longitud=0
-          }
-          // console.log(r)
-          this.clientes.push(d)
+        this.clientes=res.data.map(r=>{
+          r.user=this.usuarios.find(u=>u.ci==r.CiVend)
+          // Antes se comparaba con != NaN, que siempre da true, y los clientes
+          // sin coordenada valida terminaban como marcador en 0,0 o en NaN.
+          const lat=parseFloat(r.Latitud)
+          const lng=parseFloat(r.longitud)
+          r._ubicado=Number.isFinite(lat) && Number.isFinite(lng) && (lat!=0 || lng!=0)
+          r._lat=r._ubicado?lat:null
+          r._lng=r._ubicado?lng:null
+          return r
         })
-        console.log(this.clientes)
         this.$q.loading.hide()
 
       })
 
     },
     onReady (mapObject) {
+      this.map = mapObject
       mapObject.locate();
+      mapObject.on('moveend zoomend', this.actualizarLimites)
+      this.actualizarLimites()
+    },
+    // Recalcula que porcion de clientes cae dentro de la pantalla del mapa.
+    actualizarLimites(){
+      if (!this.map) return
+      const b = this.map.getBounds()
+      this.limites = {
+        norte: b.getNorth(), sur: b.getSouth(),
+        este: b.getEast(), oeste: b.getWest()
+      }
     },
     onLocationFound(location){
       // console.log(location)
       this.center=[location.latlng.lat,location.latlng.lng]
     },
     clickclientes(c){
-      console.log(c)
-      this.center = [c.Latitud, c.longitud]
-    },
-    log(a) {
-      // console.log(a);
+      if (!c._ubicado){
+        this.$q.notify({type:'warning',message:'Este cliente no tiene ubicación registrada'})
+        return
+      }
+      this.center = [c._lat, c._lng]
     },
   }
 }

@@ -1,0 +1,878 @@
+- generic [ref=e3]:
+  - banner [ref=e4]:
+    - toolbar [ref=e5]:
+      - button "Menu" [ref=e6] [cursor=pointer]:
+        - img [ref=e8]: menu
+      - generic [ref=e9]:
+        - text: Ventas generales
+        - generic [ref=e10]: 11.5.6
+      - button "Salir" [ref=e63] [cursor=pointer]:
+        - generic [ref=e64]:
+          - img [ref=e65]: logout
+          - generic [ref=e66]: Salir
+  - complementary [ref=e12]:
+    - list [ref=e14]:
+      - generic [ref=e15]: Opciones
+      - link "Principal" [ref=e16] [cursor=pointer]:
+        - /url: "#/"
+        - generic [ref=e17]: home
+      - link "Realizar Visita" [ref=e67] [cursor=pointer]:
+        - /url: "#/visita"
+        - generic [ref=e22]: map
+      - link "Clientes del Día Ver la semana" [ref=e68] [cursor=pointer]:
+        - /url: "#/clientevisita"
+        - generic [ref=e69]: today
+        - generic [ref=e71]:
+          - generic [ref=e72]: Clientes del Día
+          - generic [ref=e73]: Ver la semana
+      - link "Mis Pedidos" [ref=e74] [cursor=pointer]:
+        - /url: "#/mispedidos"
+        - generic [ref=e75]: list
+      - link "Pedidos Totales" [ref=e79] [cursor=pointer]:
+        - /url: "#/mispedidostotales"
+        - generic [ref=e80]: list_alt
+      - link "Lista Clientes Habilitar cliente" [ref=e84] [cursor=pointer]:
+        - /url: "#/clientes"
+        - generic [ref=e85]: people
+        - generic [ref=e87]:
+          - generic [ref=e88]: Lista Clientes
+          - generic [ref=e89]: Habilitar cliente
+      - link "Pedidos Pendientes Faltantes" [ref=e90] [cursor=pointer]:
+        - /url: "#/pendientes"
+        - generic [ref=e91]: local_grocery_store
+        - generic [ref=e93]:
+          - generic [ref=e94]: Pedidos Pendientes
+          - generic [ref=e95]: Faltantes
+      - link "Pedidos Registrados" [ref=e96] [cursor=pointer]:
+        - /url: "#/clientepedido"
+        - generic [ref=e97]: local_mall
+        - generic [ref=e99]:
+          - generic [ref=e100]: Pedidos
+          - generic [ref=e101]: Registrados
+      - link "Listado Pedidos Registrados" [ref=e102] [cursor=pointer]:
+        - /url: "#/listpedido"
+        - generic [ref=e103]: shopping_cart
+        - generic [ref=e105]:
+          - generic [ref=e106]: Listado Pedidos
+          - generic [ref=e107]: Registrados
+      - link "Cobros Realizados" [ref=e108] [cursor=pointer]:
+        - /url: "#/cobrosrealizados"
+        - generic [ref=e109]: monetization_on
+      - link "Cobranzas Cobro a cliente" [ref=e113] [cursor=pointer]:
+        - /url: "#/cobranza"
+        - generic [ref=e114]: receipt
+        - generic [ref=e116]:
+          - generic [ref=e117]: Cobranzas
+          - generic [ref=e118]: Cobro a cliente
+      - link "Mis Cobros" [ref=e119] [cursor=pointer]:
+        - /url: "#/miscobranzas"
+        - generic [ref=e120]: money
+      - link "Productos Precios y stock" [ref=e124] [cursor=pointer]:
+        - /url: "#/productos"
+        - generic [ref=e125]: inventory_2
+        - generic [ref=e127]:
+          - generic [ref=e128]: Productos
+          - generic [ref=e129]: Precios y stock
+      - link "Ventas Consulta por fechas" [ref=e130] [cursor=pointer]:
+        - /url: "#/ventas"
+        - generic [ref=e131]: point_of_sale
+        - generic [ref=e133]:
+          - generic [ref=e134]: Ventas
+          - generic [ref=e135]: Consulta por fechas
+      - link "Clientes sin Pedido" [ref=e136] [cursor=pointer]:
+        - /url: "#/nopedido"
+        - generic [ref=e137]: person_off
+      - link "Horarios de Envío Envío automático" [ref=e141] [cursor=pointer]:
+        - /url: "#/horariosenvio"
+        - generic [ref=e142]: schedule_send
+        - generic [ref=e144]:
+          - generic [ref=e145]: Horarios de Envío
+          - generic [ref=e146]: Envío automático
+      - link "Exportar Excel" [ref=e147] [cursor=pointer]:
+        - /url: "#/generar"
+        - generic [ref=e148]: table_chart
+      - link "Excel Pedidos Rango de fechas" [ref=e152] [cursor=pointer]:
+        - /url: "#/genreporte"
+        - generic [ref=e153]: receipt_long
+        - generic [ref=e155]:
+          - generic [ref=e156]: Excel Pedidos
+          - generic [ref=e157]: Rango de fechas
+      - link "Ruta de Entregas" [ref=e158] [cursor=pointer]:
+        - /url: "#/ruta"
+        - generic [ref=e159]: map
+      - link "Reporte Entrega" [ref=e163] [cursor=pointer]:
+        - /url: "#/despacho"
+        - generic [ref=e164]: description
+      - link "Pedidos / Entregas Resumen" [ref=e168] [cursor=pointer]:
+        - /url: "#/avance"
+        - generic [ref=e169]: summarize
+        - generic [ref=e171]:
+          - generic [ref=e172]: Pedidos / Entregas
+          - generic [ref=e173]: Resumen
+      - link "Reporte Entrega" [ref=e174] [cursor=pointer]:
+        - /url: "#/entrega"
+        - generic [ref=e175]: dvr
+      - link "Reporte Entrega Clientes entregas" [ref=e179] [cursor=pointer]:
+        - /url: "#/reporte"
+        - generic [ref=e180]: list
+        - generic [ref=e182]:
+          - generic [ref=e183]: Reporte Entrega
+          - generic [ref=e184]: Clientes entregas
+      - link "Almacén" [ref=e185] [cursor=pointer]:
+        - /url: "#/almacen"
+        - generic [ref=e186]: store
+      - link "Verificar Almacén" [ref=e190] [cursor=pointer]:
+        - /url: "#/almacenVerificar"
+        - generic [ref=e191]: fact_check
+      - link "Almacén Verificado" [ref=e195] [cursor=pointer]:
+        - /url: "#/almacenVerificado"
+        - generic [ref=e196]: task_alt
+      - link "Asignar Preventista" [ref=e200] [cursor=pointer]:
+        - /url: "#/modifica"
+        - generic [ref=e201]: people
+      - link "Monitoreo" [ref=e205] [cursor=pointer]:
+        - /url: "#/monitoreo"
+        - generic [ref=e206]: computer
+      - link "Resumen de Preventa Monitoreo" [ref=e210] [cursor=pointer]:
+        - /url: "#/mapavendedor"
+        - generic [ref=e211]: query_stats
+        - generic [ref=e213]:
+          - generic [ref=e214]: Resumen de Preventa
+          - generic [ref=e215]: Monitoreo
+      - link "Mapa Visitas" [ref=e216] [cursor=pointer]:
+        - /url: "#/mapavendedorvisita"
+        - generic [ref=e217]: map
+      - link "Asignación Monitoreo" [ref=e221] [cursor=pointer]:
+        - /url: "#/mapacliente"
+        - generic [ref=e222]: computer
+        - generic [ref=e224]:
+          - generic [ref=e225]: Asignación
+          - generic [ref=e226]: Monitoreo
+      - button "Alta Cliente Formulario" [ref=e227] [cursor=pointer]:
+        - generic [ref=e228]: person_add
+        - generic [ref=e230]:
+          - generic [ref=e231]: Alta Cliente
+          - generic [ref=e232]: Formulario
+      - link "Cambios" [ref=e233] [cursor=pointer]:
+        - /url: "#/bonificaciones"
+        - generic [ref=e234]: no_food
+      - link "Clientes Fotografías" [ref=e238] [cursor=pointer]:
+        - /url: "#/clientefotografias"
+        - generic [ref=e239]: photo_camera
+      - link "Pedidos" [ref=e243] [cursor=pointer]:
+        - /url: "#/pedidos"
+        - generic [ref=e244]: shopping_cart
+      - link "Encuestas" [ref=e248] [cursor=pointer]:
+        - /url: "#/encuestasIndex"
+        - generic [ref=e249]: assignment
+      - button "Cambios por Calidad Formulario" [ref=e253] [cursor=pointer]:
+        - generic [ref=e254]: published_with_changes
+        - generic [ref=e256]:
+          - generic [ref=e257]: Cambios por Calidad
+          - generic [ref=e258]: Formulario
+      - link "Usuarios Roles y permisos" [ref=e259] [cursor=pointer]:
+        - /url: "#/usuario"
+        - generic [ref=e260]: manage_accounts
+        - generic [ref=e262]:
+          - generic [ref=e263]: Usuarios
+          - generic [ref=e264]: Roles y permisos
+      - separator [ref=e265]
+      - button "Salir Salir del sistema" [ref=e266] [cursor=pointer]:
+        - generic [ref=e267]: logout
+        - generic [ref=e269]:
+          - generic [ref=e270]: Salir
+          - generic [ref=e271]: Salir del sistema
+  - main [ref=e279]:
+    - generic [ref=e280]:
+      - generic [active] [ref=e282]:
+        - generic:
+          - generic:
+            - status [ref=e326] [cursor=pointer]: "1"
+            - status [ref=e3951] [cursor=pointer]: "9"
+            - status [ref=e3952] [cursor=pointer]: "20"
+            - status [ref=e3953] [cursor=pointer]: "23"
+            - status [ref=e3954] [cursor=pointer]: "48"
+            - status [ref=e3955] [cursor=pointer]: "49"
+            - status [ref=e3956] [cursor=pointer]: "51"
+            - status [ref=e3957] [cursor=pointer]: "52"
+            - status [ref=e3958] [cursor=pointer]: "58"
+            - status [ref=e3959] [cursor=pointer]: "81"
+            - status [ref=e3960] [cursor=pointer]: "82"
+            - status [ref=e3961] [cursor=pointer]: "83"
+            - status [ref=e3962] [cursor=pointer]: "85"
+            - status [ref=e3963] [cursor=pointer]: "96"
+            - status [ref=e3964] [cursor=pointer]: "97"
+            - status [ref=e3965] [cursor=pointer]: "106"
+            - status [ref=e3966] [cursor=pointer]: "126"
+            - status [ref=e3967] [cursor=pointer]: "150"
+            - status [ref=e3968] [cursor=pointer]: "160"
+            - status [ref=e3969] [cursor=pointer]: "172"
+            - status [ref=e3970] [cursor=pointer]: "179"
+            - status [ref=e3971] [cursor=pointer]: "116"
+            - status [ref=e3972] [cursor=pointer]: "95"
+            - status [ref=e3973] [cursor=pointer]: "94"
+            - status [ref=e3974] [cursor=pointer]: "63"
+            - status [ref=e3975] [cursor=pointer]: "54"
+            - status [ref=e3976] [cursor=pointer]: "35"
+            - status [ref=e3977] [cursor=pointer]: "24"
+            - status [ref=e3978] [cursor=pointer]: "181"
+            - status [ref=e3979] [cursor=pointer]: "178"
+            - status [ref=e3980] [cursor=pointer]: "177"
+            - status [ref=e3981] [cursor=pointer]: "170"
+            - status [ref=e3982] [cursor=pointer]: "164"
+            - status [ref=e3983] [cursor=pointer]: "157"
+            - status [ref=e3984] [cursor=pointer]: "143"
+            - status [ref=e3985] [cursor=pointer]: "142"
+            - status [ref=e3986] [cursor=pointer]: "134"
+            - status [ref=e3987] [cursor=pointer]: "130"
+            - status [ref=e3988] [cursor=pointer]: "129"
+            - status [ref=e3989] [cursor=pointer]: "125"
+            - status [ref=e3990] [cursor=pointer]: "119"
+            - status [ref=e3991] [cursor=pointer]: "117"
+            - status [ref=e3992] [cursor=pointer]: "108"
+            - status [ref=e3993] [cursor=pointer]: "92"
+            - status [ref=e3994] [cursor=pointer]: "90"
+            - status [ref=e3995] [cursor=pointer]: "88"
+            - status [ref=e3996] [cursor=pointer]: "87"
+            - status [ref=e3997] [cursor=pointer]: "77"
+            - status [ref=e3998] [cursor=pointer]: "71"
+            - status [ref=e3999] [cursor=pointer]: "68"
+            - status [ref=e4000] [cursor=pointer]: "59"
+            - status [ref=e4001] [cursor=pointer]: "56"
+            - status [ref=e4002] [cursor=pointer]: "44"
+            - status [ref=e4003] [cursor=pointer]: "42"
+            - status [ref=e4004] [cursor=pointer]: "41"
+            - status [ref=e4005] [cursor=pointer]: "39"
+            - status [ref=e4006] [cursor=pointer]: "33"
+            - status [ref=e4007] [cursor=pointer]: "30"
+            - status [ref=e4008] [cursor=pointer]: "28"
+            - status [ref=e4009] [cursor=pointer]: "26"
+            - status [ref=e4010] [cursor=pointer]: "25"
+            - status [ref=e4011] [cursor=pointer]: "21"
+            - status [ref=e4012] [cursor=pointer]: "19"
+            - status [ref=e4013] [cursor=pointer]: "17"
+            - status [ref=e4014] [cursor=pointer]: "16"
+            - status [ref=e4015] [cursor=pointer]: "15"
+            - status [ref=e4016] [cursor=pointer]: "14"
+            - status [ref=e4017] [cursor=pointer]: "11"
+            - status [ref=e4018] [cursor=pointer]: "182"
+            - status [ref=e4019] [cursor=pointer]: "171"
+            - status [ref=e4020] [cursor=pointer]: "162"
+            - status [ref=e4021] [cursor=pointer]: "155"
+            - status [ref=e4022] [cursor=pointer]: "148"
+            - status [ref=e4023] [cursor=pointer]: "141"
+            - status [ref=e4024] [cursor=pointer]: "133"
+            - status [ref=e4025] [cursor=pointer]: "127"
+            - status [ref=e4026] [cursor=pointer]: "123"
+            - status [ref=e4027] [cursor=pointer]: "122"
+            - status [ref=e4028] [cursor=pointer]: "118"
+            - status [ref=e4029] [cursor=pointer]: "114"
+            - status [ref=e4030] [cursor=pointer]: "107"
+            - status [ref=e4031] [cursor=pointer]: "102"
+            - status [ref=e4032] [cursor=pointer]: "101"
+            - status [ref=e4033] [cursor=pointer]: "93"
+            - status [ref=e4034] [cursor=pointer]: "76"
+            - status [ref=e4035] [cursor=pointer]: "67"
+            - status [ref=e4036] [cursor=pointer]: "62"
+            - status [ref=e4037] [cursor=pointer]: "55"
+            - status [ref=e4038] [cursor=pointer]: "47"
+            - status [ref=e4039] [cursor=pointer]: "43"
+            - status [ref=e4040] [cursor=pointer]: "36"
+            - status [ref=e4041] [cursor=pointer]: "34"
+            - status [ref=e4042] [cursor=pointer]: "13"
+            - status [ref=e4043] [cursor=pointer]: "12"
+            - status [ref=e4044] [cursor=pointer]: "4"
+            - status [ref=e4045] [cursor=pointer]: "3"
+            - status [ref=e4046] [cursor=pointer]: "2"
+            - status [ref=e4047] [cursor=pointer]: "183"
+            - status [ref=e4048] [cursor=pointer]: "180"
+            - status [ref=e4049] [cursor=pointer]: "176"
+            - status [ref=e4050] [cursor=pointer]: "175"
+            - status [ref=e4051] [cursor=pointer]: "174"
+            - status [ref=e4052] [cursor=pointer]: "173"
+            - status [ref=e4053] [cursor=pointer]: "169"
+            - status [ref=e4054] [cursor=pointer]: "168"
+            - status [ref=e4055] [cursor=pointer]: "167"
+            - status [ref=e4056] [cursor=pointer]: "166"
+            - status [ref=e4057] [cursor=pointer]: "165"
+            - status [ref=e4058] [cursor=pointer]: "163"
+            - status [ref=e4059] [cursor=pointer]: "161"
+            - status [ref=e4060] [cursor=pointer]: "159"
+            - status [ref=e4061] [cursor=pointer]: "158"
+            - status [ref=e4062] [cursor=pointer]: "156"
+            - status [ref=e4063] [cursor=pointer]: "154"
+            - status [ref=e4064] [cursor=pointer]: "153"
+            - status [ref=e4065] [cursor=pointer]: "152"
+            - status [ref=e4066] [cursor=pointer]: "151"
+            - status [ref=e4067] [cursor=pointer]: "149"
+            - status [ref=e4068] [cursor=pointer]: "147"
+            - status [ref=e4069] [cursor=pointer]: "146"
+            - status [ref=e4070] [cursor=pointer]: "145"
+            - status [ref=e4071] [cursor=pointer]: "144"
+            - status [ref=e4072] [cursor=pointer]: "140"
+            - status [ref=e4073] [cursor=pointer]: "139"
+            - status [ref=e4074] [cursor=pointer]: "138"
+            - status [ref=e4075] [cursor=pointer]: "137"
+            - status [ref=e4076] [cursor=pointer]: "136"
+            - status [ref=e4077] [cursor=pointer]: "135"
+            - status [ref=e4078] [cursor=pointer]: "132"
+            - status [ref=e4079] [cursor=pointer]: "131"
+            - status [ref=e4080] [cursor=pointer]: "128"
+            - status [ref=e4081] [cursor=pointer]: "124"
+            - status [ref=e4082] [cursor=pointer]: "121"
+            - status [ref=e4083] [cursor=pointer]: "120"
+            - status [ref=e4084] [cursor=pointer]: "115"
+            - status [ref=e4085] [cursor=pointer]: "113"
+            - status [ref=e4086] [cursor=pointer]: "112"
+            - status [ref=e4087] [cursor=pointer]: "111"
+            - status [ref=e4088] [cursor=pointer]: "110"
+            - status [ref=e4089] [cursor=pointer]: "109"
+            - status [ref=e4090] [cursor=pointer]: "105"
+            - status [ref=e4091] [cursor=pointer]: "104"
+            - status [ref=e4092] [cursor=pointer]: "103"
+            - status [ref=e4093] [cursor=pointer]: "100"
+            - status [ref=e4094] [cursor=pointer]: "99"
+            - status [ref=e4095] [cursor=pointer]: "98"
+            - status [ref=e4096] [cursor=pointer]: "91"
+            - status [ref=e4097] [cursor=pointer]: "89"
+            - status [ref=e4098] [cursor=pointer]: "86"
+            - status [ref=e4099] [cursor=pointer]: "84"
+            - status [ref=e4100] [cursor=pointer]: "80"
+            - status [ref=e4101] [cursor=pointer]: "79"
+            - status [ref=e4102] [cursor=pointer]: "78"
+            - status [ref=e4103] [cursor=pointer]: "75"
+            - status [ref=e4104] [cursor=pointer]: "74"
+            - status [ref=e4105] [cursor=pointer]: "73"
+            - status [ref=e4106] [cursor=pointer]: "72"
+            - status [ref=e4107] [cursor=pointer]: "70"
+            - status [ref=e4108] [cursor=pointer]: "69"
+            - status [ref=e4109] [cursor=pointer]: "66"
+            - status [ref=e4110] [cursor=pointer]: "65"
+            - status [ref=e4111] [cursor=pointer]: "64"
+            - status [ref=e4112] [cursor=pointer]: "61"
+            - status [ref=e4113] [cursor=pointer]: "60"
+            - status [ref=e4114] [cursor=pointer]: "57"
+            - status [ref=e4115] [cursor=pointer]: "53"
+            - status [ref=e4116] [cursor=pointer]: "50"
+            - status [ref=e4117] [cursor=pointer]: "46"
+            - status [ref=e4118] [cursor=pointer]: "45"
+            - status [ref=e4119] [cursor=pointer]: "40"
+            - status [ref=e4120] [cursor=pointer]: "38"
+            - status [ref=e4121] [cursor=pointer]: "37"
+            - status [ref=e4122] [cursor=pointer]: "32"
+            - status [ref=e4123] [cursor=pointer]: "31"
+            - status [ref=e4124] [cursor=pointer]: "29"
+            - status [ref=e4125] [cursor=pointer]: "27"
+            - status [ref=e4126] [cursor=pointer]: "22"
+            - status [ref=e4127] [cursor=pointer]: "18"
+            - status [ref=e4128] [cursor=pointer]: "10"
+            - status [ref=e4129] [cursor=pointer]: "8"
+            - status [ref=e4130] [cursor=pointer]: "7"
+            - status [ref=e4131] [cursor=pointer]: "6"
+            - status [ref=e4132] [cursor=pointer]: "5"
+            - status [ref=e4134] [cursor=pointer]: "300"
+            - status [ref=e4136] [cursor=pointer]: "299"
+            - status [ref=e4138] [cursor=pointer]: "298"
+            - status [ref=e4140] [cursor=pointer]: "297"
+            - status [ref=e4142] [cursor=pointer]: "296"
+            - status [ref=e4144] [cursor=pointer]: "295"
+            - status [ref=e4146] [cursor=pointer]: "294"
+            - status [ref=e4148] [cursor=pointer]: "293"
+            - status [ref=e4150] [cursor=pointer]: "292"
+            - status [ref=e4152] [cursor=pointer]: "291"
+            - status [ref=e4154] [cursor=pointer]: "290"
+            - status [ref=e4156] [cursor=pointer]: "289"
+            - status [ref=e4158] [cursor=pointer]: "288"
+            - status [ref=e4160] [cursor=pointer]: "287"
+            - status [ref=e4162] [cursor=pointer]: "286"
+            - status [ref=e4164] [cursor=pointer]: "285"
+            - status [ref=e4166] [cursor=pointer]: "284"
+            - status [ref=e4168] [cursor=pointer]: "283"
+            - status [ref=e4170] [cursor=pointer]: "282"
+            - status [ref=e4172] [cursor=pointer]: "281"
+            - status [ref=e4174] [cursor=pointer]: "280"
+            - status [ref=e4176] [cursor=pointer]: "279"
+            - status [ref=e4178] [cursor=pointer]: "278"
+            - status [ref=e4180] [cursor=pointer]: "277"
+            - status [ref=e4182] [cursor=pointer]: "276"
+            - status [ref=e4184] [cursor=pointer]: "275"
+            - status [ref=e4186] [cursor=pointer]: "274"
+            - status [ref=e4188] [cursor=pointer]: "273"
+            - status [ref=e4190] [cursor=pointer]: "272"
+            - status [ref=e4192] [cursor=pointer]: "271"
+            - status [ref=e4194] [cursor=pointer]: "270"
+            - status [ref=e4196] [cursor=pointer]: "269"
+            - status [ref=e4198] [cursor=pointer]: "268"
+            - status [ref=e4200] [cursor=pointer]: "267"
+            - status [ref=e4202] [cursor=pointer]: "266"
+            - status [ref=e4204] [cursor=pointer]: "265"
+            - status [ref=e4206] [cursor=pointer]: "264"
+            - status [ref=e4208] [cursor=pointer]: "263"
+            - status [ref=e4210] [cursor=pointer]: "262"
+            - status [ref=e4212] [cursor=pointer]: "261"
+            - status [ref=e4214] [cursor=pointer]: "260"
+            - status [ref=e4216] [cursor=pointer]: "259"
+            - status [ref=e4218] [cursor=pointer]: "258"
+            - status [ref=e4220] [cursor=pointer]: "257"
+            - status [ref=e4222] [cursor=pointer]: "256"
+            - status [ref=e4224] [cursor=pointer]: "255"
+            - status [ref=e4226] [cursor=pointer]: "254"
+            - status [ref=e4228] [cursor=pointer]: "253"
+            - status [ref=e4230] [cursor=pointer]: "252"
+            - status [ref=e4232] [cursor=pointer]: "251"
+            - status [ref=e4234] [cursor=pointer]: "250"
+            - status [ref=e4236] [cursor=pointer]: "249"
+            - status [ref=e4238] [cursor=pointer]: "248"
+            - status [ref=e4240] [cursor=pointer]: "247"
+            - status [ref=e4242] [cursor=pointer]: "246"
+            - status [ref=e4244] [cursor=pointer]: "245"
+            - status [ref=e4246] [cursor=pointer]: "244"
+            - status [ref=e4248] [cursor=pointer]: "243"
+            - status [ref=e4250] [cursor=pointer]: "242"
+            - status [ref=e4252] [cursor=pointer]: "241"
+            - status [ref=e4254] [cursor=pointer]: "240"
+            - status [ref=e4256] [cursor=pointer]: "239"
+            - status [ref=e4258] [cursor=pointer]: "238"
+            - status [ref=e4260] [cursor=pointer]: "237"
+            - status [ref=e4262] [cursor=pointer]: "236"
+            - status [ref=e4264] [cursor=pointer]: "235"
+            - status [ref=e4266] [cursor=pointer]: "234"
+            - status [ref=e4268] [cursor=pointer]: "233"
+            - status [ref=e4270] [cursor=pointer]: "232"
+            - status [ref=e4272] [cursor=pointer]: "231"
+            - status [ref=e4274] [cursor=pointer]: "230"
+            - status [ref=e4276] [cursor=pointer]: "229"
+            - status [ref=e4278] [cursor=pointer]: "228"
+            - status [ref=e4280] [cursor=pointer]: "227"
+            - status [ref=e4282] [cursor=pointer]: "226"
+            - status [ref=e4284] [cursor=pointer]: "225"
+            - status [ref=e4286] [cursor=pointer]: "224"
+            - status [ref=e4288] [cursor=pointer]: "223"
+            - status [ref=e4290] [cursor=pointer]: "222"
+            - status [ref=e4292] [cursor=pointer]: "221"
+            - status [ref=e4294] [cursor=pointer]: "220"
+            - status [ref=e4296] [cursor=pointer]: "219"
+            - status [ref=e4298] [cursor=pointer]: "218"
+            - status [ref=e4300] [cursor=pointer]: "217"
+            - status [ref=e4302] [cursor=pointer]: "216"
+            - status [ref=e4304] [cursor=pointer]: "215"
+            - status [ref=e4306] [cursor=pointer]: "214"
+            - status [ref=e4308] [cursor=pointer]: "213"
+            - status [ref=e4310] [cursor=pointer]: "212"
+            - status [ref=e4312] [cursor=pointer]: "211"
+            - status [ref=e4314] [cursor=pointer]: "210"
+            - status [ref=e4316] [cursor=pointer]: "209"
+            - status [ref=e4318] [cursor=pointer]: "208"
+            - status [ref=e4320] [cursor=pointer]: "207"
+            - status [ref=e4322] [cursor=pointer]: "206"
+            - status [ref=e4324] [cursor=pointer]: "205"
+            - status [ref=e4326] [cursor=pointer]: "204"
+            - status [ref=e4328] [cursor=pointer]: "203"
+            - status [ref=e4330] [cursor=pointer]: "202"
+            - status [ref=e4332] [cursor=pointer]: "201"
+            - status [ref=e4334] [cursor=pointer]: "200"
+            - status [ref=e4336] [cursor=pointer]: "199"
+            - status [ref=e4338] [cursor=pointer]: "198"
+            - status [ref=e4340] [cursor=pointer]: "197"
+            - status [ref=e4342] [cursor=pointer]: "196"
+            - status [ref=e4344] [cursor=pointer]: "195"
+            - status [ref=e4346] [cursor=pointer]: "194"
+            - status [ref=e4348] [cursor=pointer]: "193"
+            - status [ref=e4350] [cursor=pointer]: "192"
+            - status [ref=e4352] [cursor=pointer]: "191"
+            - status [ref=e4354] [cursor=pointer]: "190"
+            - status [ref=e4356] [cursor=pointer]: "189"
+            - status [ref=e4358] [cursor=pointer]: "188"
+            - status [ref=e4360] [cursor=pointer]: "187"
+            - status [ref=e4362] [cursor=pointer]: "186"
+            - status [ref=e4364] [cursor=pointer]: "185"
+            - status [ref=e4366] [cursor=pointer]: "184"
+        - generic:
+          - generic [ref=e925]:
+            - button "Zoom in" [ref=e926] [cursor=pointer]: +
+            - button "Zoom out" [ref=e927] [cursor=pointer]: −
+          - link "Leaflet" [ref=e929] [cursor=pointer]:
+            - /url: https://leafletjs.com
+      - generic [ref=e283]: Mostrando 300 de 2839 clientes con ubicación. Acerca el mapa para ver los 1272 restantes de esta zona.
+      - generic [ref=e285]:
+        - generic [ref=e286]:
+          - generic [ref=e287]: CLIENTES
+          - generic [ref=e289]:
+            - switch "Solo los del mapa" [checked] [ref=e290] [cursor=pointer]
+            - button "actualizar" [ref=e295] [cursor=pointer]:
+              - generic [ref=e296]:
+                - img [ref=e297]: refresh
+                - generic [ref=e298]: actualizar
+            - generic [ref=e301]:
+              - textbox [ref=e303]:
+                - /placeholder: Buscar
+              - generic [ref=e304]: search
+        - table [ref=e307]:
+          - rowgroup [ref=e308]:
+            - row [ref=e309]:
+              - columnheader "opcion" [ref=e310]
+              - columnheader "NOMBRES" [ref=e311]
+              - columnheader "PREVENTISTA" [ref=e312]
+              - columnheader "CI/NIT" [ref=e313]
+              - columnheader "Observacion" [ref=e314]
+              - columnheader "telefono" [ref=e315]
+              - columnheader "Direccion" [ref=e316]
+          - rowgroup [ref=e930]:
+            - row [ref=e931]:
+              - cell "preventista JUAN RIOS JUAN RIOS" [ref=e932]:
+                - generic [ref=e935] [cursor=pointer]:
+                  - generic [ref=e936]:
+                    - generic: preventista
+                    - generic [ref=e937]:
+                      - generic [ref=e938]: JUAN RIOS
+                      - combobox "preventista" [ref=e939]: JUAN RIOS
+                  - generic [ref=e940]: arrow_drop_down
+                - button [ref=e942] [cursor=pointer]:
+                  - img [ref=e944]: my_location
+              - cell "JHAEL USTAREZ" [ref=e945]
+              - cell "JUAN RIOS" [ref=e946]
+              - cell "3540679019" [ref=e947]
+              - cell [ref=e948]
+              - cell "76133366" [ref=e949]
+              - cell "BOLIVAR ENTRE SORIA GALVARRO Y 6 DE OCTUBRE (FACTORI)" [ref=e950]
+            - row [ref=e4367]:
+              - cell "preventista RUTH CERROGRANDE RUTH CERROGRANDE" [ref=e4368]:
+                - generic [ref=e955] [cursor=pointer]:
+                  - generic [ref=e956]:
+                    - generic: preventista
+                    - generic [ref=e957]:
+                      - generic [ref=e958]: RUTH CERROGRANDE
+                      - combobox "preventista" [ref=e959]: RUTH CERROGRANDE
+                  - generic [ref=e960]: arrow_drop_down
+                - button [ref=e962] [cursor=pointer]:
+                  - img [ref=e964]: my_location
+              - cell "JUSTINA MAYTA MAMANI" [ref=e4369]
+              - cell "RUTH CERROGRANDE" [ref=e4370]
+              - cell "4042917" [ref=e4371]
+              - cell [ref=e968]
+              - cell "67242838" [ref=e4372]
+              - cell "LEON ENTRE CALLE LA PAZ Y SORIA GALVARRO" [ref=e4373]
+            - row [ref=e4374]:
+              - cell "preventista RUTH CERROGRANDE RUTH CERROGRANDE" [ref=e4375]:
+                - generic [ref=e975] [cursor=pointer]:
+                  - generic [ref=e976]:
+                    - generic: preventista
+                    - generic [ref=e977]:
+                      - generic [ref=e978]: RUTH CERROGRANDE
+                      - combobox "preventista" [ref=e979]: RUTH CERROGRANDE
+                  - generic [ref=e980]: arrow_drop_down
+                - button [ref=e982] [cursor=pointer]:
+                  - img [ref=e984]: my_location
+              - cell "CECILIA AYAVIRI A. DE PANIAGUA" [ref=e4376]
+              - cell "RUTH CERROGRANDE" [ref=e4377]
+              - cell "3501059017" [ref=e4378]
+              - cell [ref=e988]
+              - cell "67221677" [ref=e4379]
+              - cell "TUPIZA ENTRE LA PAZ Y SORIA GALVARRO (FRIAL RANCHERIA)" [ref=e4380]
+            - row [ref=e4381]:
+              - cell "preventista JUAN RIOS JUAN RIOS" [ref=e4382]:
+                - generic [ref=e995] [cursor=pointer]:
+                  - generic [ref=e996]:
+                    - generic: preventista
+                    - generic [ref=e997]:
+                      - generic [ref=e998]: JUAN RIOS
+                      - combobox "preventista" [ref=e999]: JUAN RIOS
+                  - generic [ref=e1000]: arrow_drop_down
+                - button [ref=e1002] [cursor=pointer]:
+                  - img [ref=e1004]: my_location
+              - cell "PRIMITIVA PORTILLO VIDAL" [ref=e4383]
+              - cell "JUAN RIOS" [ref=e4384]
+              - cell "4044630" [ref=e4385]
+              - cell [ref=e1008]
+              - cell "73826414" [ref=e4386]
+              - cell "ANTOFAGASTA ENTRE MONTECINOS Y CARO" [ref=e4387]
+            - row [ref=e4388]:
+              - cell "preventista CRISTIAN LOPEZ CRISTIAN LOPEZ" [ref=e4389]:
+                - generic [ref=e1015] [cursor=pointer]:
+                  - generic [ref=e1016]:
+                    - generic: preventista
+                    - generic [ref=e1017]:
+                      - generic [ref=e1018]: CRISTIAN LOPEZ
+                      - combobox "preventista" [ref=e1019]: CRISTIAN LOPEZ
+                  - generic [ref=e1020]: arrow_drop_down
+                - button [ref=e1022] [cursor=pointer]:
+                  - img [ref=e1024]: my_location
+              - cell "BRAULIA MACHACA APAZA" [ref=e4390]
+              - cell "CRISTIAN LOPEZ" [ref=e4391]
+              - cell "4077039" [ref=e4392]
+              - cell [ref=e1028]
+              - cell "68297824" [ref=e4393]
+              - cell "1° DE MAYO ENTRE AV. ESPAÑA Y AVAROA N° 4" [ref=e4394]
+            - row [ref=e4395]:
+              - cell "preventista CRISTIAN LOPEZ CRISTIAN LOPEZ" [ref=e4396]:
+                - generic [ref=e1035] [cursor=pointer]:
+                  - generic [ref=e1036]:
+                    - generic: preventista
+                    - generic [ref=e1037]:
+                      - generic [ref=e1038]: CRISTIAN LOPEZ
+                      - combobox "preventista" [ref=e1039]: CRISTIAN LOPEZ
+                  - generic [ref=e1040]: arrow_drop_down
+                - button [ref=e1042] [cursor=pointer]:
+                  - img [ref=e1044]: my_location
+              - cell "JUSTINA VENTURA AGUILAR" [ref=e4397]
+              - cell "CRISTIAN LOPEZ" [ref=e4398]
+              - cell "3092551" [ref=e4399]
+              - cell [ref=e1048]
+              - cell "64781822" [ref=e4400]
+              - cell "6 DE OCTUBRE Y LIZARRAGA ( LADO MERCADO WALTER KHON)" [ref=e4401]
+            - row [ref=e4402]:
+              - cell "preventista CRISTIAN LOPEZ CRISTIAN LOPEZ" [ref=e4403]:
+                - generic [ref=e1055] [cursor=pointer]:
+                  - generic [ref=e1056]:
+                    - generic: preventista
+                    - generic [ref=e1057]:
+                      - generic [ref=e1058]: CRISTIAN LOPEZ
+                      - combobox "preventista" [ref=e1059]: CRISTIAN LOPEZ
+                  - generic [ref=e1060]: arrow_drop_down
+                - button [ref=e1062] [cursor=pointer]:
+                  - img [ref=e1064]: my_location
+              - cell "ROSMERY MAGNE CAHUANA DE CHOQUE" [ref=e4404]
+              - cell "CRISTIAN LOPEZ" [ref=e4405]
+              - cell "3512337" [ref=e4406]
+              - cell [ref=e1068]
+              - cell "71180243" [ref=e4407]
+              - cell "ESPAÑA ENTRE 1° DE MAYO Y GRAL. ACHA" [ref=e4408]
+            - row [ref=e4409]:
+              - cell "preventista NO ATENDIDO NO ATENDIDO" [ref=e4410]:
+                - generic [ref=e1075] [cursor=pointer]:
+                  - generic [ref=e1076]:
+                    - generic: preventista
+                    - generic [ref=e1077]:
+                      - generic [ref=e1078]: NO ATENDIDO
+                      - combobox "preventista" [ref=e1079]: NO ATENDIDO
+                  - generic [ref=e1080]: arrow_drop_down
+                - button [ref=e1082] [cursor=pointer]:
+                  - img [ref=e1084]: my_location
+              - cell "LIDIA GOMEZ CAYOJA" [ref=e4411]
+              - cell "NO ATENDIDO" [ref=e4412]
+              - cell "5745952" [ref=e4413]
+              - cell [ref=e1088]
+              - cell "62783848" [ref=e4414]
+              - cell "Interior Mercado Young lado Paola Rafael" [ref=e4415]
+            - row [ref=e4416]:
+              - cell "preventista HELEN TORREZ HELEN TORREZ" [ref=e4417]:
+                - generic [ref=e1095] [cursor=pointer]:
+                  - generic [ref=e1096]:
+                    - generic: preventista
+                    - generic [ref=e1097]:
+                      - generic [ref=e1098]: HELEN TORREZ
+                      - combobox "preventista" [ref=e1099]: HELEN TORREZ
+                  - generic [ref=e1100]: arrow_drop_down
+                - button [ref=e1102] [cursor=pointer]:
+                  - img [ref=e1104]: my_location
+              - cell "HELEN EDITH TORREZ PRIALET DE ANDIA" [ref=e4418]
+              - cell "HELEN TORREZ" [ref=e4419]
+              - cell "3544875019" [ref=e4420]
+              - cell [ref=e1108]
+              - cell "5289343" [ref=e4421]
+              - cell "PAGADOR ENTRE ADOLFO MIER Y BOLIVAR" [ref=e4422]
+            - row [ref=e4423]:
+              - cell "preventista TATIANA HURTADO TATIANA HURTADO" [ref=e4424]:
+                - generic [ref=e1115] [cursor=pointer]:
+                  - generic [ref=e1116]:
+                    - generic: preventista
+                    - generic [ref=e1117]:
+                      - generic [ref=e1118]: TATIANA HURTADO
+                      - combobox "preventista" [ref=e1119]: TATIANA HURTADO
+                  - generic [ref=e1120]: arrow_drop_down
+                - button [ref=e1122] [cursor=pointer]:
+                  - img [ref=e1124]: my_location
+              - cell "ELIZABETH CRISTINA LLAVE AJHUACHO" [ref=e4425]
+              - cell "TATIANA HURTADO" [ref=e4426]
+              - cell "3513987" [ref=e4427]
+              - cell [ref=e1128]
+              - cell "77140597" [ref=e4428]
+              - cell "Urbanizacion Rosales cerca al grupo aereo 66" [ref=e4429]
+            - row [ref=e4430]:
+              - cell "preventista FRANZ SANTOS FRANZ SANTOS" [ref=e4431]:
+                - generic [ref=e1135] [cursor=pointer]:
+                  - generic [ref=e1136]:
+                    - generic: preventista
+                    - generic [ref=e1137]:
+                      - generic [ref=e1138]: FRANZ SANTOS
+                      - combobox "preventista" [ref=e1139]: FRANZ SANTOS
+                  - generic [ref=e1140]: arrow_drop_down
+                - button [ref=e1142] [cursor=pointer]:
+                  - img [ref=e1144]: my_location
+              - cell "CANDELARIA CAYOJA HEREDIA" [ref=e4432]
+              - cell "FRANZ SANTOS" [ref=e4433]
+              - cell "3105446" [ref=e4434]
+              - cell [ref=e1148]
+              - cell "65421279" [ref=e4435]
+              - cell "MERCADO BOLIVAR - INTERIOR (PUESTO N°25)" [ref=e4436]
+            - row [ref=e4437]:
+              - cell "preventista JUAN RIOS JUAN RIOS" [ref=e4438]:
+                - generic [ref=e1155] [cursor=pointer]:
+                  - generic [ref=e1156]:
+                    - generic: preventista
+                    - generic [ref=e1157]:
+                      - generic [ref=e1158]: JUAN RIOS
+                      - combobox "preventista" [ref=e1159]: JUAN RIOS
+                  - generic [ref=e1160]: arrow_drop_down
+                - button [ref=e1162] [cursor=pointer]:
+                  - img [ref=e1164]: my_location
+              - cell "LIZETH GONZALES ORDOÑEZ" [ref=e4439]
+              - cell "JUAN RIOS" [ref=e4440]
+              - cell "4062214" [ref=e4441]
+              - cell [ref=e1168]
+              - cell "69604612" [ref=e4442]
+              - cell "ANTOFAGASTA ESQ. MONTECINOS" [ref=e4443]
+            - row [ref=e4444]:
+              - cell "preventista NO ATENDIDO NO ATENDIDO" [ref=e1172]:
+                - generic [ref=e1175] [cursor=pointer]:
+                  - generic [ref=e1176]:
+                    - generic: preventista
+                    - generic [ref=e1177]:
+                      - generic [ref=e1178]: NO ATENDIDO
+                      - combobox "preventista" [ref=e1179]: NO ATENDIDO
+                  - generic [ref=e1180]: arrow_drop_down
+                - button [ref=e1182] [cursor=pointer]:
+                  - img [ref=e1184]: my_location
+              - cell "VICTOR GONZALES ORDOÑEZ" [ref=e4445]
+              - cell "NO ATENDIDO" [ref=e1186]
+              - cell "4055170" [ref=e4446]
+              - cell [ref=e1188]
+              - cell "76147877" [ref=e4447]
+              - cell "ANTOFAGASTA ESQ. MONTESINOS" [ref=e4448]
+            - row [ref=e4449]:
+              - cell "preventista JUAN RIOS JUAN RIOS" [ref=e4450]:
+                - generic [ref=e1195] [cursor=pointer]:
+                  - generic [ref=e1196]:
+                    - generic: preventista
+                    - generic [ref=e1197]:
+                      - generic [ref=e1198]: JUAN RIOS
+                      - combobox "preventista" [ref=e1199]: JUAN RIOS
+                  - generic [ref=e1200]: arrow_drop_down
+                - button [ref=e1202] [cursor=pointer]:
+                  - img [ref=e1204]: my_location
+              - cell "SONIA CALIZAYA DE CHOQUE" [ref=e4451]
+              - cell "JUAN RIOS" [ref=e4452]
+              - cell "5771076" [ref=e4453]
+              - cell [ref=e1208]
+              - cell "74141366" [ref=e4454]
+              - cell "BOLIVAR BRASIL Y TEJERINA" [ref=e4455]
+            - row [ref=e4456]:
+              - cell "preventista JUAN RIOS JUAN RIOS" [ref=e4457]:
+                - generic [ref=e1215] [cursor=pointer]:
+                  - generic [ref=e1216]:
+                    - generic: preventista
+                    - generic [ref=e1217]:
+                      - generic [ref=e1218]: JUAN RIOS
+                      - combobox "preventista" [ref=e1219]: JUAN RIOS
+                  - generic [ref=e1220]: arrow_drop_down
+                - button [ref=e1222] [cursor=pointer]:
+                  - img [ref=e1224]: my_location
+              - cell "TANIA ERIKA CHOQUE CONDORI" [ref=e4458]
+              - cell "JUAN RIOS" [ref=e4459]
+              - cell "40071427" [ref=e4460]
+              - cell [ref=e1228]
+              - cell "74721377" [ref=e4461]
+              - cell "BOLIVAR TEJERINA Y TARAPACA" [ref=e4462]
+            - row [ref=e4463]:
+              - cell "preventista JUAN RIOS JUAN RIOS" [ref=e4464]:
+                - generic [ref=e1235] [cursor=pointer]:
+                  - generic [ref=e1236]:
+                    - generic: preventista
+                    - generic [ref=e1237]:
+                      - generic [ref=e1238]: JUAN RIOS
+                      - combobox "preventista" [ref=e1239]: JUAN RIOS
+                  - generic [ref=e1240]: arrow_drop_down
+                - button [ref=e1242] [cursor=pointer]:
+                  - img [ref=e1244]: my_location
+              - cell "ROSEMERY GIOVANNA CHOQUE PACHECO" [ref=e4465]
+              - cell "JUAN RIOS" [ref=e4466]
+              - cell "5725998" [ref=e4467]
+              - cell [ref=e1248]
+              - cell "73825530" [ref=e4468]
+              - 'cell "MERCADO BOLIVAR INTERIOR PUESTO #26" [ref=e4469]'
+            - row [ref=e4470]:
+              - cell "preventista JUAN RIOS JUAN RIOS" [ref=e4471]:
+                - generic [ref=e1255] [cursor=pointer]:
+                  - generic [ref=e1256]:
+                    - generic: preventista
+                    - generic [ref=e1257]:
+                      - generic [ref=e1258]: JUAN RIOS
+                      - combobox "preventista" [ref=e1259]: JUAN RIOS
+                  - generic [ref=e1260]: arrow_drop_down
+                - button [ref=e1262] [cursor=pointer]:
+                  - img [ref=e1264]: my_location
+              - cell "AMALIA MAGNE AJHUACHO DE LAYME" [ref=e4472]
+              - cell "JUAN RIOS" [ref=e4473]
+              - cell "5755233" [ref=e4474]
+              - cell [ref=e1268]
+              - cell "61825284" [ref=e4475]
+              - 'cell "MERCADO BOLIVAR INTERIOR PUESTO #28" [ref=e4476]'
+            - row [ref=e4477]:
+              - cell "preventista NO ATENDIDO NO ATENDIDO" [ref=e1272]:
+                - generic [ref=e1275] [cursor=pointer]:
+                  - generic [ref=e1276]:
+                    - generic: preventista
+                    - generic [ref=e1277]:
+                      - generic [ref=e1278]: NO ATENDIDO
+                      - combobox "preventista" [ref=e1279]: NO ATENDIDO
+                  - generic [ref=e1280]: arrow_drop_down
+                - button [ref=e1282] [cursor=pointer]:
+                  - img [ref=e1284]: my_location
+              - cell "FOOD TIME SRL" [ref=e4478]
+              - cell "NO ATENDIDO" [ref=e1286]
+              - cell "324392022" [ref=e4479]
+              - cell [ref=e1288]
+              - cell "60437963" [ref=e4480]
+              - cell "MULTICINE PLAZA" [ref=e4481]
+            - row [ref=e4482]:
+              - cell "preventista RUTH CERROGRANDE RUTH CERROGRANDE" [ref=e4483]:
+                - generic [ref=e1295] [cursor=pointer]:
+                  - generic [ref=e1296]:
+                    - generic: preventista
+                    - generic [ref=e1297]:
+                      - generic [ref=e1298]: RUTH CERROGRANDE
+                      - combobox "preventista" [ref=e1299]: RUTH CERROGRANDE
+                  - generic [ref=e1300]: arrow_drop_down
+                - button [ref=e1302] [cursor=pointer]:
+                  - img [ref=e1304]: my_location
+              - cell "RODMY ANTONIO MENA" [ref=e4484]
+              - cell "RUTH CERROGRANDE" [ref=e4485]
+              - cell "57774777017" [ref=e4486]
+              - cell [ref=e1308]
+              - cell "69591715" [ref=e4487]
+              - cell "PETOT JUNIN Y AYACUCHO" [ref=e4488]
+            - row [ref=e4489]:
+              - cell "preventista LAURA ALVIS LAURA ALVIS" [ref=e4490]:
+                - generic [ref=e1315] [cursor=pointer]:
+                  - generic [ref=e1316]:
+                    - generic: preventista
+                    - generic [ref=e1317]:
+                      - generic [ref=e1318]: LAURA ALVIS
+                      - combobox "preventista" [ref=e1319]: LAURA ALVIS
+                  - generic [ref=e1320]: arrow_drop_down
+                - button [ref=e1322] [cursor=pointer]:
+                  - img [ref=e1324]: my_location
+              - cell "IPRAL A Y V S.R.L." [ref=e4491]
+              - cell "LAURA ALVIS" [ref=e4492]
+              - cell "168266022" [ref=e4493]
+              - cell [ref=e1328]
+              - cell "70419662" [ref=e4494]
+              - cell "BOLIVAR SORIA GALVARRO Y LA PLATA" [ref=e4495]
+        - generic [ref=e317]:
+          - generic [ref=e1331]:
+            - generic [ref=e1332]: "Filas por página:"
+            - generic [ref=e1335] [cursor=pointer]:
+              - generic [ref=e1337]:
+                - generic [ref=e1338]: "20"
+                - combobox "20" [ref=e1339]
+              - generic [ref=e1340]: arrow_drop_down
+          - generic [ref=e1342]:
+            - generic [ref=e1343]: 1-20 de 1572
+            - button "Primera página" [disabled] [ref=e1344]:
+              - img [ref=e1346]: first_page
+            - button "Página anterior" [disabled] [ref=e1347]:
+              - img [ref=e1349]: chevron_left
+            - button "Próxima página" [ref=e1350] [cursor=pointer]:
+              - img [ref=e1352]: chevron_right
+            - button "Última página" [ref=e1353] [cursor=pointer]:
+              - img [ref=e1355]: last_page

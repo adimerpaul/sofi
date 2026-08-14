@@ -65,7 +65,7 @@
 <script>
 import {date} from 'quasar'
 import {jsPDF} from "jspdf";
-const conversor = require('conversor-numero-a-letras-es-ar');
+import conversor from 'conversor-numero-a-letras-es-ar';
 
 export default {
   data(){

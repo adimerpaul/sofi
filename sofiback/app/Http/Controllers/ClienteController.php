@@ -40,14 +40,23 @@ class ClienteController extends Controller{
 
         $codAuts = $misClientes->pluck('Cod_Aut')->toArray();
         $Ids = $misClientes->pluck('Id')->toArray();
-        $Ids = array_map(function ($id) {
-            return "'" . addslashes($id) . "'"; // Escapa caracteres especiales y añade comillas
-        }, $Ids);
 
-        $visitas = DB::select("SELECT * FROM misvisitas WHERE cliente_id IN (".implode(',', $codAuts).") AND fecha = '".date('Y-m-d')."'");
+        // Si el vendedor no tiene clientes, un IN () vacio revienta el SQL
+        $visitas = [];
+        if (!empty($codAuts)) {
+            $visitas = DB::select(
+                "SELECT * FROM misvisitas WHERE cliente_id IN (".implode(',', array_fill(0, count($codAuts), '?')).") AND fecha = ?",
+                array_merge($codAuts, [date('Y-m-d')])
+            );
+        }
 
-
-        $cuentas = DB::select("SELECT sum(c.Importe-(SELECT sum(c2.Acuenta) from tbctascobrar c2 where c2.comanda=c.comanda)) as totdeuda, MIN(c.FechaEntreg) as fechaminima, count(*) as cantdeuda, c.CINIT FROM tbctascobrar c WHERE c.CINIT IN (".implode(',', $Ids).") AND c.Nrocierre=0 AND c.Acuenta=0 GROUP BY c.CINIT");
+        $cuentas = [];
+        if (!empty($Ids)) {
+            $cuentas = DB::select(
+                "SELECT sum(c.Importe-(SELECT sum(c2.Acuenta) from tbctascobrar c2 where c2.comanda=c.comanda)) as totdeuda, MIN(c.FechaEntreg) as fechaminima, count(*) as cantdeuda, c.CINIT FROM tbctascobrar c WHERE c.CINIT IN (".implode(',', array_fill(0, count($Ids), '?')).") AND c.Nrocierre=0 AND c.Acuenta=0 GROUP BY c.CINIT",
+                $Ids
+            );
+        }
 
         error_log(json_encode($cuentas));
 
@@ -506,7 +515,17 @@ class ClienteController extends Controller{
     }
 
     public function listaclientes(){
-        return DB::SELECT("SELECT *,(select o.observacion from obscliente o where o.ci=trim(c.Id))as obs from tbclientes c inner join personal p on c.CiVend=p.ci");
+        // Solo las columnas que usa la vista Modifica.vue: el SELECT * del join
+        // devolvia ~90 columnas por fila (2800+ filas) sin que se usaran.
+        return DB::SELECT("
+            SELECT c.Cod_Aut, c.Id, c.Nombres, c.Telf, c.Direccion, c.CiVend,
+                   c.Latitud, c.longitud,
+                   p.Nombre1, p.App1,
+                   o.observacion AS obs
+            FROM tbclientes c
+            INNER JOIN personal p ON c.CiVend = p.ci
+            LEFT JOIN obscliente o ON o.ci = TRIM(c.Id)
+        ");
     }
 
     public function modprevent(Request $request){

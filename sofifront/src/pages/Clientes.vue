@@ -63,8 +63,9 @@ export default {
     }
   },
   created() {
-    if(this.$store.getters['login/user'].ci!='7329536'){
+    if(!this.$store.getters['login/can']('clientes')){
       this.$router.push('/');
+      return
     }
     this.misclientes()
   },

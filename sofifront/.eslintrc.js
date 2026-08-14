@@ -6,7 +6,9 @@ module.exports = {
 
   parserOptions: {
     parser: '@babel/eslint-parser',
-    ecmaVersion: 2018, // Allows for the parsing of modern ECMAScript features
+    // Vite no usa Babel, por lo que ya no existe babel.config.js
+    requireConfigFile: false,
+    ecmaVersion: 2022, // Allows for the parsing of modern ECMAScript features
     sourceType: 'module' // Allows for the use of imports
   },
 

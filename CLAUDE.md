@@ -8,7 +8,7 @@ Sofia es un sistema de pedidos y distribución de pollo, embutidos y carnes. El 
 
 Monorepo con dos módulos:
 - `sofiback/` — API backend en Laravel 8 (PHP 7.3/8), MySQL, auth con Sanctum.
-- `sofifront/` — SPA en Quasar 2 / Vue 3 (Quasar CLI v3, webpack), con modos PWA, Capacitor y Cordova.
+- `sofifront/` — SPA en Quasar 2 / Vue 3 (Quasar CLI v2 con Vite, `@quasar/app-vite`), con modos PWA, Capacitor y Cordova.
 
 Advertencia: la raíz del repo contiene dumps SQL enormes (60–95 MB cada uno). No hacer búsquedas de texto sobre toda la raíz sin excluir `*.sql`, `sofiback/vendor/` y `sofifront/node_modules/`.
 
@@ -30,7 +30,9 @@ quasar build               # build SPA de producción
 quasar build -m pwa        # build PWA
 npm run lint               # ESLint sobre .js y .vue
 ```
-No hay tests en el frontend. La URL de la API está hardcodeada en `quasar.conf.js` (`env.API`): dev → `http://localhost:8000/api/`, prod → `https://bsofia.tuprogam.com/api/`. El router usa modo `hash`. No desplegar el frontend automáticamente; solo cuando el usuario lo pida.
+No hay tests en el frontend. La URL de la API está hardcodeada en `quasar.config.js` (`build.env.API`): dev → `http://localhost:8000/api/`, prod → `https://bsofia.tuprogam.com/api/`. El router usa modo `hash`. No desplegar el frontend automáticamente; solo cuando el usuario lo pida.
+
+Al ser Vite (no webpack): no existe `require()` en el navegador — usar `import`; y los imports de componentes necesitan la extensión explícita (`pages/Login.vue`, no `pages/Login`). El manifest de la PWA vive en `src-pwa/manifest.json` y el HTML base en `index.html` (raíz de `sofifront/`).
 
 ## Arquitectura
 
@@ -42,7 +44,7 @@ No hay tests en el frontend. La URL de la API está hardcodeada en `quasar.conf.
 
 ### Frontend
 - Páginas en `sofifront/src/pages/`, una por flujo de negocio (Mispedidos, Despacho, Ruta, Entregas, Cobranza, Clientes, Reporte…). Rutas en `src/router/routes.js`.
-- `src/boot/axios.js` crea la instancia `api` con `process.env.API` y la expone como `this.$api` (también `this.$url`); el token de Sanctum se valida contra `/me` al arrancar. Estado en Vuex (`src/store`).
+- `src/boot/axios.js` crea la instancia `api` con `process.env.API` y la expone como `this.$api` (también `this.$url`); el token de Sanctum se valida contra `/me` al arrancar. Estado en Vuex (`src/store`), que exporta la instancia ya creada; `@quasar/app-vite` solo soporta Pinia, así que Vuex se registra manualmente en `src/boot/vuex.js` (debe ir primero en la lista de `boot`) y quien lo necesite fuera de componentes lo importa desde `src/store`.
 - Reportes también se generan del lado cliente con `pdfmake`/`jspdf`/`json-as-xlsx`; mapas con Leaflet; notificaciones con Firebase (`src/boot/firebase.js`).
 
 ### Contrato front-back
