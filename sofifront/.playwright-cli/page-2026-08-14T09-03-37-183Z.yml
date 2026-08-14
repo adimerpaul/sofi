@@ -1,0 +1,1297 @@
+- generic [ref=e1]:
+  - generic [ref=e3]:
+    - banner [ref=e4]:
+      - toolbar [ref=e5]:
+        - button "Menu" [ref=e6] [cursor=pointer]:
+          - img [ref=e8]: menu
+        - generic [ref=e9]:
+          - text: Ventas generales
+          - generic [ref=e10]: 11.5.6
+        - button "Salir" [ref=e63] [cursor=pointer]:
+          - generic [ref=e64]:
+            - img [ref=e65]: logout
+            - generic [ref=e66]: Salir
+    - complementary [ref=e12]:
+      - list [ref=e14]:
+        - generic [ref=e15]: Opciones
+        - link "Principal" [ref=e16] [cursor=pointer]:
+          - /url: "#/"
+          - generic [ref=e17]: home
+        - link "Realizar Visita" [ref=e67] [cursor=pointer]:
+          - /url: "#/visita"
+          - generic [ref=e22]: map
+        - link "Clientes del Día Ver la semana" [ref=e68] [cursor=pointer]:
+          - /url: "#/clientevisita"
+          - generic [ref=e69]: today
+          - generic [ref=e71]:
+            - generic [ref=e72]: Clientes del Día
+            - generic [ref=e73]: Ver la semana
+        - link "Mis Pedidos" [ref=e74] [cursor=pointer]:
+          - /url: "#/mispedidos"
+          - generic [ref=e75]: list
+        - link "Pedidos Totales" [ref=e79] [cursor=pointer]:
+          - /url: "#/mispedidostotales"
+          - generic [ref=e80]: list_alt
+        - link "Lista Clientes Habilitar cliente" [ref=e84] [cursor=pointer]:
+          - /url: "#/clientes"
+          - generic [ref=e85]: people
+          - generic [ref=e87]:
+            - generic [ref=e88]: Lista Clientes
+            - generic [ref=e89]: Habilitar cliente
+        - link "Pedidos Pendientes Faltantes" [ref=e90] [cursor=pointer]:
+          - /url: "#/pendientes"
+          - generic [ref=e91]: local_grocery_store
+          - generic [ref=e93]:
+            - generic [ref=e94]: Pedidos Pendientes
+            - generic [ref=e95]: Faltantes
+        - link "Pedidos Registrados" [ref=e96] [cursor=pointer]:
+          - /url: "#/clientepedido"
+          - generic [ref=e97]: local_mall
+          - generic [ref=e99]:
+            - generic [ref=e100]: Pedidos
+            - generic [ref=e101]: Registrados
+        - link "Listado Pedidos Registrados" [ref=e102] [cursor=pointer]:
+          - /url: "#/listpedido"
+          - generic [ref=e103]: shopping_cart
+          - generic [ref=e105]:
+            - generic [ref=e106]: Listado Pedidos
+            - generic [ref=e107]: Registrados
+        - link "Cobros Realizados" [ref=e108] [cursor=pointer]:
+          - /url: "#/cobrosrealizados"
+          - generic [ref=e109]: monetization_on
+        - link "Cobranzas Cobro a cliente" [ref=e113] [cursor=pointer]:
+          - /url: "#/cobranza"
+          - generic [ref=e114]: receipt
+          - generic [ref=e116]:
+            - generic [ref=e117]: Cobranzas
+            - generic [ref=e118]: Cobro a cliente
+        - link "Mis Cobros" [ref=e119] [cursor=pointer]:
+          - /url: "#/miscobranzas"
+          - generic [ref=e120]: money
+        - link "Productos Precios y stock" [ref=e124] [cursor=pointer]:
+          - /url: "#/productos"
+          - generic [ref=e125]: inventory_2
+          - generic [ref=e127]:
+            - generic [ref=e128]: Productos
+            - generic [ref=e129]: Precios y stock
+        - link "Ventas Consulta por fechas" [ref=e130] [cursor=pointer]:
+          - /url: "#/ventas"
+          - generic [ref=e131]: point_of_sale
+          - generic [ref=e133]:
+            - generic [ref=e134]: Ventas
+            - generic [ref=e135]: Consulta por fechas
+        - link "Clientes sin Pedido" [ref=e136] [cursor=pointer]:
+          - /url: "#/nopedido"
+          - generic [ref=e137]: person_off
+        - link "Horarios de Envío Envío automático" [ref=e141] [cursor=pointer]:
+          - /url: "#/horariosenvio"
+          - generic [ref=e142]: schedule_send
+          - generic [ref=e144]:
+            - generic [ref=e145]: Horarios de Envío
+            - generic [ref=e146]: Envío automático
+        - link "Exportar Excel" [ref=e147] [cursor=pointer]:
+          - /url: "#/generar"
+          - generic [ref=e148]: table_chart
+        - link "Excel Pedidos Rango de fechas" [ref=e152] [cursor=pointer]:
+          - /url: "#/genreporte"
+          - generic [ref=e153]: receipt_long
+          - generic [ref=e155]:
+            - generic [ref=e156]: Excel Pedidos
+            - generic [ref=e157]: Rango de fechas
+        - link "Ruta de Entregas" [ref=e158] [cursor=pointer]:
+          - /url: "#/ruta"
+          - generic [ref=e159]: map
+        - link "Reporte Entrega" [ref=e163] [cursor=pointer]:
+          - /url: "#/despacho"
+          - generic [ref=e164]: description
+        - link "Pedidos / Entregas Resumen" [ref=e168] [cursor=pointer]:
+          - /url: "#/avance"
+          - generic [ref=e169]: summarize
+          - generic [ref=e171]:
+            - generic [ref=e172]: Pedidos / Entregas
+            - generic [ref=e173]: Resumen
+        - link "Reporte Entrega" [ref=e174] [cursor=pointer]:
+          - /url: "#/entrega"
+          - generic [ref=e175]: dvr
+        - link "Reporte Entrega Clientes entregas" [ref=e179] [cursor=pointer]:
+          - /url: "#/reporte"
+          - generic [ref=e180]: list
+          - generic [ref=e182]:
+            - generic [ref=e183]: Reporte Entrega
+            - generic [ref=e184]: Clientes entregas
+        - link "Almacén" [ref=e185] [cursor=pointer]:
+          - /url: "#/almacen"
+          - generic [ref=e186]: store
+        - link "Verificar Almacén" [ref=e190] [cursor=pointer]:
+          - /url: "#/almacenVerificar"
+          - generic [ref=e191]: fact_check
+        - link "Almacén Verificado" [ref=e195] [cursor=pointer]:
+          - /url: "#/almacenVerificado"
+          - generic [ref=e196]: task_alt
+        - link "Asignar Preventista" [ref=e200] [cursor=pointer]:
+          - /url: "#/modifica"
+          - generic [ref=e201]: people
+        - link "Monitoreo" [ref=e205] [cursor=pointer]:
+          - /url: "#/monitoreo"
+          - generic [ref=e206]: computer
+        - link "Resumen de Preventa Monitoreo" [ref=e210] [cursor=pointer]:
+          - /url: "#/mapavendedor"
+          - generic [ref=e211]: query_stats
+          - generic [ref=e213]:
+            - generic [ref=e214]: Resumen de Preventa
+            - generic [ref=e215]: Monitoreo
+        - link "Mapa Visitas" [ref=e216] [cursor=pointer]:
+          - /url: "#/mapavendedorvisita"
+          - generic [ref=e217]: map
+        - link "Asignación Monitoreo" [ref=e221] [cursor=pointer]:
+          - /url: "#/mapacliente"
+          - generic [ref=e222]: computer
+          - generic [ref=e224]:
+            - generic [ref=e225]: Asignación
+            - generic [ref=e226]: Monitoreo
+        - button "Alta Cliente Formulario" [ref=e227] [cursor=pointer]:
+          - generic [ref=e228]: person_add
+          - generic [ref=e230]:
+            - generic [ref=e231]: Alta Cliente
+            - generic [ref=e232]: Formulario
+        - link "Cambios" [ref=e233] [cursor=pointer]:
+          - /url: "#/bonificaciones"
+          - generic [ref=e234]: no_food
+        - link "Clientes Fotografías" [ref=e238] [cursor=pointer]:
+          - /url: "#/clientefotografias"
+          - generic [ref=e239]: photo_camera
+        - link "Pedidos" [ref=e243] [cursor=pointer]:
+          - /url: "#/pedidos"
+          - generic [ref=e244]: shopping_cart
+        - link "Encuestas" [ref=e248] [cursor=pointer]:
+          - /url: "#/encuestasIndex"
+          - generic [ref=e249]: assignment
+        - button "Cambios por Calidad Formulario" [ref=e253] [cursor=pointer]:
+          - generic [ref=e254]: published_with_changes
+          - generic [ref=e256]:
+            - generic [ref=e257]: Cambios por Calidad
+            - generic [ref=e258]: Formulario
+        - link "Usuarios Roles y permisos" [ref=e259] [cursor=pointer]:
+          - /url: "#/usuario"
+          - generic [ref=e260]: manage_accounts
+          - generic [ref=e262]:
+            - generic [ref=e263]: Usuarios
+            - generic [ref=e264]: Roles y permisos
+        - separator [ref=e265]
+        - button "Salir Salir del sistema" [ref=e266] [cursor=pointer]:
+          - generic [ref=e267]: logout
+          - generic [ref=e269]:
+            - generic [ref=e270]: Salir
+            - generic [ref=e271]: Salir del sistema
+    - main [ref=e279]:
+      - generic [ref=e280]:
+        - generic [ref=e281]:
+          - generic [ref=e282]: Ventas
+          - generic [ref=e283]: Pedidos del día; se puede ampliar el rango de fechas
+        - generic [ref=e285]:
+          - generic [ref=e286]: receipt_long
+          - generic [ref=e287]:
+            - generic [ref=e288]: "Ventas:"
+            - generic [ref=e289]: "1"
+        - generic [ref=e291]:
+          - generic [ref=e292]: list_alt
+          - generic [ref=e293]:
+            - generic [ref=e294]: "Ítems:"
+            - generic [ref=e295]: "1"
+        - generic [ref=e297]:
+          - generic [ref=e298]: attach_money
+          - generic [ref=e299]:
+            - generic [ref=e300]: "Total Bs:"
+            - generic [ref=e301]: "590.00"
+      - generic [ref=e303]:
+        - generic [ref=e308]:
+          - generic: Desde
+          - textbox "Desde" [ref=e309]: 2026-08-14
+        - generic [ref=e314]:
+          - generic: Hasta
+          - textbox "Hasta" [ref=e315]: 2026-08-14
+        - generic [ref=e319]:
+          - generic [ref=e320]:
+            - generic: Cliente, dirección, zona o Nº
+            - textbox "Cliente, dirección, zona o Nº" [ref=e321]: BRIANA SANABRIA
+          - button "Borrar" [ref=e823] [cursor=pointer]: cancel
+          - generic [ref=e322]: search
+        - generic [ref=e328]:
+          - generic: Producto
+          - textbox "Producto" [ref=e329]
+        - generic [ref=e333] [cursor=pointer]:
+          - generic [ref=e334]:
+            - generic: Vendedor
+            - combobox "Vendedor" [ref=e336]
+          - generic [ref=e337]: arrow_drop_down
+        - generic [ref=e342] [cursor=pointer]:
+          - generic [ref=e343]:
+            - generic: Tipo
+            - combobox "Tipo" [ref=e345]
+          - generic [ref=e346]: arrow_drop_down
+        - generic [ref=e351] [cursor=pointer]:
+          - generic [ref=e352]:
+            - generic: Estado
+            - combobox "Estado" [ref=e354]
+          - generic [ref=e355]: arrow_drop_down
+        - generic [ref=e357]:
+          - button "Buscar" [ref=e358] [cursor=pointer]:
+            - generic [ref=e393]:
+              - img [ref=e394]: search
+              - generic [ref=e395]: Buscar
+          - button "Limpiar" [ref=e362] [cursor=pointer]:
+            - generic [ref=e363]:
+              - img [ref=e364]: layers_clear
+              - generic [ref=e365]: Limpiar
+      - generic [ref=e366]:
+        - table [ref=e368]:
+          - rowgroup [ref=e369]:
+            - row [ref=e370]:
+              - columnheader "Opciones" [ref=e371]
+              - columnheader "Nº" [ref=e372] [cursor=pointer]:
+                - text: Nº
+                - generic [ref=e373]: arrow_upward
+              - columnheader "Fecha" [ref=e374] [cursor=pointer]:
+                - text: Fecha
+                - generic [ref=e375]: arrow_upward
+              - columnheader "Cliente" [ref=e376] [cursor=pointer]:
+                - text: Cliente
+                - generic [ref=e377]: arrow_upward
+              - columnheader "Zona" [ref=e378]
+              - columnheader "Vendedor" [ref=e379] [cursor=pointer]:
+                - text: Vendedor
+                - generic [ref=e380]: arrow_upward
+              - columnheader "Tipo" [ref=e381]
+              - columnheader "Estado" [ref=e382]
+              - columnheader "Ítems" [ref=e383] [cursor=pointer]:
+                - generic [ref=e384]: arrow_upward
+                - text: Ítems
+              - columnheader "Total Bs." [ref=e385] [cursor=pointer]:
+                - generic [ref=e386]: arrow_upward
+                - text: Total Bs.
+          - rowgroup [ref=e396]:
+            - row [ref=e537]:
+              - cell [ref=e538]:
+                - button "Factura" [ref=e539] [cursor=pointer]:
+                  - generic [ref=e540]:
+                    - img [ref=e541]: picture_as_pdf
+                    - generic [ref=e542]: Factura
+                - button [ref=e543] [cursor=pointer]:
+                  - img [ref=e545]: visibility
+              - cell [ref=e546]:
+                - status [ref=e547]: "#198516"
+              - cell "2026-08-14 18:16:17" [ref=e548]
+              - cell "BRIANA SANABRIA ANTEZANA" [ref=e549]
+              - cell "SUD" [ref=e550]
+              - cell "CRISTIAN LOPEZ" [ref=e551]
+              - cell "NORMAL" [ref=e552]
+              - cell [ref=e553]:
+                - status [ref=e554]: ENVIADO
+              - cell "1" [ref=e555]
+              - cell "590.00" [ref=e556]
+        - generic [ref=e390]:
+          - generic [ref=e797]:
+            - generic [ref=e798]: "Filas por página:"
+            - generic [ref=e801] [cursor=pointer]:
+              - generic [ref=e803]:
+                - generic [ref=e804]: "20"
+                - combobox "20" [ref=e805]
+              - generic [ref=e806]: arrow_drop_down
+          - generic [ref=e808]: 1-1 de 1
+  - generic:
+    - dialog:
+      - generic [ref=e825]:
+        - generic [ref=e826]:
+          - generic [ref=e827]: Facturas de BRIANA SANABRIA ANTEZANA
+          - generic [ref=e828]: "Venta #198516 · 2026-08-14 18:16:17 · Bs. 590.00"
+        - generic [ref=e829]:
+          - alert [ref=e830]:
+            - generic [ref=e831]: info
+            - generic [ref=e833]: El pedido no guarda con qué factura se cobró, así que se listan todas las facturas del cliente, de la más nueva a la más antigua. Las emitidas el mismo día de la venta van marcadas.
+          - switch "Solo las cercanas a la fecha de la venta" [ref=e834] [cursor=pointer]
+        - table [ref=e841]:
+          - rowgroup [ref=e842]:
+            - row [ref=e843]:
+              - columnheader "Nº Factura" [ref=e844]
+              - columnheader "Fecha" [ref=e845]
+              - columnheader "Importe Bs." [ref=e846]
+              - columnheader "Estado" [ref=e847]
+              - columnheader "Imprimir" [ref=e848]
+          - rowgroup [ref=e849]:
+            - row [ref=e850]:
+              - cell "26313" [ref=e851]
+              - cell "2026-08-08 08:14:40" [ref=e852]
+              - cell "1872.00" [ref=e853]
+              - cell "VALIDA" [ref=e854]
+              - cell [ref=e855]:
+                - button "PDF" [ref=e856] [cursor=pointer]:
+                  - generic [ref=e857]:
+                    - img [ref=e858]: picture_as_pdf
+                    - generic [ref=e859]: PDF
+                - link "SIAT" [ref=e860] [cursor=pointer]:
+                  - /url: https://siat.impuestos.gob.bo/consulta/QR?nit=3779602010&cuf=1029C6193956E922F07FF3DB9E15092DA3CCD5AF3A9770798BAF81BF74&numero=26313&t=2
+                  - generic [ref=e861]:
+                    - img [ref=e862]: verified
+                    - generic [ref=e863]: SIAT
+            - row [ref=e864]:
+              - cell "26146" [ref=e865]
+              - cell "2026-08-03 17:26:36" [ref=e866]
+              - cell "1610.00" [ref=e867]
+              - cell "VALIDA" [ref=e868]
+              - cell [ref=e869]:
+                - button "PDF" [ref=e870] [cursor=pointer]:
+                  - generic [ref=e871]:
+                    - img [ref=e872]: picture_as_pdf
+                    - generic [ref=e873]: PDF
+                - link "SIAT" [ref=e874] [cursor=pointer]:
+                  - /url: https://siat.impuestos.gob.bo/consulta/QR?nit=3779602010&cuf=1029C6193956E913D022157D6C2BD03A79CE95C21408D5289F7D71BF74&numero=26146&t=2
+                  - generic [ref=e875]:
+                    - img [ref=e876]: verified
+                    - generic [ref=e877]: SIAT
+            - row [ref=e878]:
+              - cell "26124" [ref=e879]
+              - cell "2026-08-01 08:26:52" [ref=e880]
+              - cell "3966.00" [ref=e881]
+              - cell "VALIDA" [ref=e882]
+              - cell [ref=e883]:
+                - button "PDF" [ref=e884] [cursor=pointer]:
+                  - generic [ref=e885]:
+                    - img [ref=e886]: picture_as_pdf
+                    - generic [ref=e887]: PDF
+                - link "SIAT" [ref=e888] [cursor=pointer]:
+                  - /url: https://siat.impuestos.gob.bo/consulta/QR?nit=3779602010&cuf=1029C6193956E90D5F7F8843F5ACEEA0C3EB73A8F811FF7CCA6571BF74&numero=26124&t=2
+                  - generic [ref=e889]:
+                    - img [ref=e890]: verified
+                    - generic [ref=e891]: SIAT
+            - row [ref=e892]:
+              - cell "26019" [ref=e893]
+              - cell "2026-07-30 03:26:22" [ref=e894]
+              - cell "1020.00" [ref=e895]
+              - cell "VALIDA" [ref=e896]
+              - cell [ref=e897]:
+                - button "PDF" [ref=e898] [cursor=pointer]:
+                  - generic [ref=e899]:
+                    - img [ref=e900]: picture_as_pdf
+                    - generic [ref=e901]: PDF
+                - link "SIAT" [ref=e902] [cursor=pointer]:
+                  - /url: https://siat.impuestos.gob.bo/consulta/QR?nit=3779602010&cuf=1029C6193956E8326EE8EF1D202606F9F4B6E9A57E16C87D95E960BF74&numero=26019&t=2
+                  - generic [ref=e903]:
+                    - img [ref=e904]: verified
+                    - generic [ref=e905]: SIAT
+            - row [ref=e906]:
+              - cell "25918" [ref=e907]
+              - cell "2026-07-26 10:33:43" [ref=e908]
+              - cell "170.00" [ref=e909]
+              - cell "VALIDA" [ref=e910]
+              - cell [ref=e911]:
+                - button "PDF" [ref=e912] [cursor=pointer]:
+                  - generic [ref=e913]:
+                    - img [ref=e914]: picture_as_pdf
+                    - generic [ref=e915]: PDF
+                - link "SIAT" [ref=e916] [cursor=pointer]:
+                  - /url: https://siat.impuestos.gob.bo/consulta/QR?nit=3779602010&cuf=1029C6193956E826534055DE72421FDE28FC8003AC8569DCE31B50BF74&numero=25918&t=2
+                  - generic [ref=e917]:
+                    - img [ref=e918]: verified
+                    - generic [ref=e919]: SIAT
+            - row [ref=e920]:
+              - cell "25832" [ref=e921]
+              - cell "2026-07-24 02:52:19" [ref=e922]
+              - cell "1381.00" [ref=e923]
+              - cell "VALIDA" [ref=e924]
+              - cell [ref=e925]:
+                - button "PDF" [ref=e926] [cursor=pointer]:
+                  - generic [ref=e927]:
+                    - img [ref=e928]: picture_as_pdf
+                    - generic [ref=e929]: PDF
+                - link "SIAT" [ref=e930] [cursor=pointer]:
+                  - /url: https://siat.impuestos.gob.bo/consulta/QR?nit=3779602010&cuf=1029C6193956E81FEBE91D268D1826BC37E857D01041F88B329650BF74&numero=25832&t=2
+                  - generic [ref=e931]:
+                    - img [ref=e932]: verified
+                    - generic [ref=e933]: SIAT
+            - row [ref=e934]:
+              - cell "25633" [ref=e935]
+              - cell "2026-07-17 03:47:47" [ref=e936]
+              - cell "1381.00" [ref=e937]
+              - cell "VALIDA" [ref=e938]
+              - cell [ref=e939]:
+                - button "PDF" [ref=e940] [cursor=pointer]:
+                  - generic [ref=e941]:
+                    - img [ref=e942]: picture_as_pdf
+                    - generic [ref=e943]: PDF
+                - link "SIAT" [ref=e944] [cursor=pointer]:
+                  - /url: https://siat.impuestos.gob.bo/consulta/QR?nit=3779602010&cuf=1029C6193956E80A61514D58257C0A0757FEB4D5AA187EDD425930BF74&numero=25633&t=2
+                  - generic [ref=e945]:
+                    - img [ref=e946]: verified
+                    - generic [ref=e947]: SIAT
+            - row [ref=e948]:
+              - cell "25466" [ref=e949]
+              - cell "2026-07-10 02:30:24" [ref=e950]
+              - cell "1577.00" [ref=e951]
+              - cell "VALIDA" [ref=e952]
+              - cell [ref=e953]:
+                - button "PDF" [ref=e954] [cursor=pointer]:
+                  - generic [ref=e955]:
+                    - img [ref=e956]: picture_as_pdf
+                    - generic [ref=e957]: PDF
+                - link "SIAT" [ref=e958] [cursor=pointer]:
+                  - /url: https://siat.impuestos.gob.bo/consulta/QR?nit=3779602010&cuf=1029C6193956E7F4C60C8C968FC1967B8EDDC4E884564676D17220BF74&numero=25466&t=2
+                  - generic [ref=e959]:
+                    - img [ref=e960]: verified
+                    - generic [ref=e961]: SIAT
+            - row [ref=e962]:
+              - cell "25354" [ref=e963]
+              - cell "2026-07-04 08:02:28" [ref=e964]
+              - cell "2209.50" [ref=e965]
+              - cell "VALIDA" [ref=e966]
+              - cell [ref=e967]:
+                - button "PDF" [ref=e968] [cursor=pointer]:
+                  - generic [ref=e969]:
+                    - img [ref=e970]: picture_as_pdf
+                    - generic [ref=e971]: PDF
+                - link "SIAT" [ref=e972] [cursor=pointer]:
+                  - /url: https://siat.impuestos.gob.bo/consulta/QR?nit=3779602010&cuf=1029C6193956E7E27603BF4A2B11CE0C2099CA3A2501B86240C800BF74&numero=25354&t=2
+                  - generic [ref=e973]:
+                    - img [ref=e974]: verified
+                    - generic [ref=e975]: SIAT
+            - row [ref=e976]:
+              - cell "25121" [ref=e977]
+              - cell "2026-06-26 04:57:08" [ref=e978]
+              - cell "1017.00" [ref=e979]
+              - cell "VALIDA" [ref=e980]
+              - cell [ref=e981]:
+                - button "PDF" [ref=e982] [cursor=pointer]:
+                  - generic [ref=e983]:
+                    - img [ref=e984]: picture_as_pdf
+                    - generic [ref=e985]: PDF
+                - link "SIAT" [ref=e986] [cursor=pointer]:
+                  - /url: https://siat.impuestos.gob.bo/consulta/QR?nit=3779602010&cuf=1029C6193956E6F1FF8FA8F50F8F8D39C8E46401AA962B62A1A9EEAF74&numero=25121&t=2
+                  - generic [ref=e987]:
+                    - img [ref=e988]: verified
+                    - generic [ref=e989]: SIAT
+            - row [ref=e990]:
+              - cell "25049" [ref=e991]
+              - cell "2026-06-22 06:29:30" [ref=e992]
+              - cell "329.10" [ref=e993]
+              - cell "VALIDA" [ref=e994]
+              - cell [ref=e995]:
+                - button "PDF" [ref=e996] [cursor=pointer]:
+                  - generic [ref=e997]:
+                    - img [ref=e998]: picture_as_pdf
+                    - generic [ref=e999]: PDF
+                - link "SIAT" [ref=e1000] [cursor=pointer]:
+                  - /url: https://siat.impuestos.gob.bo/consulta/QR?nit=3779602010&cuf=1029C6193956E6E5B9B51DC9263DDE90B38FED23DB73EF58A627DEAF74&numero=25049&t=2
+                  - generic [ref=e1001]:
+                    - img [ref=e1002]: verified
+                    - generic [ref=e1003]: SIAT
+            - row [ref=e1004]:
+              - cell "24967" [ref=e1005]
+              - cell "2026-06-18 04:09:55" [ref=e1006]
+              - cell "805.12" [ref=e1007]
+              - cell "VALIDA" [ref=e1008]
+              - cell [ref=e1009]:
+                - button "PDF" [ref=e1010] [cursor=pointer]:
+                  - generic [ref=e1011]:
+                    - img [ref=e1012]: picture_as_pdf
+                    - generic [ref=e1013]: PDF
+                - link "SIAT" [ref=e1014] [cursor=pointer]:
+                  - /url: https://siat.impuestos.gob.bo/consulta/QR?nit=3779602010&cuf=1029C6193956E6D954F6D52ACFCD0E5DE7FC7551E611BED8DF68CEAF74&numero=24967&t=2
+                  - generic [ref=e1015]:
+                    - img [ref=e1016]: verified
+                    - generic [ref=e1017]: SIAT
+            - row [ref=e1018]:
+              - cell "24861" [ref=e1019]
+              - cell "2026-06-10 03:24:28" [ref=e1020]
+              - cell "3643.80" [ref=e1021]
+              - cell "VALIDA" [ref=e1022]
+              - cell [ref=e1023]:
+                - button "PDF" [ref=e1024] [cursor=pointer]:
+                  - generic [ref=e1025]:
+                    - img [ref=e1026]: picture_as_pdf
+                    - generic [ref=e1027]: PDF
+                - link "SIAT" [ref=e1028] [cursor=pointer]:
+                  - /url: https://siat.impuestos.gob.bo/consulta/QR?nit=3779602010&cuf=1029C6193956E6C0A7534617E17761AE5A4ECB36021103B63C7AAEAF74&numero=24861&t=2
+                  - generic [ref=e1029]:
+                    - img [ref=e1030]: verified
+                    - generic [ref=e1031]: SIAT
+            - row [ref=e1032]:
+              - cell "24788" [ref=e1033]
+              - cell "2026-06-06 10:52:59" [ref=e1034]
+              - cell "880.50" [ref=e1035]
+              - cell "VALIDA" [ref=e1036]
+              - cell [ref=e1037]:
+                - button "PDF" [ref=e1038] [cursor=pointer]:
+                  - generic [ref=e1039]:
+                    - img [ref=e1040]: picture_as_pdf
+                    - generic [ref=e1041]: PDF
+                - link "SIAT" [ref=e1042] [cursor=pointer]:
+                  - /url: https://siat.impuestos.gob.bo/consulta/QR?nit=3779602010&cuf=1029C6193956E6B48D3A54F50E917B3B3754243FC889898B7D5F9EAF74&numero=24788&t=2
+                  - generic [ref=e1043]:
+                    - img [ref=e1044]: verified
+                    - generic [ref=e1045]: SIAT
+            - row [ref=e1046]:
+              - cell "24778" [ref=e1047]
+              - cell "2026-05-30 12:56:16" [ref=e1048]
+              - cell "656.11" [ref=e1049]
+              - cell "VALIDA" [ref=e1050]
+              - cell [ref=e1051]:
+                - button "PDF" [ref=e1052] [cursor=pointer]:
+                  - generic [ref=e1053]:
+                    - img [ref=e1054]: picture_as_pdf
+                    - generic [ref=e1055]: PDF
+                - link "SIAT" [ref=e1056] [cursor=pointer]:
+                  - /url: https://siat.impuestos.gob.bo/consulta/QR?nit=3779602010&cuf=1029C6193956E5CA6BE3E0CD9B4BD6B5E60F634BA45118222B248DAF74&numero=24778&t=2
+                  - generic [ref=e1057]:
+                    - img [ref=e1058]: verified
+                    - generic [ref=e1059]: SIAT
+            - row [ref=e1060]:
+              - cell "24683" [ref=e1061]
+              - cell "2026-05-20 04:45:43" [ref=e1062]
+              - cell "793.65" [ref=e1063]
+              - cell "VALIDA" [ref=e1064]
+              - cell [ref=e1065]:
+                - button "PDF" [ref=e1066] [cursor=pointer]:
+                  - generic [ref=e1067]:
+                    - img [ref=e1068]: picture_as_pdf
+                    - generic [ref=e1069]: PDF
+                - link "SIAT" [ref=e1070] [cursor=pointer]:
+                  - /url: https://siat.impuestos.gob.bo/consulta/QR?nit=3779602010&cuf=1029C6193956E5AB5B609C2D8DCBFD3EFE5F8A3C4E16394483CE5DAF74&numero=24683&t=2
+                  - generic [ref=e1071]:
+                    - img [ref=e1072]: verified
+                    - generic [ref=e1073]: SIAT
+            - row [ref=e1074]:
+              - cell "24626" [ref=e1075]
+              - cell "2026-05-17 02:04:42" [ref=e1076]
+              - cell "1792.25" [ref=e1077]
+              - cell "VALIDA" [ref=e1078]
+              - cell [ref=e1079]:
+                - button "PDF" [ref=e1080] [cursor=pointer]:
+                  - generic [ref=e1081]:
+                    - img [ref=e1082]: picture_as_pdf
+                    - generic [ref=e1083]: PDF
+                - link "SIAT" [ref=e1084] [cursor=pointer]:
+                  - /url: https://siat.impuestos.gob.bo/consulta/QR?nit=3779602010&cuf=1029C6193956E5A209C5829B29B6216E8DC0D4CCB4818ECE61005DAF74&numero=24626&t=2
+                  - generic [ref=e1085]:
+                    - img [ref=e1086]: verified
+                    - generic [ref=e1087]: SIAT
+            - row [ref=e1088]:
+              - cell "24564" [ref=e1089]
+              - cell "2026-05-14 02:56:33" [ref=e1090]
+              - cell "603.40" [ref=e1091]
+              - cell "VALIDA" [ref=e1092]
+              - cell [ref=e1093]:
+                - button "PDF" [ref=e1094] [cursor=pointer]:
+                  - generic [ref=e1095]:
+                    - img [ref=e1096]: picture_as_pdf
+                    - generic [ref=e1097]: PDF
+                - link "SIAT" [ref=e1098] [cursor=pointer]:
+                  - /url: https://siat.impuestos.gob.bo/consulta/QR?nit=3779602010&cuf=1029C6193956E598CF4950DF2E102126BCD0AEE30855C20471254DAF74&numero=24564&t=2
+                  - generic [ref=e1099]:
+                    - img [ref=e1100]: verified
+                    - generic [ref=e1101]: SIAT
+            - row [ref=e1102]:
+              - cell "24519" [ref=e1103]
+              - cell "2026-05-12 03:13:38" [ref=e1104]
+              - cell "911.45" [ref=e1105]
+              - cell "VALIDA" [ref=e1106]
+              - cell [ref=e1107]:
+                - button "PDF" [ref=e1108] [cursor=pointer]:
+                  - generic [ref=e1109]:
+                    - img [ref=e1110]: picture_as_pdf
+                    - generic [ref=e1111]: PDF
+                - link "SIAT" [ref=e1112] [cursor=pointer]:
+                  - /url: https://siat.impuestos.gob.bo/consulta/QR?nit=3779602010&cuf=1029C6193956E592AA10E3C5F5C13FDB620FFA98665936BDF3E04DAF74&numero=24519&t=2
+                  - generic [ref=e1113]:
+                    - img [ref=e1114]: verified
+                    - generic [ref=e1115]: SIAT
+            - row [ref=e1116]:
+              - cell "24302" [ref=e1117]
+              - cell "2026-05-02 05:50:15" [ref=e1118]
+              - cell "1225.60" [ref=e1119]
+              - cell "VALIDA" [ref=e1120]
+              - cell [ref=e1121]:
+                - button "PDF" [ref=e1122] [cursor=pointer]:
+                  - generic [ref=e1123]:
+                    - img [ref=e1124]: picture_as_pdf
+                    - generic [ref=e1125]: PDF
+                - link "SIAT" [ref=e1126] [cursor=pointer]:
+                  - /url: https://siat.impuestos.gob.bo/consulta/QR?nit=3779602010&cuf=1029C6193956E573EC4C82E63F78B3341C3CE5E68C04B9E90D8B1DAF74&numero=24302&t=2
+                  - generic [ref=e1127]:
+                    - img [ref=e1128]: verified
+                    - generic [ref=e1129]: SIAT
+            - row [ref=e1130]:
+              - cell "24170" [ref=e1131]
+              - cell "2026-04-29 03:43:15" [ref=e1132]
+              - cell "1000.70" [ref=e1133]
+              - cell "VALIDA" [ref=e1134]
+              - cell [ref=e1135]:
+                - button "PDF" [ref=e1136] [cursor=pointer]:
+                  - generic [ref=e1137]:
+                    - img [ref=e1138]: picture_as_pdf
+                    - generic [ref=e1139]: PDF
+                - link "SIAT" [ref=e1140] [cursor=pointer]:
+                  - /url: https://siat.impuestos.gob.bo/consulta/QR?nit=3779602010&cuf=1029C6193956E492E920594D5EFDFD95BE0DE94FE412159932880CAF74&numero=24170&t=2
+                  - generic [ref=e1141]:
+                    - img [ref=e1142]: verified
+                    - generic [ref=e1143]: SIAT
+            - row [ref=e1144]:
+              - cell "24104" [ref=e1145]
+              - cell "2026-04-25 04:29:05" [ref=e1146]
+              - cell "828.30" [ref=e1147]
+              - cell "VALIDA" [ref=e1148]
+              - cell [ref=e1149]:
+                - button "PDF" [ref=e1150] [cursor=pointer]:
+                  - generic [ref=e1151]:
+                    - img [ref=e1152]: picture_as_pdf
+                    - generic [ref=e1153]: PDF
+                - link "SIAT" [ref=e1154] [cursor=pointer]:
+                  - /url: https://siat.impuestos.gob.bo/consulta/QR?nit=3779602010&cuf=1029C6193956E4869C7677E50DA5F29ACEA4D3049090CA2546A9FBAF74&numero=24104&t=2
+                  - generic [ref=e1155]:
+                    - img [ref=e1156]: verified
+                    - generic [ref=e1157]: SIAT
+            - row [ref=e1158]:
+              - cell "23744" [ref=e1159]
+              - cell "2026-04-11 07:15:22" [ref=e1160]
+              - cell "674.25" [ref=e1161]
+              - cell "VALIDA" [ref=e1162]
+              - cell [ref=e1163]:
+                - button "PDF" [ref=e1164] [cursor=pointer]:
+                  - generic [ref=e1165]:
+                    - img [ref=e1166]: picture_as_pdf
+                    - generic [ref=e1167]: PDF
+                - link "SIAT" [ref=e1168] [cursor=pointer]:
+                  - /url: https://siat.impuestos.gob.bo/consulta/QR?nit=3779602010&cuf=1029C6193956E45B8EEBDDD54E856BF05F2270AF8000FB137A65CBAF74&numero=23744&t=2
+                  - generic [ref=e1169]:
+                    - img [ref=e1170]: verified
+                    - generic [ref=e1171]: SIAT
+            - row [ref=e1172]:
+              - cell "23552" [ref=e1173]
+              - cell "2026-04-05 02:35:04" [ref=e1174]
+              - cell "933.65" [ref=e1175]
+              - cell "VALIDA" [ref=e1176]
+              - cell [ref=e1177]:
+                - button "PDF" [ref=e1178] [cursor=pointer]:
+                  - generic [ref=e1179]:
+                    - img [ref=e1180]: picture_as_pdf
+                    - generic [ref=e1181]: PDF
+                - link "SIAT" [ref=e1182] [cursor=pointer]:
+                  - /url: https://siat.impuestos.gob.bo/consulta/QR?nit=3779602010&cuf=1029C6193956E448EBE1FA97BFE4557489DCEE600075178A40EEABAF74&numero=23552&t=2
+                  - generic [ref=e1183]:
+                    - img [ref=e1184]: verified
+                    - generic [ref=e1185]: SIAT
+            - row [ref=e1186]:
+              - cell "23483" [ref=e1187]
+              - cell "2026-04-02 04:00:59" [ref=e1188]
+              - cell "927.55" [ref=e1189]
+              - cell "VALIDA" [ref=e1190]
+              - cell [ref=e1191]:
+                - button "PDF" [ref=e1192] [cursor=pointer]:
+                  - generic [ref=e1193]:
+                    - img [ref=e1194]: picture_as_pdf
+                    - generic [ref=e1195]: PDF
+                - link "SIAT" [ref=e1196] [cursor=pointer]:
+                  - /url: https://siat.impuestos.gob.bo/consulta/QR?nit=3779602010&cuf=1029C6193956E43FBA650FC18A3A05A083E877CB6E90BE836427ABAF74&numero=23483&t=2
+                  - generic [ref=e1197]:
+                    - img [ref=e1198]: verified
+                    - generic [ref=e1199]: SIAT
+            - row [ref=e1200]:
+              - cell "23306" [ref=e1201]
+              - cell "2026-03-27 02:45:58" [ref=e1202]
+              - cell "836.00" [ref=e1203]
+              - cell "VALIDA" [ref=e1204]
+              - cell [ref=e1205]:
+                - button "PDF" [ref=e1206] [cursor=pointer]:
+                  - generic [ref=e1207]:
+                    - img [ref=e1208]: picture_as_pdf
+                    - generic [ref=e1209]: PDF
+                - link "SIAT" [ref=e1210] [cursor=pointer]:
+                  - /url: https://siat.impuestos.gob.bo/consulta/QR?nit=3779602010&cuf=1029C6193956E35891869D8BD2C2967F592DB6EA24801C5A38AF8AAF74&numero=23306&t=2
+                  - generic [ref=e1211]:
+                    - img [ref=e1212]: verified
+                    - generic [ref=e1213]: SIAT
+            - row [ref=e1214]:
+              - cell "23041" [ref=e1215]
+              - cell "2026-03-17 02:41:24" [ref=e1216]
+              - cell "1327.15" [ref=e1217]
+              - cell "VALIDA" [ref=e1218]
+              - cell [ref=e1219]:
+                - button "PDF" [ref=e1220] [cursor=pointer]:
+                  - generic [ref=e1221]:
+                    - img [ref=e1222]: picture_as_pdf
+                    - generic [ref=e1223]: PDF
+                - link "SIAT" [ref=e1224] [cursor=pointer]:
+                  - /url: https://siat.impuestos.gob.bo/consulta/QR?nit=3779602010&cuf=1029C6193956E339C095A7414F9FB38A6B438DA46A678793F4376AAF74&numero=23041&t=2
+                  - generic [ref=e1225]:
+                    - img [ref=e1226]: verified
+                    - generic [ref=e1227]: SIAT
+            - row [ref=e1228]:
+              - cell "23012" [ref=e1229]
+              - cell "2026-03-14 11:21:19" [ref=e1230]
+              - cell "985.50" [ref=e1231]
+              - cell "VALIDA" [ref=e1232]
+              - cell [ref=e1233]:
+                - button "PDF" [ref=e1234] [cursor=pointer]:
+                  - generic [ref=e1235]:
+                    - img [ref=e1236]: picture_as_pdf
+                    - generic [ref=e1237]: PDF
+                - link "SIAT" [ref=e1238] [cursor=pointer]:
+                  - /url: https://siat.impuestos.gob.bo/consulta/QR?nit=3779602010&cuf=1029C6193956E330C76CEA25CFC9A65319103AE068133D482B9F5AAF74&numero=23012&t=2
+                  - generic [ref=e1239]:
+                    - img [ref=e1240]: verified
+                    - generic [ref=e1241]: SIAT
+            - row [ref=e1242]:
+              - cell "22826" [ref=e1243]
+              - cell "2026-03-06 07:57:15" [ref=e1244]
+              - cell "848.20" [ref=e1245]
+              - cell "VALIDA" [ref=e1246]
+              - cell [ref=e1247]:
+                - button "PDF" [ref=e1248] [cursor=pointer]:
+                  - generic [ref=e1249]:
+                    - img [ref=e1250]: picture_as_pdf
+                    - generic [ref=e1251]: PDF
+                - link "SIAT" [ref=e1252] [cursor=pointer]:
+                  - /url: https://siat.impuestos.gob.bo/consulta/QR?nit=3779602010&cuf=1029C6193956E31803BEDDA47A7151286CEE79236485A57627714AAF74&numero=22826&t=2
+                  - generic [ref=e1253]:
+                    - img [ref=e1254]: verified
+                    - generic [ref=e1255]: SIAT
+            - row [ref=e1256]:
+              - cell "22799" [ref=e1257]
+              - cell "2026-03-06 03:22:07" [ref=e1258]
+              - cell "514.00" [ref=e1259]
+              - cell "ANULACION CONFIRMADA" [ref=e1260]
+              - cell [ref=e1261]:
+                - button "PDF" [ref=e1262] [cursor=pointer]:
+                  - generic [ref=e1263]:
+                    - img [ref=e1264]: picture_as_pdf
+                    - generic [ref=e1265]: PDF
+                - link "SIAT" [ref=e1266] [cursor=pointer]:
+                  - /url: https://siat.impuestos.gob.bo/consulta/QR?nit=3779602010&cuf=1029C6193956E317E16CA1DD835DF31A1DFCE6903625A57627714AAF74&numero=22799&t=2
+                  - generic [ref=e1267]:
+                    - img [ref=e1268]: verified
+                    - generic [ref=e1269]: SIAT
+            - row [ref=e1270]:
+              - cell "22701" [ref=e1271]
+              - cell "2026-02-28 07:14:26" [ref=e1272]
+              - cell "842.10" [ref=e1273]
+              - cell "VALIDA" [ref=e1274]
+              - cell [ref=e1275]:
+                - button "PDF" [ref=e1276] [cursor=pointer]:
+                  - generic [ref=e1277]:
+                    - img [ref=e1278]: picture_as_pdf
+                    - generic [ref=e1279]: PDF
+                - link "SIAT" [ref=e1280] [cursor=pointer]:
+                  - /url: https://siat.impuestos.gob.bo/consulta/QR?nit=3779602010&cuf=1029C6193956E227A5379F6688467FF2558A8D37A21902B805DE19AF74&numero=22701&t=2
+                  - generic [ref=e1281]:
+                    - img [ref=e1282]: verified
+                    - generic [ref=e1283]: SIAT
+            - row [ref=e1284]:
+              - cell "22353" [ref=e1285]
+              - cell "2026-02-13 06:53:41" [ref=e1286]
+              - cell "842.10" [ref=e1287]
+              - cell "VALIDA" [ref=e1288]
+              - cell [ref=e1289]:
+                - button "PDF" [ref=e1290] [cursor=pointer]:
+                  - generic [ref=e1291]:
+                    - img [ref=e1292]: picture_as_pdf
+                    - generic [ref=e1293]: PDF
+                - link "SIAT" [ref=e1294] [cursor=pointer]:
+                  - /url: https://siat.impuestos.gob.bo/consulta/QR?nit=3779602010&cuf=1029C6193956E1F9678B9778F1741FA66723BC078A93B6662207E8AF74&numero=22353&t=2
+                  - generic [ref=e1295]:
+                    - img [ref=e1296]: verified
+                    - generic [ref=e1297]: SIAT
+            - row [ref=e1298]:
+              - cell "22228" [ref=e1299]
+              - cell "2026-02-08 10:28:46" [ref=e1300]
+              - cell "1019.00" [ref=e1301]
+              - cell "VALIDA" [ref=e1302]
+              - cell [ref=e1303]:
+                - button "PDF" [ref=e1304] [cursor=pointer]:
+                  - generic [ref=e1305]:
+                    - img [ref=e1306]: picture_as_pdf
+                    - generic [ref=e1307]: PDF
+                - link "SIAT" [ref=e1308] [cursor=pointer]:
+                  - /url: https://siat.impuestos.gob.bo/consulta/QR?nit=3779602010&cuf=1029C6193956E1EA1CC1DBF71F060C2B4966701BC88361BF9E11D8AF74&numero=22228&t=2
+                  - generic [ref=e1309]:
+                    - img [ref=e1310]: verified
+                    - generic [ref=e1311]: SIAT
+            - row [ref=e1312]:
+              - cell "22219" [ref=e1313]
+              - cell "2026-02-07 06:48:52" [ref=e1314]
+              - cell "848.20" [ref=e1315]
+              - cell "VALIDA" [ref=e1316]
+              - cell [ref=e1317]:
+                - button "PDF" [ref=e1318] [cursor=pointer]:
+                  - generic [ref=e1319]:
+                    - img [ref=e1320]: picture_as_pdf
+                    - generic [ref=e1321]: PDF
+                - link "SIAT" [ref=e1322] [cursor=pointer]:
+                  - /url: https://siat.impuestos.gob.bo/consulta/QR?nit=3779602010&cuf=1029C6193956E1E6E9EBB6E135A66B4BE3BCDF400E77CCE89BA0D8AF74&numero=22219&t=2
+                  - generic [ref=e1323]:
+                    - img [ref=e1324]: verified
+                    - generic [ref=e1325]: SIAT
+            - row [ref=e1326]:
+              - cell "21828" [ref=e1327]
+              - cell "2026-01-22 04:01:59" [ref=e1328]
+              - cell "317.20" [ref=e1329]
+              - cell "VALIDA" [ref=e1330]
+              - cell [ref=e1331]:
+                - button "PDF" [ref=e1332] [cursor=pointer]:
+                  - generic [ref=e1333]:
+                    - img [ref=e1334]: picture_as_pdf
+                    - generic [ref=e1335]: PDF
+                - link "SIAT" [ref=e1336] [cursor=pointer]:
+                  - /url: https://siat.impuestos.gob.bo/consulta/QR?nit=3779602010&cuf=1029C6193956E0E0E9500BB8E2B240D13D6F79F62805D655540497AF74&numero=21828&t=2
+                  - generic [ref=e1337]:
+                    - img [ref=e1338]: verified
+                    - generic [ref=e1339]: SIAT
+            - row [ref=e1340]:
+              - cell "21665" [ref=e1341]
+              - cell "2026-01-11 04:44:50" [ref=e1342]
+              - cell "885.00" [ref=e1343]
+              - cell "VALIDA" [ref=e1344]
+              - cell [ref=e1345]:
+                - button "PDF" [ref=e1346] [cursor=pointer]:
+                  - generic [ref=e1347]:
+                    - img [ref=e1348]: picture_as_pdf
+                    - generic [ref=e1349]: PDF
+                - link "SIAT" [ref=e1350] [cursor=pointer]:
+                  - /url: https://siat.impuestos.gob.bo/consulta/QR?nit=3779602010&cuf=1029C6193956E0BF074059B64665F01DE4E84A6AAC91789505F767AF74&numero=21665&t=2
+                  - generic [ref=e1351]:
+                    - img [ref=e1352]: verified
+                    - generic [ref=e1353]: SIAT
+            - row [ref=e1354]:
+              - cell "21557" [ref=e1355]
+              - cell "2026-01-07 02:10:44" [ref=e1356]
+              - cell "1150.15" [ref=e1357]
+              - cell "VALIDA" [ref=e1358]
+              - cell [ref=e1359]:
+                - button "PDF" [ref=e1360] [cursor=pointer]:
+                  - generic [ref=e1361]:
+                    - img [ref=e1362]: picture_as_pdf
+                    - generic [ref=e1363]: PDF
+                - link "SIAT" [ref=e1364] [cursor=pointer]:
+                  - /url: https://siat.impuestos.gob.bo/consulta/QR?nit=3779602010&cuf=1029C6193956E0B2A1593E0F34108E206B60201DF243361DE02C57AF74&numero=21557&t=2
+                  - generic [ref=e1365]:
+                    - img [ref=e1366]: verified
+                    - generic [ref=e1367]: SIAT
+            - row [ref=e1368]:
+              - cell "21327" [ref=e1369]
+              - cell "2025-12-26 02:46:33" [ref=e1370]
+              - cell "1415.65" [ref=e1371]
+              - cell "VALIDA" [ref=e1372]
+              - cell [ref=e1373]:
+                - button "PDF" [ref=e1374] [cursor=pointer]:
+                  - generic [ref=e1375]:
+                    - img [ref=e1376]: picture_as_pdf
+                    - generic [ref=e1377]: PDF
+                - link "SIAT" [ref=e1378] [cursor=pointer]:
+                  - /url: https://siat.impuestos.gob.bo/consulta/QR?nit=3779602010&cuf=1029C619395675CBF2690AD87FE623CC9F07EA2EB601617666EC162F74&numero=21327&t=2
+                  - generic [ref=e1379]:
+                    - img [ref=e1380]: verified
+                    - generic [ref=e1381]: SIAT
+            - row [ref=e1382]:
+              - cell "21174" [ref=e1383]
+              - cell "2025-12-19 01:07:37" [ref=e1384]
+              - cell "1409.55" [ref=e1385]
+              - cell "VALIDA" [ref=e1386]
+              - cell [ref=e1387]:
+                - button "PDF" [ref=e1388] [cursor=pointer]:
+                  - generic [ref=e1389]:
+                    - img [ref=e1390]: picture_as_pdf
+                    - generic [ref=e1391]: PDF
+                - link "SIAT" [ref=e1392] [cursor=pointer]:
+                  - /url: https://siat.impuestos.gob.bo/consulta/QR?nit=3779602010&cuf=1029C619395675B6556CB15B32DE8160A6CC6B975C132AED1A02062F74&numero=21174&t=2
+                  - generic [ref=e1393]:
+                    - img [ref=e1394]: verified
+                    - generic [ref=e1395]: SIAT
+            - row [ref=e1396]:
+              - cell "21022" [ref=e1397]
+              - cell "2025-12-13 02:11:45" [ref=e1398]
+              - cell "177.00" [ref=e1399]
+              - cell "ANULACION CONFIRMADA" [ref=e1400]
+              - cell [ref=e1401]:
+                - button "PDF" [ref=e1402] [cursor=pointer]:
+                  - generic [ref=e1403]:
+                    - img [ref=e1404]: picture_as_pdf
+                    - generic [ref=e1405]: PDF
+                - link "SIAT" [ref=e1406] [cursor=pointer]:
+                  - /url: https://siat.impuestos.gob.bo/consulta/QR?nit=3779602010&cuf=1029C619395675A3E07A5EF88EA569AE980BAD186C7773E41AFBE52F74&numero=21022&t=2
+                  - generic [ref=e1407]:
+                    - img [ref=e1408]: verified
+                    - generic [ref=e1409]: SIAT
+            - row [ref=e1410]:
+              - cell "20950" [ref=e1411]
+              - cell "2025-12-11 05:19:17" [ref=e1412]
+              - cell "1522.40" [ref=e1413]
+              - cell "VALIDA" [ref=e1414]
+              - cell [ref=e1415]:
+                - button "PDF" [ref=e1416] [cursor=pointer]:
+                  - generic [ref=e1417]:
+                    - img [ref=e1418]: picture_as_pdf
+                    - generic [ref=e1419]: PDF
+                - link "SIAT" [ref=e1420] [cursor=pointer]:
+                  - /url: https://siat.impuestos.gob.bo/consulta/QR?nit=3779602010&cuf=1029C6193956759DCF0822FD9A00BA2E0DEB763A9C50D6758FD7E52F74&numero=20950&t=2
+                  - generic [ref=e1421]:
+                    - img [ref=e1422]: verified
+                    - generic [ref=e1423]: SIAT
+            - row [ref=e1424]:
+              - cell "20863" [ref=e1425]
+              - cell "2025-12-06 06:33:28" [ref=e1426]
+              - cell "485.05" [ref=e1427]
+              - cell "VALIDA" [ref=e1428]
+              - cell [ref=e1429]:
+                - button "PDF" [ref=e1430] [cursor=pointer]:
+                  - generic [ref=e1431]:
+                    - img [ref=e1432]: picture_as_pdf
+                    - generic [ref=e1433]: PDF
+                - link "SIAT" [ref=e1434] [cursor=pointer]:
+                  - /url: https://siat.impuestos.gob.bo/consulta/QR?nit=3779602010&cuf=1029C6193956758E6FBB9FF8060D5DAB8470ADEE9692DCD76412D52F74&numero=20863&t=2
+                  - generic [ref=e1435]:
+                    - img [ref=e1436]: verified
+                    - generic [ref=e1437]: SIAT
+            - row [ref=e1438]:
+              - cell "20669" [ref=e1439]
+              - cell "2025-11-29 06:59:23" [ref=e1440]
+              - cell "753.60" [ref=e1441]
+              - cell "VALIDA" [ref=e1442]
+              - cell [ref=e1443]:
+                - button "PDF" [ref=e1444] [cursor=pointer]:
+                  - generic [ref=e1445]:
+                    - img [ref=e1446]: picture_as_pdf
+                    - generic [ref=e1447]: PDF
+                - link "SIAT" [ref=e1448] [cursor=pointer]:
+                  - /url: https://siat.impuestos.gob.bo/consulta/QR?nit=3779602010&cuf=1029C619395674A12B79A784C12FE56445309B6E4214F339D876B42F74&numero=20669&t=2
+                  - generic [ref=e1449]:
+                    - img [ref=e1450]: verified
+                    - generic [ref=e1451]: SIAT
+            - row [ref=e1452]:
+              - cell "20516" [ref=e1453]
+              - cell "2025-11-22 01:27:03" [ref=e1454]
+              - cell "779.29" [ref=e1455]
+              - cell "VALIDA" [ref=e1456]
+              - cell [ref=e1457]:
+                - button "PDF" [ref=e1458] [cursor=pointer]:
+                  - generic [ref=e1459]:
+                    - img [ref=e1460]: picture_as_pdf
+                    - generic [ref=e1461]: PDF
+                - link "SIAT" [ref=e1462] [cursor=pointer]:
+                  - /url: https://siat.impuestos.gob.bo/consulta/QR?nit=3779602010&cuf=1029C6193956748B6F79042F5E5610493754DCD6E8286C851509942F74&numero=20516&t=2
+                  - generic [ref=e1463]:
+                    - img [ref=e1464]: verified
+                    - generic [ref=e1465]: SIAT
+            - row [ref=e1466]:
+              - cell "20355" [ref=e1467]
+              - cell "2025-11-15 06:04:12" [ref=e1468]
+              - cell "177.00" [ref=e1469]
+              - cell "VALIDA" [ref=e1470]
+              - cell [ref=e1471]:
+                - button "PDF" [ref=e1472] [cursor=pointer]:
+                  - generic [ref=e1473]:
+                    - img [ref=e1474]: picture_as_pdf
+                    - generic [ref=e1475]: PDF
+                - link "SIAT" [ref=e1476] [cursor=pointer]:
+                  - /url: https://siat.impuestos.gob.bo/consulta/QR?nit=3779602010&cuf=1029C619395674760316035A61B2816C38918D7C3E62CD47B772842F74&numero=20355&t=2
+                  - generic [ref=e1477]:
+                    - img [ref=e1478]: verified
+                    - generic [ref=e1479]: SIAT
+            - row [ref=e1480]:
+              - cell "20160" [ref=e1481]
+              - cell "2025-11-07 01:21:54" [ref=e1482]
+              - cell "571.05" [ref=e1483]
+              - cell "VALIDA" [ref=e1484]
+              - cell [ref=e1485]:
+                - button "PDF" [ref=e1486] [cursor=pointer]:
+                  - generic [ref=e1487]:
+                    - img [ref=e1488]: picture_as_pdf
+                    - generic [ref=e1489]: PDF
+                - link "SIAT" [ref=e1490] [cursor=pointer]:
+                  - /url: https://siat.impuestos.gob.bo/consulta/QR?nit=3779602010&cuf=1029C6193956745D36339EBFDF60D7C6D71C9AE380887CD0C474642F74&numero=20160&t=2
+                  - generic [ref=e1491]:
+                    - img [ref=e1492]: verified
+                    - generic [ref=e1493]: SIAT
+            - row [ref=e1494]:
+              - cell "20086" [ref=e1495]
+              - cell "2025-11-03 02:11:37" [ref=e1496]
+              - cell "1118.82" [ref=e1497]
+              - cell "VALIDA" [ref=e1498]
+              - cell [ref=e1499]:
+                - button "PDF" [ref=e1500] [cursor=pointer]:
+                  - generic [ref=e1501]:
+                    - img [ref=e1502]: picture_as_pdf
+                    - generic [ref=e1503]: PDF
+                - link "SIAT" [ref=e1504] [cursor=pointer]:
+                  - /url: https://siat.impuestos.gob.bo/consulta/QR?nit=3779602010&cuf=1029C61939567450E9D8DCED60F8A810218B03D4DC78DEA1CEE1542F74&numero=20086&t=2
+                  - generic [ref=e1505]:
+                    - img [ref=e1506]: verified
+                    - generic [ref=e1507]: SIAT
+            - row [ref=e1508]:
+              - cell "19998" [ref=e1509]
+              - cell "2025-10-30 03:50:28" [ref=e1510]
+              - cell "177.00" [ref=e1511]
+              - cell "VALIDA" [ref=e1512]
+              - cell [ref=e1513]:
+                - button "PDF" [ref=e1514] [cursor=pointer]:
+                  - generic [ref=e1515]:
+                    - img [ref=e1516]: picture_as_pdf
+                    - generic [ref=e1517]: PDF
+                - link "SIAT" [ref=e1518] [cursor=pointer]:
+                  - /url: https://siat.impuestos.gob.bo/consulta/QR?nit=3779602010&cuf=1029C6193956737001E145152C1E3F633033DB706C335BEF29B5432F74&numero=19998&t=2
+                  - generic [ref=e1519]:
+                    - img [ref=e1520]: verified
+                    - generic [ref=e1521]: SIAT
+            - row [ref=e1522]:
+              - cell "19653" [ref=e1523]
+              - cell "2025-10-16 04:22:40" [ref=e1524]
+              - cell "1472.82" [ref=e1525]
+              - cell "VALIDA" [ref=e1526]
+              - cell [ref=e1527]:
+                - button "PDF" [ref=e1528] [cursor=pointer]:
+                  - generic [ref=e1529]:
+                    - img [ref=e1530]: picture_as_pdf
+                    - generic [ref=e1531]: PDF
+                - link "SIAT" [ref=e1532] [cursor=pointer]:
+                  - /url: https://siat.impuestos.gob.bo/consulta/QR?nit=3779602010&cuf=1029C61939567344E3845F58ADDBAAD754CD8A8992924DCE9891132F74&numero=19653&t=2
+                  - generic [ref=e1533]:
+                    - img [ref=e1534]: verified
+                    - generic [ref=e1535]: SIAT
+            - row [ref=e1536]:
+              - cell "19553" [ref=e1537]
+              - cell "2025-10-10 03:19:59" [ref=e1538]
+              - cell "345.97" [ref=e1539]
+              - cell "VALIDA" [ref=e1540]
+              - cell [ref=e1541]:
+                - button "PDF" [ref=e1542] [cursor=pointer]:
+                  - generic [ref=e1543]:
+                    - img [ref=e1544]: picture_as_pdf
+                    - generic [ref=e1545]: PDF
+                - link "SIAT" [ref=e1546] [cursor=pointer]:
+                  - /url: https://siat.impuestos.gob.bo/consulta/QR?nit=3779602010&cuf=1029C619395673325E3DB07EDDBCE0038039B1002A09A5CEC43BF22F74&numero=19553&t=2
+                  - generic [ref=e1547]:
+                    - img [ref=e1548]: verified
+                    - generic [ref=e1549]: SIAT
+            - row [ref=e1550]:
+              - cell "19352" [ref=e1551]
+              - cell "2025-10-01 15:46:40" [ref=e1552]
+              - cell "353.40" [ref=e1553]
+              - cell "VALIDA" [ref=e1554]
+              - cell [ref=e1555]:
+                - button "PDF" [ref=e1556] [cursor=pointer]:
+                  - generic [ref=e1557]:
+                    - img [ref=e1558]: picture_as_pdf
+                    - generic [ref=e1559]: PDF
+                - link "SIAT" [ref=e1560] [cursor=pointer]:
+                  - /url: https://siat.impuestos.gob.bo/consulta/QR?nit=3779602010&cuf=1029C619395673170345725EB97A6CBDCBB24DD4F2416E4AA22AD22F74&numero=19352&t=2
+                  - generic [ref=e1561]:
+                    - img [ref=e1562]: verified
+                    - generic [ref=e1563]: SIAT
+            - row [ref=e1564]:
+              - cell "19351" [ref=e1565]
+              - cell "2025-10-01 09:35:26" [ref=e1566]
+              - cell "999.08" [ref=e1567]
+              - cell "VALIDA" [ref=e1568]
+              - cell [ref=e1569]:
+                - button "PDF" [ref=e1570] [cursor=pointer]:
+                  - generic [ref=e1571]:
+                    - img [ref=e1572]: picture_as_pdf
+                    - generic [ref=e1573]: PDF
+                - link "SIAT" [ref=e1574] [cursor=pointer]:
+                  - /url: https://siat.impuestos.gob.bo/consulta/QR?nit=3779602010&cuf=1029C61939567316D30FA2A64055E82388B8ADBC8672249A68E9D22F74&numero=19351&t=2
+                  - generic [ref=e1575]:
+                    - img [ref=e1576]: verified
+                    - generic [ref=e1577]: SIAT
+            - row [ref=e1578]:
+              - cell "19198" [ref=e1579]
+              - cell "2025-09-25 03:49:33" [ref=e1580]
+              - cell "428.40" [ref=e1581]
+              - cell "VALIDA" [ref=e1582]
+              - cell [ref=e1583]:
+                - button "PDF" [ref=e1584] [cursor=pointer]:
+                  - generic [ref=e1585]:
+                    - img [ref=e1586]: picture_as_pdf
+                    - generic [ref=e1587]: PDF
+                - link "SIAT" [ref=e1588] [cursor=pointer]:
+                  - /url: https://siat.impuestos.gob.bo/consulta/QR?nit=3779602010&cuf=1029C6193956722C73691B43C692FA50D8DFBF252C818F3A419EB12F74&numero=19198&t=2
+                  - generic [ref=e1589]:
+                    - img [ref=e1590]: verified
+                    - generic [ref=e1591]: SIAT
+            - row [ref=e1592]:
+              - cell "18999" [ref=e1593]
+              - cell "2025-09-17 02:52:16" [ref=e1594]
+              - cell "630.93" [ref=e1595]
+              - cell "VALIDA" [ref=e1596]
+              - cell [ref=e1597]:
+                - button "PDF" [ref=e1598] [cursor=pointer]:
+                  - generic [ref=e1599]:
+                    - img [ref=e1600]: picture_as_pdf
+                    - generic [ref=e1601]: PDF
+                - link "SIAT" [ref=e1602] [cursor=pointer]:
+                  - /url: https://siat.impuestos.gob.bo/consulta/QR?nit=3779602010&cuf=1029C61939567213C4DB9678F4F324D59020FC2AC648B811AAB0A12F74&numero=18999&t=2
+                  - generic [ref=e1603]:
+                    - img [ref=e1604]: verified
+                    - generic [ref=e1605]: SIAT
+            - row [ref=e1606]:
+              - cell "18860" [ref=e1607]
+              - cell "2025-09-11 03:05:25" [ref=e1608]
+              - cell "630.93" [ref=e1609]
+              - cell "VALIDA" [ref=e1610]
+              - cell [ref=e1611]:
+                - button "PDF" [ref=e1612] [cursor=pointer]:
+                  - generic [ref=e1613]:
+                    - img [ref=e1614]: picture_as_pdf
+                    - generic [ref=e1615]: PDF
+                - link "SIAT" [ref=e1616] [cursor=pointer]:
+                  - /url: https://siat.impuestos.gob.bo/consulta/QR?nit=3779602010&cuf=1029C619395672014BE15F33C7709C1063CC7EE9386466C5A56A812F74&numero=18860&t=2
+                  - generic [ref=e1617]:
+                    - img [ref=e1618]: verified
+                    - generic [ref=e1619]: SIAT
+            - row [ref=e1620]:
+              - cell "18727" [ref=e1621]
+              - cell "2025-09-05 02:23:25" [ref=e1622]
+              - cell "539.72" [ref=e1623]
+              - cell "VALIDA" [ref=e1624]
+              - cell [ref=e1625]:
+                - button "PDF" [ref=e1626] [cursor=pointer]:
+                  - generic [ref=e1627]:
+                    - img [ref=e1628]: picture_as_pdf
+                    - generic [ref=e1629]: PDF
+                - link "SIAT" [ref=e1630] [cursor=pointer]:
+                  - /url: https://siat.impuestos.gob.bo/consulta/QR?nit=3779602010&cuf=1029C619395671EEC83F21EB7F9E7137CE21A23A28129A6449A0712F74&numero=18727&t=2
+                  - generic [ref=e1631]:
+                    - img [ref=e1632]: verified
+                    - generic [ref=e1633]: SIAT
+            - row [ref=e1634]:
+              - cell "18605" [ref=e1635]
+              - cell "2025-08-30 02:41:08" [ref=e1636]
+              - cell "442.50" [ref=e1637]
+              - cell "VALIDA" [ref=e1638]
+              - cell [ref=e1639]:
+                - button "PDF" [ref=e1640] [cursor=pointer]:
+                  - generic [ref=e1641]:
+                    - img [ref=e1642]: picture_as_pdf
+                    - generic [ref=e1643]: PDF
+                - link "SIAT" [ref=e1644] [cursor=pointer]:
+                  - /url: https://siat.impuestos.gob.bo/consulta/QR?nit=3779602010&cuf=1029C61939567107AD15C5C3E6476BA0A3EA7697A26972B7EF9C502F74&numero=18605&t=2
+                  - generic [ref=e1645]:
+                    - img [ref=e1646]: verified
+                    - generic [ref=e1647]: SIAT
+            - row [ref=e1648]:
+              - cell "18221" [ref=e1649]
+              - cell "2025-08-14 01:17:34" [ref=e1650]
+              - cell "899.50" [ref=e1651]
+              - cell "VALIDA" [ref=e1652]
+              - cell [ref=e1653]:
+                - button "PDF" [ref=e1654] [cursor=pointer]:
+                  - generic [ref=e1655]:
+                    - img [ref=e1656]: picture_as_pdf
+                    - generic [ref=e1657]: PDF
+                - link "SIAT" [ref=e1658] [cursor=pointer]:
+                  - /url: https://siat.impuestos.gob.bo/consulta/QR?nit=3779602010&cuf=1029C619395670D6558C98F98335470A7DEA01F8A216EBA059F0202F74&numero=18221&t=2
+                  - generic [ref=e1659]:
+                    - img [ref=e1660]: verified
+                    - generic [ref=e1661]: SIAT
+            - row [ref=e1662]:
+              - cell "18095" [ref=e1663]
+              - cell "2025-08-08 01:00:40" [ref=e1664]
+              - cell "508.50" [ref=e1665]
+              - cell "VALIDA" [ref=e1666]
+              - cell [ref=e1667]:
+                - button "PDF" [ref=e1668] [cursor=pointer]:
+                  - generic [ref=e1669]:
+                    - img [ref=e1670]: picture_as_pdf
+                    - generic [ref=e1671]: PDF
+                - link "SIAT" [ref=e1672] [cursor=pointer]:
+                  - /url: https://siat.impuestos.gob.bo/consulta/QR?nit=3779602010&cuf=1029C619395670C3D70C170B5481007CEB3575F476744A08AD9A002F74&numero=18095&t=2
+                  - generic [ref=e1673]:
+                    - img [ref=e1674]: verified
+                    - generic [ref=e1675]: SIAT
+            - row [ref=e1676]:
+              - cell "18022" [ref=e1677]
+              - cell "2025-08-05 04:32:14" [ref=e1678]
+              - cell "708.00" [ref=e1679]
+              - cell "VALIDA" [ref=e1680]
+              - cell [ref=e1681]:
+                - button "PDF" [ref=e1682] [cursor=pointer]:
+                  - generic [ref=e1683]:
+                    - img [ref=e1684]: picture_as_pdf
+                    - generic [ref=e1685]: PDF
+                - link "SIAT" [ref=e1686] [cursor=pointer]:
+                  - /url: https://siat.impuestos.gob.bo/consulta/QR?nit=3779602010&cuf=1029C619395670BAB2A2452A512C33C2BCF57EFE3C03D706409FFF1F74&numero=18022&t=2
+                  - generic [ref=e1687]:
+                    - img [ref=e1688]: verified
+                    - generic [ref=e1689]: SIAT
+            - row [ref=e1690]:
+              - cell "17943" [ref=e1691]
+              - cell "2025-08-01 03:54:42" [ref=e1692]
+              - cell "604.29" [ref=e1693]
+              - cell "VALIDA" [ref=e1694]
+              - cell [ref=e1695]:
+                - button "PDF" [ref=e1696] [cursor=pointer]:
+                  - generic [ref=e1697]:
+                    - img [ref=e1698]: picture_as_pdf
+                    - generic [ref=e1699]: PDF
+                - link "SIAT" [ref=e1700] [cursor=pointer]:
+                  - /url: https://siat.impuestos.gob.bo/consulta/QR?nit=3779602010&cuf=1029C619395670AE590F2E36E14DF099366DB7758640C5AB22A0FF1F74&numero=17943&t=2
+                  - generic [ref=e1701]:
+                    - img [ref=e1702]: verified
+                    - generic [ref=e1703]: SIAT
+            - row [ref=e1704]:
+              - cell "17930" [ref=e1705]
+              - cell "2025-07-31 09:27:16" [ref=e1706]
+              - cell "280.08" [ref=e1707]
+              - cell "VALIDA" [ref=e1708]
+              - cell [ref=e1709]:
+                - button "PDF" [ref=e1710] [cursor=pointer]:
+                  - generic [ref=e1711]:
+                    - img [ref=e1712]: picture_as_pdf
+                    - generic [ref=e1713]: PDF
+                - link "SIAT" [ref=e1714] [cursor=pointer]:
+                  - /url: https://siat.impuestos.gob.bo/consulta/QR?nit=3779602010&cuf=1029C61939566FD6D1FA34CF115BEE5726C1C63824530734931CEE1F74&numero=17930&t=2
+                  - generic [ref=e1715]:
+                    - img [ref=e1716]: verified
+                    - generic [ref=e1717]: SIAT
+            - row [ref=e1718]:
+              - cell "17604" [ref=e1719]
+              - cell "2025-07-18 05:15:33" [ref=e1720]
+              - cell "365.60" [ref=e1721]
+              - cell "VALIDA" [ref=e1722]
+              - cell [ref=e1723]:
+                - button "PDF" [ref=e1724] [cursor=pointer]:
+                  - generic [ref=e1725]:
+                    - img [ref=e1726]: picture_as_pdf
+                    - generic [ref=e1727]: PDF
+                - link "SIAT" [ref=e1728] [cursor=pointer]:
+                  - /url: https://siat.impuestos.gob.bo/consulta/QR?nit=3779602010&cuf=1029C61939566FAEA24C5B6B157865B0F01A27212A043699B3E7BE1F74&numero=17604&t=2
+                  - generic [ref=e1729]:
+                    - img [ref=e1730]: verified
+                    - generic [ref=e1731]: SIAT
+            - row [ref=e1732]:
+              - cell "17603" [ref=e1733]
+              - cell "2025-07-18 05:01:32" [ref=e1734]
+              - cell "230.79" [ref=e1735]
+              - cell "VALIDA" [ref=e1736]
+              - cell [ref=e1737]:
+                - button "PDF" [ref=e1738] [cursor=pointer]:
+                  - generic [ref=e1739]:
+                    - img [ref=e1740]: picture_as_pdf
+                    - generic [ref=e1741]: PDF
+                - link "SIAT" [ref=e1742] [cursor=pointer]:
+                  - /url: https://siat.impuestos.gob.bo/consulta/QR?nit=3779602010&cuf=1029C61939566FAEA1315B37CAAADF37AF29A708C0543699B3E7BE1F74&numero=17603&t=2
+                  - generic [ref=e1743]:
+                    - img [ref=e1744]: verified
+                    - generic [ref=e1745]: SIAT
+            - row [ref=e1746]:
+              - cell "17542" [ref=e1747]
+              - cell "2025-07-15 04:09:58" [ref=e1748]
+              - cell "559.80" [ref=e1749]
+              - cell "VALIDA" [ref=e1750]
+              - cell [ref=e1751]:
+                - button "PDF" [ref=e1752] [cursor=pointer]:
+                  - generic [ref=e1753]:
+                    - img [ref=e1754]: picture_as_pdf
+                    - generic [ref=e1755]: PDF
+                - link "SIAT" [ref=e1756] [cursor=pointer]:
+                  - /url: https://siat.impuestos.gob.bo/consulta/QR?nit=3779602010&cuf=1029C61939566FA55B5F9C267A18775BE74AA1377C8506C77740BE1F74&numero=17542&t=2
+                  - generic [ref=e1757]:
+                    - img [ref=e1758]: verified
+                    - generic [ref=e1759]: SIAT
+        - separator [ref=e1760]
+        - button "Cerrar" [ref=e1762] [cursor=pointer]

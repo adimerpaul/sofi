@@ -1,0 +1,648 @@
+- generic [ref=e3]:
+  - banner [ref=e4]:
+    - toolbar [ref=e5]:
+      - button "Menu" [ref=e6] [cursor=pointer]:
+        - img [ref=e8]: menu
+      - generic [ref=e9]:
+        - text: Ventas generales
+        - generic [ref=e10]: 11.5.6
+      - button "Salir" [ref=e63] [cursor=pointer]:
+        - generic [ref=e64]:
+          - img [ref=e65]: logout
+          - generic [ref=e66]: Salir
+  - complementary [ref=e12]:
+    - list [ref=e14]:
+      - generic [ref=e15]: Opciones
+      - link "Principal" [ref=e16] [cursor=pointer]:
+        - /url: "#/"
+        - generic [ref=e17]: home
+      - link "Realizar Visita" [ref=e67] [cursor=pointer]:
+        - /url: "#/visita"
+        - generic [ref=e22]: map
+      - link "Clientes del Día Ver la semana" [ref=e68] [cursor=pointer]:
+        - /url: "#/clientevisita"
+        - generic [ref=e69]: today
+        - generic [ref=e71]:
+          - generic [ref=e72]: Clientes del Día
+          - generic [ref=e73]: Ver la semana
+      - link "Mis Pedidos" [ref=e74] [cursor=pointer]:
+        - /url: "#/mispedidos"
+        - generic [ref=e75]: list
+      - link "Pedidos Totales" [ref=e79] [cursor=pointer]:
+        - /url: "#/mispedidostotales"
+        - generic [ref=e80]: list_alt
+      - link "Lista Clientes Habilitar cliente" [ref=e84] [cursor=pointer]:
+        - /url: "#/clientes"
+        - generic [ref=e85]: people
+        - generic [ref=e87]:
+          - generic [ref=e88]: Lista Clientes
+          - generic [ref=e89]: Habilitar cliente
+      - link "Pedidos Pendientes Faltantes" [ref=e90] [cursor=pointer]:
+        - /url: "#/pendientes"
+        - generic [ref=e91]: local_grocery_store
+        - generic [ref=e93]:
+          - generic [ref=e94]: Pedidos Pendientes
+          - generic [ref=e95]: Faltantes
+      - link "Pedidos Registrados" [ref=e96] [cursor=pointer]:
+        - /url: "#/clientepedido"
+        - generic [ref=e97]: local_mall
+        - generic [ref=e99]:
+          - generic [ref=e100]: Pedidos
+          - generic [ref=e101]: Registrados
+      - link "Listado Pedidos Registrados" [ref=e102] [cursor=pointer]:
+        - /url: "#/listpedido"
+        - generic [ref=e103]: shopping_cart
+        - generic [ref=e105]:
+          - generic [ref=e106]: Listado Pedidos
+          - generic [ref=e107]: Registrados
+      - link "Cobros Realizados" [ref=e108] [cursor=pointer]:
+        - /url: "#/cobrosrealizados"
+        - generic [ref=e109]: monetization_on
+      - link "Cobranzas Cobro a cliente" [ref=e113] [cursor=pointer]:
+        - /url: "#/cobranza"
+        - generic [ref=e114]: receipt
+        - generic [ref=e116]:
+          - generic [ref=e117]: Cobranzas
+          - generic [ref=e118]: Cobro a cliente
+      - link "Mis Cobros" [ref=e119] [cursor=pointer]:
+        - /url: "#/miscobranzas"
+        - generic [ref=e120]: money
+      - link "Productos Precios y stock" [ref=e124] [cursor=pointer]:
+        - /url: "#/productos"
+        - generic [ref=e125]: inventory_2
+        - generic [ref=e127]:
+          - generic [ref=e128]: Productos
+          - generic [ref=e129]: Precios y stock
+      - link "Ventas Consulta por fechas" [ref=e130] [cursor=pointer]:
+        - /url: "#/ventas"
+        - generic [ref=e131]: point_of_sale
+        - generic [ref=e133]:
+          - generic [ref=e134]: Ventas
+          - generic [ref=e135]: Consulta por fechas
+      - link "Clientes sin Pedido" [ref=e136] [cursor=pointer]:
+        - /url: "#/nopedido"
+        - generic [ref=e137]: person_off
+      - link "Horarios de Envío Envío automático" [ref=e141] [cursor=pointer]:
+        - /url: "#/horariosenvio"
+        - generic [ref=e142]: schedule_send
+        - generic [ref=e144]:
+          - generic [ref=e145]: Horarios de Envío
+          - generic [ref=e146]: Envío automático
+      - link "Exportar Excel" [ref=e147] [cursor=pointer]:
+        - /url: "#/generar"
+        - generic [ref=e148]: table_chart
+      - link "Excel Pedidos Rango de fechas" [ref=e152] [cursor=pointer]:
+        - /url: "#/genreporte"
+        - generic [ref=e153]: receipt_long
+        - generic [ref=e155]:
+          - generic [ref=e156]: Excel Pedidos
+          - generic [ref=e157]: Rango de fechas
+      - link "Ruta de Entregas" [ref=e158] [cursor=pointer]:
+        - /url: "#/ruta"
+        - generic [ref=e159]: map
+      - link "Reporte Entrega" [ref=e163] [cursor=pointer]:
+        - /url: "#/despacho"
+        - generic [ref=e164]: description
+      - link "Pedidos / Entregas Resumen" [ref=e168] [cursor=pointer]:
+        - /url: "#/avance"
+        - generic [ref=e169]: summarize
+        - generic [ref=e171]:
+          - generic [ref=e172]: Pedidos / Entregas
+          - generic [ref=e173]: Resumen
+      - link "Reporte Entrega" [ref=e174] [cursor=pointer]:
+        - /url: "#/entrega"
+        - generic [ref=e175]: dvr
+      - link "Reporte Entrega Clientes entregas" [ref=e179] [cursor=pointer]:
+        - /url: "#/reporte"
+        - generic [ref=e180]: list
+        - generic [ref=e182]:
+          - generic [ref=e183]: Reporte Entrega
+          - generic [ref=e184]: Clientes entregas
+      - link "Almacén" [ref=e185] [cursor=pointer]:
+        - /url: "#/almacen"
+        - generic [ref=e186]: store
+      - link "Verificar Almacén" [ref=e190] [cursor=pointer]:
+        - /url: "#/almacenVerificar"
+        - generic [ref=e191]: fact_check
+      - link "Almacén Verificado" [ref=e195] [cursor=pointer]:
+        - /url: "#/almacenVerificado"
+        - generic [ref=e196]: task_alt
+      - link "Asignar Preventista" [ref=e200] [cursor=pointer]:
+        - /url: "#/modifica"
+        - generic [ref=e201]: people
+      - link "Monitoreo" [ref=e205] [cursor=pointer]:
+        - /url: "#/monitoreo"
+        - generic [ref=e206]: computer
+      - link "Resumen de Preventa Monitoreo" [ref=e210] [cursor=pointer]:
+        - /url: "#/mapavendedor"
+        - generic [ref=e211]: query_stats
+        - generic [ref=e213]:
+          - generic [ref=e214]: Resumen de Preventa
+          - generic [ref=e215]: Monitoreo
+      - link "Mapa Visitas" [ref=e216] [cursor=pointer]:
+        - /url: "#/mapavendedorvisita"
+        - generic [ref=e217]: map
+      - link "Asignación Monitoreo" [ref=e221] [cursor=pointer]:
+        - /url: "#/mapacliente"
+        - generic [ref=e222]: computer
+        - generic [ref=e224]:
+          - generic [ref=e225]: Asignación
+          - generic [ref=e226]: Monitoreo
+      - button "Alta Cliente Formulario" [ref=e227] [cursor=pointer]:
+        - generic [ref=e228]: person_add
+        - generic [ref=e230]:
+          - generic [ref=e231]: Alta Cliente
+          - generic [ref=e232]: Formulario
+      - link "Cambios" [ref=e233] [cursor=pointer]:
+        - /url: "#/bonificaciones"
+        - generic [ref=e234]: no_food
+      - link "Clientes Fotografías" [ref=e238] [cursor=pointer]:
+        - /url: "#/clientefotografias"
+        - generic [ref=e239]: photo_camera
+      - link "Pedidos" [ref=e243] [cursor=pointer]:
+        - /url: "#/pedidos"
+        - generic [ref=e244]: shopping_cart
+      - link "Encuestas" [ref=e248] [cursor=pointer]:
+        - /url: "#/encuestasIndex"
+        - generic [ref=e249]: assignment
+      - button "Cambios por Calidad Formulario" [ref=e253] [cursor=pointer]:
+        - generic [ref=e254]: published_with_changes
+        - generic [ref=e256]:
+          - generic [ref=e257]: Cambios por Calidad
+          - generic [ref=e258]: Formulario
+      - link "Usuarios Roles y permisos" [ref=e259] [cursor=pointer]:
+        - /url: "#/usuario"
+        - generic [ref=e260]: manage_accounts
+        - generic [ref=e262]:
+          - generic [ref=e263]: Usuarios
+          - generic [ref=e264]: Roles y permisos
+      - separator [ref=e265]
+      - button "Salir Salir del sistema" [ref=e266] [cursor=pointer]:
+        - generic [ref=e267]: logout
+        - generic [ref=e269]:
+          - generic [ref=e270]: Salir
+          - generic [ref=e271]: Salir del sistema
+  - main [ref=e279]:
+    - generic [ref=e280]:
+      - generic [ref=e281]:
+        - generic [ref=e282]: Ventas
+        - generic [ref=e283]: Pedidos del día; se puede ampliar el rango de fechas
+      - generic [ref=e285]:
+        - generic [ref=e286]: receipt_long
+        - generic [ref=e287]:
+          - generic [ref=e288]: "Ventas:"
+          - generic [ref=e289]: "56"
+      - generic [ref=e291]:
+        - generic [ref=e292]: list_alt
+        - generic [ref=e293]:
+          - generic [ref=e294]: "Ítems:"
+          - generic [ref=e295]: "129"
+      - generic [ref=e297]:
+        - generic [ref=e298]: attach_money
+        - generic [ref=e299]:
+          - generic [ref=e300]: "Total Bs:"
+          - generic [ref=e301]: "24580.85"
+    - generic [ref=e303]:
+      - generic [ref=e308]:
+        - generic: Desde
+        - textbox "Desde" [ref=e309]: 2026-08-14
+      - generic [ref=e314]:
+        - generic: Hasta
+        - textbox "Hasta" [ref=e315]: 2026-08-14
+      - generic [ref=e319]:
+        - generic [ref=e320]:
+          - generic: Cliente, dirección, zona o Nº
+          - textbox "Cliente, dirección, zona o Nº" [ref=e321]
+        - generic [ref=e322]: search
+      - generic [ref=e328]:
+        - generic: Producto
+        - textbox "Producto" [ref=e329]
+      - generic [ref=e333] [cursor=pointer]:
+        - generic [ref=e334]:
+          - generic: Vendedor
+          - combobox "Vendedor" [ref=e336]
+        - generic [ref=e337]: arrow_drop_down
+      - generic [ref=e342] [cursor=pointer]:
+        - generic [ref=e343]:
+          - generic: Tipo
+          - combobox "Tipo" [ref=e345]
+        - generic [ref=e346]: arrow_drop_down
+      - generic [ref=e351] [cursor=pointer]:
+        - generic [ref=e352]:
+          - generic: Estado
+          - combobox "Estado" [ref=e354]
+        - generic [ref=e355]: arrow_drop_down
+      - generic [ref=e357]:
+        - button "Buscar" [ref=e358] [cursor=pointer]:
+          - generic [ref=e393]:
+            - img [ref=e394]: search
+            - generic [ref=e395]: Buscar
+        - button "Limpiar" [ref=e362] [cursor=pointer]:
+          - generic [ref=e363]:
+            - img [ref=e364]: layers_clear
+            - generic [ref=e365]: Limpiar
+    - generic [ref=e366]:
+      - table [ref=e368]:
+        - rowgroup [ref=e369]:
+          - row [ref=e370]:
+            - columnheader "Opciones" [ref=e371]
+            - columnheader "Nº" [ref=e372] [cursor=pointer]:
+              - text: Nº
+              - generic [ref=e373]: arrow_upward
+            - columnheader "Fecha" [ref=e374] [cursor=pointer]:
+              - text: Fecha
+              - generic [ref=e375]: arrow_upward
+            - columnheader "Cliente" [ref=e376] [cursor=pointer]:
+              - text: Cliente
+              - generic [ref=e377]: arrow_upward
+            - columnheader "Zona" [ref=e378]
+            - columnheader "Vendedor" [ref=e379] [cursor=pointer]:
+              - text: Vendedor
+              - generic [ref=e380]: arrow_upward
+            - columnheader "Tipo" [ref=e381]
+            - columnheader "Estado" [ref=e382]
+            - columnheader "Ítems" [ref=e383] [cursor=pointer]:
+              - generic [ref=e384]: arrow_upward
+              - text: Ítems
+            - columnheader "Total Bs." [ref=e385] [cursor=pointer]:
+              - generic [ref=e386]: arrow_upward
+              - text: Total Bs.
+        - rowgroup [ref=e396]:
+          - row [ref=e799]:
+            - cell [ref=e800]:
+              - button "Expandir \"Opciones\"" [ref=e801] [cursor=pointer]:
+                - generic [ref=e400]:
+                  - img [ref=e401]: menu
+                  - generic [ref=e402]: Opciones
+                  - generic [ref=e403]: arrow_drop_down
+            - cell [ref=e404]:
+              - status [ref=e405]: "#200768"
+            - cell "2026-08-14 18:40:46" [ref=e406]
+            - cell "MARLENE CALATAYUD" [ref=e407]
+            - cell "PROVINCIA" [ref=e408]
+            - cell "CRISTIAN LOPEZ" [ref=e409]
+            - cell "NORMAL" [ref=e410]
+            - cell [ref=e411]:
+              - status [ref=e412]: ENVIADO
+            - cell "1" [ref=e413]
+            - cell "209.50" [ref=e414]
+          - row [ref=e415]:
+            - cell [ref=e416]:
+              - button "Expandir \"Opciones\"" [ref=e417] [cursor=pointer]:
+                - generic [ref=e418]:
+                  - img [ref=e419]: menu
+                  - generic [ref=e420]: Opciones
+                  - generic [ref=e421]: arrow_drop_down
+            - cell [ref=e422]:
+              - status [ref=e423]: "#200763"
+            - cell "2026-08-14 18:26:43" [ref=e424]
+            - cell "CARMEN ROSA CALIZAYA URUR" [ref=e425]
+            - cell "CHALLAPATA" [ref=e426]
+            - cell "CRISTIAN LOPEZ" [ref=e427]
+            - cell "CERDO" [ref=e428]
+            - cell [ref=e429]:
+              - status [ref=e430]: ENVIADO
+            - cell "1" [ref=e431]
+            - cell "0.00" [ref=e432]
+          - row [ref=e433]:
+            - cell [ref=e434]:
+              - button "Expandir \"Opciones\"" [ref=e435] [cursor=pointer]:
+                - generic [ref=e436]:
+                  - img [ref=e437]: menu
+                  - generic [ref=e438]: Opciones
+                  - generic [ref=e439]: arrow_drop_down
+            - cell [ref=e440]:
+              - status [ref=e441]: "#200759"
+            - cell "2026-08-14 18:23:56" [ref=e442]
+            - cell "MARLENE CALATAYUD" [ref=e443]
+            - cell "PROVINCIA" [ref=e444]
+            - cell "CRISTIAN LOPEZ" [ref=e445]
+            - cell "NORMAL" [ref=e446]
+            - cell [ref=e447]:
+              - status [ref=e448]: ENVIADO
+            - cell "2" [ref=e449]
+            - cell "72.50" [ref=e450]
+          - row [ref=e451]:
+            - cell [ref=e452]:
+              - button "Expandir \"Opciones\"" [ref=e453] [cursor=pointer]:
+                - generic [ref=e454]:
+                  - img [ref=e455]: menu
+                  - generic [ref=e456]: Opciones
+                  - generic [ref=e457]: arrow_drop_down
+            - cell [ref=e458]:
+              - status [ref=e459]: "#200686"
+            - cell "2026-08-14 18:23:46" [ref=e460]
+            - cell "NANCY MAMANI AGOSTOPA" [ref=e461]
+            - cell "PROVINCIA" [ref=e462]
+            - cell "CRISTIAN LOPEZ" [ref=e463]
+            - cell "NORMAL" [ref=e464]
+            - cell [ref=e465]:
+              - status [ref=e466]: ENVIADO
+            - cell "3" [ref=e467]
+            - cell "704.00" [ref=e468]
+          - row [ref=e469]:
+            - cell [ref=e470]:
+              - button "Expandir \"Opciones\"" [ref=e471] [cursor=pointer]:
+                - generic [ref=e472]:
+                  - img [ref=e473]: menu
+                  - generic [ref=e474]: Opciones
+                  - generic [ref=e475]: arrow_drop_down
+            - cell [ref=e476]:
+              - status [ref=e477]: "#200757"
+            - cell "2026-08-14 18:20:36" [ref=e478]
+            - cell "MARLENE CALATAYUD" [ref=e479]
+            - cell "PROVINCIA" [ref=e480]
+            - cell "CRISTIAN LOPEZ" [ref=e481]
+            - cell "NORMAL" [ref=e482]
+            - cell [ref=e483]:
+              - status [ref=e484]: ENVIADO
+            - cell "1" [ref=e485]
+            - cell "275.00" [ref=e486]
+          - row [ref=e487]:
+            - cell [ref=e488]:
+              - button "Expandir \"Opciones\"" [ref=e489] [cursor=pointer]:
+                - generic [ref=e490]:
+                  - img [ref=e491]: menu
+                  - generic [ref=e492]: Opciones
+                  - generic [ref=e493]: arrow_drop_down
+            - cell [ref=e494]:
+              - status [ref=e495]: "#200756"
+            - cell "2026-08-14 18:20:25" [ref=e496]
+            - cell "LOURDES PACHECO POCOMANI" [ref=e497]
+            - cell "CENTRO" [ref=e498]
+            - cell "RUTH CERROGRANDE" [ref=e499]
+            - cell "NORMAL" [ref=e500]
+            - cell [ref=e501]:
+              - status [ref=e502]: ENVIADO
+            - cell "1" [ref=e503]
+            - cell "300.00" [ref=e504]
+          - row [ref=e505]:
+            - cell [ref=e506]:
+              - button "Expandir \"Opciones\"" [ref=e507] [cursor=pointer]:
+                - generic [ref=e508]:
+                  - img [ref=e509]: menu
+                  - generic [ref=e510]: Opciones
+                  - generic [ref=e511]: arrow_drop_down
+            - cell [ref=e512]:
+              - status [ref=e513]: "#200755"
+            - cell "2026-08-14 18:18:56" [ref=e514]
+            - cell "LOURDES PACHECO POCOMANI" [ref=e515]
+            - cell "CENTRO" [ref=e516]
+            - cell "RUTH CERROGRANDE" [ref=e517]
+            - cell "NORMAL" [ref=e518]
+            - cell [ref=e519]:
+              - status [ref=e520]: ENVIADO
+            - cell "1" [ref=e521]
+            - cell "158.40" [ref=e522]
+          - row [ref=e523]:
+            - cell [ref=e524]:
+              - button "Expandir \"Opciones\"" [ref=e525] [cursor=pointer]:
+                - generic [ref=e526]:
+                  - img [ref=e527]: menu
+                  - generic [ref=e528]: Opciones
+                  - generic [ref=e529]: arrow_drop_down
+            - cell [ref=e530]:
+              - status [ref=e531]: "#198516"
+            - cell "2026-08-14 18:16:17" [ref=e532]
+            - cell "BRIANA SANABRIA ANTEZANA" [ref=e533]
+            - cell "SUD" [ref=e534]
+            - cell "CRISTIAN LOPEZ" [ref=e535]
+            - cell "NORMAL" [ref=e536]
+            - cell [ref=e537]:
+              - status [ref=e538]: ENVIADO
+            - cell "1" [ref=e539]
+            - cell "590.00" [ref=e540]
+          - row [ref=e541]:
+            - cell [ref=e542]:
+              - button "Expandir \"Opciones\"" [ref=e543] [cursor=pointer]:
+                - generic [ref=e544]:
+                  - img [ref=e545]: menu
+                  - generic [ref=e546]: Opciones
+                  - generic [ref=e547]: arrow_drop_down
+            - cell [ref=e548]:
+              - status [ref=e549]: "#200749"
+            - cell "2026-08-14 18:12:23" [ref=e550]
+            - cell "LOURDES RAFAEL MAMANI" [ref=e551]
+            - cell "PROVINCIA" [ref=e552]
+            - cell "CRISTIAN LOPEZ" [ref=e553]
+            - cell "NORMAL" [ref=e554]
+            - cell [ref=e555]:
+              - status [ref=e556]: ENVIADO
+            - cell "6" [ref=e557]
+            - cell "942.60" [ref=e558]
+          - row [ref=e559]:
+            - cell [ref=e560]:
+              - button "Expandir \"Opciones\"" [ref=e561] [cursor=pointer]:
+                - generic [ref=e562]:
+                  - img [ref=e563]: menu
+                  - generic [ref=e564]: Opciones
+                  - generic [ref=e565]: arrow_drop_down
+            - cell [ref=e566]:
+              - status [ref=e567]: "#200750"
+            - cell "2026-08-14 18:12:07" [ref=e568]
+            - cell "LOURDES RAFAEL MAMANI" [ref=e569]
+            - cell "PROVINCIA" [ref=e570]
+            - cell "CRISTIAN LOPEZ" [ref=e571]
+            - cell "NORMAL" [ref=e572]
+            - cell [ref=e573]:
+              - status [ref=e574]: ENVIADO
+            - cell "1" [ref=e575]
+            - cell "266.00" [ref=e576]
+          - row [ref=e577]:
+            - cell [ref=e578]:
+              - button "Expandir \"Opciones\"" [ref=e579] [cursor=pointer]:
+                - generic [ref=e580]:
+                  - img [ref=e581]: menu
+                  - generic [ref=e582]: Opciones
+                  - generic [ref=e583]: arrow_drop_down
+            - cell [ref=e584]:
+              - status [ref=e585]: "#200479"
+            - cell "2026-08-14 17:59:19" [ref=e586]
+            - cell "IRMA ERNESTINA RIVERA ZAMORANO" [ref=e587]
+            - cell "NORTE" [ref=e588]
+            - cell "DANIELA LOPEZ" [ref=e589]
+            - cell "NORMAL" [ref=e590]
+            - cell [ref=e591]:
+              - status [ref=e592]: ENVIADO
+            - cell "1" [ref=e593]
+            - cell "275.00" [ref=e594]
+          - row [ref=e595]:
+            - cell [ref=e596]:
+              - button "Expandir \"Opciones\"" [ref=e597] [cursor=pointer]:
+                - generic [ref=e598]:
+                  - img [ref=e599]: menu
+                  - generic [ref=e600]: Opciones
+                  - generic [ref=e601]: arrow_drop_down
+            - cell [ref=e602]:
+              - status [ref=e603]: "#200736"
+            - cell "2026-08-14 17:56:32" [ref=e604]
+            - cell "ANA MABEL CALLAPA SALAZAR" [ref=e605]
+            - cell "CHALLAPATA" [ref=e606]
+            - cell "CRISTIAN LOPEZ" [ref=e607]
+            - cell "NORMAL" [ref=e608]
+            - cell [ref=e609]:
+              - status [ref=e610]: ENVIADO
+            - cell "16" [ref=e611]
+            - cell "2704.35" [ref=e612]
+          - row [ref=e613]:
+            - cell [ref=e614]:
+              - button "Expandir \"Opciones\"" [ref=e615] [cursor=pointer]:
+                - generic [ref=e616]:
+                  - img [ref=e617]: menu
+                  - generic [ref=e618]: Opciones
+                  - generic [ref=e619]: arrow_drop_down
+            - cell [ref=e620]:
+              - status [ref=e621]: "#200726"
+            - cell "2026-08-14 17:41:21" [ref=e622]
+            - cell "ELIZABETH FLORES CALLE" [ref=e623]
+            - cell "NORTE" [ref=e624]
+            - cell "RUBEN CABALLERO" [ref=e625]
+            - cell "NORMAL" [ref=e626]
+            - cell [ref=e627]:
+              - status [ref=e628]: ENVIADO
+            - cell "1" [ref=e629]
+            - cell "275.00" [ref=e630]
+          - row [ref=e631]:
+            - cell [ref=e632]:
+              - button "Expandir \"Opciones\"" [ref=e633] [cursor=pointer]:
+                - generic [ref=e634]:
+                  - img [ref=e635]: menu
+                  - generic [ref=e636]: Opciones
+                  - generic [ref=e637]: arrow_drop_down
+            - cell [ref=e638]:
+              - status [ref=e639]: "#200707"
+            - cell "2026-08-14 16:36:52" [ref=e640]
+            - cell "CLAUDIA MIRIAN AVILA AYALA" [ref=e641]
+            - cell "CENTRO" [ref=e642]
+            - cell "RUTH CERROGRANDE" [ref=e643]
+            - cell "NORMAL" [ref=e644]
+            - cell [ref=e645]:
+              - status [ref=e646]: ENVIADO
+            - cell "1" [ref=e647]
+            - cell "300.00" [ref=e648]
+          - row [ref=e649]:
+            - cell [ref=e650]:
+              - button "Expandir \"Opciones\"" [ref=e651] [cursor=pointer]:
+                - generic [ref=e652]:
+                  - img [ref=e653]: menu
+                  - generic [ref=e654]: Opciones
+                  - generic [ref=e655]: arrow_drop_down
+            - cell [ref=e656]:
+              - status [ref=e657]: "#200418"
+            - cell "2026-08-14 16:22:09" [ref=e658]
+            - cell "MARINA FLORES LAKA" [ref=e659]
+            - cell "NORTE" [ref=e660]
+            - cell "RUBEN CABALLERO" [ref=e661]
+            - cell "NORMAL" [ref=e662]
+            - cell [ref=e663]:
+              - status [ref=e664]: ENVIADO
+            - cell "1" [ref=e665]
+            - cell "137.50" [ref=e666]
+          - row [ref=e667]:
+            - cell [ref=e668]:
+              - button "Expandir \"Opciones\"" [ref=e669] [cursor=pointer]:
+                - generic [ref=e670]:
+                  - img [ref=e671]: menu
+                  - generic [ref=e672]: Opciones
+                  - generic [ref=e673]: arrow_drop_down
+            - cell [ref=e674]:
+              - status [ref=e675]: "#200416"
+            - cell "2026-08-14 16:12:26" [ref=e676]
+            - cell "ALVARO FERNANDO MONTERO CORTÉZ" [ref=e677]
+            - cell "NORTE" [ref=e678]
+            - cell "DANIELA LOPEZ" [ref=e679]
+            - cell "CERDO" [ref=e680]
+            - cell [ref=e681]:
+              - status [ref=e682]: ENVIADO
+            - cell "1" [ref=e683]
+            - cell "0.00" [ref=e684]
+          - row [ref=e685]:
+            - cell [ref=e686]:
+              - button "Expandir \"Opciones\"" [ref=e687] [cursor=pointer]:
+                - generic [ref=e688]:
+                  - img [ref=e689]: menu
+                  - generic [ref=e690]: Opciones
+                  - generic [ref=e691]: arrow_drop_down
+            - cell [ref=e692]:
+              - status [ref=e693]: "#200685"
+            - cell "2026-08-14 15:50:34" [ref=e694]
+            - cell "NANCY MAMANI AGOSTOPA" [ref=e695]
+            - cell "PROVINCIA" [ref=e696]
+            - cell "CRISTIAN LOPEZ" [ref=e697]
+            - cell "NORMAL" [ref=e698]
+            - cell [ref=e699]:
+              - status [ref=e700]: ENVIADO
+            - cell "5" [ref=e701]
+            - cell "1478.20" [ref=e702]
+          - row [ref=e703]:
+            - cell [ref=e704]:
+              - button "Expandir \"Opciones\"" [ref=e705] [cursor=pointer]:
+                - generic [ref=e706]:
+                  - img [ref=e707]: menu
+                  - generic [ref=e708]: Opciones
+                  - generic [ref=e709]: arrow_drop_down
+            - cell [ref=e710]:
+              - status [ref=e711]: "#200684"
+            - cell "2026-08-14 15:44:02" [ref=e712]
+            - cell "NANCY MAMANI AGOSTOPA" [ref=e713]
+            - cell "PROVINCIA" [ref=e714]
+            - cell "CRISTIAN LOPEZ" [ref=e715]
+            - cell "NORMAL" [ref=e716]
+            - cell [ref=e717]:
+              - status [ref=e718]: ENVIADO
+            - cell "1" [ref=e719]
+            - cell "266.00" [ref=e720]
+          - row [ref=e721]:
+            - cell [ref=e722]:
+              - button "Expandir \"Opciones\"" [ref=e723] [cursor=pointer]:
+                - generic [ref=e724]:
+                  - img [ref=e725]: menu
+                  - generic [ref=e726]: Opciones
+                  - generic [ref=e727]: arrow_drop_down
+            - cell [ref=e728]:
+              - status [ref=e729]: "#200683"
+            - cell "2026-08-14 15:42:35" [ref=e730]
+            - cell "NANCY MAMANI AGOSTOPA" [ref=e731]
+            - cell "PROVINCIA" [ref=e732]
+            - cell "CRISTIAN LOPEZ" [ref=e733]
+            - cell "NORMAL" [ref=e734]
+            - cell [ref=e735]:
+              - status [ref=e736]: ENVIADO
+            - cell "1" [ref=e737]
+            - cell "76.00" [ref=e738]
+          - row [ref=e739]:
+            - cell [ref=e740]:
+              - button "Expandir \"Opciones\"" [ref=e741] [cursor=pointer]:
+                - generic [ref=e742]:
+                  - img [ref=e743]: menu
+                  - generic [ref=e744]: Opciones
+                  - generic [ref=e745]: arrow_drop_down
+            - cell [ref=e746]:
+              - status [ref=e747]: "#200658"
+            - cell "2026-08-14 15:42:29" [ref=e748]
+            - cell "DELIA SOTO MAMANI" [ref=e749]
+            - cell "CHALLAPATA" [ref=e750]
+            - cell "CRISTIAN LOPEZ" [ref=e751]
+            - cell "NORMAL" [ref=e752]
+            - cell [ref=e753]:
+              - status [ref=e754]: ENVIADO
+            - cell "1" [ref=e755]
+            - cell "31.50" [ref=e756]
+      - generic [ref=e390]:
+        - generic [ref=e757]:
+          - generic [ref=e758]: "Filas por página:"
+          - generic [ref=e761] [cursor=pointer]:
+            - generic [ref=e763]:
+              - generic [ref=e764]: "20"
+              - combobox "20" [ref=e765]
+            - generic [ref=e766]: arrow_drop_down
+        - generic [ref=e768]:
+          - generic [ref=e769]: 1-20 de 56
+          - button "Primera página" [disabled] [ref=e770]:
+            - img [ref=e772]: first_page
+          - button "Página anterior" [disabled] [ref=e773]:
+            - img [ref=e775]: chevron_left
+          - button "Próxima página" [ref=e776] [cursor=pointer]:
+            - img [ref=e778]: chevron_right
+          - button "Última página" [ref=e779] [cursor=pointer]:
+            - img [ref=e781]: last_page

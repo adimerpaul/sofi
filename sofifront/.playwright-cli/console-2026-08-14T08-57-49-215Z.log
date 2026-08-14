@@ -1,0 +1,2 @@
+[     837ms] [WARNING] Module "stream" has been externalized for browser compatibility. Cannot access "stream.Readable" in client code. See https://vite.dev/guide/troubleshooting.html#module-externalized-for-browser-compatibility for more details. @ http://localhost:8080/node_modules/.q-cache/dev-spa/vite-spa/deps/json-as-xlsx.js?v=44a3e26e:3349
+[     842ms] [INFO] [Quasar] Running SPA. @ http://localhost:8080/.quasar/dev-spa/client-entry.js?t=1786697860095:48

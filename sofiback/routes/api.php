@@ -69,6 +69,10 @@ Route::group(['middleware'=>'auth:sanctum'],function (){
     Route::get('/ventas/resumen',[\App\Http\Controllers\VentaController::class,'resumen']);
     Route::get('/ventas/filtros',[\App\Http\Controllers\VentaController::class,'filtros']);
     Route::get('/ventas/{nroped}/detalle',[\App\Http\Controllers\VentaController::class,'detalle']);
+    Route::get('/ventas/{nroped}/factura',[\App\Http\Controllers\FacturaFiscalController::class,'pdfVenta']);
+    Route::get('/facturas',[\App\Http\Controllers\FacturaFiscalController::class,'index']);
+    Route::get('/facturas/resumen',[\App\Http\Controllers\FacturaFiscalController::class,'resumen']);
+    Route::get('/facturas/{codAut}/pdf',[\App\Http\Controllers\FacturaFiscalController::class,'pdf']);
     Route::post('/cxcobrar/{ci}',[\App\Http\Controllers\CobrarController::class,'cxcobrar']);
     Route::post('/insertcobro',[\App\Http\Controllers\CobrarController::class,'insertcobro']);
     Route::post('/miscobros',[\App\Http\Controllers\CobrarController::class,'miscobros']);
