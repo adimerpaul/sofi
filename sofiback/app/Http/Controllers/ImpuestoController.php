@@ -2,34 +2,35 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Factura;
 use App\Models\SiatConfiguracion;
 use App\Models\SiatCufd;
 use App\Models\SiatCui;
+use App\Models\SiatMotivoAnulacion;
+use App\Services\SiatService;
 use Illuminate\Http\Request;
 
 /**
- * Modulo de Impuestos: datos del emisor ante el SIAT y obtencion de CUIS/CUFD.
+ * Modulo de Impuestos: datos del emisor ante el SIAT, codigos CUIS/CUFD y
+ * control de lo que se envio a facturar.
  *
  * Todo sale de la base (tabla siat_configuraciones), no del .env: el token
  * delegado caduca cada tanto y quien lo renueva en la oficina de Impuestos no
- * es quien despliega el servidor. La pantalla /impuestos permite pegarlo y
- * volver a pedir los codigos sin tocar archivos.
+ * es quien despliega el servidor.
  *
+ * El protocolo con el SIAT vive en SiatService; aca solo queda lo de HTTP.
  * Los tres codigos van encadenados:
+ *
  *   CUIS -> dura ~1 anio, uno por sucursal y punto de venta.
  *   CUFD -> dura 24 horas, se pide con el CUIS.
  *   CUF  -> por factura, se calcula con el codigo de control del CUFD.
- *
- * De ahi que generarCufd() exija un CUIS vigente: sin el, el SIAT rechaza.
  */
 class ImpuestoController extends Controller
 {
     /** Estado completo para la pantalla: datos, faltantes y codigos vigentes. */
     public function configuracion()
     {
-        $config = SiatConfiguracion::activa();
-
-        return response()->json($this->estado($config));
+        return response()->json($this->estado(SiatConfiguracion::activa()));
     }
 
     /** Guarda los datos de Impuestos, el token incluido. */
@@ -68,28 +69,22 @@ class ImpuestoController extends Controller
         ] + $this->estado($config->fresh()));
     }
 
-    /**
-     * Prueba que el token y la URL sirvan, sin generar nada.
-     *
-     * Se usa verificarComunicacion porque es la operacion mas barata del SIAT:
-     * si responde, el token es valido y la URL del ambiente es la correcta.
-     */
+    /** Prueba que el token y la URL sirvan, sin generar nada. */
     public function probar()
     {
-        $config = SiatConfiguracion::activa();
+        $siat = new SiatService();
 
-        if ($faltan = $config->faltantes()) {
+        if ($faltan = $siat->configuracion()->faltantes()) {
             return response()->json([
                 'message' => 'Falta ' . implode(', ', $faltan) . ' para poder conectarse',
             ], 422);
         }
 
         try {
-            $client = $this->soap($config, 'FacturacionSincronizacion');
-            $respuesta = $client->verificarComunicacion();
+            $respuesta = $siat->probarConexion();
         } catch (\Throwable $e) {
             return response()->json([
-                'message' => 'No se pudo conectar al SIAT: ' . $this->mensajeError($e),
+                'message' => 'No se pudo conectar al SIAT: ' . $siat->mensajeError($e),
             ], 422);
         }
 
@@ -107,7 +102,7 @@ class ImpuestoController extends Controller
         return response()->json(
             SiatCui::where('codigo_ambiente', $config->codigo_ambiente)
                 ->orderByDesc('id')
-                ->limit(min(max((int) $request->input('limite', 50), 1), 200))
+                ->limit($this->limite($request))
                 ->get()
         );
     }
@@ -121,7 +116,8 @@ class ImpuestoController extends Controller
      */
     public function generarCuis(Request $request)
     {
-        $config = SiatConfiguracion::activa();
+        $siat = new SiatService();
+        $config = $siat->configuracion();
 
         if ($faltan = $config->faltantes()) {
             return response()->json([
@@ -141,40 +137,10 @@ class ImpuestoController extends Controller
         }
 
         try {
-            $client = $this->soap($config, 'FacturacionCodigos');
-            $resultado = $client->cuis([
-                'SolicitudCuis' => [
-                    'codigoAmbiente'   => $config->codigo_ambiente,
-                    'codigoModalidad'  => $config->codigo_modalidad,
-                    'codigoPuntoVenta' => $puntoVenta,
-                    'codigoSistema'    => $config->codigo_sistema,
-                    'codigoSucursal'   => $sucursal,
-                    'nit'              => $config->nit,
-                ],
-            ]);
+            $cuis = $siat->pedirCuis($sucursal, $puntoVenta, optional($request->user())->CodAut);
         } catch (\Throwable $e) {
-            return response()->json([
-                'message' => 'El SIAT no respondió: ' . $this->mensajeError($e),
-            ], 422);
+            return response()->json(['message' => $siat->mensajeError($e)], 422);
         }
-
-        $respuesta = isset($resultado->RespuestaCuis) ? $resultado->RespuestaCuis : null;
-
-        if (!$respuesta || empty($respuesta->codigo)) {
-            return response()->json([
-                'message' => $this->mensajesSiat($respuesta, 'El SIAT no devolvió un CUIS'),
-            ], 422);
-        }
-
-        $cuis = SiatCui::create([
-            'codigo'             => $respuesta->codigo,
-            'fecha_vigencia'     => $this->fecha(isset($respuesta->fechaVigencia) ? $respuesta->fechaVigencia : null),
-            'codigo_sucursal'    => $sucursal,
-            'codigo_punto_venta' => $puntoVenta,
-            'codigo_ambiente'    => $config->codigo_ambiente,
-            'user_id'            => optional($request->user())->CodAut,
-            'respuesta'          => json_encode($respuesta),
-        ]);
 
         return response()->json([
             'message' => 'CUIS ' . $cuis->codigo . ' generado',
@@ -190,7 +156,7 @@ class ImpuestoController extends Controller
         return response()->json(
             SiatCufd::where('codigo_ambiente', $config->codigo_ambiente)
                 ->orderByDesc('id')
-                ->limit(min(max((int) $request->input('limite', 50), 1), 200))
+                ->limit($this->limite($request))
                 ->get()
         );
     }
@@ -198,7 +164,8 @@ class ImpuestoController extends Controller
     /** Pide el CUFD del dia. Necesita un CUIS vigente del mismo punto de venta. */
     public function generarCufd(Request $request)
     {
-        $config = SiatConfiguracion::activa();
+        $siat = new SiatService();
+        $config = $siat->configuracion();
 
         if ($faltan = $config->faltantes()) {
             return response()->json([
@@ -209,13 +176,6 @@ class ImpuestoController extends Controller
         $sucursal = (int) $request->input('codigo_sucursal', $config->codigo_sucursal);
         $puntoVenta = (int) $request->input('codigo_punto_venta', $config->codigo_punto_venta);
 
-        $cuis = SiatCui::vigente($sucursal, $puntoVenta, $config->codigo_ambiente);
-        if (!$cuis) {
-            return response()->json([
-                'message' => 'No hay un CUIS vigente para esa sucursal y punto de venta; generalo primero',
-            ], 422);
-        }
-
         $vigente = SiatCufd::vigente($sucursal, $puntoVenta, $config->codigo_ambiente);
         if ($vigente && !$request->boolean('forzar')) {
             return response()->json([
@@ -225,44 +185,10 @@ class ImpuestoController extends Controller
         }
 
         try {
-            $client = $this->soap($config, 'FacturacionCodigos');
-            $resultado = $client->cufd([
-                'SolicitudCufd' => [
-                    'codigoAmbiente'   => $config->codigo_ambiente,
-                    'codigoModalidad'  => $config->codigo_modalidad,
-                    'codigoPuntoVenta' => $puntoVenta,
-                    'codigoSistema'    => $config->codigo_sistema,
-                    'codigoSucursal'   => $sucursal,
-                    'cuis'             => $cuis->codigo,
-                    'nit'              => $config->nit,
-                ],
-            ]);
+            $cufd = $siat->pedirCufd($sucursal, $puntoVenta, optional($request->user())->CodAut);
         } catch (\Throwable $e) {
-            return response()->json([
-                'message' => 'El SIAT no respondió: ' . $this->mensajeError($e),
-            ], 422);
+            return response()->json(['message' => $siat->mensajeError($e)], 422);
         }
-
-        $respuesta = isset($resultado->RespuestaCufd) ? $resultado->RespuestaCufd : null;
-
-        if (!$respuesta || empty($respuesta->codigo)) {
-            return response()->json([
-                'message' => $this->mensajesSiat($respuesta, 'El SIAT no devolvió un CUFD'),
-            ], 422);
-        }
-
-        $cufd = SiatCufd::create([
-            'codigo'             => $respuesta->codigo,
-            'codigo_control'     => isset($respuesta->codigoControl) ? $respuesta->codigoControl : null,
-            'direccion'          => isset($respuesta->direccion) ? $respuesta->direccion : null,
-            'fecha_vigencia'     => $this->vigenciaCufd(isset($respuesta->fechaVigencia) ? $respuesta->fechaVigencia : null),
-            'codigo_sucursal'    => $sucursal,
-            'codigo_punto_venta' => $puntoVenta,
-            'codigo_ambiente'    => $config->codigo_ambiente,
-            'siat_cui_id'        => $cuis->id,
-            'user_id'            => optional($request->user())->CodAut,
-            'respuesta'          => json_encode($respuesta),
-        ]);
 
         return response()->json([
             'message' => 'CUFD generado, vigente hasta ' . $cufd->fecha_vigencia->format('d/m/Y H:i'),
@@ -302,6 +228,138 @@ class ImpuestoController extends Controller
         return response()->json(['message' => 'CUFD dado de baja']);
     }
 
+    /**
+     * Motivos de anulacion del catalogo del SIAT.
+     *
+     * Lo consume el dialogo de anulacion de la pantalla de facturacion: el
+     * codigo que se elija ahi es el `codigoMotivo` que se le manda a Impuestos.
+     */
+    public function motivosAnulacion()
+    {
+        return response()->json(SiatMotivoAnulacion::vigentes());
+    }
+
+    /** Vuelve a traer el catalogo del SIAT, por si publicaron uno nuevo. */
+    public function sincronizarMotivosAnulacion()
+    {
+        $siat = new SiatService();
+
+        try {
+            $motivos = $siat->sincronizarMotivosAnulacion();
+        } catch (\Throwable $e) {
+            return response()->json(['message' => $siat->mensajeError($e)], 422);
+        }
+
+        return response()->json([
+            'message' => 'Se sincronizaron ' . count($motivos) . ' motivos de anulación',
+            'motivos' => $motivos,
+        ]);
+    }
+
+    /* ------------------------------------------------------------------ */
+    /* Facturas enviadas al SIAT                                           */
+    /* ------------------------------------------------------------------ */
+
+    /**
+     * Lo que se mando a facturar, para revisar que haya salido bien.
+     *
+     * Solo las que llegaron a tener CUF o que fallaron en el intento: una
+     * venta con voucher no tiene nada que ver con Impuestos.
+     */
+    public function facturas(Request $request)
+    {
+        $query = Factura::query()
+            ->where('tipo_comprobante', 'FACTURA')
+            ->where(function ($w) {
+                $w->whereNotNull('cuf')->orWhereNotNull('estado_siat');
+            })
+            ->orderByDesc('id');
+
+        if ($desde = $request->input('desde')) {
+            $query->whereDate('fecha', '>=', $desde);
+        }
+        if ($hasta = $request->input('hasta')) {
+            $query->whereDate('fecha', '<=', $hasta);
+        }
+        if ($estado = $request->input('estado_siat')) {
+            $query->where('estado_siat', $estado);
+        }
+
+        return response()->json(
+            $query->limit($this->limite($request))->get([
+                'id', 'fecha', 'hora', 'nro_factura', 'nit', 'nombre', 'total',
+                'estado', 'estado_siat', 'mensaje_siat', 'codigo_recepcion',
+                'cuf', 'codigo_sucursal', 'codigo_punto_venta', 'online',
+            ])
+        );
+    }
+
+    /**
+     * Le pregunta al SIAT en que quedo una factura. Es la comprobacion de que
+     * se facturo bien: el estado lo dice Impuestos, no nosotros.
+     */
+    public function verificarFactura($id)
+    {
+        $factura = Factura::find($id);
+        if (!$factura) {
+            return response()->json(['message' => 'La factura no existe'], 404);
+        }
+
+        $siat = new SiatService();
+
+        try {
+            $resultado = $siat->verificarFactura($factura);
+        } catch (\Throwable $e) {
+            return response()->json(['message' => $siat->mensajeError($e)], 422);
+        }
+
+        return response()->json([
+            'message' => 'El SIAT la reporta como ' . ($resultado['estado'] ?: 'sin estado')
+                . ($resultado['mensaje'] ? ': ' . $resultado['mensaje'] : ''),
+            'estado'  => $resultado['estado'],
+            'factura' => $factura->fresh(),
+        ]);
+    }
+
+    /**
+     * Reintenta el envio de una factura que quedo en ERROR.
+     *
+     * Se vuelve a calcular todo (numero, CUF y CUFD del dia) porque el CUF
+     * lleva dentro la fecha y hora: reusar el anterior seria mandar un codigo
+     * que ya no corresponde.
+     */
+    public function reenviarFactura(Request $request, $id)
+    {
+        $factura = Factura::with('detalles')->find($id);
+        if (!$factura) {
+            return response()->json(['message' => 'La factura no existe'], 404);
+        }
+
+        if ($factura->tipo_comprobante !== 'FACTURA') {
+            return response()->json(['message' => 'Esa venta se entregó como voucher'], 422);
+        }
+
+        if ($factura->online && $factura->estado_siat === 'VALIDADA') {
+            return response()->json([
+                'message' => 'La factura ya está validada en el SIAT; no hace falta reenviarla',
+            ], 422);
+        }
+
+        $factura = (new SiatService())->emitirFactura($factura, optional($request->user())->CodAut);
+
+        if ($factura->estado_siat === 'ERROR') {
+            return response()->json([
+                'message' => 'No se pudo enviar: ' . $factura->mensaje_siat,
+                'factura' => $factura,
+            ], 422);
+        }
+
+        return response()->json([
+            'message' => 'Factura ' . $factura->nro_factura . ' enviada al SIAT (' . $factura->estado_siat . ')',
+            'factura' => $factura,
+        ]);
+    }
+
     /* ------------------------------------------------------------------ */
 
     /** Lo que consume la pantalla: datos + que codigos estan vigentes hoy. */
@@ -325,103 +383,21 @@ class ImpuestoController extends Controller
                 'token'              => $config->token,
                 'token_expira'       => optional($config->token_expira)->format('Y-m-d H:i:s'),
             ],
-            'ambiente'       => 'PRODUCCIÓN',
-            'modalidad'      => $config->modalidadNombre(),
-            'url_base'       => $config->urlBase(),
+            'ambiente'      => 'PRODUCCIÓN',
+            'modalidad'     => $config->modalidadNombre(),
+            'url_base'      => $config->urlBase(),
             // La que termina impresa en el QR de la factura.
-            'url_qr'         => rtrim((string) $config->url_siat2, '/') . '/consulta/QR',
-            'faltantes'      => $config->faltantes(),
-            'token_vencido'  => $config->tokenVencido(),
-            'soap'           => class_exists('SoapClient'),
-            'cuis'           => $cuis,
-            'cufd'           => $cufd,
+            'url_qr'        => rtrim((string) $config->url_siat2, '/') . '/consulta/QR',
+            'faltantes'     => $config->faltantes(),
+            'token_vencido' => $config->tokenVencido(),
+            'soap'          => class_exists('SoapClient'),
+            'cuis'          => $cuis,
+            'cufd'          => $cufd,
         ];
     }
 
-    /** Cliente SOAP del SIAT, con el token delegado en la cabecera apikey. */
-    private function soap(SiatConfiguracion $config, $servicio)
+    private function limite(Request $request)
     {
-        if (!class_exists('SoapClient')) {
-            throw new \RuntimeException('la extensión SOAP de PHP no está habilitada en el servidor');
-        }
-
-        return new \SoapClient($config->wsdl($servicio), [
-            'stream_context' => stream_context_create([
-                'http' => [
-                    'header' => 'apikey: TokenApi ' . trim((string) $config->token),
-                ],
-            ]),
-            'cache_wsdl'  => WSDL_CACHE_NONE,
-            'compression' => SOAP_COMPRESSION_ACCEPT | SOAP_COMPRESSION_GZIP | SOAP_COMPRESSION_DEFLATE,
-            'trace'       => 1,
-            'use'         => SOAP_LITERAL,
-            'style'       => SOAP_DOCUMENT,
-        ]);
+        return min(max((int) $request->input('limite', 50), 1), 200);
     }
-
-    /**
-     * El SIAT no usa codigos HTTP para los errores de negocio: responde 200 con
-     * un mensajesList adentro. Sin esto el usuario solo veria "sin CUIS".
-     */
-    private function mensajesSiat($respuesta, $porDefecto)
-    {
-        $mensajes = isset($respuesta->mensajesList) ? $respuesta->mensajesList : null;
-
-        if (!$mensajes) {
-            return $porDefecto;
-        }
-
-        // Con un solo mensaje SoapClient devuelve el objeto suelto, no un array.
-        if (!is_array($mensajes)) {
-            $mensajes = [$mensajes];
-        }
-
-        $textos = [];
-        foreach ($mensajes as $mensaje) {
-            $codigo = isset($mensaje->codigo) ? $mensaje->codigo : '';
-            $descripcion = isset($mensaje->descripcion) ? $mensaje->descripcion : '';
-            $textos[] = trim($codigo . ' ' . $descripcion);
-        }
-
-        $texto = implode(' | ', array_filter($textos));
-
-        return $texto !== '' ? $texto : $porDefecto;
-    }
-
-    private function mensajeError(\Throwable $e)
-    {
-        $mensaje = trim($e->getMessage());
-
-        // Un token vencido llega como 401 dentro del texto del SoapFault y no
-        // se entiende; se traduce para no mandar al usuario a leer logs.
-        if (strpos($mensaje, '401') !== false || stripos($mensaje, 'unauthorized') !== false) {
-            return 'el token delegado no es válido o está vencido (' . $mensaje . ')';
-        }
-
-        return $mensaje !== '' ? $mensaje : get_class($e);
-    }
-
-    private function fecha($valor)
-    {
-        if (!$valor) {
-            return null;
-        }
-
-        $tiempo = strtotime($valor);
-
-        return $tiempo ? date('Y-m-d H:i:s', $tiempo) : null;
-    }
-
-    /**
-     * El CUFD no pasa de la medianoche aunque el SIAT devuelva otra cosa: es
-     * diario. Se toma la menor de las dos para no darlo por bueno de mas.
-     */
-    private function vigenciaCufd($valor)
-    {
-        $finDelDia = strtotime(date('Y-m-d 23:59:59'));
-        $delSiat = $valor ? strtotime($valor) : false;
-
-        return date('Y-m-d H:i:s', $delSiat ? min($delSiat, $finDelDia) : $finDelDia);
-    }
-
 }

@@ -113,6 +113,7 @@
         <q-tab name="datos" icon="settings" label="Datos de Impuestos"/>
         <q-tab name="cuis" icon="vpn_key" label="CUIS"/>
         <q-tab name="cufd" icon="event_available" label="CUFD"/>
+        <q-tab name="facturas" icon="receipt_long" label="Facturas enviadas"/>
       </q-tabs>
       <q-separator/>
 
@@ -314,6 +315,89 @@
             </tbody>
           </q-markup-table>
         </q-tab-panel>
+
+        <!-- --------------------------------------------- Facturas --- -->
+        <q-tab-panel name="facturas">
+          <div class="row items-center q-col-gutter-sm q-mb-sm">
+            <div class="col-6 col-md-2">
+              <q-input v-model="filtroFacturas.desde" type="date" dense outlined label="Desde"/>
+            </div>
+            <div class="col-6 col-md-2">
+              <q-input v-model="filtroFacturas.hasta" type="date" dense outlined label="Hasta"/>
+            </div>
+            <div class="col-6 col-md-2">
+              <q-select
+                v-model="filtroFacturas.estado_siat" dense outlined clearable label="Estado SIAT"
+                :options="['VALIDADA', 'PENDIENTE', 'RECHAZADA', 'OBSERVADA', 'ERROR']"
+              />
+            </div>
+            <div class="col-auto">
+              <q-btn color="primary" dense unelevated no-caps icon="search" label="Buscar"
+                     :loading="cargandoFacturas" @click="cargarFacturas"/>
+            </div>
+            <div class="col text-caption text-grey-7">
+              Lo que se mandó a Impuestos desde el sistema. «Verificar» le pregunta al SIAT
+              en qué quedó cada una.
+            </div>
+          </div>
+
+          <q-markup-table flat bordered dense wrap-cells>
+            <thead>
+            <tr class="bg-grey-2">
+              <th class="text-left">Opciones</th>
+              <th class="text-left">Nº factura</th>
+              <th class="text-left">Fecha</th>
+              <th class="text-left">Cliente</th>
+              <th class="text-right">Total Bs.</th>
+              <th class="text-center">Estado SIAT</th>
+              <th class="text-left">Cód. recepción</th>
+              <th class="text-left">CUF</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr v-for="f in listaFacturas" :key="f.id">
+              <td style="white-space: nowrap">
+                <q-btn dense flat round size="sm" icon="fact_check" color="primary"
+                       :loading="verificando === f.id" @click="verificarFactura(f)">
+                  <q-tooltip>Preguntar al SIAT</q-tooltip>
+                </q-btn>
+                <q-btn dense flat round size="sm" icon="print" color="grey-8" @click="imprimirFactura(f)">
+                  <q-tooltip>Imprimir la factura</q-tooltip>
+                </q-btn>
+                <q-btn
+                  v-if="puedeGenerar && f.estado_siat === 'ERROR'"
+                  dense flat round size="sm" icon="send" color="negative"
+                  :loading="reenviando === f.id" @click="reenviarFactura(f)"
+                >
+                  <q-tooltip>Reintentar el envío</q-tooltip>
+                </q-btn>
+              </td>
+              <td class="text-weight-medium">{{ f.nro_factura || '—' }}</td>
+              <td>{{ String(f.fecha || '').substr(0, 10) }} {{ f.hora }}</td>
+              <td>
+                {{ f.nombre || 'Sin cliente' }}
+                <div class="text-caption text-grey-7">NIT {{ f.nit || '—' }}</div>
+              </td>
+              <td class="text-right">{{ Number(f.total || 0).toFixed(2) }}</td>
+              <td class="text-center">
+                <q-badge :color="colorEstadoSiat(f.estado_siat)" text-color="white">
+                  {{ f.estado_siat || 'SIN ENVIAR' }}
+                </q-badge>
+                <div v-if="f.mensaje_siat" class="text-caption text-grey-7" style="max-width: 260px">
+                  {{ f.mensaje_siat }}
+                </div>
+              </td>
+              <td>{{ f.codigo_recepcion || '—' }}</td>
+              <td style="max-width: 200px; word-break: break-all; font-size: 11px">{{ f.cuf || '—' }}</td>
+            </tr>
+            <tr v-if="!listaFacturas.length">
+              <td colspan="8" class="text-center text-grey-7 q-pa-md">
+                No hay facturas enviadas en ese rango
+              </td>
+            </tr>
+            </tbody>
+          </q-markup-table>
+        </q-tab-panel>
       </q-tab-panels>
     </q-card>
 
@@ -392,6 +476,11 @@ export default {
       form: { ...estadoVacio().configuracion },
       listaCuis: [],
       listaCufd: [],
+      listaFacturas: [],
+      filtroFacturas: { desde: '', hasta: '', estado_siat: null },
+      cargandoFacturas: false,
+      verificando: null,
+      reenviando: null,
       verToken: true,
       cargando: false,
       guardando: false,
@@ -486,6 +575,64 @@ export default {
       this.cargarConfiguracion()
       this.cargarCuis()
       this.cargarCufd()
+      this.cargarFacturas()
+    },
+
+    cargarFacturas () {
+      this.cargandoFacturas = true
+
+      this.$api.get('impuestos/facturas', {
+        params: {
+          desde: this.filtroFacturas.desde || '',
+          hasta: this.filtroFacturas.hasta || '',
+          estado_siat: this.filtroFacturas.estado_siat || ''
+        }
+      })
+        .then(res => { this.listaFacturas = res.data })
+        .catch(err => { this.avisar(err, 'No se pudieron cargar las facturas enviadas') })
+        .finally(() => { this.cargandoFacturas = false })
+    },
+
+    colorEstadoSiat (estado) {
+      if (estado === 'VALIDADA') return 'positive'
+      if (estado === 'PENDIENTE' || estado === 'RECIBIDA') return 'blue-7'
+      if (!estado) return 'grey-6'
+      return 'negative'
+    },
+
+    // El estado real lo dice Impuestos, no nosotros: esto vuelve a preguntar.
+    verificarFactura (fila) {
+      this.verificando = fila.id
+
+      this.$api.post('impuestos/facturas/' + fila.id + '/verificar')
+        .then(res => {
+          this.exito(res.data.message)
+          this.cargarFacturas()
+        })
+        .catch(err => { this.avisar(err, 'No se pudo verificar en el SIAT') })
+        .finally(() => { this.verificando = null })
+    },
+
+    reenviarFactura (fila) {
+      this.reenviando = fila.id
+
+      this.$api.post('impuestos/facturas/' + fila.id + '/reenviar')
+        .then(res => {
+          this.exito(res.data.message)
+          this.cargarFacturas()
+        })
+        .catch(err => { this.avisar(err, 'No se pudo reenviar') })
+        .finally(() => { this.reenviando = null })
+    },
+
+    /** Abre el mismo PDF que imprime la pantalla de facturación. */
+    imprimirFactura (fila) {
+      this.$api.get('facturacion/' + fila.id + '/factura', { responseType: 'blob' })
+        .then(res => {
+          const url = window.URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }))
+          window.open(url, '_blank')
+        })
+        .catch(err => { this.avisar(err, 'No se pudo abrir la factura') })
     },
 
     cargarConfiguracion () {

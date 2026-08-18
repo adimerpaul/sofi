@@ -588,12 +588,18 @@ export default {
           precio: Number(i.precio)
         }))
       }).then(res => {
+        // La venta se guardó igual; lo que puede haber fallado es el envío a
+        // Impuestos, y eso hay que verlo, no que pase como un aviso verde.
+        const falloSiat = res.data.siat && res.data.siat.estado === 'ERROR'
+
         this.$q.notify({
           message: res.data.message,
-          color: 'positive',
-          icon: 'check_circle',
+          color: falloSiat ? 'warning' : 'positive',
+          icon: falloSiat ? 'report_problem' : 'check_circle',
           position: 'top',
-          timeout: 5000
+          timeout: falloSiat ? 15000 : 5000,
+          multiLine: falloSiat,
+          actions: falloSiat ? [{ label: 'Cerrar', color: 'white' }] : []
         })
 
         this.imprimirDocumentos(res.data.factura.id, res.data.factura.tipo_comprobante)

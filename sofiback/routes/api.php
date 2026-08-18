@@ -82,6 +82,7 @@ Route::group(['middleware'=>'auth:sanctum'],function (){
     Route::get('/facturacion/clientes',[\App\Http\Controllers\FacturacionController::class,'clientes']);
     Route::get('/facturacion/{factura}/voucher',[\App\Http\Controllers\FacturacionController::class,'voucher']);
     Route::get('/facturacion/{factura}/factura',[\App\Http\Controllers\FacturacionController::class,'factura']);
+    Route::get('/facturacion/{factura}/url-impuestos',[\App\Http\Controllers\FacturacionController::class,'urlImpuestos']);
     Route::get('/facturacion/{factura}',[\App\Http\Controllers\FacturacionController::class,'show']);
     Route::post('/facturacion',[\App\Http\Controllers\FacturacionController::class,'store']);
     Route::put('/facturacion/{factura}/anular',[\App\Http\Controllers\FacturacionController::class,'anular']);
@@ -104,6 +105,13 @@ Route::group(['middleware'=>'auth:sanctum'],function (){
     Route::get('/impuestos/cufd',[\App\Http\Controllers\ImpuestoController::class,'cufds']);
     Route::post('/impuestos/cufd',[\App\Http\Controllers\ImpuestoController::class,'generarCufd']);
     Route::delete('/impuestos/cufd/{id}',[\App\Http\Controllers\ImpuestoController::class,'eliminarCufd']);
+    // Catalogo de motivos de anulacion; lo usa el dialogo de facturacion.
+    Route::get('/impuestos/motivos-anulacion',[\App\Http\Controllers\ImpuestoController::class,'motivosAnulacion']);
+    Route::post('/impuestos/motivos-anulacion/sincronizar',[\App\Http\Controllers\ImpuestoController::class,'sincronizarMotivosAnulacion']);
+    // Control de lo enviado a facturar: estado en el SIAT y reenvio.
+    Route::get('/impuestos/facturas',[\App\Http\Controllers\ImpuestoController::class,'facturas']);
+    Route::post('/impuestos/facturas/{id}/verificar',[\App\Http\Controllers\ImpuestoController::class,'verificarFactura']);
+    Route::post('/impuestos/facturas/{id}/reenviar',[\App\Http\Controllers\ImpuestoController::class,'reenviarFactura']);
 
     // Administracion de proveedores (tbproveedor).
     Route::get('/proveedores',[\App\Http\Controllers\ProveedorController::class,'index']);
@@ -235,7 +243,6 @@ Route::post('/exportar-pedidos', [MobilController::class, 'exportarPedidosFlutte
 Route::post('/reporteTotalProductos', [MobilController::class, 'reporteTotalProductos']);
 
 Route::get('/pedidos-simple', [\App\Http\Controllers\MobilController::class, 'pedidosSimple']);
-
 
 
 

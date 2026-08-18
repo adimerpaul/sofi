@@ -128,13 +128,29 @@
                 </q-item-section>
               </q-item>
 
-              <template v-if="can('facturacionAnular') && props.row.estado !== 'ANULADO'">
+              <q-item
+                clickable v-close-popup
+                :disable="props.row.tipo_comprobante !== 'FACTURA' || !props.row.cuf"
+                @click="abrirEnImpuestos(props.row)"
+              >
+                <q-item-section avatar><q-icon name="account_balance" color="deep-orange-7"/></q-item-section>
+                <q-item-section>
+                  Imprimir de Impuestos
+                  <q-item-label v-if="!props.row.cuf" caption>
+                    La factura todavía no tiene CUF
+                  </q-item-label>
+                </q-item-section>
+              </q-item>
+
+              <template v-if="can('facturacionAnular') && puedeAnular(props.row)">
                 <q-separator/>
                 <q-item clickable v-close-popup @click="pedirAnulacion(props.row)">
                   <q-item-section avatar><q-icon name="block" color="negative"/></q-item-section>
                   <q-item-section>
-                    Anular
-                    <q-item-label caption>Devuelve el stock</q-item-label>
+                    {{ props.row.estado === 'ANULADO' ? 'Anular en Impuestos' : 'Anular' }}
+                    <q-item-label caption>
+                      {{ props.row.estado === 'ANULADO' ? 'Completa la anulación pendiente en el SIAT' : 'Anula en el SIAT y devuelve el stock' }}
+                    </q-item-label>
                   </q-item-section>
                 </q-item>
               </template>
@@ -210,19 +226,29 @@
     <q-dialog v-model="dialogAnular">
       <q-card style="min-width: 340px">
         <q-card-section class="q-py-sm">
-          <div class="text-subtitle1 text-weight-bold">Anular #{{ sel.id }}</div>
+          <div class="text-subtitle1 text-weight-bold">
+            {{ sel.estado === 'ANULADO' ? 'Anular en Impuestos' : 'Anular' }} #{{ sel.id }}
+          </div>
           <div class="text-caption text-grey-7">
-            No se borra: queda registrada como anulada.
+            {{ sel.estado === 'ANULADO'
+              ? 'La anulación local ya existe; ahora se enviará al SIAT sin volver a mover el stock.'
+              : 'Se anulará en el SIAT y quedará registrada como anulada en Sofia.' }}
           </div>
         </q-card-section>
         <q-card-section class="q-pt-none">
-          <q-input v-model.trim="motivo" outlined dense autofocus autogrow label="Motivo"/>
+          <div class="text-subtitle2 q-mb-sm">Tipo de anulación</div>
+          <q-option-group
+            v-model="codigoMotivoAnulacion"
+            :options="motivosAnulacion"
+            type="radio"
+            color="negative"
+          />
         </q-card-section>
         <q-card-actions align="right" class="q-pa-sm">
           <q-btn flat dense no-caps label="Cancelar" v-close-popup/>
           <q-btn
             color="negative" dense unelevated no-caps label="Anular"
-            :disable="!motivo" :loading="anulando" @click="anular"
+            :disable="!codigoMotivoAnulacion" :loading="anulando" @click="anular"
           />
         </q-card-actions>
       </q-card>
@@ -246,7 +272,13 @@ export default {
       sel: {},
       dialogDetalle: false,
       dialogAnular: false,
-      motivo: '',
+      codigoMotivoAnulacion: null,
+      motivosAnulacion: [
+        { label: '1 - Factura mal emitida', value: 1 },
+        { label: '2 - Datos de emisión incorrectos', value: 2 },
+        { label: '3 - Factura o nota devuelta', value: 3 },
+        { label: '4 - Sustitución de factura emitida en contingencia', value: 4 }
+      ],
       anulando: false,
       imprimiendo: null,
       loading: false,
@@ -276,6 +308,12 @@ export default {
   methods: {
     money (v) {
       return Number(v || 0).toFixed(2)
+    },
+    puedeAnular (row) {
+      if (row.estado !== 'ANULADO') return true
+
+      const estadoSiat = String(row.estado_siat || '').toUpperCase()
+      return row.tipo_comprobante === 'FACTURA' && !!row.cuf && !estadoSiat.includes('ANUL')
     },
     limpiar () {
       this.filtros = filtrosPorDefecto()
@@ -325,6 +363,24 @@ export default {
         .finally(() => { this.imprimiendo = null })
     },
 
+    /** Abre la consulta publica del SIAT usando el CUF de esta factura. */
+    abrirEnImpuestos (row) {
+      const ventana = window.open('', '_blank')
+
+      this.$api.get('facturacion/' + row.id + '/url-impuestos')
+        .then(res => {
+          if (ventana) {
+            ventana.location.href = res.data.url
+          } else {
+            window.location.href = res.data.url
+          }
+        })
+        .catch(err => {
+          if (ventana) ventana.close()
+          this.avisar(err, 'No se pudo abrir la factura en Impuestos')
+        })
+    },
+
     /**
      * Manda el PDF directo a la impresora: se carga en un iframe oculto y se
      * dispara su diálogo de impresión, sin pasar por una pestaña.
@@ -370,13 +426,15 @@ export default {
 
     pedirAnulacion (row) {
       this.sel = row
-      this.motivo = ''
+      this.codigoMotivoAnulacion = null
       this.dialogAnular = true
     },
     anular () {
       this.anulando = true
 
-      this.$api.put('facturacion/' + this.sel.id + '/anular', { motivo: this.motivo })
+      this.$api.put('facturacion/' + this.sel.id + '/anular', {
+        codigo_motivo: this.codigoMotivoAnulacion
+      })
         .then(res => {
           this.$q.notify({
             message: res.data.message,

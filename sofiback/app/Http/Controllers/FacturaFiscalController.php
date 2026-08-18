@@ -66,7 +66,7 @@ class FacturaFiscalController extends Controller
         $logo = base64_encode(file_get_contents(public_path('img/sofia.png')));
 
         $autoriza = $fact->cuffac;
-        $png = base64_encode($this->qrPng($this->urlSiat($autoriza, $fact->nrofac)));
+        $png = base64_encode(self::qrPng(self::urlSiat($autoriza, $fact->nrofac)));
 
         $cadena = "<style>
         .imagen{
@@ -188,7 +188,7 @@ class FacturaFiscalController extends Controller
      * imagick; aca solo hay gd, asi que se toma la matriz de bacon/bacon-qr-code
      * y se pinta a mano. El contenido codificado es identico.
      */
-    private function qrPng($texto, $objetivo = 250, $margen = 4)
+    public static function qrPng($texto, $objetivo = 250, $margen = 4)
     {
         $matriz = Encoder::encode(
             $texto,

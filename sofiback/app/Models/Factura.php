@@ -35,13 +35,24 @@ class Factura extends Model
         'total',
         'observacion',
         'nro_factura',
+        'codigo_sucursal',
+        'codigo_punto_venta',
         'cuf',
         'cufd',
+        'codigo_control',
+        'codigo_recepcion',
+        'estado_siat',
+        'mensaje_siat',
+        'fecha_emision',
+        'xml',
         'leyenda',
         'online',
         'motivo_anulacion',
         'anulado_at',
     ];
+
+    /** El XML enviado al SIAT pesa varios KB y no lo usa ninguna pantalla. */
+    protected $hidden = ['xml'];
 
     protected $casts = [
         'fecha'      => 'date',
