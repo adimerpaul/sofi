@@ -43,4 +43,14 @@ return [
     // nunca en el repo. Desde aqui se copia una vez a la base de datos.
     'token' => env('SIAT_TOKEN', ''),
 
+    // Cabecera que se imprime en vouchers y facturas. Estaba repetida dentro
+    // del HTML de FacturaFiscalController; aca se cambia en un solo sitio.
+    'emisor' => [
+        'nombre'    => env('EMISOR_NOMBRE', 'ALMACEN SOFIA'),
+        'sucursal'  => env('EMISOR_SUCURSAL', 'SUCURSAL 1'),
+        'direccion' => env('EMISOR_DIRECCION', 'Prolongacion Campo Jordan esq Tacna Nro 28 ZONA Norte'),
+        'telefono'  => env('EMISOR_TELEFONO', '5230064'),
+        'ciudad'    => env('EMISOR_CIUDAD', 'ORURO'),
+    ],
+
 ];

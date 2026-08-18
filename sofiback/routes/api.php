@@ -80,6 +80,8 @@ Route::group(['middleware'=>'auth:sanctum'],function (){
     Route::get('/facturacion/catalogo',[\App\Http\Controllers\FacturacionController::class,'catalogo']);
     Route::get('/facturacion/categorias',[\App\Http\Controllers\FacturacionController::class,'categorias']);
     Route::get('/facturacion/clientes',[\App\Http\Controllers\FacturacionController::class,'clientes']);
+    Route::get('/facturacion/{factura}/voucher',[\App\Http\Controllers\FacturacionController::class,'voucher']);
+    Route::get('/facturacion/{factura}/factura',[\App\Http\Controllers\FacturacionController::class,'factura']);
     Route::get('/facturacion/{factura}',[\App\Http\Controllers\FacturacionController::class,'show']);
     Route::post('/facturacion',[\App\Http\Controllers\FacturacionController::class,'store']);
     Route::put('/facturacion/{factura}/anular',[\App\Http\Controllers\FacturacionController::class,'anular']);

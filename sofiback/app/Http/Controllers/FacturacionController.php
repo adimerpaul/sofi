@@ -4,7 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Models\Factura;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\DB;
+use Luecano\NumeroALetras\NumeroALetras;
 
 /**
  * Ventas y facturas hechas desde el sistema web.
@@ -20,6 +22,9 @@ use Illuminate\Support\Facades\DB;
  */
 class FacturacionController extends Controller
 {
+    /** Fecha centinela del legado para "sin valor". */
+    private const FECHA_NULA = '1899-11-30 04:32:36';
+
     /** Listado de lo emitido, con filtros de la pantalla. */
     public function index(Request $request)
     {
@@ -229,6 +234,10 @@ class FacturacionController extends Controller
         }
 
         $usuario = $request->user();
+        $ci = trim((string) ($usuario->ci ?? ''));
+        if ($ci === '') {
+            return response()->json(['message' => 'El usuario no tiene CI en personal'], 422);
+        }
 
         // Si mandan cliente, se copian sus datos y su vendedor: la factura no
         // debe cambiar si manana editan la ficha del cliente.
@@ -240,7 +249,7 @@ class FacturacionController extends Controller
             }
         }
 
-        $factura = DB::transaction(function () use ($datos, $productos, $usuario, $cliente, $tipo, $nit) {
+        $factura = DB::transaction(function () use ($datos, $productos, $usuario, $ci, $cliente, $tipo, $nit) {
             $subtotal = 0;
             $lineas = [];
 
@@ -285,12 +294,16 @@ class FacturacionController extends Controller
 
             $factura->detalles()->createMany($lineas);
 
+            // Lo vendido sale del inventario.
+            $this->moverStock($lineas, $factura->id, $ci, date('Y-m-d H:i:s'), 'SALIDA');
+
             return $factura;
         });
 
         return response()->json([
             'factura' => $factura->load('detalles'),
-            'message' => ($tipo === 'FACTURA' ? 'Factura' : 'Venta') . ' registrada con el número ' . $factura->id,
+            'message' => ($tipo === 'FACTURA' ? 'Factura' : 'Venta')
+                . ' registrada con el número ' . $factura->id . '; el stock ya fue descontado',
         ], 201);
     }
 
@@ -304,7 +317,7 @@ class FacturacionController extends Controller
             'motivo' => 'required|string|max:255',
         ]);
 
-        $factura = Factura::find($id);
+        $factura = Factura::with('detalles')->find($id);
         if (!$factura) {
             return response()->json(['message' => 'La factura no existe'], 404);
         }
@@ -313,12 +326,283 @@ class FacturacionController extends Controller
             return response()->json(['message' => 'La factura ya estaba anulada'], 422);
         }
 
-        $factura->update([
-            'estado'           => 'ANULADO',
-            'motivo_anulacion' => $datos['motivo'],
-            'anulado_at'       => now(),
-        ]);
+        $ci = trim((string) ($request->user()->ci ?? ''));
 
-        return response()->json(['message' => 'Factura anulada', 'factura' => $factura]);
+        DB::transaction(function () use ($factura, $datos, $ci) {
+            $lineas = $factura->detalles->map(function ($d) {
+                return ['cod_prod' => $d->cod_prod, 'cantidad' => (float) $d->cantidad, 'precio' => (float) $d->precio];
+            })->all();
+
+            // Lo que no se vendio vuelve al inventario.
+            $this->moverStock($lineas, $factura->id, $ci, date('Y-m-d H:i:s'), 'ANULACION');
+
+            $factura->update([
+                'estado'           => 'ANULADO',
+                'motivo_anulacion' => $datos['motivo'],
+                'anulado_at'       => now(),
+            ]);
+        });
+
+        return response()->json([
+            'message' => 'Anulada; el stock descontado fue devuelto',
+            'factura' => $factura->fresh(),
+        ]);
+    }
+
+    /**
+     * Voucher: el comprobante que se entrega siempre, en formato ticket.
+     */
+    public function voucher($id)
+    {
+        $factura = Factura::with(['detalles', 'cliente'])->find($id);
+        if (!$factura) {
+            return response()->json(['message' => 'La venta no existe'], 404);
+        }
+
+        $emisor = config('siat.emisor');
+
+        $filas = '';
+        foreach ($factura->detalles as $d) {
+            $cant = number_format($d->cantidad, $d->unidad === 'KG' ? 3 : 0);
+            $filas .= "<tr>
+                <td colspan='3' class='prod'>" . e($d->nombre) . "</td>
+            </tr><tr>
+                <td>$cant x " . number_format($d->precio, 2) . "</td>
+                <td class='c'>" . e($d->unidad) . "</td>
+                <td class='r'>" . number_format($d->subtotal, 2) . "</td>
+            </tr>";
+        }
+
+        $descuento = (float) $factura->descuento > 0
+            ? "<tr><td colspan='2'>Descuento</td><td class='r'>-" . number_format($factura->descuento, 2) . "</td></tr>"
+            : '';
+
+        $html = "<style>
+            @page { margin: 4mm; }
+            * { font-family: sans-serif; font-size: 9px; }
+            .c { text-align: center } .r { text-align: right }
+            .tit { font-size: 12px; font-weight: bold }
+            .prod { font-weight: bold; padding-top: 3px }
+            table { width: 100%; border-collapse: collapse }
+            .linea { border-top: 1px dashed #000; margin: 4px 0 }
+            .tot { font-size: 13px; font-weight: bold }
+        </style>
+        <div class='c'>
+            <div class='tit'>" . e($emisor['nombre']) . "</div>
+            <div>" . e($emisor['sucursal']) . "</div>
+            <div>NIT " . e(config('siat.nit')) . "</div>
+            <div>" . e($emisor['direccion']) . "</div>
+            <div>Telf. " . e($emisor['telefono']) . " &middot; " . e($emisor['ciudad']) . "</div>
+        </div>
+        <div class='linea'></div>
+        <div class='c tit'>COMPROBANTE DE VENTA</div>
+        <div class='c'>Nro " . $factura->id . "</div>
+        <div class='linea'></div>
+        <div>Fecha: " . $factura->fecha->format('d/m/Y') . " {$factura->hora}</div>
+        <div>Cliente: " . e($factura->nombre ?: 'Sin cliente') . "</div>
+        <div>NIT/CI: " . e($factura->nit ?: '-') . "</div>
+        <div>Pago: " . e($factura->tipo_pago) . "</div>
+        <div class='linea'></div>
+        <table>$filas</table>
+        <div class='linea'></div>
+        <table>
+            <tr><td colspan='2'>Subtotal</td><td class='r'>" . number_format($factura->subtotal, 2) . "</td></tr>
+            $descuento
+            <tr class='tot'><td colspan='2'>TOTAL Bs</td><td class='r'>" . number_format($factura->total, 2) . "</td></tr>
+        </table>
+        <div class='linea'></div>
+        <div>Son: " . e($this->enLetras($factura->total)) . " Bolivianos</div>
+        <div class='linea'></div>
+        <div class='c'>¡Gracias por su compra!</div>";
+
+        if ($factura->estado === 'ANULADO') {
+            $html .= "<div class='c tit' style='margin-top:6px'>*** ANULADO ***</div>";
+        }
+
+        $pdf = App::make('dompdf.wrapper');
+        // Ticket de 80mm; el alto se estira segun la cantidad de lineas.
+        $pdf->setPaper([0, 0, 226.77, 400 + count($factura->detalles) * 26]);
+        $pdf->loadHTML($html);
+
+        return $pdf->stream('voucher_' . $factura->id . '.pdf', ['Attachment' => false]);
+    }
+
+    /**
+     * Factura en formato carta.
+     *
+     * Mientras no se emita al SIAT desde aca la venta no tiene CUF ni numero
+     * de autorizacion, asi que el documento sale rotulado como sin valor
+     * fiscal. Hacerlo pasar por una factura fiscal sin serlo seria un problema
+     * para el cliente y para el negocio.
+     */
+    public function factura($id)
+    {
+        $factura = Factura::with(['detalles', 'cliente'])->find($id);
+        if (!$factura) {
+            return response()->json(['message' => 'La venta no existe'], 404);
+        }
+
+        if ($factura->tipo_comprobante !== 'FACTURA') {
+            return response()->json([
+                'message' => 'Esta venta se entregó como voucher, no tiene factura',
+            ], 422);
+        }
+
+        $emisor = config('siat.emisor');
+
+        $filas = '';
+        foreach ($factura->detalles as $d) {
+            $filas .= '<tr>'
+                . '<td>' . e($d->cod_prod) . '</td>'
+                . "<td class='r'>" . number_format($d->cantidad, $d->unidad === 'KG' ? 3 : 0) . '</td>'
+                . "<td class='c'>" . e($d->unidad) . '</td>'
+                . '<td>' . e($d->nombre) . '</td>'
+                . "<td class='r'>" . number_format($d->precio, 2) . '</td>'
+                . "<td class='r'>" . number_format($d->subtotal, 2) . '</td>'
+                . '</tr>';
+        }
+
+        $sinCuf = $factura->cuf
+            ? ''
+            : "<div class='aviso'>DOCUMENTO SIN VALOR FISCAL &middot; no fue emitido a Impuestos Nacionales</div>";
+
+        $anulado = $factura->estado === 'ANULADO'
+            ? "<div class='aviso'>FACTURA ANULADA: " . e($factura->motivo_anulacion) . '</div>'
+            : '';
+
+        $html = "<style>
+            * { font-family: sans-serif; font-size: 11px }
+            .c { text-align: center } .r { text-align: right }
+            .cab { font-size: 15px; font-weight: bold }
+            .tipo { text-align: center; font-size: 15px; font-weight: bold; color: #1565c0; margin: 6px 0 }
+            table.d { width: 100%; border-collapse: collapse; margin-top: 6px }
+            table.d th { background: #eee; border: 1px solid #999; padding: 4px; text-align: left }
+            table.d td { border: 1px solid #ddd; padding: 4px }
+            .datos td { padding: 2px 4px }
+            .aviso { border: 2px solid #c62828; color: #c62828; font-weight: bold;
+                     text-align: center; padding: 5px; margin: 8px 0 }
+            .tot { font-size: 14px; font-weight: bold }
+        </style>
+        <table style='width:100%'><tr>
+            <td class='c' style='width:35%'>
+                <div class='cab'>" . e($emisor['nombre']) . "</div>
+                <div>" . e($emisor['sucursal']) . "</div>
+                <div>" . e($emisor['direccion']) . "</div>
+                <div>Telf. " . e($emisor['telefono']) . " &middot; " . e($emisor['ciudad']) . "</div>
+            </td>
+            <td class='c'>
+                <table class='datos' style='width:100%'>
+                    <tr><td><b>NIT</b></td><td>" . e(config('siat.nit')) . "</td></tr>
+                    <tr><td><b>Nro</b></td><td>" . ($factura->nro_factura ?: $factura->id) . "</td></tr>
+                    <tr><td><b>Cod. Autorizacion</b></td><td>" . e($factura->cuf ?: '—') . "</td></tr>
+                </table>
+            </td>
+        </tr></table>
+
+        <div class='tipo'>FACTURA</div>
+        $sinCuf
+        $anulado
+
+        <table class='datos' style='width:100%'>
+            <tr>
+                <td><b>FECHA:</b></td><td>" . $factura->fecha->format('d/m/Y') . " {$factura->hora}</td>
+                <td><b>NIT/CI:</b></td><td>" . e($factura->nit ?: '-') . "</td>
+            </tr>
+            <tr>
+                <td><b>Nombre/Razon Social:</b></td><td colspan='3'>" . e($factura->nombre ?: 'Sin cliente') . "</td>
+            </tr>
+        </table>
+
+        <table class='d'>
+            <tr>
+                <th>Codigo</th><th>Cantidad</th><th>Unidad</th>
+                <th>Descripcion</th><th>P. Unitario</th><th>Subtotal</th>
+            </tr>
+            $filas
+        </table>
+
+        <table style='width:100%; margin-top:8px'><tr>
+            <td style='vertical-align:top'><b>Son:</b> " . e($this->enLetras($factura->total)) . " Bolivianos</td>
+            <td style='width:40%'>
+                <table class='datos' style='width:100%'>
+                    <tr><td>SUBTOTAL Bs.</td><td class='r'>" . number_format($factura->subtotal, 2) . "</td></tr>
+                    <tr><td>DESCUENTO Bs.</td><td class='r'>" . number_format($factura->descuento, 2) . "</td></tr>
+                    <tr class='tot'><td>TOTAL Bs.</td><td class='r'>" . number_format($factura->total, 2) . "</td></tr>
+                </table>
+            </td>
+        </tr></table>";
+
+        $pdf = App::make('dompdf.wrapper');
+        $pdf->loadHTML($html);
+
+        return $pdf->stream('factura_' . $factura->id . '.pdf', ['Attachment' => false]);
+    }
+
+    /** Importe en letras, con el mismo formato que usa la boleta de entrega. */
+    private function enLetras($monto)
+    {
+        $monto = round((float) $monto, 2);
+        $entero = (int) $monto;
+        $decimal = (int) round(($monto - $entero) * 100);
+
+        $formatter = new NumeroALetras();
+
+        return ucfirst(strtolower(trim($formatter->toString($entero))))
+            . ' ' . sprintf('%02d', $decimal) . '/100';
+    }
+
+    /**
+     * Escribe el movimiento de inventario en tbstock.
+     *
+     * El stock de Sofia es SUM(cant - saldo) sobre esa tabla, asi que:
+     *   SALIDA    -> cant = 0, saldo = cantidad   (baja el stock)
+     *   ANULACION -> cant = cantidad, saldo = 0   (lo devuelve)
+     *
+     * Anular no borra el movimiento original: escribe el contrario, porque
+     * tbstock es un libro de movimientos y borrar filas descuadraria el
+     * historico. Se replica el patron con el que graba el sistema de caja.
+     */
+    private function moverStock(array $lineas, $facturaId, $ci, $ahora, $tipo)
+    {
+        $esSalida = $tipo === 'SALIDA';
+
+        $posic = (int) DB::selectOne('SELECT COALESCE(MAX(posic), 0) AS n FROM tbstock FOR UPDATE')->n;
+
+        $filas = [];
+        foreach ($lineas as $linea) {
+            $filas[] = [
+                'cod_prod'     => $linea['cod_prod'],
+                'Cod_Prodm'    => '',
+                'Unidcant'     => 0,
+                'UnidSaldo'    => 0,
+                'cant'         => $esSalida ? 0 : $linea['cantidad'],
+                'saldo'        => $esSalida ? $linea['cantidad'] : 0,
+                'PBruto'       => 0,
+                'PreUnit'      => $linea['precio'],
+                'CantCja'      => 0,
+                'fecha'        => $ahora,
+                'fecha_venc'   => self::FECHA_NULA,
+                'Nro'          => 0,
+                'AlmaOrig'     => 0,
+                'CodStock'     => 0,
+                'CodStockS'    => 0,
+                'CodStockReg'  => 0,
+                'ci'           => $ci,
+                'MotivoEgreso' => $esSalida ? '' : 'ANULACION VENTA WEB ' . $facturaId,
+                'NroLOte'      => '',
+                // No es una comanda de caja: el origen va en motivstock.
+                'comandast'    => 0,
+                'Nrocierre'    => 0,
+                'sw'           => 0,
+                'codtrans'     => 0,
+                'posic'        => ++$posic,
+                'motivstock'   => ($esSalida ? 'VENTA WEB ' : 'ANULA VENTA WEB ') . $facturaId,
+                'docum'        => '',
+                'esfac'        => 0,
+                'proveedor'    => '',
+            ];
+        }
+
+        DB::table('tbstock')->insert($filas);
     }
 }

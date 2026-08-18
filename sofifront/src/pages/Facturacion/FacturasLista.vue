@@ -96,16 +96,50 @@
 
       <template v-slot:body-cell-acciones="props">
         <q-td :props="props" style="white-space: nowrap">
-          <q-btn dense flat round size="sm" icon="visibility" color="primary" @click="verDetalle(props.row)">
-            <q-tooltip>Ver detalle</q-tooltip>
-          </q-btn>
-          <q-btn
-            v-if="can('facturacionAnular') && props.row.estado !== 'ANULADO'"
-            dense flat round size="sm" icon="block" color="negative"
-            @click="pedirAnulacion(props.row)"
+          <q-btn-dropdown
+            color="primary" size="sm" dense no-caps icon="menu" label="Opciones"
+            :loading="imprimiendo === props.row.id"
           >
-            <q-tooltip>Anular</q-tooltip>
-          </q-btn>
+            <q-list dense style="min-width: 200px">
+              <q-item clickable v-close-popup @click="verDetalle(props.row)">
+                <q-item-section avatar><q-icon name="visibility" color="primary"/></q-item-section>
+                <q-item-section>Ver detalle</q-item-section>
+              </q-item>
+
+              <q-separator/>
+
+              <q-item clickable v-close-popup @click="imprimir(props.row, 'voucher')">
+                <q-item-section avatar><q-icon name="receipt" color="blue-grey-7"/></q-item-section>
+                <q-item-section>Imprimir voucher</q-item-section>
+              </q-item>
+
+              <!-- Solo las que se entregaron como factura tienen factura. -->
+              <q-item
+                clickable v-close-popup
+                :disable="props.row.tipo_comprobante !== 'FACTURA'"
+                @click="imprimir(props.row, 'factura')"
+              >
+                <q-item-section avatar><q-icon name="verified" color="green-7"/></q-item-section>
+                <q-item-section>
+                  Imprimir factura
+                  <q-item-label v-if="props.row.tipo_comprobante !== 'FACTURA'" caption>
+                    Se entregó como voucher
+                  </q-item-label>
+                </q-item-section>
+              </q-item>
+
+              <template v-if="can('facturacionAnular') && props.row.estado !== 'ANULADO'">
+                <q-separator/>
+                <q-item clickable v-close-popup @click="pedirAnulacion(props.row)">
+                  <q-item-section avatar><q-icon name="block" color="negative"/></q-item-section>
+                  <q-item-section>
+                    Anular
+                    <q-item-label caption>Devuelve el stock</q-item-label>
+                  </q-item-section>
+                </q-item>
+              </template>
+            </q-list>
+          </q-btn-dropdown>
         </q-td>
       </template>
 
@@ -214,6 +248,7 @@ export default {
       dialogAnular: false,
       motivo: '',
       anulando: false,
+      imprimiendo: null,
       loading: false,
       filtros: filtrosPorDefecto(),
       pagination: { page: 1, rowsPerPage: 20, rowsNumber: 0 },
@@ -276,6 +311,30 @@ export default {
       })
     },
 
+    // 'voucher' o 'factura'. Se abre en pestaña nueva; si el navegador la
+    // bloquea, al menos se descarga.
+    imprimir (row, documento) {
+      this.imprimiendo = row.id
+
+      return this.$api.get('facturacion/' + row.id + '/' + documento, { responseType: 'blob' })
+        .then(res => {
+          const url = window.URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }))
+
+          if (!window.open(url, '_blank')) {
+            const link = document.createElement('a')
+            link.href = url
+            link.download = documento + '_' + row.id + '.pdf'
+            link.click()
+          }
+
+          setTimeout(() => window.URL.revokeObjectURL(url), 60000)
+        })
+        .catch(async err => {
+          this.avisar(err, 'No se pudo imprimir el ' + documento)
+        })
+        .finally(() => { this.imprimiendo = null })
+    },
+
     verDetalle (row) {
       this.sel = row
       this.dialogDetalle = true
@@ -309,9 +368,21 @@ export default {
         .finally(() => { this.anulando = false })
     },
 
-    avisar (err, porDefecto) {
+    async avisar (err, porDefecto) {
+      let mensaje = err.response?.data?.message
+
+      // En las descargas la respuesta viaja como Blob: el motivo real del
+      // error hay que leerlo del propio Blob.
+      if (err.response?.data instanceof Blob) {
+        try {
+          mensaje = JSON.parse(await err.response.data.text()).message
+        } catch (e) {
+          mensaje = null
+        }
+      }
+
       this.$q.notify({
-        message: err.response?.data?.message || porDefecto,
+        message: mensaje || porDefecto,
         color: 'negative',
         icon: 'error',
         position: 'top'
