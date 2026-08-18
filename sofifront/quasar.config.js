@@ -103,6 +103,11 @@ export default defineConfig(function (ctx) {
     // https://v2.quasar.dev/quasar-cli-vite/developing-pwa/configuring-pwa
     pwa: {
       workboxMode: 'GenerateSW', // 'GenerateSW' or 'InjectManifest'
+      extendGenerateSWOptions (cfg) {
+        cfg.skipWaiting = true
+        cfg.clientsClaim = true
+        cfg.cleanupOutdatedCaches = true
+      }
       // The PWA manifest now lives in /src-pwa/manifest.json
     },
 
