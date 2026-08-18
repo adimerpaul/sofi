@@ -350,90 +350,141 @@ class FacturacionController extends Controller
     }
 
     /**
-     * Voucher: el comprobante que se entrega siempre, en formato ticket.
+     * Voucher: la boleta de entrega, en tamano carta.
+     *
+     * Replica la boleta que se imprime en papel: cabecera con los datos del
+     * cliente, la grilla de productos y el pie con literal, placa y totales.
      */
     public function voucher($id)
     {
-        $factura = Factura::with(['detalles', 'cliente'])->find($id);
+        $factura = Factura::with(['detalles', 'cliente', 'vendedor'])->find($id);
         if (!$factura) {
             return response()->json(['message' => 'La venta no existe'], 404);
         }
 
         $emisor = config('siat.emisor');
+        $cliente = $factura->cliente;
+
+        $vendedor = $factura->vendedor
+            ? trim(implode(' ', array_filter([
+                trim($factura->vendedor->Nombre1),
+                trim($factura->vendedor->App1),
+                trim($factura->vendedor->Apm),
+            ])))
+            : '';
 
         $filas = '';
         foreach ($factura->detalles as $d) {
-            $cant = number_format($d->cantidad, $d->unidad === 'KG' ? 3 : 0);
-            $filas .= "<tr>
-                <td colspan='3' class='prod'>" . e($d->nombre) . "</td>
-            </tr><tr>
-                <td>$cant x " . number_format($d->precio, 2) . "</td>
-                <td class='c'>" . e($d->unidad) . "</td>
-                <td class='r'>" . number_format($d->subtotal, 2) . "</td>
-            </tr>";
+            $porUnidad = trim((string) $d->unidad) !== 'KG';
+
+            $filas .= '<tr>'
+                . "<td class='r'>" . number_format($porUnidad ? $d->cantidad : 0, 2) . '</td>'
+                . '<td>' . e($d->cod_prod) . '</td>'
+                . '<td>' . e(mb_substr($d->nombre, 0, 45)) . '</td>'
+                . "<td class='c'>" . e($d->unidad) . '</td>'
+                . "<td class='r'>" . number_format($d->cantidad, 2) . '</td>'
+                . "<td class='r'>" . number_format($d->precio, 3) . '</td>'
+                . "<td class='r'>" . number_format($d->subtotal, 2) . '</td>'
+                . '</tr>';
         }
 
-        $descuento = (float) $factura->descuento > 0
-            ? "<tr><td colspan='2'>Descuento</td><td class='r'>-" . number_format($factura->descuento, 2) . "</td></tr>"
+        $anulado = $factura->estado === 'ANULADO'
+            ? "<div class='anulado'>ANULADO: " . e($factura->motivo_anulacion) . '</div>'
             : '';
 
         $html = "<style>
-            @page { margin: 4mm; }
-            * { font-family: sans-serif; font-size: 9px; }
+            @page { margin: 10mm }
+            * { font-family: sans-serif; font-size: 10px }
             .c { text-align: center } .r { text-align: right }
-            .tit { font-size: 12px; font-weight: bold }
-            .prod { font-weight: bold; padding-top: 3px }
-            table { width: 100%; border-collapse: collapse }
-            .linea { border-top: 1px dashed #000; margin: 4px 0 }
-            .tot { font-size: 13px; font-weight: bold }
+            .titulo { font-size: 15px; font-weight: bold; letter-spacing: 2px }
+            .cab { width: 100%; border-collapse: collapse; margin-bottom: 4px }
+            .cab td { border: 1px solid #333; padding: 2px 4px }
+            table.d { width: 100%; border-collapse: collapse }
+            table.d th { border: 1px solid #333; padding: 3px; background: #f0f0f0 }
+            table.d td { border: 1px solid #333; padding: 2px 3px }
+            .pie { width: 100%; margin-top: 6px }
+            .tot td { padding: 2px 4px; border: 1px solid #333 }
+            .firma { margin-top: 40px; width: 100% }
+            .firma td { padding-top: 18px }
+            .linea { border-bottom: 1px solid #333; width: 220px; display: inline-block }
+            .anulado { border: 2px solid #c62828; color: #c62828; font-weight: bold;
+                       text-align: center; padding: 4px; margin: 6px 0 }
+            .legal { font-size: 8px; margin-top: 10px; text-align: center }
         </style>
-        <div class='c'>
-            <div class='tit'>" . e($emisor['nombre']) . "</div>
-            <div>" . e($emisor['sucursal']) . "</div>
-            <div>NIT " . e(config('siat.nit')) . "</div>
-            <div>" . e($emisor['direccion']) . "</div>
-            <div>Telf. " . e($emisor['telefono']) . " &middot; " . e($emisor['ciudad']) . "</div>
-        </div>
-        <div class='linea'></div>
-        <div class='c tit'>COMPROBANTE DE VENTA</div>
-        <div class='c'>Nro " . $factura->id . "</div>
-        <div class='linea'></div>
-        <div>Fecha: " . $factura->fecha->format('d/m/Y') . " {$factura->hora}</div>
-        <div>Cliente: " . e($factura->nombre ?: 'Sin cliente') . "</div>
-        <div>NIT/CI: " . e($factura->nit ?: '-') . "</div>
-        <div>Pago: " . e($factura->tipo_pago) . "</div>
-        <div class='linea'></div>
-        <table>$filas</table>
-        <div class='linea'></div>
-        <table>
-            <tr><td colspan='2'>Subtotal</td><td class='r'>" . number_format($factura->subtotal, 2) . "</td></tr>
-            $descuento
-            <tr class='tot'><td colspan='2'>TOTAL Bs</td><td class='r'>" . number_format($factura->total, 2) . "</td></tr>
-        </table>
-        <div class='linea'></div>
-        <div>Son: " . e($this->enLetras($factura->total)) . " Bolivianos</div>
-        <div class='linea'></div>
-        <div class='c'>¡Gracias por su compra!</div>";
 
-        if ($factura->estado === 'ANULADO') {
-            $html .= "<div class='c tit' style='margin-top:6px'>*** ANULADO ***</div>";
-        }
+        <table style='width:100%'><tr>
+            <td class='titulo'>" . e($emisor['nombre']) . "</td>
+            <td class='titulo c'>BOLETA DE ENTREGA</td>
+            <td class='titulo r'>Nro " . $factura->id . "</td>
+        </tr></table>
+
+        <table class='cab'>
+            <tr>
+                <td><b>CI/NIT:</b> " . e($factura->nit ?: '-') . "</td>
+                <td><b>TELF.:</b> " . e($cliente->Telf ?? '') . "</td>
+                <td><b>F. Emision:</b> " . $factura->fecha->format('d/m/Y') . "</td>
+            </tr>
+            <tr>
+                <td colspan='2'><b>Cliente:</b> " . e($factura->nombre ?: 'Sin cliente') . "</td>
+                <td><b>Zona:</b> " . e($cliente->zona ?? '') . "</td>
+            </tr>
+            <tr>
+                <td colspan='2'><b>Direccion:</b> " . e($cliente->Direccion ?? '') . "</td>
+                <td><b>Hora:</b> " . e($factura->hora) . "</td>
+            </tr>
+            <tr>
+                <td colspan='2'><b>Vendedor:</b> " . e($vendedor) . "</td>
+                <td><b>Territorio:</b> " . e($cliente->territorio ?? '') . "</td>
+            </tr>
+        </table>
+
+        $anulado
+
+        <table class='d'>
+            <tr>
+                <th>CANT</th><th>CODIGO</th><th>CONCEPTO</th>
+                <th>UNID</th><th>P. NETO</th><th>P. UNIT</th><th>TOTAL</th>
+            </tr>
+            $filas
+        </table>
+
+        <table class='pie'><tr>
+            <td style='vertical-align:top'>
+                <div><b>LITERAL:</b> " . e($this->enLetras($factura->total)) . "</div>
+                <div><b>TIPO DE PAGO:</b> " . e($factura->tipo_pago) . "</div>
+                <div><b>OBS.:</b> " . e($factura->observacion ?: '') . "</div>
+            </td>
+            <td style='width:38%'>
+                <table class='tot' style='width:100%'>
+                    <tr><td>SUB. TOT Bs.</td><td class='r'>" . number_format($factura->subtotal, 2) . "</td></tr>
+                    <tr><td>DESCT. Bs.</td><td class='r'>" . number_format($factura->descuento, 2) . "</td></tr>
+                    <tr><td><b>TOTAL Bs.</b></td><td class='r'><b>" . number_format($factura->total, 2) . "</b></td></tr>
+                </table>
+            </td>
+        </tr></table>
+
+        <table class='firma'>
+            <tr><td>CI: <span class='linea'></span></td></tr>
+            <tr><td>Nombre: <span class='linea'></span></td></tr>
+            <tr><td>Firma: <span class='linea'></span></td></tr>
+        </table>
+
+        <div class='legal'>RESPALDE SU CANCELACION DEL PRESENTE CON LA BOLETA ORIGINAL</div>";
 
         $pdf = App::make('dompdf.wrapper');
-        // Ticket de 80mm; el alto se estira segun la cantidad de lineas.
-        $pdf->setPaper([0, 0, 226.77, 400 + count($factura->detalles) * 26]);
+        $pdf->setPaper('letter');
         $pdf->loadHTML($html);
 
         return $pdf->stream('voucher_' . $factura->id . '.pdf', ['Attachment' => false]);
     }
 
     /**
-     * Factura en formato carta.
+     * Factura en tamano carta, con el mismo formato que la del sistema legado.
      *
      * Mientras no se emita al SIAT desde aca la venta no tiene CUF ni numero
      * de autorizacion, asi que el documento sale rotulado como sin valor
-     * fiscal. Hacerlo pasar por una factura fiscal sin serlo seria un problema
-     * para el cliente y para el negocio.
+     * fiscal: hacerlo pasar por una factura fiscal sin serlo dejaria al cliente
+     * con un papel que no le sirve para credito fiscal.
      */
     public function factura($id)
     {
@@ -449,90 +500,125 @@ class FacturacionController extends Controller
         }
 
         $emisor = config('siat.emisor');
+        $logo = is_file(public_path('img/sofia.png'))
+            ? base64_encode(file_get_contents(public_path('img/sofia.png')))
+            : '';
 
         $filas = '';
         foreach ($factura->detalles as $d) {
             $filas .= '<tr>'
-                . '<td>' . e($d->cod_prod) . '</td>'
-                . "<td class='r'>" . number_format($d->cantidad, $d->unidad === 'KG' ? 3 : 0) . '</td>'
-                . "<td class='c'>" . e($d->unidad) . '</td>'
+                . "<td class='r'>" . e($d->cod_prod) . '</td>'
+                . "<td class='r'>" . number_format($d->cantidad, 2) . '</td>'
+                . '<td>' . e($d->unidad === 'KG' ? 'KILOGRAMO' : 'UNIDAD (SERVICIOS)') . '</td>'
                 . '<td>' . e($d->nombre) . '</td>'
                 . "<td class='r'>" . number_format($d->precio, 2) . '</td>'
+                . "<td class='r'>0.00</td>"
                 . "<td class='r'>" . number_format($d->subtotal, 2) . '</td>'
                 . '</tr>';
         }
 
-        $sinCuf = $factura->cuf
-            ? ''
-            : "<div class='aviso'>DOCUMENTO SIN VALOR FISCAL &middot; no fue emitido a Impuestos Nacionales</div>";
+        $cuf = $factura->cuf ?: '';
+        $sinCuf = $cuf === ''
+            ? "<div class='aviso'>DOCUMENTO SIN VALOR FISCAL &middot; no fue emitido a Impuestos Nacionales</div>"
+            : '';
 
         $anulado = $factura->estado === 'ANULADO'
             ? "<div class='aviso'>FACTURA ANULADA: " . e($factura->motivo_anulacion) . '</div>'
             : '';
 
         $html = "<style>
+            @page { margin: 12mm }
             * { font-family: sans-serif; font-size: 11px }
             .c { text-align: center } .r { text-align: right }
-            .cab { font-size: 15px; font-weight: bold }
-            .tipo { text-align: center; font-size: 15px; font-weight: bold; color: #1565c0; margin: 6px 0 }
-            table.d { width: 100%; border-collapse: collapse; margin-top: 6px }
-            table.d th { background: #eee; border: 1px solid #999; padding: 4px; text-align: left }
-            table.d td { border: 1px solid #ddd; padding: 4px }
-            .datos td { padding: 2px 4px }
+            .imagen { width: 130px }
+            .area td { padding: 1px 3px }
+            .titulo1 { text-align: center; font-weight: bold }
+            table.detalle { width: 100%; border-collapse: collapse; margin-top: 6px }
+            table.detalle th { padding: 4px; border: 1px solid #333; background: #f0f0f0; font-size: 10px }
+            .detalle2 { border: 1px solid #999; padding: 3px; font-size: 10px }
             .aviso { border: 2px solid #c62828; color: #c62828; font-weight: bold;
-                     text-align: center; padding: 5px; margin: 8px 0 }
-            .tot { font-size: 14px; font-weight: bold }
+                     text-align: center; padding: 5px; margin: 6px 0 }
         </style>
-        <table style='width:100%'><tr>
-            <td class='c' style='width:35%'>
-                <div class='cab'>" . e($emisor['nombre']) . "</div>
-                <div>" . e($emisor['sucursal']) . "</div>
-                <div>" . e($emisor['direccion']) . "</div>
-                <div>Telf. " . e($emisor['telefono']) . " &middot; " . e($emisor['ciudad']) . "</div>
-            </td>
-            <td class='c'>
-                <table class='datos' style='width:100%'>
-                    <tr><td><b>NIT</b></td><td>" . e(config('siat.nit')) . "</td></tr>
-                    <tr><td><b>Nro</b></td><td>" . ($factura->nro_factura ?: $factura->id) . "</td></tr>
-                    <tr><td><b>Cod. Autorizacion</b></td><td>" . e($factura->cuf ?: '—') . "</td></tr>
+
+        <table style='width:100%'>
+        <tr>
+            <td class='c' style='width:38%'>"
+                . ($logo ? "<img class='imagen' src='data:image/png;base64,$logo'>" : '')
+            . "</td>
+            <td>
+                <table class='area'>
+                    <tr><td><b>NIT:</b></td><td>" . e(config('siat.nit')) . "</td></tr>
+                    <tr><td><b>FACTURA No:</b></td><td>" . ($factura->nro_factura ?: $factura->id) . "</td></tr>
+                    <tr><td style='vertical-align:top'><b>COD. AUTORIZACION:</b></td>
+                        <td>" . ($cuf !== '' ? e(chunk_split($cuf, 23, '<br>')) : '—') . "</td></tr>
                 </table>
             </td>
-        </tr></table>
+        </tr>
+        <tr class='titulo1'>
+            <td class='area'>" . e($emisor['nombre']) . '<br>' . e($emisor['sucursal']) . "<br>
+                PUNTO DE VENTA " . (int) config('siat.codigo_punto_venta') . '<br>'
+                . e($emisor['direccion']) . '<br>Telefono : ' . e($emisor['telefono']) . '<br>'
+                . e($emisor['ciudad']) . "</td>
+            <td>" . $factura->id . "</td>
+        </tr>
+        </table>
 
-        <div class='tipo'>FACTURA</div>
+        <div class='titulo1' style='margin:6px 0'>
+            <span style='color:blue; font-size:16px'>FACTURA</span><br>
+            <span>(Con derecho a crédito fiscal)</span>
+        </div>
+
         $sinCuf
         $anulado
 
-        <table class='datos' style='width:100%'>
+        <table class='area' style='width:100%'>
             <tr>
-                <td><b>FECHA:</b></td><td>" . $factura->fecha->format('d/m/Y') . " {$factura->hora}</td>
-                <td><b>NIT/CI:</b></td><td>" . e($factura->nit ?: '-') . "</td>
+                <td><b>FECHA:</b></td><td>" . $factura->fecha->format('Y-m-d') . " {$factura->hora}</td>
+                <td><b>NIT/CI/CEX:</b></td><td>" . e($factura->nit ?: '-') . "</td>
+                <td><b>Compl:</b></td><td>" . e($factura->cliente->complto ?? '') . "</td>
             </tr>
             <tr>
-                <td><b>Nombre/Razon Social:</b></td><td colspan='3'>" . e($factura->nombre ?: 'Sin cliente') . "</td>
+                <td><b>Nombres/Razon Social:</b></td><td>" . e($factura->nombre ?: 'Sin cliente') . "</td>
+                <td><b>Cod Cliente:</b></td><td>" . ($factura->cliente_id ?: '') . "</td>
+                <td></td><td></td>
             </tr>
         </table>
 
-        <table class='d'>
+        <table class='detalle'>
             <tr>
-                <th>Codigo</th><th>Cantidad</th><th>Unidad</th>
-                <th>Descripcion</th><th>P. Unitario</th><th>Subtotal</th>
+                <th>Código Producto Servicio</th><th>Cantidad</th><th>Unidad de Medida</th>
+                <th>Descripcion</th><th>Precio unitario</th><th>Descuento</th><th>Importe</th>
             </tr>
             $filas
         </table>
 
-        <table style='width:100%; margin-top:8px'><tr>
-            <td style='vertical-align:top'><b>Son:</b> " . e($this->enLetras($factura->total)) . " Bolivianos</td>
-            <td style='width:40%'>
-                <table class='datos' style='width:100%'>
-                    <tr><td>SUBTOTAL Bs.</td><td class='r'>" . number_format($factura->subtotal, 2) . "</td></tr>
-                    <tr><td>DESCUENTO Bs.</td><td class='r'>" . number_format($factura->descuento, 2) . "</td></tr>
-                    <tr class='tot'><td>TOTAL Bs.</td><td class='r'>" . number_format($factura->total, 2) . "</td></tr>
+        <table style='width:100%; margin-top:6px'><tr>
+            <td style='vertical-align:top'><b>Son:</b> "
+                . e(mb_strtoupper($this->enLetras($factura->total))) . " Bolivianos</td>
+            <td style='width:42%'>
+                <table style='width:100%'>
+                    <tr><td class='detalle2'>SUBTOTAL Bs.</td>
+                        <td class='detalle2 r' style='color:blue; font-weight:bold'>"
+                        . number_format($factura->subtotal, 2) . "</td></tr>
+                    <tr><td class='detalle2'>DESCUENTO Bs.</td>
+                        <td class='detalle2 r'>" . number_format($factura->descuento, 2) . "</td></tr>
+                    <tr><td class='detalle2'>TOTAL Bs.</td>
+                        <td class='detalle2 r'>" . number_format($factura->total, 2) . "</td></tr>
+                    <tr><td class='detalle2'><b>MONTO A PAGAR Bs.</b></td>
+                        <td class='detalle2 r'><b>" . number_format($factura->total, 2) . "</b></td></tr>
                 </table>
             </td>
-        </tr></table>";
+        </tr></table>
+
+        <table style='width:100%; margin-top:10px'>
+            <tr><td class='c'>&quot;ESTA FACTURA CONTRIBUYE AL DESARROLLO DEL PAÍS,
+                EL USO ILÍCITO SERÁ SANCIONADO PENALMENTE DE ACUERDO A LEY&quot;.</td></tr>
+            <tr><td class='c'>Ley N° 453: El proveedor debe brindar atención sin discriminación,
+                con respeto, calidez y cordialidad a los usuarios y consumidores.</td></tr>
+        </table>";
 
         $pdf = App::make('dompdf.wrapper');
+        $pdf->setPaper('letter');
         $pdf->loadHTML($html);
 
         return $pdf->stream('factura_' . $factura->id . '.pdf', ['Attachment' => false]);

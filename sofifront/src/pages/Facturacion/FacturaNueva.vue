@@ -622,21 +622,12 @@ export default {
     abrirDocumento (id, documento) {
       this.$api.get('facturacion/' + id + '/' + documento, { responseType: 'blob' })
         .then(res => {
-          const url = window.URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }))
-
-          if (!window.open(url, '_blank')) {
-            const link = document.createElement('a')
-            link.href = url
-            link.download = documento + '_' + id + '.pdf'
-            link.click()
-          }
-
-          setTimeout(() => window.URL.revokeObjectURL(url), 60000)
+          this.imprimirPdf(res.data, documento + '_' + id + '.pdf')
         })
         .catch(() => {
           // La venta ya quedó guardada; que falle la impresión no la invalida.
           this.$q.notify({
-            message: 'La venta se guardó, pero no se pudo abrir el ' + documento +
+            message: 'La venta se guardó, pero no se pudo imprimir el ' + documento +
               '. Se puede imprimir desde el listado.',
             color: 'warning',
             icon: 'print_disabled',
@@ -644,6 +635,39 @@ export default {
             timeout: 7000
           })
         })
+    },
+
+    /**
+     * Manda el PDF directo a la impresora: se carga en un iframe oculto y se
+     * dispara su diálogo de impresión, sin pasar por una pestaña.
+     */
+    imprimirPdf (blob, nombre) {
+      const url = window.URL.createObjectURL(new Blob([blob], { type: 'application/pdf' }))
+
+      const marco = document.createElement('iframe')
+      marco.style.display = 'none'
+      marco.src = url
+
+      marco.onload = () => {
+        try {
+          marco.contentWindow.focus()
+          marco.contentWindow.print()
+        } catch (e) {
+          // Si el navegador no deja imprimir desde el iframe, se descarga.
+          const link = document.createElement('a')
+          link.href = url
+          link.download = nombre
+          link.click()
+        }
+      }
+
+      document.body.appendChild(marco)
+
+      // El iframe debe seguir vivo mientras está abierto el diálogo.
+      setTimeout(() => {
+        document.body.removeChild(marco)
+        window.URL.revokeObjectURL(url)
+      }, 60000)
     },
 
     limpiar () {
