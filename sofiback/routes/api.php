@@ -64,11 +64,50 @@ Route::group(['middleware'=>'auth:sanctum'],function (){
     Route::get('/verProducto',[\App\Http\Controllers\ProductoController::class,'verProducto']);
     Route::get('/productosPaginado',[\App\Http\Controllers\ProductoController::class,'paginado']);
     Route::get('/filtrosProducto',[\App\Http\Controllers\ProductoController::class,'filtrosProducto']);
+    Route::get('/productos/excel',[\App\Http\Controllers\ProductoController::class,'exportarExcel']);
+    Route::get('/productos/pdf',[\App\Http\Controllers\ProductoController::class,'exportarPdf']);
+    Route::put('/productos/{codProd}',[\App\Http\Controllers\ProductoController::class,'actualizar']);
+    Route::delete('/productos/{codProd}',[\App\Http\Controllers\ProductoController::class,'eliminar']);
+    Route::post('/productos/{codProd}/imagen',[\App\Http\Controllers\ProductoController::class,'subirImagen']);
+    Route::delete('/productos/{codProd}/imagen',[\App\Http\Controllers\ProductoController::class,'quitarImagen']);
 
     Route::get('/ventas',[\App\Http\Controllers\VentaController::class,'index']);
     Route::get('/ventas/resumen',[\App\Http\Controllers\VentaController::class,'resumen']);
     Route::get('/ventas/filtros',[\App\Http\Controllers\VentaController::class,'filtros']);
     Route::get('/ventas/comanda/{comanda}',[\App\Http\Controllers\VentaController::class,'comanda']);
+    // Facturacion propia: no toca tbventas, vive en facturas/factura_detalles.
+    Route::get('/facturacion',[\App\Http\Controllers\FacturacionController::class,'index']);
+    Route::get('/facturacion/catalogo',[\App\Http\Controllers\FacturacionController::class,'catalogo']);
+    Route::get('/facturacion/categorias',[\App\Http\Controllers\FacturacionController::class,'categorias']);
+    Route::get('/facturacion/clientes',[\App\Http\Controllers\FacturacionController::class,'clientes']);
+    Route::get('/facturacion/{factura}',[\App\Http\Controllers\FacturacionController::class,'show']);
+    Route::post('/facturacion',[\App\Http\Controllers\FacturacionController::class,'store']);
+    Route::put('/facturacion/{factura}/anular',[\App\Http\Controllers\FacturacionController::class,'anular']);
+
+    // Compras a proveedor: suben el stock de tbstock.
+    Route::get('/compras',[\App\Http\Controllers\CompraController::class,'index']);
+    Route::get('/compras/proveedores',[\App\Http\Controllers\CompraController::class,'proveedores']);
+    Route::get('/compras/{compra}',[\App\Http\Controllers\CompraController::class,'show']);
+    Route::post('/compras',[\App\Http\Controllers\CompraController::class,'store']);
+    Route::put('/compras/{compra}/anular',[\App\Http\Controllers\CompraController::class,'anular']);
+
+    // Impuestos (SIAT): datos del emisor y codigos CUIS/CUFD. Todo vive en la
+    // base (siat_configuraciones) y se edita desde la pantalla /impuestos.
+    Route::get('/impuestos/configuracion',[\App\Http\Controllers\ImpuestoController::class,'configuracion']);
+    Route::put('/impuestos/configuracion',[\App\Http\Controllers\ImpuestoController::class,'guardarConfiguracion']);
+    Route::post('/impuestos/probar',[\App\Http\Controllers\ImpuestoController::class,'probar']);
+    Route::get('/impuestos/cuis',[\App\Http\Controllers\ImpuestoController::class,'cuis']);
+    Route::post('/impuestos/cuis',[\App\Http\Controllers\ImpuestoController::class,'generarCuis']);
+    Route::delete('/impuestos/cuis/{id}',[\App\Http\Controllers\ImpuestoController::class,'eliminarCuis']);
+    Route::get('/impuestos/cufd',[\App\Http\Controllers\ImpuestoController::class,'cufds']);
+    Route::post('/impuestos/cufd',[\App\Http\Controllers\ImpuestoController::class,'generarCufd']);
+    Route::delete('/impuestos/cufd/{id}',[\App\Http\Controllers\ImpuestoController::class,'eliminarCufd']);
+
+    // Administracion de proveedores (tbproveedor).
+    Route::get('/proveedores',[\App\Http\Controllers\ProveedorController::class,'index']);
+    Route::post('/proveedores',[\App\Http\Controllers\ProveedorController::class,'store']);
+    Route::put('/proveedores/{id}',[\App\Http\Controllers\ProveedorController::class,'update']);
+    Route::delete('/proveedores/{id}',[\App\Http\Controllers\ProveedorController::class,'destroy']);
     Route::get('/facturas/{codAut}/pdf',[\App\Http\Controllers\FacturaFiscalController::class,'pdf']);
     Route::post('/cxcobrar/{ci}',[\App\Http\Controllers\CobrarController::class,'cxcobrar']);
     Route::post('/insertcobro',[\App\Http\Controllers\CobrarController::class,'insertcobro']);

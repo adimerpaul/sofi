@@ -39,6 +39,7 @@ class Producto extends Model{
         'CantPren',
         'Peso',
         'tipo',
+        'imagen',
         'oferta',
         'codProdSin',
         'pqsiramento',

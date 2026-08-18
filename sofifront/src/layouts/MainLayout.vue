@@ -97,6 +97,12 @@ export default {
         { label: 'Mis Cobros', icon: 'money', to: 'miscobranzas', show: can('miscobranzas') },
         { label: 'Productos', caption: 'Precios y stock', icon: 'inventory_2', to: 'productos', show: can('productos') },
         { label: 'Ventas', caption: 'Consulta por fechas', icon: 'point_of_sale', to: 'ventas', show: can('ventas') },
+        { label: 'Facturación', caption: 'Ventas y facturas', icon: 'request_quote', to: 'facturacion', show: can('facturacion') },
+        { label: 'Nueva Venta', caption: 'Armar carrito y cobrar', icon: 'add_shopping_cart', to: 'facturacion/nueva', show: can('facturacionNueva') },
+        { label: 'Impuestos', caption: 'CUIS, CUFD y token', icon: 'gavel', to: 'impuestos', show: can('impuestos') },
+        { label: 'Compras', caption: 'Ingresos a proveedor', icon: 'local_shipping', to: 'compras', show: can('compras') },
+        { label: 'Nueva Compra', caption: 'Sube el stock', icon: 'add_business', to: 'compras/nueva', show: can('comprasNueva') },
+        { label: 'Proveedores', caption: 'Administrar', icon: 'store', to: 'proveedores', show: can('proveedores') },
         { label: 'Clientes sin Pedido', icon: 'person_off', to: 'nopedido', show: can('nopedido') },
         { label: 'Horarios de Envío', caption: 'Envío automático', icon: 'schedule_send', to: 'horariosenvio', show: can('horariosenvio') },
         { label: 'Exportar Excel', icon: 'table_chart', to: 'generar', show: can('generar') },
@@ -122,7 +128,19 @@ export default {
         { label: 'Cambios por Calidad', caption: 'Formulario', icon: 'published_with_changes', handler: 'irformulario2', show: can('cambioscalidad') },
         { label: 'Usuarios', caption: 'Roles y permisos', icon: 'manage_accounts', to: 'usuario', show: can('usuario') }
       ]
-      return items.filter(item => item.show)
+
+      // Los destinos se escriben sin barra inicial. Mientras todas las rutas
+      // fueron de un solo nivel eso daba igual, pero desde una ruta anidada
+      // (/facturacion/nueva) un destino relativo resuelve a
+      // /facturacion/productos en vez de /productos. Se normalizan a absolutos
+      // para que el menu lleve siempre al mismo sitio, se este donde se este.
+      return items
+        .filter(item => item.show)
+        .map(item => (
+          typeof item.to === 'string' && !item.to.startsWith('/')
+            ? { ...item, to: '/' + item.to }
+            : item
+        ))
     }
   },
   methods: {

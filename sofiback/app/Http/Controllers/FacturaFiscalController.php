@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\SiatConfiguracion;
 use BaconQrCode\Common\ErrorCorrectionLevel;
 use BaconQrCode\Encoder\Encoder;
 use Illuminate\Http\Request;
@@ -107,7 +108,7 @@ class FacturaFiscalController extends Controller
         <td>
         <table class='area'>
         <tr>
-        <td><b>NIT:</b></td><td>" . config('siat.nit') . "</td></tr><tr><td><b>FACTURA No: </b></td><td>$fact->nrofac</td></tr><tr><td style='vertical-align:top'><b>COD. AUTORIZACION:</b> </td><td>" . substr($autoriza, 0, 23) . "<br>" . substr($autoriza, 23, 23) . "<br> " . substr($autoriza, 46) . "</td></tr></table></td></tr>
+        <td><b>NIT:</b></td><td>" . self::siat()->nit . "</td></tr><tr><td><b>FACTURA No: </b></td><td>$fact->nrofac</td></tr><tr><td style='vertical-align:top'><b>COD. AUTORIZACION:</b> </td><td>" . substr($autoriza, 0, 23) . "<br>" . substr($autoriza, 23, 23) . "<br> " . substr($autoriza, 46) . "</td></tr></table></td></tr>
         <tr class='titulo1'><td class='area'>ALMACEN SOFIA<br>SUCURSAL 1<br>PUNTO DE VENTA $fact->PuntVenta<br>Prolongacion Campo Jordan esq Tacna Nro 28 ZONA Norte<br>Telefono : 5230064<br>ORURO</td><td><span style='color:blue;  font-size:16px;font-weight: bold'></span><br>$fact->comanda</td></tr></table>
         <div class='titulo1'><span style='color:blue; font-size:16px;font-weight: bold'>FACTURA</span><br><span>(Con derecho a crédito fiscal)</span></div>
         <table class='area'>
@@ -146,14 +147,35 @@ class FacturaFiscalController extends Controller
         return $pdf->stream("factura_{$fact->nrofac}.pdf", ['Attachment' => false]);
     }
 
+    /** Configuracion de Impuestos, resuelta una sola vez por request. */
+    private static $siat;
+
+    /**
+     * Datos del emisor. Se cachea en estatico porque VentaController pide la
+     * URL del QR una vez por fila del listado.
+     */
+    private static function siat()
+    {
+        if (!self::$siat) {
+            self::$siat = SiatConfiguracion::activa();
+        }
+
+        return self::$siat;
+    }
+
     /**
      * URL de verificacion del SIAT; es la misma que codifica el QR.
-     * Se arma desde config/siat.php para poder apuntar a piloto por .env.
+     *
+     * Sale del portal publico (url_siat2), que no es la direccion de los
+     * servicios: esa es url_siat y solo se usa para pedir CUIS/CUFD. Las dos
+     * se editan desde la pantalla de Impuestos.
      */
     public static function urlSiat($cuf, $nrofac)
     {
-        return config('siat.url_consulta')
-            . '?nit=' . config('siat.nit')
+        $siat = self::siat();
+
+        return rtrim((string) $siat->url_siat2, '/') . '/consulta/QR'
+            . '?nit=' . $siat->nit
             . '&cuf=' . $cuf
             . '&numero=' . $nrofac
             . '&t=2';
