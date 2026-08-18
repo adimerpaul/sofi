@@ -2,13 +2,28 @@
   <q-page class="q-pa-md">
     <div class="row items-center q-mb-md">
       <div class="col">
-        <div class="text-h6 text-weight-bold">Nueva venta</div>
+        <div class="text-h6 text-weight-bold">
+          {{ pedidoOrigen ? 'Pedido #' + pedidoOrigen.nro_pedido : 'Nueva venta' }}
+        </div>
         <div class="text-caption text-grey-7">
-          Arma el carrito y confirma si se entrega venta o factura
+          {{ pedidoOrigen
+            ? 'Revisa y modifica productos, cantidades y precios antes de emitir'
+            : 'Arma el carrito y confirma si se entrega venta o factura' }}
         </div>
       </div>
-      <q-btn dense flat no-caps icon="receipt_long" label="Ver facturación" to="/facturacion"/>
+      <q-btn
+        dense flat no-caps icon="receipt_long"
+        :label="pedidoOrigen ? 'Volver a pedidos' : 'Ver facturación'"
+        :to="pedidoOrigen ? '/facturacion/pedidos' : '/facturacion'"
+      />
     </div>
+
+    <q-banner v-if="pedidoOrigen" dense rounded class="bg-blue-1 text-blue-9 q-mb-md">
+      <template v-slot:avatar><q-icon name="assignment_turned_in"/></template>
+      Pedido {{ pedidoOrigen.tipo === 'NORMAL' ? 'EMBUTIDOS' : pedidoOrigen.tipo }} del
+      {{ String(pedidoOrigen.fecha || '').substr(0, 10) }} · Preventista {{ pedidoOrigen.vendedor || pedidoOrigen.vendedor_ci || '—' }}.
+      Puedes quitar productos, agregar otros del catálogo y cambiar cantidades o precios.
+    </q-banner>
 
     <div class="row q-col-gutter-md">
       <!-- Catálogo -->
@@ -308,8 +323,7 @@
               <q-icon :name="tipoComprobante === 'FACTURA' ? 'verified' : 'receipt'"/>
             </template>
             <span v-if="tipoComprobante === 'FACTURA'">
-              Queda registrada como factura con ese NIT. Todavía no se envía nada
-              a Impuestos desde aquí.
+              Se registrará con ese NIT y se enviará a Impuestos.
             </span>
             <span v-else>Se registra como venta con voucher.</span>
           </q-banner>
@@ -375,7 +389,9 @@ export default {
       nit: '',
       observacion: '',
       guardando: false,
-      temporizador: null
+      temporizador: null,
+      pedidoOrigen: null,
+      cargandoPedido: false
     }
   },
   computed: {
@@ -398,6 +414,9 @@ export default {
   created () {
     this.cargarCategorias()
     this.cargarCatalogo()
+    if (this.$route.query.pedido && this.$route.query.tipo) {
+      this.cargarPedido(this.$route.query.pedido, this.$route.query.tipo)
+    }
   },
   methods: {
     money (v) {
@@ -416,6 +435,35 @@ export default {
     },
     sinStock (p) {
       return Number(p.stock || 0) <= 0
+    },
+
+    cargarPedido (numero, tipo) {
+      this.cargandoPedido = true
+      this.$api.get('facturacion/pedidos/' + numero, { params: { tipo } })
+        .then(res => {
+          const pedido = res.data.pedido
+          this.pedidoOrigen = pedido
+          this.carrito = res.data.items
+          this.cliente = {
+            id: pedido.cliente_id,
+            nit: pedido.nit || '',
+            nombre: pedido.cliente || '',
+            direccion: pedido.direccion || '',
+            zona: pedido.zona || '',
+            vendedor_ci: pedido.vendedor_ci || '',
+            vendedor: pedido.vendedor || ''
+          }
+          this.clientes = [this.cliente]
+          this.nit = pedido.nit || ''
+          this.tipoComprobante = String(pedido.fact || '').toUpperCase() === 'SI' ? 'FACTURA' : 'VENTA'
+          this.tipoPago = String(pedido.pago || '').toUpperCase().includes('CREDIT') ? 'CRÉDITO' : 'EFECTIVO'
+          this.observacion = pedido.comentario || ''
+        })
+        .catch(err => {
+          this.avisar(err, 'No se pudo recuperar el pedido')
+          this.$router.push('/facturacion/pedidos')
+        })
+        .finally(() => { this.cargandoPedido = false })
     },
 
     cargarCategorias () {
@@ -582,6 +630,8 @@ export default {
         nombre: this.cliente ? this.cliente.nombre : '',
         descuento: Number(this.descuento) || 0,
         observacion: this.observacion || '',
+        pedido_nro: this.pedidoOrigen ? this.pedidoOrigen.nro_pedido : null,
+        pedido_tipo: this.pedidoOrigen ? this.pedidoOrigen.tipo : null,
         items: this.carrito.map(i => ({
           cod_prod: i.cod_prod,
           cantidad: Number(i.cantidad),
@@ -603,7 +653,17 @@ export default {
         })
 
         this.imprimirDocumentos(res.data.factura.id, res.data.factura.tipo_comprobante)
-        this.limpiar()
+        if (this.pedidoOrigen) {
+          setTimeout(() => this.$router.push({
+            path: '/facturacion/pedidos',
+            query: {
+              fecha: String(this.pedidoOrigen.fecha || '').substr(0, 10),
+              tipo: this.pedidoOrigen.tipo
+            }
+          }), 1000)
+        } else {
+          this.limpiar()
+        }
       }).catch(err => {
         this.avisar(err, 'No se pudo registrar')
       }).finally(() => {

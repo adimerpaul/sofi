@@ -34,6 +34,8 @@ class Factura extends Model
         'descuento',
         'total',
         'observacion',
+        'pedido_nro',
+        'pedido_tipo',
         'nro_factura',
         'codigo_sucursal',
         'codigo_punto_venta',

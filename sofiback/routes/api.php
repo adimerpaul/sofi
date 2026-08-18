@@ -80,6 +80,8 @@ Route::group(['middleware'=>'auth:sanctum'],function (){
     Route::get('/facturacion/catalogo',[\App\Http\Controllers\FacturacionController::class,'catalogo']);
     Route::get('/facturacion/categorias',[\App\Http\Controllers\FacturacionController::class,'categorias']);
     Route::get('/facturacion/clientes',[\App\Http\Controllers\FacturacionController::class,'clientes']);
+    Route::get('/facturacion/pedidos',[\App\Http\Controllers\FacturacionController::class,'pedidos']);
+    Route::get('/facturacion/pedidos/{pedido}',[\App\Http\Controllers\FacturacionController::class,'pedido']);
     Route::get('/facturacion/{factura}/voucher',[\App\Http\Controllers\FacturacionController::class,'voucher']);
     Route::get('/facturacion/{factura}/factura',[\App\Http\Controllers\FacturacionController::class,'factura']);
     Route::get('/facturacion/{factura}/url-impuestos',[\App\Http\Controllers\FacturacionController::class,'urlImpuestos']);
@@ -243,6 +245,5 @@ Route::post('/exportar-pedidos', [MobilController::class, 'exportarPedidosFlutte
 Route::post('/reporteTotalProductos', [MobilController::class, 'reporteTotalProductos']);
 
 Route::get('/pedidos-simple', [\App\Http\Controllers\MobilController::class, 'pedidosSimple']);
-
 
 

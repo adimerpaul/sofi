@@ -314,6 +314,13 @@ export default {
     }
   },
   created () {
+    if (this.$route.query.buscar) {
+      this.filtros.buscar = String(this.$route.query.buscar)
+    }
+    if (this.$route.query.fecha) {
+      this.filtros.desde = String(this.$route.query.fecha)
+      this.filtros.hasta = String(this.$route.query.fecha)
+    }
     this.onRequest({ pagination: this.pagination })
   },
   methods: {

@@ -215,6 +215,158 @@ class FacturacionController extends Controller
             ]);
     }
 
+    /** Pedidos de preventistas agrupados por numero y tipo para facturarlos. */
+    public function pedidos(Request $request)
+    {
+        $datos = $request->validate([
+            'fecha' => 'required|date',
+            'tipo' => 'required|in:NORMAL,POLLO,CERDO,RES',
+            'buscar' => 'nullable|string|max:100',
+        ]);
+
+        $query = DB::table('tbpedidos as p')
+            ->leftJoin('tbclientes as c', 'c.Cod_Aut', '=', 'p.idCli')
+            ->leftJoin('personal as v', 'v.CodAut', '=', 'p.CIfunc')
+            ->leftJoin('facturas as f', function ($join) {
+                $join->on('f.pedido_nro', '=', 'p.NroPed')
+                    ->on(DB::raw('UPPER(TRIM(f.pedido_tipo))'), '=', DB::raw('UPPER(TRIM(p.tipo))'))
+                    ->whereNull('f.deleted_at');
+            })
+            ->whereDate('p.fecha', $datos['fecha'])
+            ->whereRaw('UPPER(TRIM(p.tipo)) = ?', [$datos['tipo']])
+            ->where('p.bonificacion', 0);
+
+        if ($buscar = trim((string) ($datos['buscar'] ?? ''))) {
+            $like = '%' . $buscar . '%';
+            $query->where(function ($w) use ($like, $buscar) {
+                $w->where('c.Nombres', 'like', $like)
+                    ->orWhere('c.Id', 'like', $like)
+                    ->orWhere('v.Nombre1', 'like', $like)
+                    ->orWhere('v.App1', 'like', $like);
+                if (ctype_digit($buscar)) {
+                    $w->orWhere('p.NroPed', $buscar);
+                }
+            });
+        }
+
+        $pedidos = $query
+            ->groupBy([
+                'p.NroPed', 'p.tipo', 'p.fecha', 'p.idCli', 'p.CIfunc', 'p.estado',
+                'p.fact', 'p.pago', 'p.comentario', 'c.Id', 'c.Nombres',
+                'v.Nombre1', 'v.Nombre2', 'v.App1', 'v.Apm', 'f.id', 'f.tipo_comprobante',
+            ])
+            ->orderByDesc('p.NroPed')
+            ->get([
+                'p.NroPed as nro_pedido',
+                DB::raw('UPPER(TRIM(p.tipo)) as tipo'),
+                'p.fecha', 'p.estado', 'p.fact', 'p.pago', 'p.comentario',
+                'p.idCli as cliente_id',
+                DB::raw('TRIM(c.Id) as nit'),
+                DB::raw('TRIM(c.Nombres) as cliente'),
+                DB::raw("TRIM(CONCAT_WS(' ', NULLIF(TRIM(v.Nombre1), ''), NULLIF(TRIM(v.Nombre2), ''), NULLIF(TRIM(v.App1), ''), NULLIF(TRIM(v.Apm), ''))) as vendedor"),
+                DB::raw('COUNT(*) as productos'),
+                DB::raw('ROUND(SUM(COALESCE(p.Cant, 0) * COALESCE(p.precio, 0)), 2) as total_pedido'),
+                'f.id as factura_id', 'f.tipo_comprobante as comprobante_emitido',
+            ]);
+
+        $numeros = $pedidos->pluck('nro_pedido')->all();
+        if (empty($numeros)) {
+            return $pedidos;
+        }
+
+        // Se cargan todos los detalles en una sola consulta para que en el
+        // celular se vea que el pedido ya viene armado por el preventista.
+        $items = DB::table('tbpedidos as p')
+            ->leftJoin('tbproductos as pr', function ($join) {
+                $join->on(DB::raw('TRIM(pr.cod_prod)'), '=', DB::raw('TRIM(p.cod_prod)'));
+            })
+            ->whereIn('p.NroPed', $numeros)
+            ->whereRaw('UPPER(TRIM(p.tipo)) = ?', [$datos['tipo']])
+            ->where('p.bonificacion', 0)
+            ->orderBy('p.codAut')
+            ->get([
+                'p.NroPed as nro_pedido',
+                DB::raw('TRIM(p.cod_prod) as cod_prod'),
+                DB::raw("COALESCE(NULLIF(TRIM(pr.Producto), ''), CONCAT('Producto ', TRIM(p.cod_prod))) as nombre"),
+                DB::raw('COALESCE(p.Cant, 0) as cantidad'),
+                DB::raw('COALESCE(p.precio, 0) as precio'),
+            ])
+            ->groupBy('nro_pedido');
+
+        return $pedidos->map(function ($pedido) use ($items) {
+            $pedido->items = ($items->get($pedido->nro_pedido) ?? collect())
+                ->map(function ($item) {
+                    $item->cantidad = (float) $item->cantidad;
+                    $item->precio = (float) $item->precio;
+                    $item->total = round($item->cantidad * $item->precio, 2);
+                    return $item;
+                })->values();
+            return $pedido;
+        });
+    }
+
+    /** Cabecera y productos editables de un pedido concreto. */
+    public function pedido(Request $request, $nroPedido)
+    {
+        $datos = $request->validate([
+            'tipo' => 'required|in:NORMAL,POLLO,CERDO,RES',
+        ]);
+
+        $cabecera = DB::table('tbpedidos as p')
+            ->leftJoin('tbclientes as c', 'c.Cod_Aut', '=', 'p.idCli')
+            ->leftJoin('personal as v', 'v.CodAut', '=', 'p.CIfunc')
+            ->where('p.NroPed', $nroPedido)
+            ->whereRaw('UPPER(TRIM(p.tipo)) = ?', [$datos['tipo']])
+            ->where('p.bonificacion', 0)
+            ->first([
+                'p.NroPed as nro_pedido', DB::raw('UPPER(TRIM(p.tipo)) as tipo'),
+                'p.fecha', 'p.estado', 'p.fact', 'p.pago', 'p.comentario',
+                'p.idCli as cliente_id', DB::raw('TRIM(c.Id) as nit'),
+                DB::raw('TRIM(c.Nombres) as cliente'), DB::raw('TRIM(c.Direccion) as direccion'),
+                DB::raw('TRIM(c.zona) as zona'), DB::raw('TRIM(c.CiVend) as vendedor_ci'),
+                DB::raw("TRIM(CONCAT_WS(' ', NULLIF(TRIM(v.Nombre1), ''), NULLIF(TRIM(v.Nombre2), ''), NULLIF(TRIM(v.App1), ''), NULLIF(TRIM(v.Apm), ''))) as vendedor"),
+            ]);
+
+        if (!$cabecera) {
+            return response()->json(['message' => 'El pedido no existe para el tipo seleccionado'], 404);
+        }
+
+        $yaFacturado = Factura::where('pedido_nro', $nroPedido)
+            ->where('pedido_tipo', $datos['tipo'])
+            ->first(['id', 'tipo_comprobante', 'estado']);
+
+        if ($yaFacturado) {
+            return response()->json([
+                'message' => 'El pedido ya fue procesado en la facturación #' . $yaFacturado->id,
+                'factura' => $yaFacturado,
+            ], 422);
+        }
+
+        $items = DB::table('tbpedidos as p')
+            ->leftJoin('tbproductos as pr', function ($join) {
+                $join->on(DB::raw('TRIM(pr.cod_prod)'), '=', DB::raw('TRIM(p.cod_prod)'));
+            })
+            ->where('p.NroPed', $nroPedido)
+            ->whereRaw('UPPER(TRIM(p.tipo)) = ?', [$datos['tipo']])
+            ->where('p.bonificacion', 0)
+            ->orderBy('p.codAut')
+            ->get([
+                DB::raw('TRIM(p.cod_prod) as cod_prod'),
+                DB::raw("COALESCE(NULLIF(TRIM(pr.Producto), ''), CONCAT('Producto ', TRIM(p.cod_prod))) as nombre"),
+                DB::raw("COALESCE(NULLIF(TRIM(pr.codUnid), ''), 'UNIDAD') as unidad"),
+                'pr.imagen', DB::raw('COALESCE(p.Cant, 0) as cantidad'),
+                DB::raw('COALESCE(p.precio, 0) as precio'),
+            ])
+            ->map(function ($item) {
+                $item->cantidad = (float) $item->cantidad;
+                $item->precio = (float) $item->precio;
+                $item->total = round($item->cantidad * $item->precio, 2);
+                return $item;
+            });
+
+        return response()->json(['pedido' => $cabecera, 'items' => $items]);
+    }
+
     /** Registra la venta o factura con su detalle. */
     public function store(Request $request)
     {
@@ -230,6 +382,8 @@ class FacturacionController extends Controller
             'nombre'           => 'nullable|string|max:150',
             'descuento'        => 'nullable|numeric|min:0',
             'observacion'      => 'nullable|string|max:255',
+            'pedido_nro'       => 'nullable|required_with:pedido_tipo|integer',
+            'pedido_tipo'      => 'nullable|required_with:pedido_nro|in:NORMAL,POLLO,CERDO,RES',
         ]);
 
         $tipo = $datos['tipo_comprobante'] ?? 'VENTA';
@@ -277,6 +431,19 @@ class FacturacionController extends Controller
             }
         }
 
+        if (!empty($datos['pedido_nro'])) {
+            $existePedido = DB::table('tbpedidos')
+                ->where('NroPed', $datos['pedido_nro'])
+                ->whereRaw('UPPER(TRIM(tipo)) = ?', [$datos['pedido_tipo']])
+                ->exists();
+            if (!$existePedido) {
+                return response()->json(['message' => 'El pedido de origen no existe'], 422);
+            }
+            if (Factura::where('pedido_nro', $datos['pedido_nro'])->where('pedido_tipo', $datos['pedido_tipo'])->exists()) {
+                return response()->json(['message' => 'Este pedido ya fue facturado o convertido en voucher'], 422);
+            }
+        }
+
         $factura = DB::transaction(function () use ($datos, $productos, $usuario, $ci, $cliente, $tipo, $nit) {
             $subtotal = 0;
             $lineas = [];
@@ -318,6 +485,8 @@ class FacturacionController extends Controller
                 'descuento'        => $descuento,
                 'total'            => round($subtotal - $descuento, 2),
                 'observacion'      => $datos['observacion'] ?? null,
+                'pedido_nro'       => $datos['pedido_nro'] ?? null,
+                'pedido_tipo'      => $datos['pedido_tipo'] ?? null,
             ]);
 
             $factura->detalles()->createMany($lineas);

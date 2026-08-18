@@ -99,6 +99,7 @@ export default {
         { label: 'Ventas', caption: 'Consulta por fechas', icon: 'point_of_sale', to: 'ventas', show: can('ventas') },
         { label: 'Facturación', caption: 'Ventas y facturas', icon: 'request_quote', to: 'facturacion', show: can('facturacion') },
         { label: 'Nueva Venta', caption: 'Armar carrito y cobrar', icon: 'add_shopping_cart', to: 'facturacion/nueva', show: can('facturacionNueva') },
+        { label: 'Pedido factura', caption: 'Facturar pedidos de preventistas', icon: 'assignment_turned_in', to: 'facturacion/pedidos', show: can('facturacionNueva') },
         { label: 'Impuestos', caption: 'CUIS, CUFD y token', icon: 'gavel', to: 'impuestos', show: can('impuestos') },
         { label: 'Compras', caption: 'Ingresos a proveedor', icon: 'local_shipping', to: 'compras', show: can('compras') },
         { label: 'Nueva Compra', caption: 'Sube el stock', icon: 'add_business', to: 'compras/nueva', show: can('comprasNueva') },
