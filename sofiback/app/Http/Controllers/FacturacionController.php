@@ -32,7 +32,11 @@ class FacturacionController extends Controller
         $perPage = min(max((int) $request->input('perPage', 20), 1), 200);
 
         $query = Factura::query()
-            ->with(['detalles', 'cliente:Cod_Aut,Id,Nombres,zona'])
+            ->with([
+                'detalles',
+                'cliente:Cod_Aut,Id,Nombres,zona',
+                'vendedor:CodAut,ci,Nombre1,Nombre2,App1,Apm',
+            ])
             ->orderByDesc('id');
 
         if ($desde = $request->input('desde')) {

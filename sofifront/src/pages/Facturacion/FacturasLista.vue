@@ -94,6 +94,16 @@
         </q-td>
       </template>
 
+      <template v-slot:body-cell-vendedor="props">
+        <q-td :props="props">
+          <template v-if="props.row.vendedor">
+            {{ nombreVendedor(props.row.vendedor) }}
+            <div class="text-caption text-grey-7">CI {{ props.row.vendedor_ci || '—' }}</div>
+          </template>
+          <span v-else class="text-grey-6">{{ props.row.vendedor_ci || 'Sin vendedor' }}</span>
+        </q-td>
+      </template>
+
       <template v-slot:body-cell-acciones="props">
         <q-td :props="props" style="white-space: nowrap">
           <q-btn-dropdown
@@ -291,6 +301,7 @@ export default {
         { name: 'fecha', label: 'Fecha', field: 'fecha', align: 'left', format: v => String(v || '').substr(0, 10) },
         { name: 'hora', label: 'Hora', field: 'hora', align: 'left' },
         { name: 'nombre', label: 'Cliente', field: 'nombre', align: 'left' },
+        { name: 'vendedor', label: 'Vendedor', field: 'vendedor', align: 'left' },
         { name: 'tipo_pago', label: 'Pago', field: 'tipo_pago', align: 'center' },
         { name: 'estado', label: 'Estado', field: 'estado', align: 'center' },
         { name: 'total', label: 'Total Bs.', field: 'total', align: 'right', format: v => Number(v || 0).toFixed(2) }
@@ -308,6 +319,12 @@ export default {
   methods: {
     money (v) {
       return Number(v || 0).toFixed(2)
+    },
+    nombreVendedor (vendedor) {
+      return [vendedor.Nombre1, vendedor.Nombre2, vendedor.App1, vendedor.Apm]
+        .map(parte => String(parte || '').trim())
+        .filter(Boolean)
+        .join(' ') || 'Sin vendedor'
     },
     puedeAnular (row) {
       if (row.estado !== 'ANULADO') return true
