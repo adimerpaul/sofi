@@ -84,6 +84,26 @@
         </q-td>
       </template>
 
+      <template v-slot:body-cell-siat="props">
+        <q-td :props="props">
+          <template v-if="props.row.tipo_comprobante === 'FACTURA'">
+            <q-badge
+              :color="props.row.estado_siat === 'ERROR' ? 'negative' : (props.row.online ? 'positive' : 'orange-8')"
+            >
+              {{ props.row.estado_siat || 'NO ENVIADA' }}
+            </q-badge>
+            <div
+              v-if="props.row.estado_siat === 'ERROR' && props.row.mensaje_siat"
+              class="text-caption text-negative q-mt-xs"
+              style="max-width: 280px; white-space: normal"
+            >
+              {{ props.row.mensaje_siat }}
+            </div>
+          </template>
+          <span v-else class="text-grey-6">—</span>
+        </q-td>
+      </template>
+
       <template v-slot:body-cell-nombre="props">
         <q-td :props="props">
           <template v-if="props.value">
@@ -135,6 +155,17 @@
                   <q-item-label v-if="props.row.tipo_comprobante !== 'FACTURA'" caption>
                     Se entregó como voucher
                   </q-item-label>
+                </q-item-section>
+              </q-item>
+
+              <q-item
+                v-if="props.row.tipo_comprobante === 'FACTURA' && props.row.estado_siat === 'ERROR'"
+                clickable v-close-popup @click="reenviarSiat(props.row)"
+              >
+                <q-item-section avatar><q-icon name="cloud_upload" color="orange-8"/></q-item-section>
+                <q-item-section>
+                  Reenviar al SIAT
+                  <q-item-label caption>Corrige el envío fiscal pendiente</q-item-label>
                 </q-item-section>
               </q-item>
 
@@ -193,6 +224,14 @@
           <q-banner dense rounded class="bg-red-1 text-red-9">
             <template v-slot:avatar><q-icon name="block"/></template>
             Anulada: {{ sel.motivo_anulacion }}
+          </q-banner>
+        </q-card-section>
+
+        <q-card-section v-if="sel.estado_siat === 'ERROR'" class="q-py-sm">
+          <q-banner dense rounded class="bg-red-1 text-red-9">
+            <template v-slot:avatar><q-icon name="cloud_off"/></template>
+            <div class="text-weight-bold">Factura no enviada al SIAT</div>
+            <div>{{ sel.mensaje_siat || 'Impuestos no informó el motivo' }}</div>
           </q-banner>
         </q-card-section>
 
@@ -304,6 +343,7 @@ export default {
         { name: 'vendedor', label: 'Vendedor', field: 'vendedor', align: 'left' },
         { name: 'tipo_pago', label: 'Pago', field: 'tipo_pago', align: 'center' },
         { name: 'estado', label: 'Estado', field: 'estado', align: 'center' },
+        { name: 'siat', label: 'Estado SIAT', field: 'estado_siat', align: 'left' },
         { name: 'total', label: 'Total Bs.', field: 'total', align: 'right', format: v => Number(v || 0).toFixed(2) }
       ]
     }
@@ -403,6 +443,25 @@ export default {
           if (ventana) ventana.close()
           this.avisar(err, 'No se pudo abrir la factura en Impuestos')
         })
+    },
+
+    reenviarSiat (row) {
+      this.$q.dialog({
+        title: 'Reenviar al SIAT',
+        message: 'Se volverá a generar y enviar la factura fiscal #' + row.id + '. ¿Continuar?',
+        cancel: true,
+        persistent: true
+      }).onOk(() => {
+        this.$api.post('impuestos/facturas/' + row.id + '/reenviar')
+          .then(res => {
+            this.$q.notify({
+              type: 'positive', position: 'top', timeout: 8000,
+              message: res.data.message
+            })
+            this.onRequest({ pagination: this.pagination })
+          })
+          .catch(err => { this.avisar(err, 'No se pudo reenviar al SIAT') })
+      })
     },
 
     /**

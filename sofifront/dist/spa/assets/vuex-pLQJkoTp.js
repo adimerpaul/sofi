@@ -1,1 +1,0 @@
-import{nt as e,r as t}from"./index-CYKVVcwZ.js";var n=e(({app:e})=>{e.use(t)});export{n as default};

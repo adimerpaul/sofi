@@ -1,0 +1,1 @@
+import{nt as e,r as t}from"./index-DeTb96Ph.js";var n=e(({app:e})=>{e.use(t)});export{n as default};

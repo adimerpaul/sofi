@@ -294,6 +294,10 @@ class SiatService
         $xml = $this->armarXml($factura, $cufd, $fechaEmision);
         $this->validarXsd($xml);
 
+        // Se conserva antes de llamar al SIAT. Si el servicio se cae, este es
+        // el documento que luego puede enviarse como paquete de contingencia.
+        $factura->update(['xml' => $xml]);
+
         $comprimido = gzencode($xml, 9);
 
         $respuesta = $this->llamar('ServicioFacturacionCompraVenta', 'recepcionFactura', [
@@ -318,7 +322,6 @@ class SiatService
         $estado = isset($respuesta->codigoDescripcion) ? strtoupper($respuesta->codigoDescripcion) : null;
 
         $factura->update([
-            'xml'              => $xml,
             'codigo_recepcion' => isset($respuesta->codigoRecepcion) ? $respuesta->codigoRecepcion : null,
             'estado_siat'      => $estado ?: 'DESCONOCIDO',
             'mensaje_siat'     => $this->mensajes($respuesta, ''),
@@ -434,7 +437,12 @@ class SiatService
     {
         $emisor = config('siat.emisor');
 
-        $codigos = $factura->detalles->pluck('cod_prod')->map('trim')->unique();
+        // No usar map('trim'): Collection pasa tambien la clave como segundo
+        // argumento y trim la interpreta como mascara de caracteres. Eso
+        // convertia, por ejemplo, la segunda linea 100002 en 00002.
+        $codigos = $factura->detalles->pluck('cod_prod')->map(function ($codigo) {
+            return trim((string) $codigo);
+        })->unique();
 
         $productos = DB::table('tbproductos as p')
             ->leftJoin('tbunidmed as u', DB::raw('TRIM(u.Codmed)'), '=', DB::raw('TRIM(p.codUnid)'))
@@ -446,6 +454,25 @@ class SiatService
                 'u.codUnid as unidad_sin',
             ])
             ->keyBy('cod_prod');
+
+        // Producto fiscal comodin autorizado por el negocio. Solo presta los
+        // campos exigidos por el SIAT cuando el producto vendido no los tiene;
+        // la descripcion, cantidad y precio continúan siendo los de la venta.
+        $respaldo = DB::table('tbproductos as p')
+            ->leftJoin('tbunidmed as u', DB::raw('TRIM(u.Codmed)'), '=', DB::raw('TRIM(p.codUnid)'))
+            ->whereRaw('TRIM(p.cod_prod) = ?', ['541623'])
+            ->first([
+                DB::raw('TRIM(p.cod_prod) as cod_prod'),
+                DB::raw('TRIM(p.codProdSin) as producto_sin'),
+                DB::raw('TRIM(p.codgruppasin) as actividad'),
+                'u.codUnid as unidad_sin',
+            ]);
+
+        if (!$respaldo || !$respaldo->producto_sin || !$respaldo->actividad) {
+            throw new \RuntimeException(
+                'El producto de respaldo 541623 no tiene código SIN o actividad económica cargados'
+            );
+        }
 
         $doc = new \DOMDocument('1.0', 'UTF-8');
         $doc->formatOutput = true;
@@ -502,25 +529,22 @@ class SiatService
         foreach ($factura->detalles as $linea) {
             $cod = trim($linea->cod_prod);
             $prod = $productos->get($cod);
+            $usaRespaldo = !$prod || !$prod->producto_sin || !$prod->actividad;
 
-            if (!$prod || !$prod->producto_sin || !$prod->actividad) {
-                throw new \RuntimeException(
-                    'El producto ' . $cod . ' no tiene código SIN o actividad económica cargados'
-                );
-            }
+            $fiscal = $usaRespaldo ? $respaldo : $prod;
 
             $detalle = $doc->createElement('detalle');
             $raiz->appendChild($detalle);
 
             $lineas = [
-                'actividadEconomica' => $prod->actividad,
-                'codigoProductoSin'  => $prod->producto_sin,
-                'codigoProducto'     => $cod,
+                'actividadEconomica' => $fiscal->actividad,
+                'codigoProductoSin'  => $fiscal->producto_sin,
+                'codigoProducto'     => $usaRespaldo ? $respaldo->cod_prod : $cod,
                 'descripcion'        => $linea->nombre,
                 'cantidad'           => $this->monto($linea->cantidad),
                 // Sin unidad cargada se manda 57 (UNIDAD), que es el comodin
                 // del catalogo del SIAT.
-                'unidadMedida'       => $prod->unidad_sin ?: 57,
+                'unidadMedida'       => ($prod->unidad_sin ?? null) ?: ($respaldo->unidad_sin ?: 57),
                 'precioUnitario'     => $this->monto($linea->precio),
                 'montoDescuento'     => '0.00',
                 'subTotal'           => $this->monto($linea->subtotal),
