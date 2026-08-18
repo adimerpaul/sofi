@@ -68,6 +68,11 @@
               NIT {{ pedido.nit || '—' }} · {{ pedido.vendedor || 'Sin preventista' }}
             </div>
 
+            <q-banner v-if="pedido.detalle_pollo.observaciones.length" dense rounded class="bg-amber-1 text-amber-10 q-mt-sm">
+              <template v-slot:avatar><q-icon name="sticky_note_2" color="amber-9"/></template>
+              {{ pedido.detalle_pollo.observaciones.join(' · ') }}
+            </q-banner>
+
             <div class="row items-end q-mt-sm">
               <div class="col">
                 <div class="text-caption text-grey-7">{{ pedido.productos }} productos</div>
@@ -87,7 +92,7 @@
           <q-expansion-item
             dense dense-toggle switch-toggle-side
             icon="shopping_basket"
-            :label="pedido.productos + ' productos del pedido'"
+            label="Ver pedido completo"
             header-class="text-weight-medium"
           >
             <q-list dense separator class="bg-grey-1">
@@ -99,6 +104,16 @@
                 <q-item-section side class="text-right">
                   <q-item-label>{{ cantidad(item.cantidad) }} × Bs {{ money(item.precio) }}</q-item-label>
                   <q-item-label caption class="text-weight-bold">Bs {{ money(item.total) }}</q-item-label>
+                </q-item-section>
+              </q-item>
+              <q-item v-for="(item, indice) in pedido.detalle_pollo.productos" :key="'pollo-' + indice" class="q-px-sm bg-orange-1">
+                <q-item-section>
+                  <q-item-label class="text-weight-bold">{{ item.nombre }}</q-item-label>
+                  <q-item-label v-if="item.observacion" caption>{{ item.observacion }}</q-item-label>
+                </q-item-section>
+                <q-item-section side>
+                  <q-item-label>{{ cantidad(item.cantidad) }} {{ item.unidad }}</q-item-label>
+                  <q-item-label v-if="item.precio" caption>Bs {{ money(item.precio) }}</q-item-label>
                 </q-item-section>
               </q-item>
             </q-list>

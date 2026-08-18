@@ -255,6 +255,7 @@ class FacturacionController extends Controller
                 'p.fact', 'p.pago', 'p.comentario', 'c.Id', 'c.Nombres',
                 'v.Nombre1', 'v.Nombre2', 'v.App1', 'v.Apm', 'f.id', 'f.tipo_comprobante',
             ])
+            ->orderByRaw('CASE WHEN f.id IS NULL THEN 0 ELSE 1 END ASC')
             ->orderByDesc('p.NroPed')
             ->get([
                 'p.NroPed as nro_pedido',
@@ -293,7 +294,11 @@ class FacturacionController extends Controller
             ])
             ->groupBy('nro_pedido');
 
-        return $pedidos->map(function ($pedido) use ($items) {
+        $filasPedido = DB::table('tbpedidos')->whereIn('NroPed', $numeros)
+            ->whereRaw('UPPER(TRIM(tipo)) = ?', [$datos['tipo']])->where('bonificacion', 0)
+            ->orderBy('codAut')->get()->groupBy('NroPed');
+
+        return $pedidos->map(function ($pedido) use ($items, $filasPedido) {
             $pedido->items = ($items->get($pedido->nro_pedido) ?? collect())
                 ->map(function ($item) {
                     $item->cantidad = (float) $item->cantidad;
@@ -301,6 +306,7 @@ class FacturacionController extends Controller
                     $item->total = round($item->cantidad * $item->precio, 2);
                     return $item;
                 })->values();
+            $pedido->detalle_pollo = $this->detallePollo($filasPedido->get($pedido->nro_pedido) ?? collect());
             return $pedido;
         });
     }
@@ -364,7 +370,59 @@ class FacturacionController extends Controller
                 return $item;
             });
 
+        $filasPedido = DB::table('tbpedidos')->where('NroPed', $nroPedido)
+            ->whereRaw('UPPER(TRIM(tipo)) = ?', [$datos['tipo']])->where('bonificacion', 0)
+            ->orderBy('codAut')->get();
+        $cabecera->detalle_pollo = $this->detallePollo($filasPedido);
+
         return response()->json(['pedido' => $cabecera, 'items' => $items]);
+    }
+
+    private function detallePollo($filas)
+    {
+        $detalles = collect();
+        $observaciones = collect();
+        $productos = [
+            ['Brasa 5', 'cbrasa5', 'ubrasa5', 'bsbrasa5', 'obsbrasa5'], ['Brasa 6', 'cbrasa6', 'cubrasa6', 'bsbrasa6', 'obsbrasa6'],
+            ['Pollo 104', 'c104', 'u104', 'bs104', 'obs104'], ['Pollo 105', 'c105', 'u105', 'bs105', 'obs105'],
+            ['Pollo 106', 'c106', 'u106', 'bs106', 'obs106'], ['Pollo 107', 'c107', 'u107', 'bs107', 'obs107'],
+            ['Pollo 108', 'c108', 'u108', 'bs108', 'obs108'], ['Pollo 109', 'c109', 'u109', 'bs109', 'obs109'],
+        ];
+        $cortes = [
+            ['Ala', 'ala', 'unidala', 'bsala', 'obsala'], ['Cadera', 'cadera', 'unidcadera', 'bscadera', 'obscadera'],
+            ['Pecho', 'pecho', 'unidpecho', 'bspecho', 'obspecho'], ['Pie', 'pie', 'unidpie', 'bspie', 'obspie'],
+            ['Filete', 'filete', 'unidfilete', 'bsfilete', 'obsfilete'], ['Cuello', 'cuello', 'unidcuello', 'bscuello', 'obscuello'],
+            ['Hueso', 'hueso', 'unidhueso', 'bshueso', 'obshueso'], ['Menudencia', 'menu', 'unidmenu', 'bsmenu', 'obsmenu'],
+        ];
+        foreach ($filas as $fila) {
+            foreach (['Observaciones', 'Canttxt', 'comentario'] as $campo) {
+                $texto = trim((string) ($fila->{$campo} ?? ''));
+                if ($texto !== '') $observaciones->push($texto);
+            }
+            foreach ($productos as [$nombre, $caja, $unidad, $precio, $obs]) {
+                $this->agregarDetallePollo($detalles, $fila, $nombre, $caja, 'CJA', $precio, $obs);
+                $this->agregarDetallePollo($detalles, $fila, $nombre, $unidad, 'UND', $precio, $obs);
+            }
+            foreach ($cortes as [$nombre, $cantidad, $unidad, $precio, $obs]) {
+                $this->agregarDetallePollo($detalles, $fila, $nombre, $cantidad, strtoupper(trim((string) ($fila->{$unidad} ?? 'KG'))), $precio, $obs);
+            }
+            $this->agregarDetallePollo($detalles, $fila, 'Rango', 'rango', 'KG', 'bs', null);
+        }
+        return [
+            'observaciones' => $observaciones->unique()->values(),
+            'productos' => $detalles->unique(fn ($d) => implode('|', $d))->values(),
+        ];
+    }
+
+    private function agregarDetallePollo($detalles, $fila, $nombre, $campo, $unidad, $campoPrecio, $campoObservacion)
+    {
+        $cantidad = $fila->{$campo} ?? null;
+        if ($cantidad === null || $cantidad === '' || (float) $cantidad == 0) return;
+        $detalles->push([
+            'nombre' => $nombre, 'cantidad' => (float) $cantidad, 'unidad' => $unidad ?: 'KG',
+            'precio' => (float) ($fila->{$campoPrecio} ?? $fila->bs ?? $fila->bs2 ?? 0),
+            'observacion' => $campoObservacion ? trim((string) ($fila->{$campoObservacion} ?? '')) : '',
+        ]);
     }
 
     /** Registra la venta o factura con su detalle. */

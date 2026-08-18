@@ -155,6 +155,6 @@ io.on('connection', (socket) => {
 
 const port = process.env.PORT || 3014;
 
-server.listen(port, '0.0.0.0', () => {
-    console.log(`Socket funcionando en http://0.0.0.0:${port}`);
+server.listen(port, '127.0.0.1', () => {
+    console.log(`Socket funcionando en http://127.0.0.1:${port}`);
 });

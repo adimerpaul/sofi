@@ -23,6 +23,28 @@
         </q-card-section>
       </q-card>
 
+      <q-card v-if="pedido.detalle_pollo.productos.length || pedido.detalle_pollo.observaciones.length" flat bordered class="rounded-borders q-mb-sm bg-orange-1">
+        <q-card-section class="q-pa-sm">
+          <div class="text-subtitle2 text-weight-bold"><q-icon name="restaurant"/> Detalle completo de pollo</div>
+          <div v-for="(texto, indice) in pedido.detalle_pollo.observaciones" :key="'obs-' + indice" class="text-body2 q-mt-xs">
+            <q-icon name="sticky_note_2" color="amber-9"/> {{ texto }}
+          </div>
+        </q-card-section>
+        <q-separator/>
+        <q-list dense separator>
+          <q-item v-for="(dato, indice) in pedido.detalle_pollo.productos" :key="'especial-' + indice">
+            <q-item-section>
+              <q-item-label class="text-weight-bold">{{ dato.nombre }}</q-item-label>
+              <q-item-label v-if="dato.observacion" caption>{{ dato.observacion }}</q-item-label>
+            </q-item-section>
+            <q-item-section side>
+              <q-item-label>{{ cantidad(dato.cantidad) }} {{ dato.unidad }}</q-item-label>
+              <q-item-label v-if="dato.precio" caption>Bs {{ money(dato.precio) }}</q-item-label>
+            </q-item-section>
+          </q-item>
+        </q-list>
+      </q-card>
+
       <div class="row items-center q-mb-xs">
         <div class="col text-subtitle2 text-weight-bold">Productos ({{ items.length }})</div>
         <q-btn color="primary" outline dense no-caps icon="add" label="Agregar producto" @click="abrirCatalogo"/>
@@ -258,14 +280,16 @@ export default {
       }).catch(this.error)
         .finally(() => { this.guardando = false })
     },
-    imprimir (id, tipo) {
+    async imprimir (id, tipo) {
       const documento = tipo === 'FACTURA' ? 'factura' : 'voucher'
-      this.$api.get('facturacion/' + id + '/' + documento, { responseType: 'blob' })
-        .then(res => {
-          const url = window.URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }))
-          window.open(url, '_blank')
-          setTimeout(() => window.URL.revokeObjectURL(url), 60000)
-        }).catch(() => {})
+      try {
+        await this.$solicitarImpresion(id, documento)
+      } catch (error) {
+        this.$q.notify({
+          type: 'warning', position: 'top', timeout: 7000,
+          message: 'La operacion se guardo, pero no se pudo imprimir el ' + documento
+        })
+      }
     },
     error (err) {
       this.$q.notify({

@@ -671,69 +671,24 @@ export default {
       })
     },
 
-    /**
-     * El voucher se entrega siempre; si además fue factura, también la
-     * factura. Se abren en orden para que no compitan por el foco.
-     */
+    /** Una factura imprime solamente la factura; una venta, su voucher. */
     imprimirDocumentos (id, tipo) {
-      if (tipo === 'FACTURA') {
-        this.abrirDocumento(id, 'factura')
-        setTimeout(() => this.abrirDocumento(id, 'voucher'), 800)
-        return
-      }
-
-      this.abrirDocumento(id, 'voucher')
+      this.abrirDocumento(id, tipo === 'FACTURA' ? 'factura' : 'voucher')
     },
 
-    abrirDocumento (id, documento) {
-      this.$api.get('facturacion/' + id + '/' + documento, { responseType: 'blob' })
-        .then(res => {
-          this.imprimirPdf(res.data, documento + '_' + id + '.pdf')
+    async abrirDocumento (id, documento) {
+      try {
+        await this.$solicitarImpresion(id, documento)
+      } catch (error) {
+        this.$q.notify({
+          message: 'La venta se guardó, pero no se pudo imprimir el ' + documento +
+            '. Se puede imprimir desde el listado.',
+          color: 'warning',
+          icon: 'print_disabled',
+          position: 'top',
+          timeout: 7000
         })
-        .catch(() => {
-          // La venta ya quedó guardada; que falle la impresión no la invalida.
-          this.$q.notify({
-            message: 'La venta se guardó, pero no se pudo imprimir el ' + documento +
-              '. Se puede imprimir desde el listado.',
-            color: 'warning',
-            icon: 'print_disabled',
-            position: 'top',
-            timeout: 7000
-          })
-        })
-    },
-
-    /**
-     * Manda el PDF directo a la impresora: se carga en un iframe oculto y se
-     * dispara su diálogo de impresión, sin pasar por una pestaña.
-     */
-    imprimirPdf (blob, nombre) {
-      const url = window.URL.createObjectURL(new Blob([blob], { type: 'application/pdf' }))
-
-      const marco = document.createElement('iframe')
-      marco.style.display = 'none'
-      marco.src = url
-
-      marco.onload = () => {
-        try {
-          marco.contentWindow.focus()
-          marco.contentWindow.print()
-        } catch (e) {
-          // Si el navegador no deja imprimir desde el iframe, se descarga.
-          const link = document.createElement('a')
-          link.href = url
-          link.download = nombre
-          link.click()
-        }
       }
-
-      document.body.appendChild(marco)
-
-      // El iframe debe seguir vivo mientras está abierto el diálogo.
-      setTimeout(() => {
-        document.body.removeChild(marco)
-        window.URL.revokeObjectURL(url)
-      }, 60000)
     },
 
     limpiar () {

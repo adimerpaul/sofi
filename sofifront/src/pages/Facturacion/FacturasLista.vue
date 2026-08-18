@@ -363,7 +363,16 @@ export default {
     }
     this.onRequest({ pagination: this.pagination })
   },
+  mounted () {
+    window.addEventListener('sofia:facturacion-actualizada', this.actualizarDesdeSocket)
+  },
+  beforeUnmount () {
+    window.removeEventListener('sofia:facturacion-actualizada', this.actualizarDesdeSocket)
+  },
   methods: {
+    actualizarDesdeSocket () {
+      this.recargar()
+    },
     money (v) {
       return Number(v || 0).toFixed(2)
     },

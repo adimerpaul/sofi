@@ -13,6 +13,7 @@ export default defineConfig(function (ctx) {
     boot: [
       'vuex', // must stay first: registers the Vuex store (see /src/boot/vuex.js)
       'axios',
+      'socket',
       'firebase',
     ],
 
@@ -47,6 +48,9 @@ export default defineConfig(function (ctx) {
         API: ctx.dev
           ? 'http://localhost:8000/api/'
           : 'https://bsofia.tuprogam.com/api/',
+        SOCKET: ctx.dev
+          ? 'http://127.0.0.1:3000'
+          : 'https://saventura.tuprogam.com',
         VERSION: '1.0.0',
         FB_API_KEY:     'AIzaSyDbMGAIVkyjmE-YctHlWZBuLHAw_ar6SgM',
         FB_AUTH_DOMAIN: 'sofia-d7be0.firebaseapp.com',
