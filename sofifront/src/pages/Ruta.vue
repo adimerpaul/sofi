@@ -114,7 +114,7 @@
           :virtual-scroll="clientes.length > 40"
           @row-click="(_, row) => clickopciones(row)"
         >
-          <template #body-cell-Nombres="props">
+          <template body-cell-Nombres="props">
             <q-td
               :props="props"
               :class="rowClass(props.row.estado)"
@@ -138,7 +138,7 @@
             </q-td>
           </template>
 
-          <template #body-cell-opcion="props">
+          <template body-cell-opcion="props">
             <q-td :props="props" :class="rowClass(props.row.estado)">
               <q-btn
                 size="sm"
@@ -150,13 +150,13 @@
             </q-td>
           </template>
 
-          <template #no-data>
+          <template no-data>
             <div class="full-width q-pa-lg flex flex-center text-grey-7">
               <q-icon name="inbox" class="q-mr-sm" />
               No hay resultados para la fecha seleccionada.
             </div>
           </template>
-          <template #bottom>
+          <template bottom>
             <q-tr>
               <q-td colspan="100%">
                 <div class="text-right text-caption text-grey-7">
@@ -280,7 +280,7 @@
             :wrap-cells="false"
             class="table-pedidos"
           >
-            <template #body="props">
+            <template body="props">
               <q-tr
                 :props="props"
                 :class="props.row.estado==='ENTREGADO' ? 'bg-green-1' : props.row.estado==='NO ENTREGADO' ? 'bg-amber-1' : ''"
@@ -330,7 +330,7 @@
               </q-tr>
             </template>
 <!--            bottom total sum -->
-            <template #bottom>
+            <template bottom>
               <q-tr>
                 <q-td colspan="100%">
                   <div class="text-right text-caption text-grey-7">
@@ -386,7 +386,7 @@
           />
           <div class="q-mt-md">
             <q-input v-model="qrLink" dense readonly filled>
-              <template #append>
+              <template append>
                 <q-btn round dense flat icon="content_copy" @click="copyEncuestaLink" :disable="!qrLink"/>
               </template>
             </q-input>
@@ -531,7 +531,7 @@ export default {
       const userId = this.$store.getters['login/user'].CodAut
       console.log('User ID for survey link:', userId);
       // Construye el link encuestaIndex/<Cod_Aut>
-      this.qrLink = `${this.encuestaBase}#/encuesta/${encodeURIComponent(this.cliente.Cod_Aut)}/${userId}`;
+      this.qrLink = `${this.encuestaBase}/#/encuesta/${encodeURIComponent(this.cliente.Cod_Aut)}/${userId}`;
 
       // Genera QR mediante servicio liviano (sin libs)
       // Puedes cambiar size=220x220 o agregar margin & color si quieres
