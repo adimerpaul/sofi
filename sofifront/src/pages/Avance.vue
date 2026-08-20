@@ -473,8 +473,15 @@ export default {
         link.click();
         window.URL.revokeObjectURL(link.href);
         this.$q.loading.hide();
-      }).catch((err) => {
-        this.$q.notify({type: 'negative', message: 'Error al descargar la factura'});
+      }).catch(async (err) => {
+        // Con responseType blob el mensaje de error tambien llega como blob.
+        let mensaje = 'Error al descargar la factura';
+        try {
+          mensaje = JSON.parse(await err.response.data.text()).message || mensaje;
+        } catch (e) {
+          console.error(e);
+        }
+        this.$q.notify({type: 'negative', message: mensaje});
         console.error(err);
         this.$q.loading.hide();
       });

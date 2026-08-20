@@ -73,17 +73,17 @@
 
 <table class="info-table">
     <tr>
-        <td><b>CI/NIT:</b> 3544875019</td>
-        <td><b>Telf.:</b> 5289343</td>
+        <td><b>CI/NIT:</b> {{ trim($cliente->Id) }}</td>
+        <td><b>Telf.:</b> {{ trim($cliente->Telf) }}</td>
         <td><b>F. Emisión:</b> {{ \Carbon\Carbon::parse($cliente->FechaEntreg)->format('d/m/Y') }}</td>
-        <td><b>Zona:</b> CENTRO</td>
+        <td><b>Zona:</b> {{ trim($cliente->zona) }}</td>
     </tr>
     <tr>
         <td colspan="2"><b>Cliente:</b> {{ $cliente->Nombres }}</td>
         <td colspan="2"><b>Dirección:</b> {{ $cliente->Direccion }}</td>
     </tr>
     <tr>
-        <td colspan="2"><b>Vendedor:</b> {{ $usuario->Nombre1 ?? 'No Asignado' }}</td>
+        <td colspan="2"><b>Vendedor:</b> {{ $vendedor }}</td>
         <td><b>Nro Pedido:</b> {{ $comanda }}</td>
         <td><b>Fecha Entrega:</b> {{ \Carbon\Carbon::parse($cliente->FechaEntreg)->format('d/m/Y') }}</td>
     </tr>
