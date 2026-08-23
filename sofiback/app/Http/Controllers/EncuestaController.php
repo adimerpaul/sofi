@@ -81,6 +81,196 @@ class EncuestaController extends Controller{
         // stream() para abrir en el navegador; download() si prefieres descarga directa
         return $pdf->stream($filename);
     }
+
+    /* ==========================================================
+     |  ENCUESTA PÚBLICA (renderizada por el backend)
+     |  GET  /encuesta/{idcliente}/{iduser}
+     |  POST /encuesta/{idcliente}/{iduser}
+     |  Se sirve desde el servidor para que un F5 del cliente
+     |  siempre traiga el estado real y actual desde la BD.
+     ========================================================== */
+
+    /**
+     * GET /encuesta/{idcliente}/{iduser}
+     * Página pública de la encuesta. Todo se resuelve contra la BD
+     * en cada request (sin caché), así el F5 siempre muestra lo actual.
+     */
+    public function publicForm(Request $request, $idcliente, $iduser)
+    {
+        $ctx = $this->contexto((int)$idcliente, (int)$iduser);
+
+        if ($ctx['error']) {
+            return $this->sinCache(response()->view('encuesta.publica', $ctx, 404));
+        }
+
+        return $this->sinCache(response()->view('encuesta.publica', $ctx));
+    }
+
+    /**
+     * POST /encuesta/{idcliente}/{iduser}
+     * Guarda la respuesta y redirige al GET (patrón POST/Redirect/GET)
+     * para que un F5 posterior no reenvíe el formulario.
+     */
+    public function publicStore(Request $request, $idcliente, $iduser)
+    {
+        $validated = $request->validate([
+            'score'   => 'required|in:0,5,10',
+            'comment' => 'nullable|string|max:500',
+            'email'   => 'nullable|email|max:255',
+            'declaro' => 'accepted',
+        ], [
+            'score.required'   => 'Selecciona una calificación.',
+            'declaro.accepted' => 'Debes declarar que eres el cliente que recibió el servicio.',
+        ]);
+
+        $ctx = $this->contexto((int)$idcliente, (int)$iduser);
+        $volver = redirect()->route('encuesta.publica', [
+            'idcliente' => (int)$idcliente,
+            'iduser'    => (int)$iduser,
+        ]);
+
+        if ($ctx['error']) {
+            return $volver->with('error', $ctx['error']);
+        }
+
+        if ($ctx['respuesta']) {
+            return $volver->with('error', 'Ya se registró una respuesta hoy para este cliente.');
+        }
+
+        $email = trim((string)($validated['email'] ?? ''));
+        if ($email !== '' && $this->esCorreoDelRepartidor($email, $ctx['usuario'])) {
+            return $volver->with('error', 'Esta encuesta es únicamente para el cliente: el correo del repartidor no puede responder.');
+        }
+
+        $this->registrarEncuesta($request, $ctx['cliente'], $ctx['usuario'], [
+            'score'   => (int)$validated['score'],
+            'comment' => $validated['comment'] ?? null,
+            'email'   => $email ?: null,
+        ]);
+
+        return $volver->with('ok', '¡Gracias! Tu respuesta fue registrada.');
+    }
+
+    /**
+     * Arma el contexto (cliente, repartidor, respuesta de hoy) para la vista.
+     */
+    private function contexto(int $clienteId, int $userId): array
+    {
+        $hoy = Carbon::now('America/La_Paz')->toDateString();
+
+        $ctx = [
+            'idcliente' => $clienteId,
+            'iduser'    => $userId,
+            'hoy'       => $hoy,
+            'cliente'   => null,
+            'usuario'   => null,
+            'usuarioNombre' => null,
+            'respuesta' => null,
+            'error'     => null,
+        ];
+
+        if ($clienteId < 1 || $userId < 1) {
+            $ctx['error'] = 'El enlace de la encuesta no es válido.';
+            return $ctx;
+        }
+
+        $ctx['cliente'] = DB::table('tbclientes')->where('Cod_Aut', $clienteId)->first();
+        if (!$ctx['cliente']) {
+            $ctx['error'] = 'No encontramos el cliente de este enlace.';
+            return $ctx;
+        }
+
+        $ctx['usuario'] = DB::table('personal')->where('CodAut', $userId)->first();
+        if (!$ctx['usuario']) {
+            $ctx['error'] = 'No encontramos al repartidor de este enlace.';
+            return $ctx;
+        }
+
+        $ctx['usuarioNombre'] = $this->nombrePersonal($ctx['usuario']);
+
+        // Respuesta de hoy (si ya existe, la vista muestra el agradecimiento)
+        $ctx['respuesta'] = Encuesta::where('cliente_cod_aut', $clienteId)
+            ->where('usuario_cod_aut', $userId)
+            ->where('encuesta_date', $hoy)
+            ->orderByDesc('id')
+            ->first();
+
+        return $ctx;
+    }
+
+    /**
+     * Nombre completo del personal (los campos legados vienen con padding).
+     */
+    private function nombrePersonal($usr): string
+    {
+        return trim(implode(' ', array_filter(array_map('trim', [
+            $usr->Nombre1 ?? '',
+            $usr->Nombre2 ?? '',
+            $usr->App1 ?? '',
+            $usr->Apm ?? '',
+        ]))));
+    }
+
+    /**
+     * Anti-fraude: el correo del repartidor no puede responder su propia encuesta.
+     */
+    private function esCorreoDelRepartidor(string $email, $usr): bool
+    {
+        $correo = trim((string)($usr->correo ?? ''));
+        if ($correo === '' || trim($email) === '') return false;
+
+        return strcasecmp(trim($email), $correo) === 0;
+    }
+
+    /**
+     * Crea la encuesta guardando el snapshot de cliente/repartidor + metadatos.
+     */
+    private function registrarEncuesta(Request $request, $cli, $usr, array $datos): Encuesta
+    {
+        return Encuesta::create([
+            'cliente_cod_aut' => (int)$cli->Cod_Aut,
+            'usuario_cod_aut' => (int)$usr->CodAut,
+
+            'cliente_id'      => $cli->Id ?? null,
+            'cliente_nombre'  => $cli->Nombres ?? null,
+            'cliente_tel'     => $cli->Telf ?? null,
+            'cliente_dir'     => $cli->Direccion ?? null,
+            'cliente_zona'    => $cli->zona ?? null,
+            'cliente_lat'     => $cli->Latitud ?? null,
+            'cliente_lng'     => $cli->longitud ?? null,
+
+            'usuario_ci'      => $usr->ci ?? null,
+            'usuario_nombre'  => $this->nombrePersonal($usr) ?: null,
+            'usuario_correo'  => trim((string)($usr->correo ?? '')) ?: null,
+            'usuario_placa'   => $usr->placa ?? null,
+
+            'score'           => (int)$datos['score'],
+            'comment'         => $datos['comment'] ?? null,
+
+            'encuesta_date'   => Carbon::now('America/La_Paz')->toDateString(),
+            'email'           => $datos['email'] ?? null,
+
+            'client_ip'       => $request->ip(),
+            'origin_scheme'   => $request->getScheme(),
+            'origin_host'     => $request->getHost(),
+            'origin_path'     => $request->path(),
+            'server_ip'       => $request->server('SERVER_ADDR') ?: null,
+            'user_agent'      => $request->userAgent(),
+            'referer'         => $request->headers->get('referer') ?: null,
+        ]);
+    }
+
+    /**
+     * La encuesta nunca debe quedar cacheada: cada F5 debe pegarle a la BD.
+     */
+    private function sinCache($response)
+    {
+        return $response
+            ->header('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0')
+            ->header('Pragma', 'no-cache')
+            ->header('Expires', '0');
+    }
+
     /**
      * POST /api/encuestas
      * Body esperado:
@@ -102,97 +292,33 @@ class EncuestaController extends Controller{
             'email'     => 'nullable|email|max:255',
         ]);
 
-        $clienteId = (int)$validated['idcliente'];
-        $userId    = (int)$validated['iduser'];
+        $ctx = $this->contexto((int)$validated['idcliente'], (int)$validated['iduser']);
 
-        // Cargar snapshot de cliente (BD: sofia.tbclientes)
-        $cli = DB::table('tbclientes')
-            ->where('Cod_Aut', $clienteId)
-            ->first();
-
-        if (!$cli) {
+        if (!$ctx['cliente']) {
             return response()->json(['message' => 'Cliente no encontrado'], 404);
         }
-
-        // Cargar snapshot de usuario (BD: sofia.personal)
-        $usr = DB::table('personal')
-            ->where('CodAut', $userId)
-            ->first();
-
-        if (!$usr) {
+        if (!$ctx['usuario']) {
             return response()->json(['message' => 'Usuario no encontrado'], 404);
         }
 
         // Anti-fraude: si el email que responde == correo del repartidor -> 403
-        if (!empty($validated['email']) && !empty($usr->correo)) {
-            if (strcasecmp(trim($validated['email']), trim($usr->correo)) === 0) {
-                return response()->json([
-                    'message' => 'Esta encuesta es únicamente para el cliente. El correo del repartidor no puede responder.'
-                ], 403);
-            }
+        if (!empty($validated['email']) && $this->esCorreoDelRepartidor($validated['email'], $ctx['usuario'])) {
+            return response()->json([
+                'message' => 'Esta encuesta es únicamente para el cliente. El correo del repartidor no puede responder.'
+            ], 403);
         }
 
         // Evitar duplicados (por día lógico)
-        $hoy = Carbon::now('America/La_Paz')->toDateString();
-
-        $exists = Encuesta::where('cliente_cod_aut', $clienteId)
-            ->where('usuario_cod_aut', $userId)
-            ->where('encuesta_date', $hoy)
-            ->exists();
-
-        if ($exists) {
+        if ($ctx['respuesta']) {
             return response()->json([
                 'message' => 'Ya existe una respuesta para este cliente y usuario hoy.'
             ], 409);
         }
 
-        // Metadatos request
-        $scheme = $request->getScheme();
-        $host   = $request->getHost();
-        $path   = $request->path();
-        $serverIp = $request->server('SERVER_ADDR');
-        $referer  = $request->headers->get('referer');
-
-        // Build nombre completo del usuario
-        $usuarioNombre = trim(
-            implode(' ', array_filter([
-                $usr->Nombre1 ?? null,
-                $usr->Nombre2 ?? null,
-                $usr->App1 ?? null,
-                $usr->Apm ?? null,
-            ]))
-        );
-
-        $encuesta = Encuesta::create([
-            'cliente_cod_aut' => $clienteId,
-            'usuario_cod_aut' => $userId,
-
-            'cliente_id'      => $cli->Id ?? null,
-            'cliente_nombre'  => $cli->Nombres ?? null,
-            'cliente_tel'     => $cli->Telf ?? null,
-            'cliente_dir'     => $cli->Direccion ?? null,
-            'cliente_zona'    => $cli->zona ?? null,
-            'cliente_lat'     => $cli->Latitud ?? null,
-            'cliente_lng'     => $cli->longitud ?? null,
-
-            'usuario_ci'      => $usr->ci ?? null,
-            'usuario_nombre'  => $usuarioNombre ?: null,
-            'usuario_correo'  => $usr->correo ?? null,
-            'usuario_placa'   => $usr->placa ?? null,
-
-            'score'           => (int)$validated['score'],
-            'comment'         => $validated['comment'] ?? null,
-
-            'encuesta_date'   => $hoy,
-            'email'           => $validated['email'] ?? null,
-
-            'client_ip'       => $request->ip(),
-            'origin_scheme'   => $scheme,
-            'origin_host'     => $host,
-            'origin_path'     => $path,
-            'server_ip'       => $serverIp ?: null,
-            'user_agent'      => $request->userAgent(),
-            'referer'         => $referer ?: null,
+        $encuesta = $this->registrarEncuesta($request, $ctx['cliente'], $ctx['usuario'], [
+            'score'   => (int)$validated['score'],
+            'comment' => $validated['comment'] ?? null,
+            'email'   => $validated['email'] ?? null,
         ]);
 
         return response()->json([
