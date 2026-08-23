@@ -372,29 +372,68 @@
       </q-card>
     </q-dialog>
     <q-dialog v-model="dialogQR" transition-show="scale" transition-hide="scale">
-      <q-card class="q-pa-md" style="width: 360px; max-width: 90vw">
-        <q-card-section class="text-center">
-          <div class="text-subtitle1 text-weight-medium q-mb-xs">Encuesta de Satisfacción</div>
-          <div class="text-caption text-grey-7 q-mb-md">
-            Escanee el código o abra el enlace para responder.
+      <q-card class="qr-card">
+        <div class="qr-head row items-center no-wrap q-pa-md">
+          <q-icon name="reviews" size="26px" class="q-mr-sm" />
+          <div class="col">
+            <div class="text-subtitle1 text-weight-bold">Encuesta de satisfacción</div>
+            <div class="text-caption ellipsis" style="opacity:.85">{{ qrCliente || 'Cliente' }}</div>
           </div>
-          <q-img
-            :src="qrSrc"
-            ratio="1"
-            style="width: 220px; height: 220px; margin: 0 auto; border-radius: 12px;"
-            spinner-color="primary"
-          />
-          <div class="q-mt-md">
-            <q-input v-model="qrLink" dense readonly filled>
-              <template #append>
-                <q-btn round dense flat icon="content_copy" @click="copyEncuestaLink" :disable="!qrLink"/>
-              </template>
-            </q-input>
+          <q-btn round flat dense icon="close" v-close-popup />
+        </div>
+
+        <q-card-section class="text-center q-pt-lg q-pb-sm">
+          <div class="qr-box">
+            <q-img :src="qrSrc" ratio="1" spinner-color="primary" style="width:100%; height:100%" />
           </div>
+
+          <div class="text-caption text-grey-7 q-mt-md">
+            El cliente escanea el código y responde desde su celular.<br>
+            La página se genera en el servidor: puede recargarla (F5) sin perder los datos.
+          </div>
+
+          <q-input
+            v-model="qrLink"
+            dense
+            readonly
+            outlined
+            class="q-mt-md qr-link"
+            @focus="$event.target.select()"
+          >
+            <template #prepend>
+              <q-icon name="link" size="18px" color="grey-7" />
+            </template>
+            <template #append>
+              <q-btn round dense flat icon="content_copy" color="primary"
+                     @click="copyEncuestaLink" :disable="!qrLink">
+                <q-tooltip>Copiar enlace</q-tooltip>
+              </q-btn>
+            </template>
+          </q-input>
         </q-card-section>
-        <q-card-actions align="right">
-          <q-btn flat label="Cerrar" color="grey-8" v-close-popup />
-          <q-btn :href="qrLink" target="_blank" label="Abrir" color="primary" />
+
+        <q-card-actions class="column q-px-md q-pb-md q-gutter-y-sm">
+          <q-btn
+            v-if="qrWhatsapp"
+            :href="qrWhatsapp"
+            target="_blank"
+            class="full-width"
+            color="green-7"
+            icon="chat"
+            label="Enviar por WhatsApp"
+            no-caps
+            unelevated
+          />
+          <q-btn
+            :href="qrLink"
+            target="_blank"
+            class="full-width"
+            color="primary"
+            icon="open_in_new"
+            label="Abrir encuesta"
+            no-caps
+            outline
+          />
         </q-card-actions>
       </q-card>
     </q-dialog>
@@ -425,6 +464,8 @@ export default {
       dialogQR: false,
       qrLink: "",
       qrSrc: "",
+      qrCliente: "",
+      qrWhatsapp: "",
       prestamo: { ingreso: 0, salida: 0 },
       estado: "",
       observacion: "",
@@ -456,9 +497,12 @@ export default {
 
   computed: {
     encuestaBase () {
-      // Usa tu dominio si quieres forzar otro host:
-      // return 'https://tudominio.com' // por ejemplo
-      return window.location.origin
+      // La encuesta la renderiza el BACKEND (no el SPA): así el cliente puede
+      // recargar con F5 y siempre ve el estado actual traído de la BD.
+      // Se deriva del API base: http://localhost:8000/api/ -> http://localhost:8000
+      return String(process.env.API || '')
+        .replace(/\/+$/, '')
+        .replace(/\/api$/, '')
     },
     clientesConCoord () {
       // Filtra clientes con coordenadas válidas y normaliza
@@ -527,18 +571,33 @@ export default {
         this.$q.notify({ message: 'Seleccione un cliente válido', color: 'warning' });
         return;
       }
-      // store user
-      const userId = this.$store.getters['login/user'].CodAut
-      console.log('User ID for survey link:', userId);
-      // Construye el link encuestaIndex/<Cod_Aut>
-      this.qrLink = `${this.encuestaBase}#/encuesta/${encodeURIComponent(this.cliente.Cod_Aut)}/${userId}`;
 
-      // Genera QR mediante servicio liviano (sin libs)
-      // Puedes cambiar size=220x220 o agregar margin & color si quieres
+      const userId = this.$store.getters['login/user']?.CodAut;
+      if (!userId) {
+        this.$q.notify({ message: 'No se pudo identificar al repartidor', color: 'negative', icon: 'error' });
+        return;
+      }
+
+      // Enlace directo al backend (página renderizada por el servidor)
+      this.qrLink = `${this.encuestaBase}/encuesta/${encodeURIComponent(this.cliente.Cod_Aut)}/${encodeURIComponent(userId)}`;
+      this.qrCliente = this.cliente.Nombres || '';
+
+      // QR generado por servicio liviano (sin libs)
       const encoded = encodeURIComponent(this.qrLink);
-      this.qrSrc = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encoded}`;
+      this.qrSrc = `https://api.qrserver.com/v1/create-qr-code/?size=320x320&margin=8&data=${encoded}`;
 
+      this.qrWhatsapp = this.linkWhatsapp(this.cliente.Telf, this.qrLink);
       this.dialogQR = true;
+    },
+
+    // Arma el link de WhatsApp con el enlace de la encuesta (Bolivia: +591)
+    linkWhatsapp (telf, link) {
+      const num = String(telf || '').replace(/\D/g, '');
+      if (num.length < 7) return '';
+      const full = num.length === 8 ? `591${num}` : num;
+      const texto = `Hola, gracias por tu compra en Distribuidora Sofía 🐔\n` +
+        `¿Nos ayudas con una encuesta rápida? ${link}`;
+      return `https://wa.me/${full}?text=${encodeURIComponent(texto)}`;
     },
 
     copyEncuestaLink () {
@@ -750,5 +809,30 @@ export default {
 .table-pedidos :deep(.q-table__middle) {
   max-height: 48vh; /* hace el diálogo más usable en pantallas pequeñas */
   overflow: auto;
+}
+
+/* ---- Diálogo QR de la encuesta ---- */
+.qr-card {
+  width: 380px;
+  max-width: 92vw;
+  border-radius: 16px;
+  overflow: hidden;
+}
+.qr-head {
+  background: linear-gradient(135deg, #c62828, #8e1f1f);
+  color: #fff;
+}
+.qr-box {
+  width: 232px;
+  height: 232px;
+  margin: 0 auto;
+  padding: 8px;
+  background: #fff; /* fondo blanco: el QR siempre escaneable */
+  border: 1px solid rgba(0, 0, 0, .08);
+  border-radius: 14px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, .10);
+}
+.qr-link :deep(input) {
+  font-size: 12px;
 }
 </style>

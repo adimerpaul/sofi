@@ -84,8 +84,12 @@ const routes = [
     ]
   },
   {
+    // La encuesta pública ya NO vive en el SPA: la renderiza el backend
+    // (GET /encuesta/{idcliente}/{iduser}) para que el cliente pueda recargar
+    // con F5 y siempre vea los datos actuales. Esta ruta solo redirige los
+    // QR/enlaces antiguos con hash.
     path: '/encuesta/:idcliente/:iduser',
-    component: () => import('pages/encuesta/Encuesta.vue'),
+    component: () => import('pages/encuesta/EncuestaRedirect.vue'),
   },
 
   // Always leave this as last one,
