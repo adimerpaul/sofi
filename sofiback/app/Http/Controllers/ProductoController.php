@@ -19,6 +19,11 @@ class ProductoController extends Controller{
             'cod_prod',
             'Producto',
             'Precio',
+            // Los otros 12 precios de la lista: el pedido en Visita deja elegir
+            // cualquiera de ellos en vez de escribir el monto a mano.
+            'Precio_Costo',
+            'Precio3', 'Precio4', 'Precio5', 'Precio6', 'Precio7', 'Precio8',
+            'Precio9', 'Precio10', 'Precio11', 'Precio12', 'Precio13',
             'codUnid',
             'tipo',
             DB::raw('(SELECT SUM(s.cant - s.saldo) FROM tbstock s WHERE s.cod_prod = tbproductos.cod_prod) as cantidad')

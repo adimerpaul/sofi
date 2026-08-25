@@ -20,6 +20,17 @@
           <div class="text-caption text-grey-7">
             NIT {{ pedido.nit || '—' }} · {{ pedido.vendedor || 'Sin preventista' }}
           </div>
+          <div class="q-mt-xs">
+            <q-chip v-if="pedido.placa" dense square size="sm" icon="local_shipping" :style="estiloCamion">
+              {{ pedido.placa }}
+            </q-chip>
+            <q-chip v-else dense square size="sm" outline color="grey-7" icon="local_shipping">
+              Sin camion
+            </q-chip>
+            <q-chip v-if="pedido.horario" dense square size="sm" outline color="grey-7" icon="schedule">
+              {{ pedido.horario }}
+            </q-chip>
+          </div>
         </q-card-section>
       </q-card>
 
@@ -55,16 +66,29 @@
           <q-item v-for="(item, indice) in items" :key="item.cod_prod + '-' + indice" class="q-pa-sm">
             <q-item-section>
               <q-item-label class="text-weight-bold" lines="2">{{ item.nombre }}</q-item-label>
-              <q-item-label caption>{{ item.cod_prod }}</q-item-label>
+              <q-item-label caption>
+                {{ item.cod_prod }}
+                <span v-if="esPeso(item)" class="text-orange-9">· se cobra por peso</span>
+              </q-item-label>
 
               <div class="row q-col-gutter-xs q-mt-xs">
-                <div class="col-5">
+                <div :class="esPeso(item) ? 'col-3' : 'col-5'">
                   <q-input
                     v-model.number="item.cantidad" type="number" min="0.001" step="0.001"
                     dense outlined label="Cantidad" @update:model-value="actualizar(item)"
                   />
                 </div>
-                <div class="col-5">
+                <!-- Lo que va por kilo se pesa en el mostrador: ese peso, y no
+                     la cantidad de piezas, es lo que multiplica al precio. -->
+                <div v-if="esPeso(item)" class="col-3">
+                  <q-input
+                    v-model.number="item.peso" type="number" min="0.001" step="0.001"
+                    dense outlined label="Peso kg" bg-color="orange-1"
+                    :error="!Number(item.peso)" hide-bottom-space
+                    @update:model-value="actualizar(item)"
+                  />
+                </div>
+                <div :class="esPeso(item) ? 'col-4' : 'col-5'">
                   <q-input
                     v-model.number="item.precio" type="number" min="0" step="0.01"
                     dense outlined label="Precio Bs" @update:model-value="actualizar(item)"
@@ -108,6 +132,9 @@
             <div class="col text-subtitle1 text-weight-bold">Total</div>
             <div class="text-h5 text-weight-bolder">Bs {{ money(total) }}</div>
           </div>
+          <div v-if="faltanPesos" class="text-caption text-negative">
+            <q-icon name="scale"/> Falta pesar productos: el total aún no está completo
+          </div>
         </q-card-section>
       </q-card>
 
@@ -115,7 +142,7 @@
         <q-btn
           class="full-width q-py-sm text-weight-bold" color="positive" unelevated no-caps
           icon="point_of_sale" :label="tipoComprobante === 'FACTURA' ? 'Emitir factura' : 'Generar voucher'"
-          :disable="!items.length" :loading="guardando" @click="guardar"
+          :disable="!items.length || faltanPesos" :loading="guardando" @click="guardar"
         />
       </div>
     </template>
@@ -180,7 +207,21 @@ export default {
     tipoPedido () { return String(this.$route.params.tipo || '').toUpperCase() },
     nombreTipo () { return this.tipoPedido === 'NORMAL' ? 'EMBUTIDOS' : this.tipoPedido },
     total () {
-      return this.items.reduce((suma, item) => suma + Number(item.cantidad || 0) * Number(item.precio || 0), 0)
+      return this.items.reduce((suma, item) => suma + this.facturable(item) * Number(item.precio || 0), 0)
+    },
+    // Mientras falte un peso el total esta incompleto y no se puede cobrar.
+    faltanPesos () {
+      return this.items.some(item => this.esPeso(item) && !(Number(item.peso) > 0))
+    },
+    // colorStyle del pedido viene como 'background-color: #RRGGBB'; el texto se
+    // pone negro o blanco segun que tan claro sea ese fondo.
+    estiloCamion () {
+      const estilo = String((this.pedido && this.pedido.placa_color) || '').trim()
+      const hex = /#([0-9a-f]{6})/i.exec(estilo)
+      if (!hex) return 'background-color: #ECEFF1; color: #37474F'
+      const valor = parseInt(hex[1], 16)
+      const luz = (0.299 * ((valor >> 16) & 255) + 0.587 * ((valor >> 8) & 255) + 0.114 * (valor & 255)) / 255
+      return estilo + '; color: ' + (luz > 0.6 ? '#212121' : '#FFFFFF')
     }
   },
   created () {
@@ -189,14 +230,23 @@ export default {
   methods: {
     money (valor) { return Number(valor || 0).toFixed(2) },
     cantidad (valor) { return Number(valor || 0).toLocaleString('es-BO', { maximumFractionDigits: 3 }) },
+    // Los productos por kilo se cobran por el peso de la balanza; el resto,
+    // por la cantidad de unidades.
+    esPeso (item) { return String(item.unidad || '').toUpperCase() === 'KG' },
+    facturable (item) {
+      return Number((this.esPeso(item) ? item.peso : item.cantidad) || 0)
+    },
     actualizar (item) {
-      item.total = Math.round(Number(item.cantidad || 0) * Number(item.precio || 0) * 100) / 100
+      item.total = Math.round(this.facturable(item) * Number(item.precio || 0) * 100) / 100
     },
     cargarPedido () {
       this.$api.get('facturacion/pedidos/' + this.numeroPedido, { params: { tipo: this.tipoPedido } })
         .then(res => {
           this.pedido = res.data.pedido
           this.items = res.data.items
+          // Las lineas por kilo llegan sin pesar, asi que su importe arranca
+          // en cero hasta que el cajero escriba el peso.
+          this.items.forEach(this.actualizar)
           this.nit = this.pedido.nit || ''
           this.observacion = this.pedido.comentario || ''
           this.tipoComprobante = String(this.pedido.fact || '').toUpperCase() === 'SI' ? 'FACTURA' : 'VENTA'
@@ -206,10 +256,10 @@ export default {
         .finally(() => { this.cargando = false })
     },
     volver () {
-      this.$router.push({
-        path: '/facturacion/pedidos',
-        query: { fecha: String(this.pedido?.fecha || '').substr(0, 10), tipo: this.tipoPedido }
-      })
+      const query = { fecha: String(this.pedido?.fecha || '').substr(0, 10), tipo: this.tipoPedido }
+      // Se devuelve el camion con el que venia filtrado el listado.
+      if (this.$route.query.camion) query.camion = this.$route.query.camion
+      this.$router.push({ path: '/facturacion/pedidos', query })
     },
     abrirCatalogo () {
       this.dialogCatalogo = true
@@ -231,16 +281,18 @@ export default {
     agregar (producto) {
       const existente = this.items.find(item => item.cod_prod === producto.cod_prod)
       if (existente) {
-        existente.cantidad = Number(existente.cantidad || 0) + (producto.unidad === 'KG' ? 0.001 : 1)
+        existente.cantidad = Number(existente.cantidad || 0) + 1
         this.actualizar(existente)
       } else {
+        // El peso entra vacio: lo escribe el cajero con lo que marque la balanza.
         this.items.push({
           cod_prod: producto.cod_prod,
           nombre: producto.producto,
           unidad: producto.unidad,
-          cantidad: producto.unidad === 'KG' ? 0.001 : 1,
+          cantidad: 1,
+          peso: null,
           precio: Number(producto.precio || 0),
-          total: producto.unidad === 'KG' ? Number(producto.precio || 0) * 0.001 : Number(producto.precio || 0)
+          total: producto.unidad === 'KG' ? 0 : Number(producto.precio || 0)
         })
       }
       this.dialogCatalogo = false
@@ -252,6 +304,16 @@ export default {
       }
       if (this.items.some(item => Number(item.cantidad) <= 0 || Number(item.precio) < 0)) {
         this.$q.notify({ type: 'warning', position: 'top', message: 'Revisa cantidades y precios' })
+        return
+      }
+      if (this.faltanPesos) {
+        this.$q.notify({
+          type: 'warning',
+          position: 'top',
+          message: 'Falta el peso de: ' + this.items
+            .filter(item => this.esPeso(item) && !(Number(item.peso) > 0))
+            .map(item => item.nombre).join(', ')
+        })
         return
       }
 
@@ -268,6 +330,8 @@ export default {
         items: this.items.map(item => ({
           cod_prod: item.cod_prod,
           cantidad: Number(item.cantidad),
+          // El peso solo viaja en lo que se vende por kilo.
+          ...(this.esPeso(item) ? { peso: Number(item.peso) } : {}),
           precio: Number(item.precio)
         }))
       }).then(res => {

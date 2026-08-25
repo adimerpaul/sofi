@@ -242,6 +242,7 @@
               <th class="text-left">Código</th>
               <th class="text-left">Producto</th>
               <th class="text-right">Cant.</th>
+              <th class="text-right">Peso kg</th>
               <th class="text-right">Precio</th>
               <th class="text-right">Subtotal</th>
             </tr>
@@ -251,6 +252,8 @@
               <td class="text-left">{{ d.cod_prod }}</td>
               <td class="text-left">{{ d.nombre }}</td>
               <td class="text-right">{{ Number(d.cantidad).toFixed(d.unidad === 'KG' ? 3 : 0) }}</td>
+              <!-- Lo que va a granel se cobra por este peso, no por la cantidad. -->
+              <td class="text-right">{{ Number(d.peso) > 0 ? Number(d.peso).toFixed(3) : '—' }}</td>
               <td class="text-right">{{ money(d.precio) }}</td>
               <td class="text-right text-weight-bold">{{ money(d.subtotal) }}</td>
             </tr>

@@ -11,6 +11,9 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  *
  * El nombre, la unidad y el precio quedan copiados al guardar para que la
  * factura se pueda reimprimir tal cual aunque el producto cambie despues.
+ *
+ * En lo que se vende a granel conviven cantidad (piezas entregadas) y peso
+ * (kilos de balanza); lo que se cobra es el peso, ver cantidad_facturada.
  */
 class FacturaDetalle extends Model
 {
@@ -24,15 +27,28 @@ class FacturaDetalle extends Model
         'nombre',
         'unidad',
         'cantidad',
+        'peso',
         'precio',
         'subtotal',
     ];
 
     protected $casts = [
         'cantidad' => 'decimal:3',
+        'peso'     => 'decimal:3',
         'precio'   => 'decimal:2',
         'subtotal' => 'decimal:2',
     ];
+
+    /**
+     * Lo que de verdad multiplica al precio.
+     *
+     * En lo que va por kilo es el peso de la balanza; en el resto, y en las
+     * lineas viejas guardadas sin peso, sigue siendo la cantidad.
+     */
+    public function getCantidadFacturadaAttribute()
+    {
+        return (float) $this->peso > 0 ? (float) $this->peso : (float) $this->cantidad;
+    }
 
     public function factura()
     {

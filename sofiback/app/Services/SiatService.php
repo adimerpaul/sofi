@@ -541,7 +541,9 @@ class SiatService
                 'codigoProductoSin'  => $fiscal->producto_sin,
                 'codigoProducto'     => $usaRespaldo ? $respaldo->cod_prod : $cod,
                 'descripcion'        => $linea->nombre,
-                'cantidad'           => $this->monto($linea->cantidad),
+                // Lo que multiplica al precio: en lo que va a granel es el peso
+                // de la balanza, no las piezas entregadas.
+                'cantidad'           => $this->monto($linea->cantidad_facturada),
                 // Sin unidad cargada se manda 57 (UNIDAD), que es el comodin
                 // del catalogo del SIAT.
                 'unidadMedida'       => ($prod->unidad_sin ?? null) ?: ($respaldo->unidad_sin ?: 57),

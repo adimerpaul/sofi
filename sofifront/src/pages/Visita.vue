@@ -354,19 +354,42 @@
                 </template>
                 <template v-slot:body-cell-cantidad="props">
                   <q-td :props="props" auto-width>
-                    <template v-if="props.row.tipo=='NORMAL'">
-                      <q-btn flat @click="agregar(props.row)" class="q-ma-none q-pa-none" color="positive"
-                             icon="add_circle"/>
-                      <input type="number" @keyup="tecleado(props.row)" v-model="props.row.cantidad"
-                             style="width: 2.5em">
-                    </template>
-                    <q-btn flat @click="quitar(props.row,props.rowIndex)" class="q-ma-none q-pa-none" color="negative"
-                           icon="remove_circle"/>
+                    <div class="row items-center no-wrap">
+                      <template v-if="props.row.tipo=='NORMAL'">
+                        <!-- <q-btn flat dense @click="agregar(props.row)" class="q-ma-none q-pa-none" color="positive"
+                               icon="add_circle"/> -->
+                        <input type="number" min="0" step="0.001" @keyup="tecleado(props.row)"
+                               v-model="props.row.cantidad" class="entrada-pedido entrada-cantidad">
+                      </template>
+                      <!-- <q-btn flat dense @click="quitar(props.row,props.rowIndex)" class="q-ma-none q-pa-none"
+                             color="negative" icon="remove_circle"/> -->
+                    </div>
                   </q-td>
                 </template>
                 <template v-slot:body-cell-precio="props">
                   <q-td :props="props" auto-width>
-                    <input type="number" @keyup="tecleado(props.row)" v-model="props.row.precio" style="width: 3em">
+                    <div class="row items-center no-wrap">
+                      <input type="number" min="0" step="0.01" @keyup="tecleado(props.row)"
+                             v-model="props.row.precio" class="entrada-pedido entrada-precio">
+                      <q-btn flat dense size="sm" color="primary" icon="expand_more"
+                             class="q-ma-none q-pa-none"
+                             :disable="!(props.row.precios || []).length">
+                        <q-menu auto-close>
+                          <q-list dense style="min-width: 165px">
+                            <q-item-label header class="q-py-xs">Precios del producto</q-item-label>
+                            <q-item v-for="opcion in props.row.precios" :key="opcion.etiqueta" clickable
+                                    :active="String(props.row.precio) === opcion.valor"
+                                    @click="elegirPrecio(props.row, opcion.valor)">
+                              <q-item-section>{{ opcion.etiqueta }}</q-item-section>
+                              <q-item-section side class="text-weight-bold text-primary">
+                                {{ opcion.valor }} Bs
+                              </q-item-section>
+                            </q-item>
+                          </q-list>
+                        </q-menu>
+                        <q-tooltip>Elegir uno de los precios del producto</q-tooltip>
+                      </q-btn>
+                    </div>
                   </q-td>
                 </template>
                 <template v-slot:top-right>
@@ -1220,6 +1243,30 @@ export default {
       // console.log(e)
       e.subtotal = (e.cantidad * e.precio).toFixed(2)
     },
+    // tbproductos guarda 13 precios de venta: Precio es el 1 y Precio_Costo el
+    // 2 (el nombre es heredado, no es el costo), despues Precio3..Precio13.
+    // Se descartan los que estan en cero y los repetidos para que la lista solo
+    // muestre precios que de verdad se pueden cobrar.
+    listaPrecios(producto) {
+      const campos = ['Precio', 'Precio_Costo', 'Precio3', 'Precio4', 'Precio5',
+        'Precio6', 'Precio7', 'Precio8', 'Precio9', 'Precio10', 'Precio11',
+        'Precio12', 'Precio13']
+      const vistos = []
+      const opciones = []
+      campos.forEach((campo, indice) => {
+        const valor = parseFloat(producto[campo])
+        if (!valor || isNaN(valor)) return
+        const texto = valor.toFixed(2)
+        if (vistos.indexOf(texto) !== -1) return
+        vistos.push(texto)
+        opciones.push({etiqueta: 'Precio ' + (indice + 1), valor: texto})
+      })
+      return opciones
+    },
+    elegirPrecio(fila, valor) {
+      fila.precio = valor
+      this.tecleado(fila)
+    },
     agregarpedido() {
       if (this.producto.Producto == undefined) {
         this.$q.notify({
@@ -1313,6 +1360,7 @@ export default {
         nombre: this.producto.Producto,
         cod_prod: this.producto.cod_prod,
         precio: parseFloat(this.producto.Precio).toFixed(2),
+        precios: this.listaPrecios(this.producto),
         cantidad: 1,
         subtotal: parseFloat(this.producto.Precio).toFixed(2)
       })
@@ -1449,6 +1497,19 @@ export default {
 };
 </script>
 <style lang="sass">
+.entrada-pedido
+  border: 1px solid rgba(0, 0, 0, 0.24)
+  border-radius: 4px
+  font-size: 14px
+  padding: 2px 4px
+  text-align: right
+
+.entrada-cantidad
+  width: 3em
+
+.entrada-precio
+  width: 4em
+
 .my-sticky-header-table
   /* height or max-height is important */
   height: 450px

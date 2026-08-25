@@ -55,8 +55,11 @@ class FacturacionController extends Controller
         if ($buscar = trim((string) $request->input('buscar', ''))) {
             $like = '%' . $buscar . '%';
             $query->where(function ($w) use ($like, $buscar) {
+                // El carnet se busca desde el principio y no en cualquier parte
+                // del numero: con LIKE '%2%' un comprobante se perdia entre
+                // todos los NIT que llevaran un 2. El nombre si va parcial.
                 $w->where('nombre', 'like', $like)
-                    ->orWhere('nit', 'like', $like);
+                    ->orWhere('nit', 'like', $buscar . '%');
                 if (ctype_digit($buscar)) {
                     $w->orWhere('id', $buscar)->orWhere('nro_factura', $buscar);
                 }
@@ -252,8 +255,10 @@ class FacturacionController extends Controller
         $pedidos = $query
             ->groupBy([
                 'p.NroPed', 'p.tipo', 'p.fecha', 'p.idCli', 'p.CIfunc', 'p.estado',
-                'p.fact', 'p.pago', 'p.comentario', 'c.Id', 'c.Nombres',
+                'p.fact', 'p.pago', 'p.comentario', 'p.placa', 'c.Id', 'c.Nombres',
+                'p.colorStyle',
                 'v.Nombre1', 'v.Nombre2', 'v.App1', 'v.Apm', 'f.id', 'f.tipo_comprobante',
+                'f.fecha', 'f.nit',
             ])
             ->orderByRaw('CASE WHEN f.id IS NULL THEN 0 ELSE 1 END ASC')
             ->orderByDesc('p.NroPed')
@@ -261,6 +266,10 @@ class FacturacionController extends Controller
                 'p.NroPed as nro_pedido',
                 DB::raw('UPPER(TRIM(p.tipo)) as tipo'),
                 'p.fecha', 'p.estado', 'p.fact', 'p.pago', 'p.comentario',
+                // El camion del pedido es tbpedidos.placa; colorStyle es el color
+                // con el que esa placa ya se pinta en el mapa y en el reporte.
+                DB::raw("TRIM(COALESCE(p.placa, '')) as placa"),
+                DB::raw("TRIM(COALESCE(p.colorStyle, '')) as placa_color"),
                 'p.idCli as cliente_id',
                 DB::raw('TRIM(c.Id) as nit'),
                 DB::raw('TRIM(c.Nombres) as cliente'),
@@ -268,6 +277,10 @@ class FacturacionController extends Controller
                 DB::raw('COUNT(*) as productos'),
                 DB::raw('ROUND(SUM(COALESCE(p.Cant, 0) * COALESCE(p.precio, 0)), 2) as total_pedido'),
                 'f.id as factura_id', 'f.tipo_comprobante as comprobante_emitido',
+                // El comprobante se emite el dia que se cobra, no el del pedido:
+                // con su fecha y su carnet la pantalla de facturacion lo
+                // encuentra sin buscarlo a mano.
+                'f.fecha as factura_fecha', DB::raw('TRIM(f.nit) as factura_nit'),
             ]);
 
         $numeros = $pedidos->pluck('nro_pedido')->all();
@@ -327,6 +340,10 @@ class FacturacionController extends Controller
             ->first([
                 'p.NroPed as nro_pedido', DB::raw('UPPER(TRIM(p.tipo)) as tipo'),
                 'p.fecha', 'p.estado', 'p.fact', 'p.pago', 'p.comentario',
+                // Mismo camion que se ve en el listado de pedidos por facturar.
+                DB::raw("TRIM(COALESCE(p.placa, '')) as placa"),
+                DB::raw("TRIM(COALESCE(p.colorStyle, '')) as placa_color"),
+                DB::raw("TRIM(COALESCE(p.horario, '')) as horario"),
                 'p.idCli as cliente_id', DB::raw('TRIM(c.Id) as nit'),
                 DB::raw('TRIM(c.Nombres) as cliente'), DB::raw('TRIM(c.Direccion) as direccion'),
                 DB::raw('TRIM(c.zona) as zona'), DB::raw('TRIM(c.CiVend) as vendedor_ci'),
@@ -366,6 +383,9 @@ class FacturacionController extends Controller
             ->map(function ($item) {
                 $item->cantidad = (float) $item->cantidad;
                 $item->precio = (float) $item->precio;
+                // Lo que va por kilo se pesa recien al cobrar: el peso sale en
+                // blanco para que el cajero escriba lo de la balanza.
+                $item->peso = null;
                 $item->total = round($item->cantidad * $item->precio, 2);
                 return $item;
             });
@@ -432,6 +452,8 @@ class FacturacionController extends Controller
             'items'            => 'required|array|min:1',
             'items.*.cod_prod' => 'required|string|max:25',
             'items.*.cantidad' => 'required|numeric|min:0.001',
+            // Solo lo que va a granel lo trae; es lo que se cobra en esas lineas.
+            'items.*.peso'     => 'nullable|numeric|min:0',
             'items.*.precio'   => 'required|numeric|min:0',
             'tipo_comprobante' => 'nullable|in:VENTA,FACTURA',
             'tipo_pago'        => 'nullable|string|max:20',
@@ -470,6 +492,25 @@ class FacturacionController extends Controller
         if ($faltantes->isNotEmpty()) {
             return response()->json([
                 'message' => 'No existen los productos: ' . $faltantes->implode(', '),
+            ], 422);
+        }
+
+        // En lo que va a granel el importe sale del peso, asi que una linea que
+        // manda el peso vacio no se puede cobrar. Las pantallas que no mandan
+        // peso (venta directa) siguen cobrando por cantidad.
+        $sinPeso = collect($datos['items'])
+            ->filter(function ($item) use ($productos) {
+                return $this->esGranel($productos[trim($item['cod_prod'])])
+                    && array_key_exists('peso', $item)
+                    && (float) $item['peso'] <= 0;
+            })
+            ->map(function ($item) use ($productos) {
+                return trim($productos[trim($item['cod_prod'])]->Producto);
+            });
+
+        if ($sinPeso->isNotEmpty()) {
+            return response()->json([
+                'message' => 'Falta el peso de: ' . $sinPeso->implode(', '),
             ], 422);
         }
 
@@ -512,7 +553,15 @@ class FacturacionController extends Controller
 
                 $cantidad = round((float) $item['cantidad'], 3);
                 $precio = round((float) $item['precio'], 2);
-                $importe = round($cantidad * $precio, 2);
+
+                // El peso solo tiene sentido en lo que se vende por kilo: ahi
+                // es lo que se cobra, y la cantidad queda como las piezas que
+                // se entregan.
+                $peso = $this->esGranel($prod) && isset($item['peso']) && (float) $item['peso'] > 0
+                    ? round((float) $item['peso'], 3)
+                    : null;
+
+                $importe = round(($peso ?? $cantidad) * $precio, 2);
                 $subtotal += $importe;
 
                 $lineas[] = [
@@ -520,6 +569,7 @@ class FacturacionController extends Controller
                     'nombre'   => trim($prod->Producto),
                     'unidad'   => trim((string) $prod->codUnid),
                     'cantidad' => $cantidad,
+                    'peso'     => $peso,
                     'precio'   => $precio,
                     'subtotal' => $importe,
                 ];
@@ -577,6 +627,12 @@ class FacturacionController extends Controller
             ],
             'message' => $this->mensajeEmision($factura),
         ], 201);
+    }
+
+    /** Los productos por kilo se cobran por peso, no por cantidad. */
+    private function esGranel($producto)
+    {
+        return strtoupper(trim((string) $producto->codUnid)) === 'KG';
     }
 
     /** Que decirle al cajero segun como haya salido la emision. */
@@ -656,7 +712,12 @@ class FacturacionController extends Controller
 
         DB::transaction(function () use ($factura, $datos, $motivos, $ci) {
             $lineas = $factura->detalles->map(function ($d) {
-                return ['cod_prod' => $d->cod_prod, 'cantidad' => (float) $d->cantidad, 'precio' => (float) $d->precio];
+                return [
+                    'cod_prod' => $d->cod_prod,
+                    'cantidad' => (float) $d->cantidad,
+                    'peso'     => (float) $d->peso,
+                    'precio'   => (float) $d->precio,
+                ];
             })->all();
 
             // Lo que no se vendio vuelve al inventario.
@@ -788,17 +849,19 @@ class FacturacionController extends Controller
 
         $filas = '';
         foreach ($factura->detalles as $i => $d) {
-            // Como en la boleta de papel: lo que va a granel lleva CANT en 0 y
-            // la cantidad real aparece en P. NETO.
-            $porUnidad = trim((string) $d->unidad) !== 'KG';
+            // Como en la boleta de papel: CANT son las piezas que se entregan y
+            // el peso de la balanza va en KG / P. NETO, que es lo que se cobra
+            // en lo que va a granel.
+            $peso = (float) $d->peso;
             $par = $i % 2 ? " class='par'" : '';
 
             $filas .= "<tr$par>"
-                . "<td class='r'>" . number_format($porUnidad ? $d->cantidad : 0, 2) . '</td>'
+                . "<td class='r'>" . number_format($d->cantidad, 2) . '</td>'
                 . "<td class='cod'>" . e($d->cod_prod) . '</td>'
                 . '<td>' . e($d->nombre) . '</td>'
                 . "<td class='c'>" . e($d->unidad) . '</td>'
-                . "<td class='r'>" . number_format($d->cantidad, 2) . '</td>'
+                . "<td class='r'>" . ($peso > 0 ? number_format($peso, 3) : '—') . '</td>'
+                . "<td class='r'>" . number_format($d->cantidad_facturada, 2) . '</td>'
                 . "<td class='r'>" . number_format($d->precio, 2) . '</td>'
                 . "<td class='r'><b>" . number_format($d->subtotal, 2) . '</b></td>'
                 . '</tr>';
@@ -850,10 +913,11 @@ class FacturacionController extends Controller
                 <th style='width:8%'>Cant</th>
                 <th style='width:11%'>Código</th>
                 <th>Concepto</th>
-                <th style='width:8%'>Unid</th>
+                <th style='width:7%'>Unid</th>
+                <th style='width:10%'>Peso Kg</th>
                 <th style='width:10%'>P. Neto</th>
-                <th style='width:12%'>P. Unit</th>
-                <th style='width:13%'>Total</th>
+                <th style='width:11%'>P. Unit</th>
+                <th style='width:12%'>Total</th>
             </tr>
             $filas
         </table>
@@ -926,7 +990,9 @@ class FacturacionController extends Controller
 
             $filas .= "<tr$par>"
                 . "<td class='cod'>" . e($d->cod_prod) . '</td>'
-                . "<td class='r'>" . number_format($d->cantidad, 2) . '</td>'
+                // Lo declarado a Impuestos es lo que se cobra: en lo que va por
+                // kilo, el peso. Tiene que coincidir con lo que manda el SIAT.
+                . "<td class='r'>" . number_format($d->cantidad_facturada, 2) . '</td>'
                 . "<td class='c'>" . e($d->unidad === 'KG' ? 'KILOGRAMO' : 'UNIDAD (SERVICIOS)') . '</td>'
                 . '<td>' . e($d->nombre) . '</td>'
                 . "<td class='r'>" . number_format($d->precio, 2) . '</td>'
@@ -1070,13 +1136,18 @@ class FacturacionController extends Controller
 
         $filas = [];
         foreach ($lineas as $linea) {
+            // Lo que se vendio por peso sale del inventario en kilos.
+            $movido = isset($linea['peso']) && (float) $linea['peso'] > 0
+                ? (float) $linea['peso']
+                : (float) $linea['cantidad'];
+
             $filas[] = [
                 'cod_prod'     => $linea['cod_prod'],
                 'Cod_Prodm'    => '',
                 'Unidcant'     => 0,
                 'UnidSaldo'    => 0,
-                'cant'         => $esSalida ? 0 : $linea['cantidad'],
-                'saldo'        => $esSalida ? $linea['cantidad'] : 0,
+                'cant'         => $esSalida ? 0 : $movido,
+                'saldo'        => $esSalida ? $movido : 0,
                 'PBruto'       => 0,
                 'PreUnit'      => $linea['precio'],
                 'CantCja'      => 0,
