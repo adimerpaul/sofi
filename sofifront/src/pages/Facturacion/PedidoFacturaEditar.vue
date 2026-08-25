@@ -369,6 +369,9 @@ export default {
         items: this.items.map(item => ({
           cod_prod: item.cod_prod,
           cantidad: Number(item.cantidad),
+          // Lo pedido viaja junto con lo entregado para que quede guardado en
+          // el detalle de la factura lo que se cambio.
+          ...(this.esNuevo(item) ? {} : { cantidad_pedida: Number(item.cantidad_pedida) }),
           // El peso solo viaja en lo que se vende por kilo.
           ...(this.esPeso(item) ? { peso: Number(item.peso) } : {}),
           precio: Number(item.precio)

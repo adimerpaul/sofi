@@ -52,6 +52,9 @@ class SiatService
      */
     const LEYENDA = 'Ley N° 453: El proveedor debe brindar atención sin discriminación, con respeto, calidez y cordialidad a los usuarios y consumidores.';
 
+    /** Marca de la factura que se relleno sin enviarla a Impuestos. */
+    const ESTADO_SIMULADO = 'SIMULADO';
+
     /** @var SiatConfiguracion */
     private $config;
 
@@ -235,6 +238,57 @@ class SiatService
 
             return $factura;
         }
+    }
+
+    /**
+     * Rellena la factura como si se hubiera emitido, pero sin tocar el SIAT.
+     *
+     * Se usa cuando no se puede pedir el CUFD —por ejemplo, si las credenciales
+     * las esta ocupando otro sistema— y aun asi hace falta ver el documento
+     * impreso completo. Hace todo el trabajo local (numero correlativo, CUF con
+     * su formato, leyenda y fecha de emision) y se salta lo unico que no puede
+     * hacer: pedir el CUFD, armar el XML y enviarlo.
+     *
+     * La factura queda con estado_siat = SIMULADO y online = false, asi que en
+     * la pantalla de facturacion y en la de Impuestos se ve que no se envio; el
+     * CUF no valida en el portal de Impuestos, porque nunca llego alli. Cuando
+     * el SIAT vuelva a estar disponible se reenvia desde Impuestos y ahi si se
+     * emite de verdad.
+     */
+    public function simularEmision(Factura $factura)
+    {
+        list($sucursal, $puntoVenta) = $this->serie();
+
+        $ahora = microtime(true);
+        $mili = str_pad((string) ((int) (($ahora - floor($ahora)) * 1000)), 3, '0', STR_PAD_LEFT);
+        $fechaEmision = date('Y-m-d\TH:i:s', (int) $ahora) . '.' . $mili;
+
+        $numero = $this->siguienteNumero($sucursal, $puntoVenta);
+
+        // Sin CUFD no hay codigo de control de verdad. Se usa uno propio para
+        // que el CUF tenga la forma y el largo correctos en el impreso.
+        $codigoControl = strtoupper(substr(md5($numero . '|' . $fechaEmision), 0, 8));
+
+        $factura->update([
+            'nro_factura'        => $numero,
+            'codigo_sucursal'    => $sucursal,
+            'codigo_punto_venta' => $puntoVenta,
+            'cuf'                => $this->calcularCuf(
+                date('YmdHis', (int) $ahora) . $mili,
+                $sucursal,
+                $puntoVenta,
+                $numero,
+                $codigoControl
+            ),
+            'codigo_control'     => $codigoControl,
+            'leyenda'            => self::LEYENDA,
+            'fecha_emision'      => $fechaEmision,
+            'estado_siat'        => self::ESTADO_SIMULADO,
+            'mensaje_siat'       => 'Modo simulación: la factura no se envió a Impuestos',
+            'online'             => false,
+        ]);
+
+        return $factura->fresh();
     }
 
     private function emitir(Factura $factura, $userId)

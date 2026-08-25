@@ -463,6 +463,8 @@ class FacturacionController extends Controller
             'items'            => 'required|array|min:1',
             'items.*.cod_prod' => 'required|string|max:25',
             'items.*.cantidad' => 'required|numeric|min:0.001',
+            // Lo que decia el pedido, para dejar constancia de lo que cambio.
+            'items.*.cantidad_pedida' => 'nullable|numeric|min:0',
             // Solo lo que va a granel lo trae; es lo que se cobra en esas lineas.
             'items.*.peso'     => 'nullable|numeric|min:0',
             'items.*.precio'   => 'required|numeric|min:0',
@@ -585,6 +587,12 @@ class FacturacionController extends Controller
                     'nombre'   => trim($prod->Producto),
                     'unidad'   => trim((string) $prod->codUnid),
                     'cantidad' => $cantidad,
+                    // Queda guardado lo que pidio el cliente aunque se le haya
+                    // entregado otra cosa: sin esto, los que no salieron no
+                    // figuraban en ningun lado.
+                    'cantidad_pedida' => isset($item['cantidad_pedida'])
+                        ? round((float) $item['cantidad_pedida'], 3)
+                        : null,
                     'peso'     => $peso,
                     'precio'   => $precio,
                     'subtotal' => $importe,
@@ -628,11 +636,27 @@ class FacturacionController extends Controller
             ], 201);
         }
 
-        // Emision al SIAT. Va fuera de la transaccion a proposito: la venta ya
-        // se cobro y el stock ya salio, asi que un problema con Impuestos no
-        // debe deshacer nada. Si falla queda con estado_siat = ERROR y se
-        // puede reintentar desde la pantalla de Impuestos.
-        $factura = (new SiatService())->emitirFactura($factura, $usuario->CodAut);
+        $siat = new SiatService();
+
+        if (config('siat.simulado')) {
+            // ---------------------------------------------------------------
+            // ENVIO A IMPUESTOS DESACTIVADO (SIAT_SIMULADO=true en el .env).
+            //
+            // Mientras las credenciales del SIAT las use el otro sistema no se
+            // puede generar el CUFD, asi que la factura se rellena entera en
+            // local para poder revisar como sale impresa, pero NO se envia:
+            // queda marcada como SIMULADO y no tiene valor fiscal. Para volver
+            // a emitir de verdad basta con quitar SIAT_SIMULADO del .env; las
+            // que quedaron simuladas se reenvian desde la pantalla Impuestos.
+            // ---------------------------------------------------------------
+            $factura = $siat->simularEmision($factura);
+        } else {
+            // Emision al SIAT. Va fuera de la transaccion a proposito: la venta
+            // ya se cobro y el stock ya salio, asi que un problema con
+            // Impuestos no debe deshacer nada. Si falla queda con
+            // estado_siat = ERROR y se puede reintentar desde Impuestos.
+            $factura = $siat->emitirFactura($factura, $usuario->CodAut);
+        }
 
         return response()->json([
             'factura' => $factura->load('detalles'),
@@ -659,6 +683,12 @@ class FacturacionController extends Controller
         if ($factura->estado_siat === 'ERROR') {
             return $base . '. NO se pudo enviar a Impuestos: ' . $factura->mensaje_siat
                 . '. Queda sin valor fiscal hasta reenviarla desde Impuestos';
+        }
+
+        // Al cajero hay que decirle la verdad aunque el papel salga completo.
+        if ($factura->estado_siat === SiatService::ESTADO_SIMULADO) {
+            return $base . '. Modo simulación: NO se envió a Impuestos, así que'
+                . ' se imprime pero todavía no tiene valor fiscal';
         }
 
         if (!$factura->cuf) {
@@ -696,8 +726,11 @@ class FacturacionController extends Controller
         // Si el SIAT rechaza o no responde, no se toca el estado ni el stock
         // local. Tambien permite reparar facturas que una version anterior
         // dejo anuladas solamente en Sofia.
+        // La simulada tiene CUF pero nunca llego a Impuestos: no hay nada que
+        // anular alli, se da de baja solo en Sofia.
         $respuestaSiat = null;
-        if ($factura->tipo_comprobante === 'FACTURA' && $factura->cuf) {
+        if ($factura->tipo_comprobante === 'FACTURA' && $factura->cuf
+            && $factura->estado_siat !== SiatService::ESTADO_SIMULADO) {
             $siat = new SiatService();
 
             try {
@@ -809,9 +842,45 @@ class FacturacionController extends Controller
 
             .aviso { border: 1.5px solid #c62828; background: #ffebee; color: #c62828;
                      font-weight: bold; text-align: center; padding: 5px; margin: 7px 0; font-size: 9.5px }
+
+            .copia { text-align: center; font-size: 10px; font-weight: bold;
+                     letter-spacing: 4px; color: #999; margin-top: 6px }
             .pie { position: fixed; bottom: -14mm; left: 0; right: 0 }
             .legal { font-size: 7.5px; color: #888; text-align: center; line-height: 1.5 }
         ";
+    }
+
+    /**
+     * Numero del codigo de barras del producto, para la columna del detalle.
+     *
+     * Va en numero y no como imagen: es lo que se pidio para la impresion.
+     * Unos pocos productos tienen una letra al final (500104D), asi que se
+     * dejan solo los digitos; la columna Codigo sigue con el codigo completo.
+     */
+    private function celdaBarras($codigo)
+    {
+        $numero = preg_replace('/\D/', '', (string) $codigo);
+
+        return $numero !== '' ? e($numero) : '&mdash;';
+    }
+    /**
+     * Camion con el que sale la venta.
+     *
+     * En Sofia el camion es tbpedidos.placa, asi que solo lo tiene lo que nace
+     * de un pedido: una venta de mostrador sale sin placa.
+     */
+    private function camion($factura)
+    {
+        if (!$factura->pedido_nro || !$factura->pedido_tipo) {
+            return '';
+        }
+
+        $placa = DB::table('tbpedidos')
+            ->where('NroPed', $factura->pedido_nro)
+            ->whereRaw('UPPER(TRIM(tipo)) = ?', [strtoupper(trim($factura->pedido_tipo))])
+            ->value('placa');
+
+        return trim((string) $placa);
     }
 
     /** Bloque de cabecera con el logo y los datos del emisor. */
@@ -863,6 +932,8 @@ class FacturacionController extends Controller
             ])))
             : '';
 
+        $placa = $this->camion($factura);
+
         $filas = '';
         foreach ($factura->detalles as $i => $d) {
             // Como en la boleta de papel: CANT son las piezas que se entregan y
@@ -874,6 +945,7 @@ class FacturacionController extends Controller
             $filas .= "<tr$par>"
                 . "<td class='r'>" . number_format($d->cantidad, 2) . '</td>'
                 . "<td class='cod'>" . e($d->cod_prod) . '</td>'
+                . "<td class='c cod'>" . $this->celdaBarras($d->cod_prod) . '</td>'
                 . '<td>' . e($d->nombre) . '</td>'
                 . "<td class='c'>" . e($d->unidad) . '</td>'
                 . "<td class='r'>" . ($peso > 0 ? number_format($peso, 3) : '—') . '</td>'
@@ -920,20 +992,25 @@ class FacturacionController extends Controller
             <tr>
                 <td><span class='et'>Vendedor</span><br>" . e($vendedor ?: '—') . "</td>
                 <td><span class='et'>Tipo de pago</span><br><b>" . e($factura->tipo_pago) . "</b></td>
-                <td><span class='et'>Observación</span><br>" . e($factura->observacion ?: '—') . "</td>
+                <td><span class='et'>Camión</span><br><b>" . e($placa ?: '—') . "</b></td>
+            </tr>
+            <tr>
+                <td colspan='3'><span class='et'>Observación</span><br>"
+                    . e($factura->observacion ?: '—') . "</td>
             </tr>
         </table>
 
         <table class='detalle'>
             <tr>
-                <th style='width:8%'>Cant</th>
-                <th style='width:11%'>Código</th>
+                <th style='width:7%'>Cant</th>
+                <th style='width:8%'>Código</th>
+                <th style='width:10%'>Cód. barras</th>
                 <th>Concepto</th>
-                <th style='width:7%'>Unid</th>
-                <th style='width:10%'>Peso Kg</th>
-                <th style='width:10%'>P. Neto</th>
-                <th style='width:11%'>P. Unit</th>
-                <th style='width:12%'>Total</th>
+                <th style='width:6%'>Unid</th>
+                <th style='width:9%'>Peso Kg</th>
+                <th style='width:9%'>P. Neto</th>
+                <th style='width:10%'>P. Unit</th>
+                <th style='width:11%'>Total</th>
             </tr>
             $filas
         </table>
@@ -963,6 +1040,7 @@ class FacturacionController extends Controller
         </table>
 
         <div class='pie'>
+            <div class='copia'>COPIA</div>
             <div class='legal'>
                 Respalde su cancelación del presente con la boleta original.<br>
                 " . e(config('siat.emisor')['nombre']) . " &middot; documento generado el "
@@ -1000,12 +1078,15 @@ class FacturacionController extends Controller
             ], 422);
         }
 
+        $placa = $this->camion($factura);
+
         $filas = '';
         foreach ($factura->detalles as $i => $d) {
             $par = $i % 2 ? " class='par'" : '';
 
             $filas .= "<tr$par>"
                 . "<td class='cod'>" . e($d->cod_prod) . '</td>'
+                . "<td class='c cod'>" . $this->celdaBarras($d->cod_prod) . '</td>'
                 // Lo declarado a Impuestos es lo que se cobra: en lo que va por
                 // kilo, el peso. Tiene que coincidir con lo que manda el SIAT.
                 . "<td class='r'>" . number_format($d->cantidad_facturada, 2) . '</td>'
@@ -1069,16 +1150,22 @@ class FacturacionController extends Controller
                     . e(trim((string) ($factura->cliente->complto ?? '')) ?: '—') . "</td>
                 <td><span class='et'>Forma de pago</span><br>" . e($factura->tipo_pago) . "</td>
             </tr>
+            <tr>
+                <td><span class='et'>Camión</span><br><b>" . e($placa ?: '—') . "</b></td>
+                <td><span class='et'>Pedido</span><br>" . ($factura->pedido_nro ?: '—') . "</td>
+                <td><span class='et'>Observación</span><br>" . e($factura->observacion ?: '—') . "</td>
+            </tr>
         </table>
 
         <table class='detalle'>
             <tr>
-                <th style='width:10%'>Código</th>
+                <th style='width:9%'>Código</th>
+                <th style='width:10%'>Cód. barras</th>
                 <th style='width:8%'>Cantidad</th>
-                <th style='width:13%'>Unidad</th>
+                <th style='width:12%'>Unidad</th>
                 <th>Descripción</th>
                 <th style='width:10%'>P. Unitario</th>
-                <th style='width:9%'>Descuento</th>
+                <th style='width:8%'>Descuento</th>
                 <th style='width:11%'>Importe</th>
             </tr>
             $filas
@@ -1109,7 +1196,9 @@ class FacturacionController extends Controller
                 emitido en una modalidad de facturación en línea.
             </td>
             $qr
-        </tr></table>";
+        </tr></table>
+
+        <div class='copia'>COPIA</div>";
 
         $pdf = App::make("dompdf.wrapper");
         // Sin subsetting la fuente se embebe entera y cada PDF pesa ~900 KB.

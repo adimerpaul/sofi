@@ -133,7 +133,32 @@
             <q-list dense style="min-width: 200px">
               <q-item clickable v-close-popup @click="verDetalle(props.row)">
                 <q-item-section avatar><q-icon name="visibility" color="primary"/></q-item-section>
-                <q-item-section>Ver detalle</q-item-section>
+                <q-item-section>
+                  Ver detalle
+                  <q-item-label caption>
+                    {{ fechaCorta(props.row.fecha) }} {{ props.row.hora }}
+                  </q-item-label>
+                </q-item-section>
+              </q-item>
+
+              <!-- Atajo a lo que cambio respecto del pedido; abre el mismo
+                   detalle, donde los cambios salen resaltados. -->
+              <q-item
+                clickable v-close-popup
+                :disable="!cambiadas(props.row).length"
+                @click="verDetalle(props.row)"
+              >
+                <q-item-section avatar>
+                  <q-icon name="published_with_changes" color="deep-orange"/>
+                </q-item-section>
+                <q-item-section>
+                  Cambios del pedido
+                  <q-item-label caption>
+                    {{ cambiadas(props.row).length
+                      ? cambiadas(props.row).length + ' producto(s) con otra cantidad'
+                      : 'Salió igual a lo pedido' }}
+                  </q-item-label>
+                </q-item-section>
               </q-item>
 
               <q-separator/>
@@ -157,6 +182,29 @@
                   </q-item-label>
                 </q-item-section>
               </q-item>
+
+              <q-separator/>
+
+              <!-- Lo mismo que se imprime, pero guardado en un archivo. -->
+              <q-item clickable v-close-popup @click="descargarPdf(props.row)">
+                <q-item-section avatar><q-icon name="picture_as_pdf" color="red-7"/></q-item-section>
+                <q-item-section>
+                  Descargar PDF
+                  <q-item-label caption>
+                    {{ props.row.tipo_comprobante === 'FACTURA' ? 'Factura' : 'Voucher' }} en archivo
+                  </q-item-label>
+                </q-item-section>
+              </q-item>
+
+              <q-item clickable v-close-popup @click="descargarExcel(props.row)">
+                <q-item-section avatar><q-icon name="grid_on" color="green-8"/></q-item-section>
+                <q-item-section>
+                  Descargar Excel
+                  <q-item-label caption>Detalle con lo pedido y lo entregado</q-item-label>
+                </q-item-section>
+              </q-item>
+
+              <q-separator/>
 
               <q-item
                 v-if="props.row.tipo_comprobante === 'FACTURA' && props.row.estado_siat === 'ERROR'"
@@ -216,7 +264,7 @@
             {{ sel.tipo_comprobante === 'FACTURA' ? 'Factura' : 'Venta' }} #{{ sel.id }}
           </div>
           <div class="text-caption">
-            {{ sel.nombre || 'Sin cliente' }} · {{ sel.fecha }} {{ sel.hora }}
+            {{ sel.nombre || 'Sin cliente' }} · {{ fechaHora(sel) }}
           </div>
         </q-card-section>
 
@@ -235,23 +283,48 @@
           </q-banner>
         </q-card-section>
 
+        <!-- Lo que salio distinto de lo que pedia el pedido. -->
+        <q-card-section v-if="cambiadas(sel).length" class="q-py-sm">
+          <q-banner dense rounded class="bg-deep-orange-1 text-deep-orange-10">
+            <template v-slot:avatar><q-icon name="published_with_changes"/></template>
+            <div class="text-weight-bold">
+              {{ cambiadas(sel).length }}
+              {{ cambiadas(sel).length === 1 ? 'producto salió' : 'productos salieron' }}
+              con otra cantidad
+            </div>
+            <div v-for="d in cambiadas(sel)" :key="'cambio-' + d.id" class="text-caption">
+              {{ d.nombre }}: pedido {{ cant(d.cantidad_pedida, d.unidad) }} ·
+              entregado {{ cant(d.cantidad, d.unidad) }} ({{ diferencia(d) }})
+            </div>
+          </q-banner>
+        </q-card-section>
+
         <q-card-section class="q-pa-none">
           <q-markup-table dense flat wrap-cells>
             <thead>
             <tr class="bg-grey-2">
               <th class="text-left">Código</th>
               <th class="text-left">Producto</th>
-              <th class="text-right">Cant.</th>
+              <th class="text-right">Pedido</th>
+              <th class="text-right">Entregado</th>
               <th class="text-right">Peso kg</th>
               <th class="text-right">Precio</th>
               <th class="text-right">Subtotal</th>
             </tr>
             </thead>
             <tbody>
-            <tr v-for="d in (sel.detalles || [])" :key="d.id">
+            <tr v-for="d in (sel.detalles || [])" :key="d.id" :class="cambioCantidad(d) ? 'bg-deep-orange-1' : ''">
               <td class="text-left">{{ d.cod_prod }}</td>
               <td class="text-left">{{ d.nombre }}</td>
-              <td class="text-right">{{ Number(d.cantidad).toFixed(d.unidad === 'KG' ? 3 : 0) }}</td>
+              <!-- Lo pedido al lado de lo entregado: la diferencia es lo que el
+                   cajero cambio al cobrar. -->
+              <td class="text-right">
+                {{ d.cantidad_pedida === null ? '—' : cant(d.cantidad_pedida, d.unidad) }}
+              </td>
+              <td class="text-right" :class="cambioCantidad(d) ? 'text-deep-orange text-weight-bold' : ''">
+                {{ cant(d.cantidad, d.unidad) }}
+                <div v-if="cambioCantidad(d)" class="text-caption">{{ diferencia(d) }}</div>
+              </td>
               <!-- Lo que va a granel se cobra por este peso, no por la cantidad. -->
               <td class="text-right">{{ Number(d.peso) > 0 ? Number(d.peso).toFixed(3) : '—' }}</td>
               <td class="text-right">{{ money(d.precio) }}</td>
@@ -310,10 +383,22 @@
 
 <script>
 import { date } from 'quasar'
+import xlsx from 'json-as-xlsx'
+import { imprimirPdfDirecto } from 'src/utils/impresion.js'
 
 function filtrosPorDefecto () {
   const hoy = date.formatDate(new Date(), 'YYYY-MM-DD')
   return { desde: hoy, hasta: hoy, buscar: '', tipo: null, estado: null }
+}
+
+/**
+ * La fecha viaja como ISO ('2026-08-25T04:00:00.000000Z') y asi no se lee.
+ * Se corta la parte del dia antes de formatear: interpretarla como fecha con
+ * hora la correria un dia segun la zona horaria del navegador.
+ */
+function fechaCorta (valor) {
+  const dia = String(valor || '').substr(0, 10)
+  return dia ? date.formatDate(dia + 'T00:00:00', 'DD/MM/YYYY') : '—'
 }
 
 export default {
@@ -340,7 +425,8 @@ export default {
         { name: 'acciones', label: 'Opciones', field: 'acciones', align: 'left' },
         { name: 'id', label: 'Nº', field: 'id', align: 'left' },
         { name: 'tipo_comprobante', label: 'Tipo', field: 'tipo_comprobante', align: 'center' },
-        { name: 'fecha', label: 'Fecha', field: 'fecha', align: 'left', format: v => String(v || '').substr(0, 10) },
+        // La fecha llega como ISO completo; en la grilla va en dia/mes/anio.
+        { name: 'fecha', label: 'Fecha', field: 'fecha', align: 'left', format: v => fechaCorta(v) },
         { name: 'hora', label: 'Hora', field: 'hora', align: 'left' },
         { name: 'nombre', label: 'Cliente', field: 'nombre', align: 'left' },
         { name: 'vendedor', label: 'Vendedor', field: 'vendedor', align: 'left' },
@@ -369,6 +455,28 @@ export default {
   methods: {
     money (v) {
       return Number(v || 0).toFixed(2)
+    },
+    fechaCorta,
+    fechaHora (factura) {
+      return fechaCorta(factura.fecha) + ' ' + String(factura.hora || '')
+    },
+    /** Las cantidades a granel llevan decimales; las de unidad, no. */
+    cant (valor, unidad) {
+      return Number(valor || 0).toFixed(unidad === 'KG' ? 3 : 0)
+    },
+    // Solo hay cambio cuando la linea vino de un pedido: en la venta directa y
+    // en lo que se agrego del catalogo no hay cantidad pedida que comparar.
+    cambioCantidad (detalle) {
+      return detalle.cantidad_pedida !== null &&
+        detalle.cantidad_pedida !== undefined &&
+        Number(detalle.cantidad) !== Number(detalle.cantidad_pedida)
+    },
+    cambiadas (factura) {
+      return (factura.detalles || []).filter(this.cambioCantidad)
+    },
+    diferencia (detalle) {
+      const resta = Number(detalle.cantidad) - Number(detalle.cantidad_pedida)
+      return (resta > 0 ? '+' : '−') + this.cant(Math.abs(resta), detalle.unidad)
     },
     nombreVendedor (vendedor) {
       return [vendedor.Nombre1, vendedor.Nombre2, vendedor.App1, vendedor.Apm]
@@ -421,13 +529,72 @@ export default {
       this.imprimiendo = row.id
 
       return this.$api.get('facturacion/' + row.id + '/' + documento, { responseType: 'blob' })
-        .then(res => {
-          this.imprimirPdf(res.data, documento + '_' + row.id + '.pdf')
-        })
+        .then(res => imprimirPdfDirecto(res.data, documento + '_' + row.id + '.pdf'))
         .catch(err => {
           this.avisar(err, 'No se pudo imprimir el ' + documento)
         })
         .finally(() => { this.imprimiendo = null })
+    },
+
+    /** El mismo documento que se imprime, pero guardado como archivo. */
+    descargarPdf (row) {
+      const documento = row.tipo_comprobante === 'FACTURA' ? 'factura' : 'voucher'
+      this.imprimiendo = row.id
+
+      return this.$api.get('facturacion/' + row.id + '/' + documento, { responseType: 'blob' })
+        .then(res => {
+          const url = window.URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }))
+          const enlace = document.createElement('a')
+          enlace.href = url
+          enlace.download = documento + '_' + row.id + '.pdf'
+          enlace.click()
+          window.URL.revokeObjectURL(url)
+        })
+        .catch(err => { this.avisar(err, 'No se pudo descargar el ' + documento) })
+        .finally(() => { this.imprimiendo = null })
+    },
+
+    /**
+     * Detalle de la venta en Excel, con lo pedido al lado de lo entregado para
+     * que se vea en la planilla lo que se cambio al cobrar.
+     */
+    descargarExcel (row) {
+      const detalles = row.detalles || []
+
+      const hoja = [{
+        sheet: (row.tipo_comprobante === 'FACTURA' ? 'Factura ' : 'Venta ') + row.id,
+        columns: [
+          { label: 'Código', value: 'cod_prod' },
+          { label: 'Producto', value: 'nombre' },
+          { label: 'Unidad', value: 'unidad' },
+          { label: 'Pedido', value: 'pedido' },
+          { label: 'Entregado', value: 'entregado' },
+          { label: 'Diferencia', value: 'diferencia' },
+          { label: 'Peso kg', value: 'peso' },
+          { label: 'Precio Bs', value: 'precio' },
+          { label: 'Subtotal Bs', value: 'subtotal' }
+        ],
+        content: detalles.map(d => ({
+          cod_prod: d.cod_prod,
+          nombre: d.nombre,
+          unidad: d.unidad,
+          pedido: d.cantidad_pedida === null || d.cantidad_pedida === undefined
+            ? '' : Number(d.cantidad_pedida),
+          entregado: Number(d.cantidad),
+          diferencia: this.cambioCantidad(d)
+            ? Number(d.cantidad) - Number(d.cantidad_pedida)
+            : '',
+          peso: Number(d.peso) > 0 ? Number(d.peso) : '',
+          precio: Number(d.precio),
+          subtotal: Number(d.subtotal)
+        }))
+      }]
+
+      xlsx(hoja, {
+        fileName: (row.tipo_comprobante === 'FACTURA' ? 'factura_' : 'venta_') + row.id,
+        extraLength: 5,
+        writeOptions: {}
+      })
     },
 
     /** Abre la consulta publica del SIAT usando el CUF de esta factura. */
@@ -467,38 +634,6 @@ export default {
       })
     },
 
-    /**
-     * Manda el PDF directo a la impresora: se carga en un iframe oculto y se
-     * dispara su diálogo de impresión, sin pasar por una pestaña.
-     */
-    imprimirPdf (blob, nombre) {
-      const url = window.URL.createObjectURL(new Blob([blob], { type: 'application/pdf' }))
-
-      const marco = document.createElement('iframe')
-      marco.style.display = 'none'
-      marco.src = url
-
-      marco.onload = () => {
-        try {
-          marco.contentWindow.focus()
-          marco.contentWindow.print()
-        } catch (e) {
-          // Si el navegador no deja imprimir desde el iframe, se descarga.
-          const link = document.createElement('a')
-          link.href = url
-          link.download = nombre
-          link.click()
-        }
-      }
-
-      document.body.appendChild(marco)
-
-      // El iframe debe seguir vivo mientras está abierto el diálogo.
-      setTimeout(() => {
-        document.body.removeChild(marco)
-        window.URL.revokeObjectURL(url)
-      }, 60000)
-    },
 
     verDetalle (row) {
       this.sel = row

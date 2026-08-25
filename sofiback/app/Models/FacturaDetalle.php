@@ -27,14 +27,16 @@ class FacturaDetalle extends Model
         'nombre',
         'unidad',
         'cantidad',
+        'cantidad_pedida',
         'peso',
         'precio',
         'subtotal',
     ];
 
     protected $casts = [
-        'cantidad' => 'decimal:3',
-        'peso'     => 'decimal:3',
+        'cantidad'        => 'decimal:3',
+        'cantidad_pedida' => 'decimal:3',
+        'peso'            => 'decimal:3',
         'precio'   => 'decimal:2',
         'subtotal' => 'decimal:2',
     ];

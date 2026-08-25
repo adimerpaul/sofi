@@ -43,6 +43,21 @@ return [
     // nunca en el repo. Desde aqui se copia una vez a la base de datos.
     'token' => env('SIAT_TOKEN', ''),
 
+    /*
+    | Modo simulacion (SIAT_SIMULADO=true en el .env).
+    |
+    | Con esto encendido la factura NO se manda a Impuestos: no se pide CUFD ni
+    | se llama al servicio. Se rellena igual el numero, el CUF y la leyenda para
+    | poder revisar como sale impresa, y la venta queda marcada con
+    | estado_siat = SIMULADO, que es lo que la distingue de una emitida de
+    | verdad. Sirve para probar cuando las credenciales del SIAT las esta usando
+    | otro sistema y no se puede generar el CUFD.
+    |
+    | Va en false por defecto a proposito: encenderlo es una decision explicita
+    | de quien administra el servidor, para que en produccion nunca pase solo.
+    */
+    'simulado' => filter_var(env('SIAT_SIMULADO', false), FILTER_VALIDATE_BOOLEAN),
+
     // Cabecera que se imprime en vouchers y facturas. Estaba repetida dentro
     // del HTML de FacturaFiscalController; aca se cambia en un solo sitio.
     'emisor' => [
