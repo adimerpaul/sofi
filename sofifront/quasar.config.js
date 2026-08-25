@@ -13,7 +13,6 @@ export default defineConfig(function (ctx) {
     boot: [
       'vuex', // must stay first: registers the Vuex store (see /src/boot/vuex.js)
       'axios',
-      'socket',
       'firebase',
     ],
 

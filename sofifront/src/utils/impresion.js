@@ -1,29 +1,11 @@
-const VIGENCIA_IMPRESION = 5 * 60 * 1000
-
-function claveGuardada (clave) {
-  return 'sofia:impresion:' + clave
-}
-
-function yaFueImpresa (clave) {
-  const valor = Number(window.localStorage.getItem(claveGuardada(clave)) || 0)
-  return valor > 0 && Date.now() - valor < VIGENCIA_IMPRESION
-}
-
-/** Ejecuta una impresion automatica una sola vez entre todas las pestanas. */
-export async function imprimirUnaVez (clave, trabajo) {
-  const ejecutar = async () => {
-    if (yaFueImpresa(clave)) return false
-    await trabajo()
-    window.localStorage.setItem(claveGuardada(clave), String(Date.now()))
-    return true
-  }
-
-  if (window.navigator.locks) {
-    return window.navigator.locks.request('sofia:impresion:' + clave, ejecutar)
-  }
-  return ejecutar()
-}
-
+/**
+ * Manda un PDF a la impresora sin abrir una pestana: se carga en un iframe
+ * oculto y se dispara su dialogo de impresion.
+ *
+ * Antes vivia aca tambien un candado para que la impresion automatica no se
+ * repitiera entre pestanas; ya no hace falta porque nada imprime solo: el
+ * comprobante se imprime cuando el cajero lo pide.
+ */
 export function imprimirPdfDirecto (blob, nombre) {
   return new Promise((resolve, reject) => {
     const url = window.URL.createObjectURL(new Blob([blob], { type: 'application/pdf' }))

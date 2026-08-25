@@ -230,10 +230,14 @@ class FacturacionController extends Controller
         $query = DB::table('tbpedidos as p')
             ->leftJoin('tbclientes as c', 'c.Cod_Aut', '=', 'p.idCli')
             ->leftJoin('personal as v', 'v.CodAut', '=', 'p.CIfunc')
+            // Una venta anulada no cuenta como emitida: el pedido vuelve a la
+            // cola para cobrarlo de nuevo, y por eso solo puede engancharse un
+            // comprobante vigente por pedido.
             ->leftJoin('facturas as f', function ($join) {
                 $join->on('f.pedido_nro', '=', 'p.NroPed')
                     ->on(DB::raw('UPPER(TRIM(f.pedido_tipo))'), '=', DB::raw('UPPER(TRIM(p.tipo))'))
-                    ->whereNull('f.deleted_at');
+                    ->whereNull('f.deleted_at')
+                    ->where('f.estado', '<>', 'ANULADO');
             })
             ->whereDate('p.fecha', $datos['fecha'])
             ->whereRaw('UPPER(TRIM(p.tipo)) = ?', [$datos['tipo']])
@@ -354,8 +358,11 @@ class FacturacionController extends Controller
             return response()->json(['message' => 'El pedido no existe para el tipo seleccionado'], 404);
         }
 
+        // Lo anulado ya no bloquea: si la venta se dio de baja, el pedido se
+        // puede volver a cobrar.
         $yaFacturado = Factura::where('pedido_nro', $nroPedido)
             ->where('pedido_tipo', $datos['tipo'])
+            ->where('estado', '<>', 'ANULADO')
             ->first(['id', 'tipo_comprobante', 'estado']);
 
         if ($yaFacturado) {
@@ -382,6 +389,10 @@ class FacturacionController extends Controller
             ])
             ->map(function ($item) {
                 $item->cantidad = (float) $item->cantidad;
+                // Lo que pidio el cliente queda aparte de lo que se entrega:
+                // sirve para avisarle al cajero que la linea cambio. No se
+                // guarda ni sale impreso, es solo la referencia del pedido.
+                $item->cantidad_pedida = $item->cantidad;
                 $item->precio = (float) $item->precio;
                 // Lo que va por kilo se pesa recien al cobrar: el peso sale en
                 // blanco para que el cajero escriba lo de la balanza.
@@ -538,7 +549,12 @@ class FacturacionController extends Controller
             if (!$existePedido) {
                 return response()->json(['message' => 'El pedido de origen no existe'], 422);
             }
-            if (Factura::where('pedido_nro', $datos['pedido_nro'])->where('pedido_tipo', $datos['pedido_tipo'])->exists()) {
+            // Solo un comprobante vigente por pedido; los anulados no cuentan.
+            $vigente = Factura::where('pedido_nro', $datos['pedido_nro'])
+                ->where('pedido_tipo', $datos['pedido_tipo'])
+                ->where('estado', '<>', 'ANULADO')
+                ->exists();
+            if ($vigente) {
                 return response()->json(['message' => 'Este pedido ya fue facturado o convertido en voucher'], 422);
             }
         }

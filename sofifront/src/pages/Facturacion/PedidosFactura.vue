@@ -139,17 +139,27 @@
           </q-expansion-item>
 
           <q-separator/>
-          <q-card-actions class="q-pa-sm">
+          <!-- vertical: los botones van uno debajo del otro, no repartidos
+               en la misma fila. -->
+          <q-card-actions vertical class="q-pa-sm">
           <q-btn
             v-if="!pedido.factura_id"
             class="full-width q-py-sm text-weight-bold" color="positive" unelevated no-caps
             icon="edit_note" label="Revisar y facturar"
             @click="revisar(pedido)"
           />
-          <q-btn
-            v-else class="full-width q-py-sm text-weight-bold" outline no-caps color="primary" icon="visibility" label="Ver comprobante"
-            @click="verComprobante(pedido)"
-          />
+          <template v-else>
+            <q-btn
+              class="full-width q-py-sm text-weight-bold" outline no-caps color="primary" icon="visibility" label="Ver comprobante"
+              @click="verComprobante(pedido)"
+            />
+            <q-btn
+              class="full-width q-py-sm text-weight-bold q-mt-sm" unelevated no-caps color="primary" icon="print"
+              :label="'Imprimir ' + (pedido.comprobante_emitido === 'FACTURA' ? 'factura' : 'voucher')"
+              :loading="imprimiendo === pedido.factura_id"
+              @click="imprimir(pedido)"
+            />
+          </template>
           </q-card-actions>
         </q-card>
       </div>
@@ -159,6 +169,7 @@
 
 <script>
 import { date } from 'quasar'
+import { imprimirPdfDirecto } from 'src/utils/impresion.js'
 
 export default {
   name: 'PedidosFactura',
@@ -169,6 +180,7 @@ export default {
       camion: this.$route.query.camion || null,
       buscar: '',
       cargando: false,
+      imprimiendo: null,
       pedidos: [],
       tipos: [
         { label: 'Embutidos', value: 'NORMAL' },
@@ -269,6 +281,22 @@ export default {
         path: '/facturacion/pedidos/' + pedido.nro_pedido + '/' + pedido.tipo,
         query: this.camion ? { camion: this.camion } : {}
       })
+    },
+    // El comprobante se manda a la impresora desde aca, cuando el cajero lo
+    // pide: la venta ya no imprime sola al guardarse.
+    imprimir (pedido) {
+      const documento = pedido.comprobante_emitido === 'FACTURA' ? 'factura' : 'voucher'
+      this.imprimiendo = pedido.factura_id
+
+      this.$api.get('facturacion/' + pedido.factura_id + '/' + documento, { responseType: 'blob' })
+        .then(res => imprimirPdfDirecto(res.data, documento + '_' + pedido.factura_id + '.pdf'))
+        .catch(() => {
+          this.$q.notify({
+            type: 'negative', position: 'top',
+            message: 'No se pudo imprimir el ' + documento
+          })
+        })
+        .finally(() => { this.imprimiendo = null })
     },
     // El comprobante no lleva la fecha del pedido sino la del dia en que se
     // cobro, y se busca por el carnet con el que quedo emitido: buscar por el

@@ -652,7 +652,8 @@ export default {
           actions: falloSiat ? [{ label: 'Cerrar', color: 'white' }] : []
         })
 
-        this.imprimirDocumentos(res.data.factura.id, res.data.factura.tipo_comprobante)
+        // La venta ya no imprime sola: el comprobante se imprime cuando lo
+        // piden, desde el listado de facturacion o desde la tarjeta del pedido.
         if (this.pedidoOrigen) {
           setTimeout(() => this.$router.push({
             path: '/facturacion/pedidos',
@@ -669,26 +670,6 @@ export default {
       }).finally(() => {
         this.guardando = false
       })
-    },
-
-    /** Una factura imprime solamente la factura; una venta, su voucher. */
-    imprimirDocumentos (id, tipo) {
-      this.abrirDocumento(id, tipo === 'FACTURA' ? 'factura' : 'voucher')
-    },
-
-    async abrirDocumento (id, documento) {
-      try {
-        await this.$solicitarImpresion(id, documento)
-      } catch (error) {
-        this.$q.notify({
-          message: 'La venta se guardó, pero no se pudo imprimir el ' + documento +
-            '. Se puede imprimir desde el listado.',
-          color: 'warning',
-          icon: 'print_disabled',
-          position: 'top',
-          timeout: 7000
-        })
-      }
     },
 
     limpiar () {

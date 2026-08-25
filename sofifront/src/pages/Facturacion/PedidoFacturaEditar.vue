@@ -61,6 +61,15 @@
         <q-btn color="primary" outline dense no-caps icon="add" label="Agregar producto" @click="abrirCatalogo"/>
       </div>
 
+      <q-banner v-if="lineasCambiadas.length" dense rounded class="bg-deep-orange-1 text-deep-orange-10 q-mb-sm">
+        <template v-slot:avatar><q-icon name="published_with_changes" color="deep-orange"/></template>
+        <span class="text-weight-medium">
+          {{ lineasCambiadas.length }}
+          {{ lineasCambiadas.length === 1 ? 'producto sale' : 'productos salen' }}
+          con una cantidad distinta a la del pedido
+        </span>
+      </q-banner>
+
       <q-card flat bordered class="rounded-borders q-mb-sm">
         <q-list separator>
           <q-item v-for="(item, indice) in items" :key="item.cod_prod + '-' + indice" class="q-pa-sm">
@@ -71,11 +80,24 @@
                 <span v-if="esPeso(item)" class="text-orange-9">· se cobra por peso</span>
               </q-item-label>
 
+              <!-- Aviso de que lo que se entrega ya no es lo que pidio el
+                   cliente. Se ve solo aca, al revisar: no se guarda ni sale en
+                   el comprobante impreso. -->
+              <q-item-label v-if="esNuevo(item)" caption class="text-blue-9 text-weight-medium">
+                <q-icon name="add_circle_outline"/> Agregado: no estaba en el pedido
+              </q-item-label>
+              <q-item-label v-else-if="cambioCantidad(item)" caption class="text-deep-orange text-weight-medium">
+                <q-icon name="published_with_changes"/>
+                Pedido {{ cantidad(item.cantidad_pedida) }} · se entrega {{ cantidad(item.cantidad) }}
+                ({{ diferencia(item) }})
+              </q-item-label>
+
               <div class="row q-col-gutter-xs q-mt-xs">
                 <div :class="esPeso(item) ? 'col-3' : 'col-5'">
                   <q-input
                     v-model.number="item.cantidad" type="number" min="0.001" step="0.001"
                     dense outlined label="Cantidad" @update:model-value="actualizar(item)"
+                    :bg-color="cambioCantidad(item) ? 'deep-orange-1' : ''"
                   />
                 </div>
                 <!-- Lo que va por kilo se pesa en el mostrador: ese peso, y no
@@ -209,6 +231,11 @@ export default {
     total () {
       return this.items.reduce((suma, item) => suma + this.facturable(item) * Number(item.precio || 0), 0)
     },
+    // Lo que se entrega distinto de lo que pidio el cliente, para avisarlo
+    // arriba de la lista. Es informativo: no viaja al backend.
+    lineasCambiadas () {
+      return this.items.filter(item => this.cambioCantidad(item))
+    },
     // Mientras falte un peso el total esta incompleto y no se puede cobrar.
     faltanPesos () {
       return this.items.some(item => this.esPeso(item) && !(Number(item.peso) > 0))
@@ -233,6 +260,16 @@ export default {
     // Los productos por kilo se cobran por el peso de la balanza; el resto,
     // por la cantidad de unidades.
     esPeso (item) { return String(item.unidad || '').toUpperCase() === 'KG' },
+    // Los productos que el cajero suma del catalogo no vienen del pedido, asi
+    // que no hay cantidad pedida con la cual compararlos.
+    esNuevo (item) { return item.cantidad_pedida === null || item.cantidad_pedida === undefined },
+    cambioCantidad (item) {
+      return !this.esNuevo(item) && Number(item.cantidad || 0) !== Number(item.cantidad_pedida)
+    },
+    diferencia (item) {
+      const resta = Number(item.cantidad || 0) - Number(item.cantidad_pedida)
+      return (resta > 0 ? '+' : '−') + this.cantidad(Math.abs(resta))
+    },
     facturable (item) {
       return Number((this.esPeso(item) ? item.peso : item.cantidad) || 0)
     },
@@ -290,6 +327,8 @@ export default {
           nombre: producto.producto,
           unidad: producto.unidad,
           cantidad: 1,
+          // No viene del pedido: no hay cantidad pedida contra que comparar.
+          cantidad_pedida: null,
           peso: null,
           precio: Number(producto.precio || 0),
           total: producto.unidad === 'KG' ? 0 : Number(producto.precio || 0)
@@ -339,21 +378,11 @@ export default {
           type: res.data.siat?.estado === 'ERROR' ? 'warning' : 'positive',
           position: 'top', message: res.data.message, timeout: 8000
         })
-        this.imprimir(res.data.factura.id, res.data.factura.tipo_comprobante)
+        // La venta ya no imprime sola: el comprobante se manda a la impresora
+        // desde el boton Imprimir de la tarjeta del pedido.
         setTimeout(this.volver, 1000)
       }).catch(this.error)
         .finally(() => { this.guardando = false })
-    },
-    async imprimir (id, tipo) {
-      const documento = tipo === 'FACTURA' ? 'factura' : 'voucher'
-      try {
-        await this.$solicitarImpresion(id, documento)
-      } catch (error) {
-        this.$q.notify({
-          type: 'warning', position: 'top', timeout: 7000,
-          message: 'La operacion se guardo, pero no se pudo imprimir el ' + documento
-        })
-      }
     },
     error (err) {
       this.$q.notify({
