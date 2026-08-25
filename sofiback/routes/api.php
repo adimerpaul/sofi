@@ -82,6 +82,11 @@ Route::group(['middleware'=>'auth:sanctum'],function (){
     Route::get('/facturacion/clientes',[\App\Http\Controllers\FacturacionController::class,'clientes']);
     Route::get('/facturacion/pedidos',[\App\Http\Controllers\FacturacionController::class,'pedidos']);
     Route::get('/facturacion/pedidos/{pedido}',[\App\Http\Controllers\FacturacionController::class,'pedido']);
+    // Van antes de /facturacion/{factura}: si no, 'lote' y 'reporte' entrarian
+    // como si fueran el id de una factura.
+    Route::get('/facturacion/lote/{documento}',[\App\Http\Controllers\FacturacionController::class,'lote']);
+    Route::get('/facturacion/reporte',[\App\Http\Controllers\FacturacionController::class,'reporte']);
+    Route::get('/facturacion/camiones',[\App\Http\Controllers\FacturacionController::class,'camiones']);
     Route::get('/facturacion/{factura}/voucher',[\App\Http\Controllers\FacturacionController::class,'voucher']);
     Route::get('/facturacion/{factura}/factura',[\App\Http\Controllers\FacturacionController::class,'factura']);
     Route::get('/facturacion/{factura}/url-impuestos',[\App\Http\Controllers\FacturacionController::class,'urlImpuestos']);

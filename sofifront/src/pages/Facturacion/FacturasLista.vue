@@ -7,6 +7,87 @@
           Ventas y facturas registradas desde el sistema web
         </div>
       </div>
+      <!-- Todo lo que se imprime o se exporta del listado sale de este menu, y
+           siempre sobre lo que los filtros estan mostrando. -->
+      <div class="col-auto">
+        <q-btn-dropdown
+          color="primary" outline no-caps icon="print" label="Imprimir / Exportar"
+          :loading="exportando"
+        >
+          <q-list dense style="min-width: 280px">
+            <q-item-label header class="q-py-xs">Comprobantes del filtro</q-item-label>
+
+            <q-item clickable v-close-popup @click="lote('voucher', true)">
+              <q-item-section avatar><q-icon name="receipt_long" color="blue-grey-7"/></q-item-section>
+              <q-item-section>
+                Imprimir todos los vouchers
+                <q-item-label caption>Uno por hoja, en un solo PDF</q-item-label>
+              </q-item-section>
+            </q-item>
+
+            <q-item clickable v-close-popup @click="lote('factura', true)">
+              <q-item-section avatar><q-icon name="verified" color="green-7"/></q-item-section>
+              <q-item-section>
+                Imprimir todas las facturas
+                <q-item-label caption>Solo las ventas entregadas como factura</q-item-label>
+              </q-item-section>
+            </q-item>
+
+            <q-item clickable v-close-popup @click="lote('voucher', false)">
+              <q-item-section avatar><q-icon name="picture_as_pdf" color="red-7"/></q-item-section>
+              <q-item-section>
+                Descargar vouchers en PDF
+                <q-item-label caption>El mismo lote, guardado como archivo</q-item-label>
+              </q-item-section>
+            </q-item>
+
+            <q-item clickable v-close-popup @click="lote('factura', false)">
+              <q-item-section avatar><q-icon name="picture_as_pdf" color="red-7"/></q-item-section>
+              <q-item-section>Descargar facturas en PDF</q-item-section>
+            </q-item>
+
+            <q-separator class="q-my-xs"/>
+            <q-item-label header class="q-py-xs">Reporte de ventas</q-item-label>
+
+            <q-item clickable v-close-popup @click="reporte('ventas', 'pdf')">
+              <q-item-section avatar><q-icon name="summarize" color="red-7"/></q-item-section>
+              <q-item-section>
+                Reporte en PDF
+                <q-item-label caption>Una fila por venta, con totales</q-item-label>
+              </q-item-section>
+            </q-item>
+
+            <q-item clickable v-close-popup @click="reporte('ventas', 'excel')">
+              <q-item-section avatar><q-icon name="grid_on" color="green-8"/></q-item-section>
+              <q-item-section>
+                Exportar a Excel
+                <q-item-label caption>Con filtros, totales y formato</q-item-label>
+              </q-item-section>
+            </q-item>
+
+            <q-separator class="q-my-xs"/>
+            <q-item-label header class="q-py-xs">Cambios en los pedidos</q-item-label>
+
+            <q-item clickable v-close-popup @click="reporte('cambios', 'pdf')">
+              <q-item-section avatar>
+                <q-icon name="published_with_changes" color="deep-orange"/>
+              </q-item-section>
+              <q-item-section>
+                Cambios en PDF
+                <q-item-label caption>Lo pedido contra lo entregado</q-item-label>
+              </q-item-section>
+            </q-item>
+
+            <q-item clickable v-close-popup @click="reporte('cambios', 'excel')">
+              <q-item-section avatar>
+                <q-icon name="published_with_changes" color="green-8"/>
+              </q-item-section>
+              <q-item-section>Cambios en Excel</q-item-section>
+            </q-item>
+          </q-list>
+        </q-btn-dropdown>
+      </div>
+
       <div class="col-auto">
         <q-btn
           v-if="can('facturacionNueva')"
@@ -34,6 +115,15 @@
             v-model="filtros.tipo" dense outlined clearable
             label="Tipo" :options="['VENTA', 'FACTURA']"
           />
+        </div>
+        <!-- El camion sale del pedido que origino cada comprobante. -->
+        <div class="col-6 col-md-2">
+          <q-select
+            v-model="filtros.camion" dense outlined clearable emit-value map-options
+            label="Camión" :options="camiones" @update:model-value="recargar"
+          >
+            <template v-slot:prepend><q-icon name="local_shipping"/></template>
+          </q-select>
         </div>
         <div class="col-6 col-md-2">
           <q-select
@@ -388,7 +478,7 @@ import { imprimirPdfDirecto } from 'src/utils/impresion.js'
 
 function filtrosPorDefecto () {
   const hoy = date.formatDate(new Date(), 'YYYY-MM-DD')
-  return { desde: hoy, hasta: hoy, buscar: '', tipo: null, estado: null }
+  return { desde: hoy, hasta: hoy, buscar: '', tipo: null, estado: null, camion: null }
 }
 
 /**
@@ -418,6 +508,8 @@ export default {
       ],
       anulando: false,
       imprimiendo: null,
+      exportando: false,
+      camiones: [],
       loading: false,
       filtros: filtrosPorDefecto(),
       pagination: { page: 1, rowsPerPage: 20, rowsNumber: 0 },
@@ -430,6 +522,7 @@ export default {
         { name: 'hora', label: 'Hora', field: 'hora', align: 'left' },
         { name: 'nombre', label: 'Cliente', field: 'nombre', align: 'left' },
         { name: 'vendedor', label: 'Vendedor', field: 'vendedor', align: 'left' },
+        { name: 'placa', label: 'Camión', field: 'placa', align: 'left', format: v => v || '—' },
         { name: 'tipo_pago', label: 'Pago', field: 'tipo_pago', align: 'center' },
         { name: 'estado', label: 'Estado', field: 'estado', align: 'center' },
         { name: 'siat', label: 'Estado SIAT', field: 'estado_siat', align: 'left' },
@@ -502,16 +595,13 @@ export default {
       const { page, rowsPerPage } = props.pagination
       this.loading = true
 
+      this.cargarCamiones()
+
       this.$api.get('facturacion', {
-        params: {
-          desde: this.filtros.desde || '',
-          hasta: this.filtros.hasta || '',
-          buscar: this.filtros.buscar || '',
-          tipo: this.filtros.tipo || '',
-          estado: this.filtros.estado || '',
+        params: Object.assign(this.paramsFiltro(), {
           page,
           perPage: rowsPerPage === 0 ? 200 : rowsPerPage
-        }
+        })
       }).then(res => {
         this.facturas = res.data.data
         this.pagination.page = res.data.current_page
@@ -534,6 +624,77 @@ export default {
           this.avisar(err, 'No se pudo imprimir el ' + documento)
         })
         .finally(() => { this.imprimiendo = null })
+    },
+
+    /** Los mismos filtros que ve el usuario; lo exportado tiene que coincidir. */
+    paramsFiltro () {
+      return {
+        desde: this.filtros.desde || '',
+        hasta: this.filtros.hasta || '',
+        buscar: this.filtros.buscar || '',
+        tipo: this.filtros.tipo || '',
+        estado: this.filtros.estado || '',
+        camion: this.filtros.camion || ''
+      }
+    },
+
+    // Solo se ofrecen los camiones que de verdad tienen comprobantes en el
+    // rango; se recargan con la lista porque dependen de las fechas.
+    cargarCamiones () {
+      this.$api.get('facturacion/camiones', { params: this.paramsFiltro() })
+        .then(res => {
+          this.camiones = res.data
+            .map(c => ({ label: c.placa + ' (' + c.pedidos + ')', value: c.placa }))
+            .concat([{ label: 'Sin camión', value: 'SIN' }])
+        })
+        .catch(() => { this.camiones = [] })
+    },
+
+    /**
+     * Descarga un archivo del backend. Los errores llegan como blob, asi que
+     * hay que leerlos antes de poder mostrar el motivo.
+     */
+    bajarArchivo (url, params, nombre, imprimir) {
+      this.exportando = true
+
+      return this.$api.get(url, { params, responseType: 'blob' })
+        .then(res => {
+          if (imprimir) return imprimirPdfDirecto(res.data, nombre)
+
+          const enlace = document.createElement('a')
+          enlace.href = window.URL.createObjectURL(res.data)
+          enlace.download = nombre
+          enlace.click()
+          window.URL.revokeObjectURL(enlace.href)
+        })
+        .catch(async err => {
+          let mensaje = 'No se pudo generar el archivo'
+          try {
+            mensaje = JSON.parse(await err.response.data.text()).message || mensaje
+          } catch (e) { /* el error no vino en JSON */ }
+          this.$q.notify({ type: 'negative', position: 'top', message: mensaje })
+        })
+        .finally(() => { this.exportando = false })
+    },
+
+    /** Todos los comprobantes del filtro en un solo PDF. */
+    lote (documento, imprimir) {
+      return this.bajarArchivo(
+        'facturacion/lote/' + documento,
+        this.paramsFiltro(),
+        documento + 's_' + (this.filtros.desde || 'todo') + '.pdf',
+        imprimir
+      )
+    },
+
+    /** contenido: 'ventas' o 'cambios'; formato: 'pdf' o 'excel'. */
+    reporte (contenido, formato) {
+      return this.bajarArchivo(
+        'facturacion/reporte',
+        Object.assign({ contenido, formato }, this.paramsFiltro()),
+        contenido + '_' + (this.filtros.desde || 'todo') + (formato === 'excel' ? '.xlsx' : '.pdf'),
+        false
+      )
     },
 
     /** El mismo documento que se imprime, pero guardado como archivo. */

@@ -8,6 +8,12 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\DB;
 use Luecano\NumeroALetras\NumeroALetras;
+use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Style\Alignment;
+use PhpOffice\PhpSpreadsheet\Style\Border;
+use PhpOffice\PhpSpreadsheet\Style\Fill;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 
 /**
  * Ventas y facturas hechas desde el sistema web.
@@ -26,17 +32,42 @@ class FacturacionController extends Controller
     /** Fecha centinela del legado para "sin valor". */
     private const FECHA_NULA = '1899-11-30 04:32:36';
 
+    /** Tope de comprobantes por PDF; mas que esto no se imprime de una vez. */
+    private const MAX_LOTE = 150;
+
     /** Listado de lo emitido, con filtros de la pantalla. */
     public function index(Request $request)
     {
         $perPage = min(max((int) $request->input('perPage', 20), 1), 200);
 
+        return $this->filtrar($request)->paginate($perPage);
+    }
+
+    /**
+     * Los filtros de la pantalla, en un solo sitio.
+     *
+     * Lo usan el listado y los reportes: lo que se exporta o se imprime en lote
+     * tiene que ser exactamente lo que el usuario esta viendo, y con la consulta
+     * duplicada eso se desincroniza al primer cambio.
+     */
+    private function filtrar(Request $request)
+    {
         $query = Factura::query()
             ->with([
                 'detalles',
                 'cliente:Cod_Aut,Id,Nombres,zona',
                 'vendedor:CodAut,ci,Nombre1,Nombre2,App1,Apm',
             ])
+            ->select('facturas.*')
+            // El camion no es de la factura sino del pedido que la origino, y
+            // por eso se trae de tbpedidos en vez de guardarse repetido.
+            ->selectSub(function ($sub) {
+                $sub->from('tbpedidos as pc')
+                    ->whereColumn('pc.NroPed', 'facturas.pedido_nro')
+                    ->whereRaw('UPPER(TRIM(pc.tipo)) = UPPER(TRIM(facturas.pedido_tipo))')
+                    ->limit(1)
+                    ->select(DB::raw("TRIM(COALESCE(pc.placa, ''))"));
+            }, 'placa')
             ->orderByDesc('id');
 
         if ($desde = $request->input('desde')) {
@@ -50,6 +81,25 @@ class FacturacionController extends Controller
         }
         if ($estado = $request->input('estado')) {
             $query->where('estado', $estado);
+        }
+
+        // El camion se filtra por los pedidos que salieron en esa placa. La
+        // subconsulta se queda dentro de tbpedidos a proposito: cruzar textos
+        // entre facturas (utf8mb4) y el legado (latin1) mezcla collations.
+        if ($camion = trim((string) $request->input('camion', ''))) {
+            if ($camion === 'SIN') {
+                $query->where(function ($w) {
+                    $w->whereNull('pedido_nro')->orWhereNotIn('pedido_nro', function ($sub) {
+                        $sub->from('tbpedidos')->select('NroPed')
+                            ->whereRaw("TRIM(COALESCE(placa, '')) <> ''");
+                    });
+                });
+            } else {
+                $query->whereIn('pedido_nro', function ($sub) use ($camion) {
+                    $sub->from('tbpedidos')->select('NroPed')
+                        ->whereRaw('TRIM(placa) = ?', [$camion]);
+                });
+            }
         }
 
         if ($buscar = trim((string) $request->input('buscar', ''))) {
@@ -66,7 +116,35 @@ class FacturacionController extends Controller
             });
         }
 
-        return $query->paginate($perPage);
+        return $query;
+    }
+
+    /**
+     * Camiones que tienen comprobantes en lo que se esta filtrando.
+     *
+     * Se ignora el filtro de camion para armar las opciones: si no, al elegir
+     * uno el desplegable se quedaria con ese solo y no habria como cambiarlo.
+     */
+    public function camiones(Request $request)
+    {
+        $sinCamion = Request::create('', 'GET', $request->except('camion'));
+
+        $numeros = $this->filtrar($sinCamion)->reorder()
+            ->pluck('pedido_nro')->filter()->unique()->values();
+
+        if ($numeros->isEmpty()) {
+            return response()->json([]);
+        }
+
+        return DB::table('tbpedidos')
+            ->whereIn('NroPed', $numeros)
+            ->whereRaw("TRIM(COALESCE(placa, '')) <> ''")
+            ->groupBy('placa')
+            ->orderBy('placa')
+            ->get([
+                DB::raw('TRIM(placa) as placa'),
+                DB::raw('COUNT(DISTINCT NroPed) as pedidos'),
+            ]);
     }
 
     /** Una factura con su detalle, para ver o reimprimir. */
@@ -922,6 +1000,12 @@ class FacturacionController extends Controller
             return response()->json(['message' => 'La venta no existe'], 404);
         }
 
+        return $this->pdf($this->voucherHtml($factura), 'voucher_' . $factura->id);
+    }
+
+    /** El voucher como HTML: aparte, para poder juntar varios en un PDF. */
+    private function voucherHtml(Factura $factura)
+    {
         $cliente = $factura->cliente;
 
         $vendedor = $factura->vendedor
@@ -1048,13 +1132,7 @@ class FacturacionController extends Controller
             </div>
         </div>";
 
-        $pdf = App::make("dompdf.wrapper");
-        // Sin subsetting la fuente se embebe entera y cada PDF pesa ~900 KB.
-        $pdf->getDomPDF()->getOptions()->setIsFontSubsettingEnabled(true);
-        $pdf->setPaper("letter");
-        $pdf->loadHTML($html);
-
-        return $pdf->stream('voucher_' . $factura->id . '.pdf', ['Attachment' => false]);
+        return $html;
     }
 
     /**
@@ -1078,6 +1156,12 @@ class FacturacionController extends Controller
             ], 422);
         }
 
+        return $this->pdf($this->facturaHtml($factura), 'factura_' . $factura->id);
+    }
+
+    /** La factura como HTML: aparte, para poder juntar varias en un PDF. */
+    private function facturaHtml(Factura $factura)
+    {
         $placa = $this->camion($factura);
 
         $filas = '';
@@ -1200,13 +1284,337 @@ class FacturacionController extends Controller
 
         <div class='copia'>COPIA</div>";
 
-        $pdf = App::make("dompdf.wrapper");
+        return $html;
+    }
+
+    /**
+     * Todos los comprobantes del filtro en un solo PDF, uno por hoja.
+     *
+     * Es lo que permite imprimir de una vez lo del dia en lugar de abrir venta
+     * por venta. El tope existe para no armar un PDF de cientos de hojas por un
+     * filtro demasiado abierto.
+     */
+    public function lote(Request $request, $documento)
+    {
+        $documento = $documento === 'factura' ? 'factura' : 'voucher';
+
+        $facturas = $this->filtrar($request)
+            ->when($documento === 'factura', function ($q) {
+                // La factura solo existe si la venta se entrego como factura.
+                $q->where('tipo_comprobante', 'FACTURA');
+            })
+            ->reorder('id')
+            ->limit(self::MAX_LOTE)
+            ->get();
+
+        if ($facturas->isEmpty()) {
+            return response()->json([
+                'message' => $documento === 'factura'
+                    ? 'No hay facturas en lo que estás viendo'
+                    : 'No hay comprobantes en lo que estás viendo',
+            ], 422);
+        }
+
+        $paginas = $facturas->map(function ($factura) use ($documento) {
+            return $documento === 'factura'
+                ? $this->facturaHtml($factura)
+                : $this->voucherHtml($factura);
+        })->implode("<div style='page-break-after: always'></div>");
+
+        return $this->pdf($paginas, $documento . 's_' . date('Y-m-d'));
+    }
+
+    /**
+     * Reporte del listado: lo mismo que se ve en pantalla, para llevar.
+     *
+     * contenido = ventas -> una fila por comprobante, con sus totales.
+     * contenido = cambios -> una fila por producto que salio con otra cantidad
+     * de la que pedia el pedido, que es lo que no se puede reconstruir mirando
+     * la factura sola.
+     */
+    public function reporte(Request $request)
+    {
+        $datos = $request->validate([
+            'formato'    => 'nullable|in:pdf,excel',
+            'contenido'  => 'nullable|in:ventas,cambios',
+        ]);
+
+        $contenido = $datos['contenido'] ?? 'ventas';
+        $facturas = $this->filtrar($request)->reorder('id')->get();
+
+        $filas = $contenido === 'cambios'
+            ? $this->filasCambios($facturas)
+            : $this->filasVentas($facturas);
+
+        if (empty($filas)) {
+            return response()->json([
+                'message' => $contenido === 'cambios'
+                    ? 'Ningún pedido salió con cantidades distintas en este filtro'
+                    : 'No hay ventas en este filtro',
+            ], 422);
+        }
+
+        return ($datos['formato'] ?? 'pdf') === 'excel'
+            ? $this->reporteExcel($contenido, $filas, $request)
+            : $this->reportePdf($contenido, $filas, $request);
+    }
+
+    /** Una fila por comprobante. */
+    private function filasVentas($facturas)
+    {
+        return $facturas->map(function ($f) {
+            return [
+                'nro'       => (string) ($f->nro_factura ?: $f->id),
+                'tipo'      => $f->tipo_comprobante,
+                'fecha'     => $f->fecha->format('d/m/Y') . ' ' . $f->hora,
+                'cliente'   => $f->nombre ?: 'Sin cliente',
+                'nit'       => $f->nit ?: '—',
+                'pago'      => $f->tipo_pago,
+                'estado'    => $f->estado . ($f->estado_siat ? ' / ' . $f->estado_siat : ''),
+                'subtotal'  => (float) $f->subtotal,
+                'descuento' => (float) $f->descuento,
+                'total'     => (float) $f->total,
+            ];
+        })->all();
+    }
+
+    /** Una fila por producto que no salio como lo pedia el pedido. */
+    private function filasCambios($facturas)
+    {
+        $filas = [];
+
+        foreach ($facturas as $f) {
+            foreach ($f->detalles as $d) {
+                if ($d->cantidad_pedida === null
+                    || (float) $d->cantidad === (float) $d->cantidad_pedida) {
+                    continue;
+                }
+
+                $filas[] = [
+                    'nro'        => (string) ($f->nro_factura ?: $f->id),
+                    'fecha'      => $f->fecha->format('d/m/Y'),
+                    'pedido'     => (string) ($f->pedido_nro ?: '—'),
+                    'cliente'    => $f->nombre ?: 'Sin cliente',
+                    'producto'   => $d->nombre,
+                    'unidad'     => $d->unidad,
+                    'pedida'     => (float) $d->cantidad_pedida,
+                    'entregada'  => (float) $d->cantidad,
+                    'diferencia' => round((float) $d->cantidad - (float) $d->cantidad_pedida, 3),
+                    'precio'     => (float) $d->precio,
+                    // Lo que se dejo de cobrar (o se cobro de mas) por el cambio.
+                    'importe'    => round(
+                        ((float) $d->cantidad - (float) $d->cantidad_pedida) * (float) $d->precio,
+                        2
+                    ),
+                ];
+            }
+        }
+
+        return $filas;
+    }
+
+    /** Columnas de cada reporte: etiqueta, clave, ancho y si es importe. */
+    private function columnasReporte($contenido)
+    {
+        if ($contenido === 'cambios') {
+            return [
+                ['Nº', 'nro', 7, false], ['Fecha', 'fecha', 11, false],
+                ['Pedido', 'pedido', 9, false], ['Cliente', 'cliente', 26, false],
+                ['Producto', 'producto', 32, false], ['Unid', 'unidad', 6, false],
+                ['Pedida', 'pedida', 9, true], ['Entregada', 'entregada', 10, true],
+                ['Diferencia', 'diferencia', 10, true], ['Precio Bs', 'precio', 10, true],
+                ['Importe Bs', 'importe', 11, true],
+            ];
+        }
+
+        return [
+            ['Nº', 'nro', 8, false], ['Tipo', 'tipo', 10, false],
+            ['Fecha', 'fecha', 16, false], ['Cliente', 'cliente', 30, false],
+            ['NIT / CI', 'nit', 13, false], ['Pago', 'pago', 11, false],
+            ['Estado', 'estado', 16, false], ['Subtotal Bs', 'subtotal', 12, true],
+            ['Descuento Bs', 'descuento', 12, true], ['Total Bs', 'total', 12, true],
+        ];
+    }
+
+    /** Titulo y rango, para que el papel diga que se esta mirando. */
+    private function tituloReporte($contenido, Request $request)
+    {
+        $desde = $request->input('desde');
+        $hasta = $request->input('hasta');
+
+        $rango = $desde && $hasta && $desde === $hasta
+            ? date('d/m/Y', strtotime($desde))
+            : trim(($desde ? 'del ' . date('d/m/Y', strtotime($desde)) : '')
+                . ($hasta ? ' al ' . date('d/m/Y', strtotime($hasta)) : ''));
+
+        return [
+            $contenido === 'cambios' ? 'CAMBIOS EN LOS PEDIDOS' : 'REPORTE DE VENTAS',
+            $rango ?: 'Todas las fechas',
+        ];
+    }
+
+    private function reportePdf($contenido, array $filas, Request $request)
+    {
+        list($titulo, $rango) = $this->tituloReporte($contenido, $request);
+        $columnas = $this->columnasReporte($contenido);
+
+        $encabezado = '';
+        foreach ($columnas as list($etiqueta, $clave, $ancho, $esImporte)) {
+            $encabezado .= "<th style='width:{$ancho}%" . ($esImporte ? '; text-align:right' : '') . "'>"
+                . e($etiqueta) . '</th>';
+        }
+
+        $cuerpo = '';
+        $totales = [];
+        foreach ($filas as $i => $fila) {
+            $par = $i % 2 ? " class='par'" : '';
+            $cuerpo .= "<tr$par>";
+            foreach ($columnas as list($etiqueta, $clave, $ancho, $esImporte)) {
+                $valor = $fila[$clave];
+                if ($esImporte) {
+                    $totales[$clave] = ($totales[$clave] ?? 0) + (float) $valor;
+                }
+                $cuerpo .= $esImporte
+                    ? "<td class='r'>" . number_format((float) $valor, 2) . '</td>'
+                    : '<td>' . e($valor) . '</td>';
+            }
+            $cuerpo .= '</tr>';
+        }
+
+        // Solo se suman los importes; sumar cantidades de unidades distintas no
+        // significa nada.
+        $sumables = $contenido === 'cambios' ? ['importe'] : ['subtotal', 'descuento', 'total'];
+        $pie = "<tr class='total'>";
+        $primera = true;
+        foreach ($columnas as list($etiqueta, $clave, $ancho, $esImporte)) {
+            if ($primera) {
+                $pie .= "<td colspan='1'><b>TOTAL (" . count($filas) . ")</b></td>";
+                $primera = false;
+                continue;
+            }
+            $pie .= in_array($clave, $sumables, true)
+                ? "<td class='r'><b>" . number_format($totales[$clave] ?? 0, 2) . '</b></td>'
+                : '<td></td>';
+        }
+        $pie .= '</tr>';
+
+        $html = '<style>' . $this->estilosImpresion() . "
+            .rep { width: 100%; border-collapse: collapse; margin-top: 8px }
+            .rep th { background: #37474F; color: #fff; font-size: 8px; padding: 5px 4px;
+                      text-align: left; text-transform: uppercase }
+            .rep td { font-size: 8px; padding: 4px; border-bottom: 1px solid #E0E0E0 }
+            .rep td.r { text-align: right }
+            .rep tr.par td { background: #F5F7F8 }
+            .rep tr.total td { background: #ECEFF1; border-top: 2px solid #37474F; font-size: 8.5px }
+            .tit-rep { text-align: center; margin-bottom: 2px }
+            .tit-rep h1 { font-size: 13px; margin: 0; letter-spacing: 1px }
+            .tit-rep div { font-size: 8.5px; color: #666 }
+        </style>
+        <div class='tit-rep'>
+            <h1>" . e($titulo) . "</h1>
+            <div>" . e(config('siat.emisor')['nombre']) . ' &middot; ' . e($rango)
+            . ' &middot; generado el ' . date('d/m/Y H:i') . "</div>
+        </div>
+        <table class='rep'>
+            <thead><tr>$encabezado</tr></thead>
+            <tbody>$cuerpo$pie</tbody>
+        </table>";
+
+        return $this->pdf($html, $contenido . '_' . date('Y-m-d'));
+    }
+
+    private function reporteExcel($contenido, array $filas, Request $request)
+    {
+        list($titulo, $rango) = $this->tituloReporte($contenido, $request);
+        $columnas = $this->columnasReporte($contenido);
+        $ultima = Coordinate::stringFromColumnIndex(count($columnas));
+
+        $libro = new Spreadsheet();
+        $hoja = $libro->getActiveSheet();
+        $hoja->setTitle($contenido === 'cambios' ? 'Cambios' : 'Ventas');
+
+        // Cabecera del reporte: titulo y rango, como en el PDF.
+        $hoja->mergeCells('A1:' . $ultima . '1')->setCellValue('A1', $titulo);
+        $hoja->mergeCells('A2:' . $ultima . '2')->setCellValue(
+            'A2',
+            config('siat.emisor')['nombre'] . ' · ' . $rango . ' · generado el ' . date('d/m/Y H:i')
+        );
+        $hoja->getStyle('A1')->getFont()->setBold(true)->setSize(14);
+        $hoja->getStyle('A2')->getFont()->setSize(9)->getColor()->setRGB('666666');
+        $hoja->getStyle('A1:' . $ultima . '2')->getAlignment()
+            ->setHorizontal(Alignment::HORIZONTAL_CENTER);
+
+        foreach ($columnas as $i => list($etiqueta, $clave, $ancho, $esImporte)) {
+            $hoja->setCellValueByColumnAndRow($i + 1, 4, $etiqueta);
+        }
+
+        $fila = 5;
+        foreach ($filas as $registro) {
+            foreach ($columnas as $i => list($etiqueta, $clave, $ancho, $esImporte)) {
+                $hoja->setCellValueByColumnAndRow($i + 1, $fila, $registro[$clave]);
+            }
+            $fila++;
+        }
+
+        $sumables = $contenido === 'cambios' ? ['importe'] : ['subtotal', 'descuento', 'total'];
+        $hoja->setCellValue('A' . $fila, 'TOTAL (' . count($filas) . ')');
+        foreach ($columnas as $i => list($etiqueta, $clave, $ancho, $esImporte)) {
+            if (!in_array($clave, $sumables, true)) {
+                continue;
+            }
+            $letra = Coordinate::stringFromColumnIndex($i + 1);
+            $hoja->setCellValue(
+                $letra . $fila,
+                '=SUM(' . $letra . '5:' . $letra . ($fila - 1) . ')'
+            );
+        }
+
+        // Encabezado de la tabla en blanco sobre azul oscuro, como el PDF.
+        $hoja->getStyle('A4:' . $ultima . '4')->applyFromArray([
+            'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
+            'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => '37474F']],
+            'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
+        ]);
+        $hoja->getStyle('A' . $fila . ':' . $ultima . $fila)->applyFromArray([
+            'font' => ['bold' => true],
+            'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'ECEFF1']],
+        ]);
+        $hoja->getStyle('A4:' . $ultima . $fila)->getBorders()->getAllBorders()
+            ->setBorderStyle(Border::BORDER_THIN)->getColor()->setRGB('BDBDBD');
+
+        foreach ($columnas as $i => list($etiqueta, $clave, $ancho, $esImporte)) {
+            $letra = Coordinate::stringFromColumnIndex($i + 1);
+            $hoja->getColumnDimension($letra)->setAutoSize(true);
+            if ($esImporte) {
+                $hoja->getStyle($letra . '5:' . $letra . $fila)
+                    ->getNumberFormat()->setFormatCode('#,##0.000');
+            }
+        }
+
+        // Los encabezados quedan fijos al desplazarse.
+        $hoja->freezePane('A5');
+        $hoja->setAutoFilter('A4:' . $ultima . ($fila - 1));
+
+        $writer = new Xlsx($libro);
+        $nombre = $contenido . '_' . date('Y-m-d') . '.xlsx';
+
+        return response()->streamDownload(function () use ($writer) {
+            $writer->save('php://output');
+        }, $nombre, [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        ]);
+    }
+
+    /** Arma el PDF de un HTML ya listo; todos salen con los mismos ajustes. */
+    private function pdf($html, $nombre)
+    {
+        $pdf = App::make('dompdf.wrapper');
         // Sin subsetting la fuente se embebe entera y cada PDF pesa ~900 KB.
         $pdf->getDomPDF()->getOptions()->setIsFontSubsettingEnabled(true);
-        $pdf->setPaper("letter");
+        $pdf->setPaper('letter');
         $pdf->loadHTML($html);
 
-        return $pdf->stream('factura_' . $factura->id . '.pdf', ['Attachment' => false]);
+        return $pdf->stream($nombre . '.pdf', ['Attachment' => false]);
     }
 
     /** Importe en letras, con el mismo formato que usa la boleta de entrega. */
