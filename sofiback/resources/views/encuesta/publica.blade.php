@@ -334,7 +334,7 @@
                             @endif
                         </div>
                     </div>
-                    <div class="row">
+                    {{-- <div class="row">
                         <div class="avatar alt">{{ $inicial }}</div>
                         <div class="txt">
                             <div class="k">Te atendió</div>
@@ -343,7 +343,7 @@
                                 <div class="s">Móvil {{ $placa }}</div>
                             @endif
                         </div>
-                    </div>
+                    </div> --}}
                 </div>
 
                 @if ($respuesta)
