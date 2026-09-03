@@ -102,6 +102,16 @@
             </div>
 
             <div class="q-mt-xs">
+              <!-- El pedido ya viene marcado por el preventista (tbpedidos.fact):
+                   el chip lo dice antes de entrar, y si ya se cobro manda lo que
+                   realmente se emitio. -->
+              <q-chip
+                dense square size="sm" text-color="white"
+                :color="esFactura(pedido) ? 'indigo-8' : 'blue-grey-6'"
+              >
+                {{ esFactura(pedido) ? 'F' : 'R' }}
+                <q-tooltip>{{ esFactura(pedido) ? 'Factura' : 'Recibo' }}</q-tooltip>
+              </q-chip>
               <q-chip v-if="pedido.placa" dense square size="sm" icon="local_shipping" :style="estiloCamion(pedido)">
                 {{ pedido.placa }}
               </q-chip>
@@ -279,6 +289,12 @@ export default {
     }
   },
   methods: {
+    // Antes de cobrarse manda lo que pidio el cliente (fact = SI); una vez
+    // emitido, lo que de verdad salio, que puede no coincidir.
+    esFactura (pedido) {
+      if (pedido.factura_id) return pedido.comprobante_emitido === 'FACTURA'
+      return String(pedido.fact || '').toUpperCase() === 'SI'
+    },
     money (valor) {
       return Number(valor || 0).toFixed(2)
     },
