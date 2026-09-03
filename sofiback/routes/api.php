@@ -94,6 +94,12 @@ Route::group(['middleware'=>'auth:sanctum'],function (){
     Route::post('/facturacion',[\App\Http\Controllers\FacturacionController::class,'store']);
     Route::put('/facturacion/{factura}/anular',[\App\Http\Controllers\FacturacionController::class,'anular']);
 
+    // El caminero solo ve lo de su camion: la placa sale de su usuario, no
+    // viaja en la peticion.
+    Route::get('/caminero/entregas',[\App\Http\Controllers\CamineroController::class,'entregas']);
+    Route::post('/caminero/cobrar',[\App\Http\Controllers\CamineroController::class,'cobrar']);
+    Route::get('/caminero/reporte',[\App\Http\Controllers\CamineroController::class,'reporte']);
+
     // Compras a proveedor: suben el stock de tbstock.
     Route::get('/compras',[\App\Http\Controllers\CompraController::class,'index']);
     Route::get('/compras/proveedores',[\App\Http\Controllers\CompraController::class,'proveedores']);

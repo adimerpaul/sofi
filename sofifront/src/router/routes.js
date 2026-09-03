@@ -75,6 +75,10 @@ const routes = [
       { path: '/compras', component: () => import('pages/Compras/ComprasLista.vue'), meta: { requiresAuth: true } },
       { path: '/compras/nueva', component: () => import('pages/Compras/CompraNueva.vue'), meta: { requiresAuth: true } },
       { path: '/proveedores', component: () => import('pages/Compras/ProveedoresLista.vue'), meta: { requiresAuth: true } },
+      // Lo del caminero: la placa sale de su usuario, asi que ambas paginas
+      // muestran solo su camion sin filtro que elegir.
+      { path: '/caminero/entregas', component: () => import('pages/Caminero/MisEntregas.vue'), meta: { requiresAuth: true } },
+      { path: '/caminero/reporte', component: () => import('pages/Caminero/ReporteEntregas.vue'), meta: { requiresAuth: true } },
       { path: '/encuestasIndex', component: () => import('pages/encuesta/EncuestaIndex.vue'), meta: { requiresAuth: true } },
       { path: '/horariosenvio', component: () => import('pages/HorariosEnvio.vue'), meta: { requiresAuth: true } },
       // ClienteFotografias
