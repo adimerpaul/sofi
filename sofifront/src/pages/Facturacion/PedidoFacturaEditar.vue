@@ -34,6 +34,23 @@
         </q-card-section>
       </q-card>
 
+      <!-- El pedido volvio a la cola porque su venta se anulo: lo que ya se
+           habia pesado y corregido llega cargado, no hay que rehacerlo. -->
+      <q-banner v-if="pedido.anulada" dense rounded class="bg-blue-1 text-blue-10 q-mb-sm">
+        <template v-slot:avatar><q-icon name="history" color="blue-8"/></template>
+        <div class="text-weight-medium">
+          Se recuperó lo cobrado en la venta #{{ pedido.anulada.id }}, que fue anulada
+        </div>
+        <div class="text-caption">
+          {{ pedido.anulada.lineas }}
+          {{ pedido.anulada.lineas === 1 ? 'producto' : 'productos' }} ·
+          Bs {{ money(pedido.anulada.total) }} ·
+          {{ pedido.anulada.anulado_at || pedido.anulada.fecha }}
+          <span v-if="pedido.anulada.motivo"> · {{ pedido.anulada.motivo }}</span>
+        </div>
+        <div class="text-caption">Revisá los pesos y cantidades antes de volver a cobrar.</div>
+      </q-banner>
+
       <q-card v-if="pedido.detalle_pollo.productos.length || pedido.detalle_pollo.observaciones.length" flat bordered class="rounded-borders q-mb-sm bg-orange-1">
         <q-card-section class="q-pa-sm">
           <div class="text-subtitle2 text-weight-bold"><q-icon name="restaurant"/> Detalle completo de pollo</div>
@@ -83,6 +100,9 @@
               <!-- Aviso de que lo que se entrega ya no es lo que pidio el
                    cliente. Se ve solo aca, al revisar: no se guarda ni sale en
                    el comprobante impreso. -->
+              <q-item-label v-if="item.recuperado" caption class="text-blue-9 text-weight-medium">
+                <q-icon name="history"/> Recuperado de la venta anulada
+              </q-item-label>
               <q-item-label v-if="esNuevo(item)" caption class="text-blue-9 text-weight-medium">
                 <q-icon name="add_circle_outline"/> Agregado: no estaba en el pedido
               </q-item-label>
@@ -130,8 +150,11 @@
 
       <q-card flat bordered class="rounded-borders q-mb-lg">
         <q-card-section class="q-pa-sm">
+          <!-- Comprobante, NIT/CI y forma de pago salen del pedido tal como lo
+               tomo el preventista: el cajero los ve pero no los cambia, para
+               que lo cobrado coincida con lo pactado con el cliente. -->
           <q-btn-toggle
-            v-model="tipoComprobante" spread no-caps unelevated
+            v-model="tipoComprobante" spread no-caps unelevated disable
             toggle-color="primary" color="grey-3" text-color="grey-8"
             :options="[
               { label: 'Voucher', value: 'VENTA', icon: 'receipt' },
@@ -141,11 +164,14 @@
 
           <div class="row q-col-gutter-xs q-mt-xs">
             <div class="col-7">
-              <q-input v-model.trim="nit" dense outlined label="NIT o CI"/>
+              <q-input v-model.trim="nit" dense outlined disable label="NIT o CI"/>
             </div>
             <div class="col-5">
-              <q-select v-model="tipoPago" dense outlined label="Pago" :options="tiposPago"/>
+              <q-select v-model="tipoPago" dense outlined disable label="Pago" :options="tiposPago"/>
             </div>
+          </div>
+          <div class="text-caption text-grey-7">
+            <q-icon name="lock"/> Comprobante, NIT/CI y pago vienen del pedido
           </div>
           <q-input v-model.trim="observacion" dense outlined class="q-mt-xs" label="Observación"/>
 
@@ -285,7 +311,9 @@ export default {
           // en cero hasta que el cajero escriba el peso.
           this.items.forEach(this.actualizar)
           this.nit = this.pedido.nit || ''
-          this.observacion = this.pedido.comentario || ''
+          // Si la venta anterior se anulo, la observacion con la que se cobro
+          // vuelve tal cual; si no, la del pedido.
+          this.observacion = this.pedido.anulada?.observacion || this.pedido.comentario || ''
           this.tipoComprobante = String(this.pedido.fact || '').toUpperCase() === 'SI' ? 'FACTURA' : 'VENTA'
           this.tipoPago = String(this.pedido.pago || '').toUpperCase().includes('CREDIT') ? 'CRÉDITO' : 'EFECTIVO'
         })
@@ -338,7 +366,11 @@ export default {
     },
     guardar () {
       if (this.tipoComprobante === 'FACTURA' && !this.nit) {
-        this.$q.notify({ type: 'warning', position: 'top', message: 'La factura necesita NIT o CI' })
+        this.$q.notify({
+          type: 'warning',
+          position: 'top',
+          message: 'El pedido pide factura pero el cliente no tiene NIT o CI: corregirlo en la ficha del cliente'
+        })
         return
       }
       if (this.items.some(item => Number(item.cantidad) <= 0 || Number(item.precio) < 0)) {

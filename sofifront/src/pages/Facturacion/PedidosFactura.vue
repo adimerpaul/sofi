@@ -1,57 +1,73 @@
 <template>
-  <q-page class="q-pa-sm">
-    <div class="row items-center q-col-gutter-sm q-mb-sm">
+  <q-page class="q-pa-xs">
+    <!-- Sin titulo ni tarjeta alrededor: en el celular cada linea que no sea
+         pedido es una linea menos de pedidos en pantalla. -->
+    <div class="row q-col-gutter-xs items-center q-mb-xs filtros" @keyup.enter="cargar">
+      <div class="col-6 col-md-2">
+        <q-input v-model="fecha" type="date" dense outlined/>
+      </div>
+      <div class="col-6 col-md-2">
+        <q-select v-model="tipo" dense outlined emit-value map-options :options="tipos"/>
+      </div>
       <div class="col">
-        <div class="text-h6 text-weight-bold">Pedido factura</div>
-        <div class="text-caption text-grey-7">Pedidos listos para cobrar</div>
+        <q-input v-model.trim="buscar" dense outlined clearable placeholder="Pedido o cliente"/>
       </div>
       <div class="col-auto">
-        <q-btn flat round dense icon="request_quote" to="/facturacion">
+        <q-btn color="primary" unelevated dense padding="6px 10px" icon="search" :loading="cargando" @click="cargar">
+          <q-tooltip>Buscar</q-tooltip>
+        </q-btn>
+      </div>
+      <div class="col-auto">
+        <q-btn flat dense padding="6px 8px" color="primary" icon="request_quote" to="/facturacion">
           <q-tooltip>Ver facturación</q-tooltip>
         </q-btn>
       </div>
     </div>
 
-    <q-card flat bordered class="q-pa-sm q-mb-sm rounded-borders">
-      <div class="row q-col-gutter-sm items-center" @keyup.enter="cargar">
-        <div class="col-6 col-md-2">
-          <q-input v-model="fecha" type="date" dense outlined label="Fecha"/>
+    <!-- Una linea por camion con lo que ya lleva cobrado: en el celular se ve
+         de un golpe cual falta llenar, y tocando se filtra a ese camion. -->
+    <q-card v-if="!cargando && camiones.length" flat bordered class="q-mb-xs rounded-borders">
+      <div class="row items-center no-wrap q-px-xs bg-grey-3 camion-titulo">
+        <div class="text-weight-bold text-grey-8">CARGA POR CAMION</div>
+        <q-space/>
+        <div class="text-weight-bolder" :class="facturadosTotal === pedidos.length ? 'text-green-9' : 'text-orange-9'">
+          {{ facturadosTotal }}/{{ pedidos.length }} · {{ porcentajeTotal }}%
         </div>
-        <div class="col-6 col-md-2">
-          <q-select
-            v-model="tipo" dense outlined emit-value map-options
-            label="Tipo" :options="tipos"
-          />
-        </div>
-        <div class="col-12 col-md-3">
-          <q-select
-            v-model="camion" dense outlined clearable emit-value map-options
-            label="Camion" :options="camiones"
-            :disable="!camiones.length"
-          >
-            <template v-slot:prepend><q-icon name="local_shipping"/></template>
-          </q-select>
-        </div>
-        <div class="col-9 col-md-4">
-          <q-input v-model.trim="buscar" dense outlined clearable placeholder="Pedido o cliente">
-            <template v-slot:append><q-icon name="search"/></template>
-          </q-input>
-        </div>
-        <div class="col-3 col-md-auto">
-          <q-btn class="full-width" color="primary" unelevated icon="search" :loading="cargando" @click="cargar">
-            <q-tooltip>Buscar</q-tooltip>
-          </q-btn>
+        <q-btn v-if="camion" flat dense no-caps size="sm" padding="0 4px" class="q-ml-xs" color="primary"
+               icon="clear" label="Todos" @click="camion = null"/>
+      </div>
+      <!-- Filas planas de 22px: con q-item el padding propio de Quasar hacia
+           que nueve camiones empujaran los pedidos fuera de la pantalla. -->
+      <div
+        v-for="opcion in camiones" :key="opcion.value"
+        class="row items-center no-wrap camion-fila"
+        :class="camion === opcion.value ? 'bg-blue-2' : ''"
+        @click="alternarCamion(opcion.value)"
+      >
+        <div class="camion-placa ellipsis" :style="estiloColor(opcion.color)">{{ opcion.placa }}</div>
+        <q-linear-progress
+          class="col q-mx-xs" rounded size="13px" :value="opcion.progreso"
+          :color="opcion.completo ? 'positive' : 'orange-7'" track-color="grey-4"
+        >
+          <div class="absolute-full flex flex-center">
+            <span class="camion-porcentaje" :class="opcion.progreso > 0.55 ? 'text-white' : 'text-grey-9'">
+              {{ opcion.porcentaje }}%
+            </span>
+          </div>
+        </q-linear-progress>
+        <div class="camion-conteo" :class="opcion.completo ? 'text-green-9' : 'text-grey-9'">
+          {{ opcion.facturados }}/{{ opcion.total }}
         </div>
       </div>
     </q-card>
 
-    <div class="row q-col-gutter-sm">
-      <div v-if="cargando" class="col-12 flex flex-center q-pa-xl">
+    <div class="row q-col-gutter-xs">
+      <div v-if="cargando" class="col-12 flex flex-center q-pa-lg">
         <q-spinner color="primary" size="42px"/>
       </div>
 
       <div v-else-if="!pedidosFiltrados.length" class="col-12">
-        <q-card flat bordered class="text-center text-grey-7 q-pa-xl">
+        <q-card flat bordered class="text-center text-grey-7 q-pa-md">
           <q-icon name="assignment" size="36px" class="q-mb-sm"/>
           <div v-if="pedidos.length">Ningun pedido de esta fecha va en ese camion</div>
           <div v-else>No hay pedidos para esta fecha</div>
@@ -59,26 +75,43 @@
       </div>
 
       <div v-for="pedido in pedidosFiltrados" :key="pedido.nro_pedido + '-' + pedido.tipo" class="col-12 col-sm-6 col-lg-4">
-        <q-card flat bordered class="rounded-borders shadow-1">
-          <q-card-section class="q-pa-sm">
+        <!-- El pedido ya cobrado se pinta entero de verde: en el mostrador se
+             ve de un vistazo cual falta sin leer badge por badge. -->
+        <q-card flat bordered class="rounded-borders shadow-1" :class="pedido.factura_id ? 'bg-green-2' : ''">
+          <q-card-section class="q-pa-xs">
             <div class="row items-center no-wrap q-mb-xs">
               <q-badge color="primary" class="text-body2 q-pa-xs">#{{ pedido.nro_pedido }}</q-badge>
-              <div class="text-caption text-grey-7 q-ml-sm ellipsis">
+              <div class="text-caption q-ml-sm ellipsis" :class="pedido.factura_id ? 'text-green-9' : 'text-grey-7'">
                 {{ hora(pedido.fecha) }} · {{ pedido.estado }}
               </div>
               <q-space/>
-              <q-badge v-if="!pedido.factura_id" color="orange-8">PENDIENTE</q-badge>
+              <!-- El que vuelve por una anulacion no arranca de cero: al
+                   entrar trae cargado lo que ya se habia cobrado. -->
+              <q-badge v-if="pedido.anulada_id" color="blue-8">
+                <q-icon name="history" size="14px" class="q-mr-xs"/>RECUPERABLE
+              </q-badge>
+              <q-badge v-else-if="!pedido.factura_id" color="orange-8">PENDIENTE</q-badge>
               <q-badge v-else color="positive">LISTO</q-badge>
             </div>
 
             <div class="text-subtitle2 text-weight-bold ellipsis-2-lines q-mt-xs">
               {{ pedido.cliente || 'Sin cliente' }}
             </div>
-            <div class="text-caption text-grey-7 ellipsis">
+            <div class="text-caption ellipsis" :class="pedido.factura_id ? 'text-green-9' : 'text-grey-7'">
               NIT {{ pedido.nit || '—' }} · {{ pedido.vendedor || 'Sin preventista' }}
             </div>
 
             <div class="q-mt-xs">
+              <!-- El pedido ya viene marcado por el preventista (tbpedidos.fact):
+                   el chip lo dice antes de entrar, y si ya se cobro manda lo que
+                   realmente se emitio. -->
+              <q-chip
+                dense square size="sm" text-color="white"
+                :color="esFactura(pedido) ? 'indigo-8' : 'blue-grey-6'"
+              >
+                {{ esFactura(pedido) ? 'F' : 'R' }}
+                <q-tooltip>{{ esFactura(pedido) ? 'Factura' : 'Recibo' }}</q-tooltip>
+              </q-chip>
               <q-chip v-if="pedido.placa" dense square size="sm" icon="local_shipping" :style="estiloCamion(pedido)">
                 {{ pedido.placa }}
               </q-chip>
@@ -87,20 +120,20 @@
               </q-chip>
             </div>
 
-            <q-banner v-if="pedido.detalle_pollo.observaciones.length" dense rounded class="bg-amber-1 text-amber-10 q-mt-sm">
+            <q-banner v-if="pedido.detalle_pollo.observaciones.length" dense rounded class="bg-amber-1 text-amber-10 q-mt-xs">
               <template v-slot:avatar><q-icon name="sticky_note_2" color="amber-9"/></template>
               {{ pedido.detalle_pollo.observaciones.join(' · ') }}
             </q-banner>
 
-            <div class="row items-end q-mt-sm">
+            <div class="row items-end q-mt-xs">
               <div class="col">
-                <div class="text-caption text-grey-7">{{ pedido.productos }} productos</div>
+                <div class="text-caption" :class="pedido.factura_id ? 'text-green-9' : 'text-grey-7'">{{ pedido.productos }} productos</div>
                 <div class="text-h6 text-weight-bolder text-blue-grey-10">
                   Bs {{ money(pedido.total_pedido) }}
                 </div>
               </div>
               <div class="col-auto">
-                <q-chip v-if="pedido.factura_id" dense square color="green-1" text-color="green-9">
+                <q-chip v-if="pedido.factura_id" dense square color="green-8" text-color="white">
                   {{ pedido.comprobante_emitido }} #{{ pedido.factura_id }}
                 </q-chip>
               </div>
@@ -114,7 +147,7 @@
             label="Ver pedido completo"
             header-class="text-weight-medium"
           >
-            <q-list dense separator class="bg-grey-1">
+            <q-list dense separator :class="pedido.factura_id ? 'bg-green-1' : 'bg-grey-1'">
               <q-item v-for="item in pedido.items" :key="item.cod_prod" class="q-px-sm">
                 <q-item-section>
                   <q-item-label lines="2">{{ item.nombre }}</q-item-label>
@@ -141,20 +174,28 @@
           <q-separator/>
           <!-- vertical: los botones van uno debajo del otro, no repartidos
                en la misma fila. -->
-          <q-card-actions vertical class="q-pa-sm">
-          <q-btn
-            v-if="!pedido.factura_id"
-            class="full-width q-py-sm text-weight-bold" color="positive" unelevated no-caps
-            icon="edit_note" label="Revisar y facturar"
-            @click="revisar(pedido)"
-          />
+          <q-card-actions vertical class="q-pa-xs">
+          <!-- Mientras el pedido no tenga factura solo se ofrece facturar: el
+               comprobante recien aparece cuando existe algo que mostrar. -->
+          <template v-if="!pedido.factura_id">
+            <q-btn
+              class="full-width q-py-xs text-weight-bold" color="positive" unelevated no-caps
+              :icon="pedido.anulada_id ? 'history' : 'edit_note'"
+              :label="pedido.anulada_id ? 'Retomar y facturar' : 'Revisar y facturar'"
+              @click="revisar(pedido)"
+            />
+            <div v-if="pedido.anulada_id" class="text-caption text-blue-9 q-mt-xs">
+              Se anuló la venta #{{ pedido.anulada_id }} (Bs {{ money(pedido.anulada_total) }});
+              al entrar vuelve cargada
+            </div>
+          </template>
           <template v-else>
             <q-btn
-              class="full-width q-py-sm text-weight-bold" outline no-caps color="primary" icon="visibility" label="Ver comprobante"
+              class="full-width q-py-xs text-weight-bold" outline no-caps color="primary" icon="visibility" label="Ver comprobante"
               @click="verComprobante(pedido)"
             />
             <q-btn
-              class="full-width q-py-sm text-weight-bold q-mt-sm" unelevated no-caps color="primary" icon="print"
+              class="full-width q-py-xs text-weight-bold q-mt-xs" unelevated no-caps color="primary" icon="print"
               :label="'Imprimir ' + (pedido.comprobante_emitido === 'FACTURA' ? 'factura' : 'voucher')"
               :loading="imprimiendo === pedido.factura_id"
               @click="imprimir(pedido)"
@@ -199,24 +240,46 @@ export default {
     camion () { this.sincronizarUrl() }
   },
   computed: {
-    // Las opciones salen de los pedidos ya cargados: solo se ofrecen los
-    // camiones que de verdad tienen pedidos ese dia y de ese tipo.
+    // Las opciones salen de los pedidos ya cargados: solo se listan los
+    // camiones que de verdad tienen pedidos ese dia y de ese tipo, cada uno
+    // con cuanto lleva cobrado hasta ahora.
     camiones () {
-      const conteo = new Map()
-      let sinCamion = 0
+      const filas = new Map()
       this.pedidos.forEach(pedido => {
         const placa = (pedido.placa || '').trim()
-        if (!placa) { sinCamion += 1; return }
-        conteo.set(placa, (conteo.get(placa) || 0) + 1)
+        const clave = placa || 'SIN'
+        let fila = filas.get(clave)
+        if (!fila) {
+          fila = { value: clave, placa: placa || 'Sin camion', color: '', total: 0, facturados: 0 }
+          filas.set(clave, fila)
+        }
+        if (!fila.color && pedido.placa_color) fila.color = pedido.placa_color
+        fila.total += 1
+        if (pedido.factura_id) fila.facturados += 1
       })
-      const opciones = []
-      Array.from(conteo.keys()).sort().forEach(placa => {
-        opciones.push({ label: placa + ' (' + conteo.get(placa) + ')', value: placa })
+      return Array.from(filas.values()).map(fila => {
+        const progreso = fila.total ? fila.facturados / fila.total : 0
+        return {
+          ...fila,
+          progreso,
+          porcentaje: Math.round(progreso * 100),
+          completo: fila.total > 0 && fila.facturados === fila.total
+        }
+      }).sort((uno, otro) => {
+        // Lo que falta llenar queda arriba; los ya completos y el "sin camion"
+        // se van al fondo, que es lo que ya no hay que mirar.
+        if (uno.value === 'SIN') return 1
+        if (otro.value === 'SIN') return -1
+        if (uno.completo !== otro.completo) return uno.completo ? 1 : -1
+        return uno.placa.localeCompare(otro.placa)
       })
-      if (sinCamion) {
-        opciones.push({ label: 'Sin camion (' + sinCamion + ')', value: 'SIN' })
-      }
-      return opciones
+    },
+    facturadosTotal () {
+      return this.pedidos.filter(pedido => pedido.factura_id).length
+    },
+    porcentajeTotal () {
+      if (!this.pedidos.length) return 0
+      return Math.round((this.facturadosTotal / this.pedidos.length) * 100)
     },
     pedidosFiltrados () {
       // Sin camion elegido (el select va vacio o recien limpiado) se ven todos.
@@ -226,6 +289,12 @@ export default {
     }
   },
   methods: {
+    // Antes de cobrarse manda lo que pidio el cliente (fact = SI); una vez
+    // emitido, lo que de verdad salio, que puede no coincidir.
+    esFactura (pedido) {
+      if (pedido.factura_id) return pedido.comprobante_emitido === 'FACTURA'
+      return String(pedido.fact || '').toUpperCase() === 'SI'
+    },
     money (valor) {
       return Number(valor || 0).toFixed(2)
     },
@@ -242,10 +311,18 @@ export default {
         (actual.camion || null) === (query.camion || null)) return
       this.$router.replace({ path: '/facturacion/pedidos', query })
     },
+    // Tocar el camion ya filtrado lo suelta: en el celular no hace falta ir
+    // hasta el boton Todos para volver a ver la lista completa.
+    alternarCamion (valor) {
+      this.camion = this.camion === valor ? null : valor
+    },
+    estiloCamion (pedido) {
+      return this.estiloColor(pedido.placa_color)
+    },
     // colorStyle del pedido viene como 'background-color: #RRGGBB'; el texto
     // se pone negro o blanco segun que tan claro sea ese fondo.
-    estiloCamion (pedido) {
-      const estilo = (pedido.placa_color || '').trim()
+    estiloColor (color) {
+      const estilo = (color || '').trim()
       const hex = /#([0-9a-f]{6})/i.exec(estilo)
       if (!hex) return 'background-color: #ECEFF1; color: #37474F'
       const valor = parseInt(hex[1], 16)
@@ -314,3 +391,49 @@ export default {
   }
 }
 </script>
+
+<style scoped>
+/* Los filtros van mas bajos que el dense de Quasar: esa fila compite con los
+   pedidos por la pantalla del celular y solo se toca al empezar el dia. */
+.filtros :deep(.q-field--dense .q-field__control),
+.filtros :deep(.q-field--dense .q-field__marginal) {
+  height: 30px;
+  min-height: 30px;
+}
+.filtros :deep(.q-field__native),
+.filtros :deep(.q-field__input) {
+  font-size: 12px;
+  padding: 0;
+}
+
+.camion-titulo {
+  height: 20px;
+  font-size: 11px;
+}
+.camion-fila {
+  height: 22px;
+  padding: 0 4px;
+  cursor: pointer;
+  border-top: 1px solid #e0e0e0;
+}
+.camion-placa {
+  width: 88px;
+  height: 17px;
+  line-height: 17px;
+  padding: 0 4px;
+  border-radius: 3px;
+  font-size: 11px;
+  font-weight: 600;
+}
+.camion-porcentaje {
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+}
+.camion-conteo {
+  width: 42px;
+  text-align: right;
+  font-size: 11px;
+  font-weight: 700;
+}
+</style>

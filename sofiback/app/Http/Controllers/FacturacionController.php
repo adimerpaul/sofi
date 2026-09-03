@@ -111,7 +111,11 @@ class FacturacionController extends Controller
                 $w->where('nombre', 'like', $like)
                     ->orWhere('nit', 'like', $buscar . '%');
                 if (ctype_digit($buscar)) {
-                    $w->orWhere('id', $buscar)->orWhere('nro_factura', $buscar);
+                    $w->orWhere('id', $buscar)
+                        ->orWhere('nro_factura', $buscar)
+                        // La comanda del pedido de origen: es el numero con el
+                        // que se conoce la venta en el mostrador y en la ruta.
+                        ->orWhere('pedido_nro', $buscar);
                 }
             });
         }
@@ -335,11 +339,11 @@ class FacturacionController extends Controller
         }
 
         $pedidos = $query
+            // Un pedido es una sola tarjeta: las lineas de un mismo NroPed
+            // pueden tener distinta hora (se van agregando de a poco), asi que
+            // la cabecera se resume con MIN y solo se agrupa por el pedido.
             ->groupBy([
-                'p.NroPed', 'p.tipo', 'p.fecha', 'p.idCli', 'p.CIfunc', 'p.estado',
-                'p.fact', 'p.pago', 'p.comentario', 'p.placa', 'c.Id', 'c.Nombres',
-                'p.colorStyle',
-                'v.Nombre1', 'v.Nombre2', 'v.App1', 'v.Apm', 'f.id', 'f.tipo_comprobante',
+                'p.NroPed', DB::raw('UPPER(TRIM(p.tipo))'), 'f.id', 'f.tipo_comprobante',
                 'f.fecha', 'f.nit',
             ])
             ->orderByRaw('CASE WHEN f.id IS NULL THEN 0 ELSE 1 END ASC')
@@ -347,15 +351,19 @@ class FacturacionController extends Controller
             ->get([
                 'p.NroPed as nro_pedido',
                 DB::raw('UPPER(TRIM(p.tipo)) as tipo'),
-                'p.fecha', 'p.estado', 'p.fact', 'p.pago', 'p.comentario',
+                DB::raw('MIN(p.fecha) as fecha'),
+                DB::raw('MIN(p.estado) as estado'),
+                DB::raw('MIN(p.fact) as fact'),
+                DB::raw('MIN(p.pago) as pago'),
+                DB::raw('MIN(p.comentario) as comentario'),
                 // El camion del pedido es tbpedidos.placa; colorStyle es el color
                 // con el que esa placa ya se pinta en el mapa y en el reporte.
-                DB::raw("TRIM(COALESCE(p.placa, '')) as placa"),
-                DB::raw("TRIM(COALESCE(p.colorStyle, '')) as placa_color"),
-                'p.idCli as cliente_id',
-                DB::raw('TRIM(c.Id) as nit'),
-                DB::raw('TRIM(c.Nombres) as cliente'),
-                DB::raw("TRIM(CONCAT_WS(' ', NULLIF(TRIM(v.Nombre1), ''), NULLIF(TRIM(v.Nombre2), ''), NULLIF(TRIM(v.App1), ''), NULLIF(TRIM(v.Apm), ''))) as vendedor"),
+                DB::raw("TRIM(COALESCE(MIN(p.placa), '')) as placa"),
+                DB::raw("TRIM(COALESCE(MIN(p.colorStyle), '')) as placa_color"),
+                DB::raw('MIN(p.idCli) as cliente_id'),
+                DB::raw('TRIM(MIN(c.Id)) as nit'),
+                DB::raw('TRIM(MIN(c.Nombres)) as cliente'),
+                DB::raw("TRIM(CONCAT_WS(' ', NULLIF(TRIM(MIN(v.Nombre1)), ''), NULLIF(TRIM(MIN(v.Nombre2)), ''), NULLIF(TRIM(MIN(v.App1)), ''), NULLIF(TRIM(MIN(v.Apm)), ''))) as vendedor"),
                 DB::raw('COUNT(*) as productos'),
                 DB::raw('ROUND(SUM(COALESCE(p.Cant, 0) * COALESCE(p.precio, 0)), 2) as total_pedido'),
                 'f.id as factura_id', 'f.tipo_comprobante as comprobante_emitido',
@@ -393,7 +401,17 @@ class FacturacionController extends Controller
             ->whereRaw('UPPER(TRIM(tipo)) = ?', [$datos['tipo']])->where('bonificacion', 0)
             ->orderBy('codAut')->get()->groupBy('NroPed');
 
-        return $pedidos->map(function ($pedido) use ($items, $filasPedido) {
+        // Los que ya se habian cobrado y se anularon vuelven a salir como
+        // pendientes: la tarjeta lo avisa para que el cajero sepa que al
+        // entrar va a encontrar recuperado lo de la venta dada de baja.
+        $anuladas = Factura::where('pedido_tipo', $datos['tipo'])
+            ->where('estado', 'ANULADO')
+            ->whereIn('pedido_nro', $numeros)
+            ->orderBy('id')
+            ->get(['id', 'pedido_nro', 'total'])
+            ->keyBy('pedido_nro');
+
+        return $pedidos->map(function ($pedido) use ($items, $filasPedido, $anuladas) {
             $pedido->items = ($items->get($pedido->nro_pedido) ?? collect())
                 ->map(function ($item) {
                     $item->cantidad = (float) $item->cantidad;
@@ -402,6 +420,10 @@ class FacturacionController extends Controller
                     return $item;
                 })->values();
             $pedido->detalle_pollo = $this->detallePollo($filasPedido->get($pedido->nro_pedido) ?? collect());
+            // keyBy se queda con la ultima, que es la anulacion mas reciente.
+            $anulada = $pedido->factura_id ? null : $anuladas->get($pedido->nro_pedido);
+            $pedido->anulada_id = $anulada->id ?? null;
+            $pedido->anulada_total = $anulada ? (float) $anulada->total : null;
             return $pedido;
         });
     }
@@ -484,7 +506,93 @@ class FacturacionController extends Controller
             ->orderBy('codAut')->get();
         $cabecera->detalle_pollo = $this->detallePollo($filasPedido);
 
+        // Si la venta anterior se anulo el pedido vuelve a la cola, pero lo que
+        // ya se habia trabajado en el mostrador no se pierde: se recupera la
+        // ultima anulada para no pesar y corregir todo otra vez desde cero.
+        $anulada = Factura::with('detalles')
+            ->where('pedido_nro', $nroPedido)
+            ->where('pedido_tipo', $datos['tipo'])
+            ->where('estado', 'ANULADO')
+            ->orderByDesc('id')
+            ->first();
+
+        $cabecera->anulada = null;
+        if ($anulada) {
+            $items = $this->recuperarAnulada($items, $anulada);
+            $cabecera->anulada = [
+                'id'               => $anulada->id,
+                'nro_factura'      => $anulada->nro_factura,
+                'tipo_comprobante' => $anulada->tipo_comprobante,
+                'tipo_pago'        => $anulada->tipo_pago,
+                'nit'              => $anulada->nit,
+                'observacion'      => $anulada->observacion,
+                'total'            => (float) $anulada->total,
+                'fecha'            => optional($anulada->fecha)->format('Y-m-d'),
+                'hora'             => $anulada->hora,
+                'motivo'           => $anulada->motivo_anulacion,
+                'anulado_at'       => optional($anulada->anulado_at)->format('Y-m-d H:i'),
+                'lineas'           => $anulada->detalles->count(),
+            ];
+        }
+
         return response()->json(['pedido' => $cabecera, 'items' => $items]);
+    }
+
+    /**
+     * Devuelve a las lineas del pedido lo que se habia cobrado en una venta
+     * que despues se anulo.
+     *
+     * Lo que pidio el cliente sigue siendo la referencia (cantidad_pedida),
+     * pero la cantidad, el peso de balanza y el precio arrancan con lo que ya
+     * se habia corregido al cobrar, y los productos que el cajero habia
+     * agregado a mano vuelven a la lista.
+     */
+    private function recuperarAnulada($items, Factura $anulada)
+    {
+        $porCodigo = $anulada->detalles->keyBy(function ($detalle) {
+            return trim((string) $detalle->cod_prod);
+        });
+
+        $items = $items->map(function ($item) use ($porCodigo) {
+            $detalle = $porCodigo->get(trim((string) $item->cod_prod));
+            if (!$detalle) {
+                return $item;
+            }
+            $item->cantidad = (float) $detalle->cantidad;
+            // El peso solo se recupera si de verdad se peso algo.
+            $item->peso = (float) $detalle->peso > 0 ? (float) $detalle->peso : null;
+            $item->precio = (float) $detalle->precio;
+            $item->total = round(($item->peso ?: $item->cantidad) * $item->precio, 2);
+            $item->recuperado = true;
+            return $item;
+        });
+
+        $enPedido = $items->map(function ($item) {
+            return trim((string) $item->cod_prod);
+        })->all();
+
+        foreach ($anulada->detalles as $detalle) {
+            $codigo = trim((string) $detalle->cod_prod);
+            if (in_array($codigo, $enPedido, true)) {
+                continue;
+            }
+            $peso = (float) $detalle->peso > 0 ? (float) $detalle->peso : null;
+            $items->push((object) [
+                'cod_prod' => $codigo,
+                'nombre'   => $detalle->nombre,
+                'unidad'   => $detalle->unidad ?: 'UNIDAD',
+                'imagen'   => null,
+                'cantidad' => (float) $detalle->cantidad,
+                // No venia en el pedido: no hay cantidad pedida con que compararlo.
+                'cantidad_pedida' => null,
+                'peso'     => $peso,
+                'precio'   => (float) $detalle->precio,
+                'total'    => round(($peso ?: (float) $detalle->cantidad) * (float) $detalle->precio, 2),
+                'recuperado' => true,
+            ]);
+        }
+
+        return $items->values();
     }
 
     private function detallePollo($filas)
@@ -1290,9 +1398,11 @@ class FacturacionController extends Controller
     /**
      * Todos los comprobantes del filtro en un solo PDF, uno por hoja.
      *
-     * Es lo que permite imprimir de una vez lo del dia en lugar de abrir venta
-     * por venta. El tope existe para no armar un PDF de cientos de hojas por un
-     * filtro demasiado abierto.
+     * Cada lote lleva solo lo suyo: el de facturas, las ventas entregadas como
+     * factura; el de vouchers, las que salieron como voucher. Asi lo del dia se
+     * imprime de una vez sin que una misma venta salga en los dos lotes.
+     * El tope existe para no armar un PDF de cientos de hojas por un filtro
+     * demasiado abierto.
      */
     public function lote(Request $request, $documento)
     {
@@ -1302,6 +1412,10 @@ class FacturacionController extends Controller
             ->when($documento === 'factura', function ($q) {
                 // La factura solo existe si la venta se entrego como factura.
                 $q->where('tipo_comprobante', 'FACTURA');
+            }, function ($q) {
+                // Las que se entregaron como factura no van en el lote de
+                // vouchers: cada venta se imprime en uno solo.
+                $q->where('tipo_comprobante', '<>', 'FACTURA');
             })
             ->reorder('id')
             ->limit(self::MAX_LOTE)
@@ -1311,7 +1425,7 @@ class FacturacionController extends Controller
             return response()->json([
                 'message' => $documento === 'factura'
                     ? 'No hay facturas en lo que estás viendo'
-                    : 'No hay comprobantes en lo que estás viendo',
+                    : 'No hay vouchers en lo que estás viendo',
             ], 422);
         }
 
@@ -1366,6 +1480,8 @@ class FacturacionController extends Controller
             return [
                 'nro'       => (string) ($f->nro_factura ?: $f->id),
                 'tipo'      => $f->tipo_comprobante,
+                // La comanda que origino la venta; vacia en la venta directa.
+                'pedido'    => (string) ($f->pedido_nro ?: '—'),
                 'fecha'     => $f->fecha->format('d/m/Y') . ' ' . $f->hora,
                 'cliente'   => $f->nombre ?: 'Sin cliente',
                 'nit'       => $f->nit ?: '—',
@@ -1429,6 +1545,7 @@ class FacturacionController extends Controller
 
         return [
             ['Nº', 'nro', 8, false], ['Tipo', 'tipo', 10, false],
+            ['Pedido', 'pedido', 9, false],
             ['Fecha', 'fecha', 16, false], ['Cliente', 'cliente', 30, false],
             ['NIT / CI', 'nit', 13, false], ['Pago', 'pago', 11, false],
             ['Estado', 'estado', 16, false], ['Subtotal Bs', 'subtotal', 12, true],

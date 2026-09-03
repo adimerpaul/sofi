@@ -21,7 +21,7 @@
               <q-item-section avatar><q-icon name="receipt_long" color="blue-grey-7"/></q-item-section>
               <q-item-section>
                 Imprimir todos los vouchers
-                <q-item-label caption>Uno por hoja, en un solo PDF</q-item-label>
+                <q-item-label caption>Solo las ventas que no son factura</q-item-label>
               </q-item-section>
             </q-item>
 
@@ -37,7 +37,7 @@
               <q-item-section avatar><q-icon name="picture_as_pdf" color="red-7"/></q-item-section>
               <q-item-section>
                 Descargar vouchers en PDF
-                <q-item-label caption>El mismo lote, guardado como archivo</q-item-label>
+                <q-item-label caption>El mismo lote de vouchers, como archivo</q-item-label>
               </q-item-section>
             </q-item>
 
@@ -106,7 +106,7 @@
           <q-input v-model="filtros.hasta" type="date" dense outlined label="Hasta"/>
         </div>
         <div class="col-12 col-md-3">
-          <q-input v-model="filtros.buscar" dense outlined clearable label="Cliente, NIT o número">
+          <q-input v-model="filtros.buscar" dense outlined clearable label="Cliente, NIT, número o pedido">
             <template v-slot:append><q-icon name="search"/></template>
           </q-input>
         </div>
@@ -163,6 +163,16 @@
             :icon="props.value === 'FACTURA' ? 'verified' : 'receipt'"
             :label="props.value === 'FACTURA' ? 'Factura' : 'Venta'"
           />
+        </q-td>
+      </template>
+
+      <template v-slot:body-cell-pedido="props">
+        <q-td :props="props">
+          <template v-if="props.value">
+            <q-badge color="primary" text-color="white">#{{ props.value }}</q-badge>
+            <div class="text-caption text-grey-7">{{ nombreTipoPedido(props.row.pedido_tipo) }}</div>
+          </template>
+          <span v-else class="text-grey-6">Venta directa</span>
         </q-td>
       </template>
 
@@ -356,6 +366,13 @@
           <div class="text-caption">
             {{ sel.nombre || 'Sin cliente' }} · {{ fechaHora(sel) }}
           </div>
+          <div class="text-caption">
+            <template v-if="sel.pedido_nro">
+              <q-icon name="assignment"/>
+              Pedido #{{ sel.pedido_nro }} · {{ nombreTipoPedido(sel.pedido_tipo) }}
+            </template>
+            <template v-else><q-icon name="point_of_sale"/> Venta directa, sin pedido</template>
+          </div>
         </q-card-section>
 
         <q-card-section v-if="sel.estado === 'ANULADO'" class="q-py-sm">
@@ -517,6 +534,9 @@ export default {
         { name: 'acciones', label: 'Opciones', field: 'acciones', align: 'left' },
         { name: 'id', label: 'Nº', field: 'id', align: 'left' },
         { name: 'tipo_comprobante', label: 'Tipo', field: 'tipo_comprobante', align: 'center' },
+        // La comanda del pedido que origino el comprobante: es la relacion que
+        // ata la venta con el pedido del preventista.
+        { name: 'pedido', label: 'Pedido', field: 'pedido_nro', align: 'left' },
         // La fecha llega como ISO completo; en la grilla va en dia/mes/anio.
         { name: 'fecha', label: 'Fecha', field: 'fecha', align: 'left', format: v => fechaCorta(v) },
         { name: 'hora', label: 'Hora', field: 'hora', align: 'left' },
@@ -550,6 +570,12 @@ export default {
       return Number(v || 0).toFixed(2)
     },
     fechaCorta,
+    /** En el legado los embutidos van como NORMAL; en pantalla se dicen asi. */
+    nombreTipoPedido (tipo) {
+      const valor = String(tipo || '').toUpperCase()
+      if (!valor) return ''
+      return valor === 'NORMAL' ? 'EMBUTIDOS' : valor
+    },
     fechaHora (factura) {
       return fechaCorta(factura.fecha) + ' ' + String(factura.hora || '')
     },
@@ -722,8 +748,13 @@ export default {
     descargarExcel (row) {
       const detalles = row.detalles || []
 
+      // La comanda va en el nombre de la hoja y del archivo: asi la planilla
+      // suelta sigue diciendo de que pedido salio.
+      const referencia = (row.tipo_comprobante === 'FACTURA' ? 'Factura ' : 'Venta ') + row.id +
+        (row.pedido_nro ? ' - Pedido ' + row.pedido_nro : '')
+
       const hoja = [{
-        sheet: (row.tipo_comprobante === 'FACTURA' ? 'Factura ' : 'Venta ') + row.id,
+        sheet: referencia.substr(0, 31),
         columns: [
           { label: 'Código', value: 'cod_prod' },
           { label: 'Producto', value: 'nombre' },
@@ -752,7 +783,8 @@ export default {
       }]
 
       xlsx(hoja, {
-        fileName: (row.tipo_comprobante === 'FACTURA' ? 'factura_' : 'venta_') + row.id,
+        fileName: (row.tipo_comprobante === 'FACTURA' ? 'factura_' : 'venta_') + row.id +
+          (row.pedido_nro ? '_pedido_' + row.pedido_nro : ''),
         extraLength: 5,
         writeOptions: {}
       })
