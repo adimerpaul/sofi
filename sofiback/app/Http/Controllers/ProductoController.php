@@ -26,6 +26,7 @@ class ProductoController extends Controller{
             'Precio9', 'Precio10', 'Precio11', 'Precio12', 'Precio13',
             'codUnid',
             'tipo',
+            'trozado',
             DB::raw('(SELECT SUM(s.cant - s.saldo) FROM tbstock s WHERE s.cod_prod = tbproductos.cod_prod) as cantidad')
         ])
 //            que no tena el texto inactivo
@@ -112,7 +113,13 @@ class ProductoController extends Controller{
             'Precio4'      => 'nullable|numeric|min:0',
             'Precio5'      => 'nullable|numeric|min:0',
             'Precio6'      => 'nullable|numeric|min:0',
+            // El formulario manda un check; en la tabla se guarda 'SI' o 'NO'.
+            'trozado'      => 'nullable|boolean',
         ]);
+
+        if (array_key_exists('trozado', $datos)) {
+            $datos['trozado'] = $request->boolean('trozado') ? 'SI' : 'NO';
+        }
 
         $producto = Producto::whereRaw('TRIM(cod_prod) = ?', [trim($codProd)])->first();
         if (!$producto) {
@@ -243,6 +250,8 @@ class ProductoController extends Controller{
                 'p.Precio6', 'p.Precio7', 'p.Precio8', 'p.Precio9', 'p.Precio10',
                 'p.Precio11', 'p.Precio12', 'p.Precio13', 'p.PreCosto',
                 'p.imagen',
+                // Bandera de texto: la pantalla la maneja como check.
+                DB::raw("UPPER(TRIM(COALESCE(p.trozado, 'NO'))) as trozado"),
                 DB::raw(self::SQL_STOCK . ' as cantidad'),
             ]);
 

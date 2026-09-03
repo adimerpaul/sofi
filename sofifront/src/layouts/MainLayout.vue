@@ -104,6 +104,7 @@ export default {
         { label: 'Compras', caption: 'Ingresos a proveedor', icon: 'local_shipping', to: 'compras', show: can('compras') },
         { label: 'Nueva Compra', caption: 'Sube el stock', icon: 'add_business', to: 'compras/nueva', show: can('comprasNueva') },
         { label: 'Proveedores', caption: 'Administrar', icon: 'store', to: 'proveedores', show: can('proveedores') },
+        { label: 'Verificar Carga', caption: 'Revisar el camión antes de salir', icon: 'inventory', to: 'caminero/carga', show: can('cargacamion') },
         { label: 'Mis Entregas', caption: 'Cobrar en ruta', icon: 'local_shipping', to: 'caminero/entregas', show: can('misentregas') },
         { label: 'Mi Reporte de Entregas', caption: 'Recojo del día', icon: 'summarize', to: 'caminero/reporte', show: can('misentregasreporte') },
         { label: 'Clientes sin Pedido', icon: 'person_off', to: 'nopedido', show: can('nopedido') },

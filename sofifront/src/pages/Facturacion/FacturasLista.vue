@@ -136,6 +136,31 @@
           <q-btn flat color="grey-7" icon="layers_clear" no-caps label="Limpiar" @click="limpiar"/>
         </div>
       </div>
+
+      <!-- El caminero revisa su carga antes de salir y recien ahi se imprime:
+           al filtrar por un camion se dice como viene esa revision, para no
+           descubrirlo cuando la impresion rebota. -->
+      <q-banner
+        v-if="carga" dense rounded class="q-mt-sm"
+        :class="carga.completo ? 'bg-green-1 text-green-10' : 'bg-orange-1 text-orange-10'"
+      >
+        <template v-slot:avatar>
+          <q-icon :name="carga.completo ? 'verified' : 'lock'" :color="carga.completo ? 'green-8' : 'orange-9'"/>
+        </template>
+        <template v-if="carga.completo">
+          Carga del camión {{ carga.placa }} verificada por {{ carga.verificado_por || 'el caminero' }}
+          <span v-if="carga.verificado_en">el {{ verificadoEn(carga.verificado_en) }}</span>.
+          Se puede imprimir.
+          <span v-if="carga.con_observacion" class="text-weight-bold">
+            · {{ carga.con_observacion }} canastas con observación
+          </span>
+        </template>
+        <template v-else>
+          El camión {{ carga.placa }} todavía no verificó su carga
+          ({{ carga.verificados }}/{{ carga.comprobantes }} canastas): sus facturas y vouchers
+          no se pueden imprimir hasta que el caminero termine de revisarla.
+        </template>
+      </q-banner>
     </q-card>
 
     <q-table
@@ -527,6 +552,9 @@ export default {
       imprimiendo: null,
       exportando: false,
       camiones: [],
+      // Como viene la verificacion de la carga del camion filtrado; null
+      // mientras no se este mirando un camion de un solo dia.
+      carga: null,
       loading: false,
       filtros: filtrosPorDefecto(),
       pagination: { page: 1, rowsPerPage: 20, rowsNumber: 0 },
@@ -603,6 +631,10 @@ export default {
         .filter(Boolean)
         .join(' ') || 'Sin vendedor'
     },
+    /** Momento en que el caminero cerro la verificacion de su carga. */
+    verificadoEn (valor) {
+      return date.formatDate(String(valor).replace(' ', 'T'), 'DD/MM/YYYY HH:mm')
+    },
     puedeAnular (row) {
       if (row.estado !== 'ANULADO') return true
 
@@ -622,6 +654,7 @@ export default {
       this.loading = true
 
       this.cargarCamiones()
+      this.cargarCarga()
 
       this.$api.get('facturacion', {
         params: Object.assign(this.paramsFiltro(), {
@@ -662,6 +695,26 @@ export default {
         estado: this.filtros.estado || '',
         camion: this.filtros.camion || ''
       }
+    },
+
+    /**
+     * Estado de la verificacion del camion filtrado.
+     *
+     * La carga es de un dia concreto, asi que solo tiene sentido preguntarla
+     * cuando se esta mirando un solo dia y un camion de verdad ('SIN' no es un
+     * camion, son las ventas de mostrador).
+     */
+    cargarCarga () {
+      const camion = this.filtros.camion
+      if (!camion || camion === 'SIN' || !this.filtros.desde ||
+        this.filtros.desde !== this.filtros.hasta) {
+        this.carga = null
+        return
+      }
+
+      this.$api.get('facturacion/carga', { params: { fecha: this.filtros.desde, camion } })
+        .then(res => { this.carga = res.data })
+        .catch(() => { this.carga = null })
     },
 
     // Solo se ofrecen los camiones que de verdad tienen comprobantes en el

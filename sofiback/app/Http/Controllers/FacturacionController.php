@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Factura;
+use App\Services\CargaCamion;
 use App\Services\SiatService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\App;
@@ -149,6 +150,99 @@ class FacturacionController extends Controller
                 DB::raw('TRIM(placa) as placa'),
                 DB::raw('COUNT(DISTINCT NroPed) as pedidos'),
             ]);
+    }
+
+    /**
+     * Como viene la verificacion de la carga de un camion. La pantalla de
+     * facturacion la consulta al filtrar por camion para avisar antes de que
+     * el cajero intente imprimir y se lleve el rechazo.
+     */
+    public function carga(Request $request)
+    {
+        $datos = $request->validate([
+            'fecha' => 'required|date',
+            'camion' => 'required|string|max:100',
+        ]);
+
+        return (new CargaCamion())->estado($datos['fecha'], trim($datos['camion']));
+    }
+
+    /**
+     * El motivo por el que un comprobante no se puede imprimir todavia, o null
+     * si se puede.
+     *
+     * El caminero revisa las canastas del camion antes de salir y recien ahi
+     * caja imprime: si el papel sale antes, nadie se hizo responsable de que
+     * la mercaderia este arriba. La venta directa de mostrador no viaja en
+     * ningun camion y nunca se frena.
+     */
+    private function bloqueoCarga(Factura $factura)
+    {
+        $placa = $this->camionDeFactura($factura);
+        if ($placa === '') {
+            return null;
+        }
+
+        $fecha = $factura->fecha instanceof \DateTimeInterface
+            ? $factura->fecha->format('Y-m-d')
+            : substr((string) $factura->fecha, 0, 10);
+
+        $estado = (new CargaCamion())->estado($fecha, $placa);
+        if ($estado['completo']) {
+            return null;
+        }
+
+        return 'El camión ' . $placa . ' todavía no verificó su carga ('
+            . $estado['verificados'] . '/' . $estado['comprobantes']
+            . ' canastas revisadas). El caminero tiene que revisarla antes de imprimir.';
+    }
+
+    /** Placas del lote cuya carga sigue sin revisar, sin repetirse. */
+    private function camionesSinVerificar($facturas)
+    {
+        $carga = new CargaCamion();
+        $estados = [];
+
+        foreach ($facturas as $factura) {
+            $placa = $this->camionDeFactura($factura);
+            if ($placa === '') {
+                continue;
+            }
+
+            $fecha = $factura->fecha instanceof \DateTimeInterface
+                ? $factura->fecha->format('Y-m-d')
+                : substr((string) $factura->fecha, 0, 10);
+
+            $clave = $fecha . '|' . $placa;
+            if (!isset($estados[$clave])) {
+                $estados[$clave] = $carga->estado($fecha, $placa);
+            }
+        }
+
+        $pendientes = [];
+        foreach ($estados as $estado) {
+            if (!$estado['completo']) {
+                $pendientes[$estado['placa']] = true;
+            }
+        }
+
+        return array_keys($pendientes);
+    }
+
+    /** Camion en el que sale la factura; vacio si no salio en ninguno. */
+    private function camionDeFactura(Factura $factura)
+    {
+        if (!$factura->pedido_nro) {
+            return '';
+        }
+
+        $pedido = DB::table('tbpedidos')
+            ->where('NroPed', $factura->pedido_nro)
+            ->whereRaw('UPPER(TRIM(tipo)) = ?', [strtoupper(trim((string) $factura->pedido_tipo))])
+            ->where('bonificacion', 0)
+            ->first([DB::raw("TRIM(COALESCE(placa, '')) as placa")]);
+
+        return $pedido->placa ?? '';
     }
 
     /** Una factura con su detalle, para ver o reimprimir. */
@@ -323,6 +417,9 @@ class FacturacionController extends Controller
             })
             ->whereDate('p.fecha', $datos['fecha'])
             ->whereRaw('UPPER(TRIM(p.tipo)) = ?', [$datos['tipo']])
+            // Un pedido en CREADO todavia lo esta armando el preventista: solo
+            // se factura lo que ya fue enviado.
+            ->whereRaw("UPPER(TRIM(p.estado)) = 'ENVIADO'")
             ->where('p.bonificacion', 0);
 
         if ($buscar = trim((string) ($datos['buscar'] ?? ''))) {
@@ -386,6 +483,7 @@ class FacturacionController extends Controller
             })
             ->whereIn('p.NroPed', $numeros)
             ->whereRaw('UPPER(TRIM(p.tipo)) = ?', [$datos['tipo']])
+            ->whereRaw("UPPER(TRIM(p.estado)) = 'ENVIADO'")
             ->where('p.bonificacion', 0)
             ->orderBy('p.codAut')
             ->get([
@@ -398,7 +496,9 @@ class FacturacionController extends Controller
             ->groupBy('nro_pedido');
 
         $filasPedido = DB::table('tbpedidos')->whereIn('NroPed', $numeros)
-            ->whereRaw('UPPER(TRIM(tipo)) = ?', [$datos['tipo']])->where('bonificacion', 0)
+            ->whereRaw('UPPER(TRIM(tipo)) = ?', [$datos['tipo']])
+            ->whereRaw("UPPER(TRIM(estado)) = 'ENVIADO'")
+            ->where('bonificacion', 0)
             ->orderBy('codAut')->get()->groupBy('NroPed');
 
         // Los que ya se habian cobrado y se anularon vuelven a salir como
@@ -456,6 +556,12 @@ class FacturacionController extends Controller
 
         if (!$cabecera) {
             return response()->json(['message' => 'El pedido no existe para el tipo seleccionado'], 404);
+        }
+
+        // Lo mismo que filtra el listado: mientras el pedido siga en CREADO el
+        // preventista lo puede seguir cambiando, asi que no se cobra.
+        if (strtoupper(trim((string) $cabecera->estado)) !== 'ENVIADO') {
+            return response()->json(['message' => 'El pedido todavía no fue enviado por el preventista'], 422);
         }
 
         // Lo anulado ya no bloquea: si la venta se dio de baja, el pedido se
@@ -599,18 +705,10 @@ class FacturacionController extends Controller
     {
         $detalles = collect();
         $observaciones = collect();
-        $productos = [
-            ['Brasa 5', 'cbrasa5', 'ubrasa5', 'bsbrasa5', 'obsbrasa5'], ['Brasa 6', 'cbrasa6', 'cubrasa6', 'bsbrasa6', 'obsbrasa6'],
-            ['Pollo 104', 'c104', 'u104', 'bs104', 'obs104'], ['Pollo 105', 'c105', 'u105', 'bs105', 'obs105'],
-            ['Pollo 106', 'c106', 'u106', 'bs106', 'obs106'], ['Pollo 107', 'c107', 'u107', 'bs107', 'obs107'],
-            ['Pollo 108', 'c108', 'u108', 'bs108', 'obs108'], ['Pollo 109', 'c109', 'u109', 'bs109', 'obs109'],
-        ];
-        $cortes = [
-            ['Ala', 'ala', 'unidala', 'bsala', 'obsala'], ['Cadera', 'cadera', 'unidcadera', 'bscadera', 'obscadera'],
-            ['Pecho', 'pecho', 'unidpecho', 'bspecho', 'obspecho'], ['Pie', 'pie', 'unidpie', 'bspie', 'obspie'],
-            ['Filete', 'filete', 'unidfilete', 'bsfilete', 'obsfilete'], ['Cuello', 'cuello', 'unidcuello', 'bscuello', 'obscuello'],
-            ['Hueso', 'hueso', 'unidhueso', 'bshueso', 'obshueso'], ['Menudencia', 'menu', 'unidmenu', 'bsmenu', 'obsmenu'],
-        ];
+        // El mapa de columnas es el mismo con el que el caminero revisa su
+        // carga, asi que vive en un solo sitio.
+        $productos = CargaCamion::PRODUCTOS_POLLO;
+        $cortes = CargaCamion::CORTES_POLLO;
         foreach ($filas as $fila) {
             foreach (['Observaciones', 'Canttxt', 'comentario'] as $campo) {
                 $texto = trim((string) ($fila->{$campo} ?? ''));
@@ -733,9 +831,10 @@ class FacturacionController extends Controller
             $existePedido = DB::table('tbpedidos')
                 ->where('NroPed', $datos['pedido_nro'])
                 ->whereRaw('UPPER(TRIM(tipo)) = ?', [$datos['pedido_tipo']])
+                ->whereRaw("UPPER(TRIM(estado)) = 'ENVIADO'")
                 ->exists();
             if (!$existePedido) {
-                return response()->json(['message' => 'El pedido de origen no existe'], 422);
+                return response()->json(['message' => 'El pedido de origen no existe o todavía no fue enviado'], 422);
             }
             // Solo un comprobante vigente por pedido; los anulados no cuentan.
             $vigente = Factura::where('pedido_nro', $datos['pedido_nro'])
@@ -1108,7 +1207,48 @@ class FacturacionController extends Controller
             return response()->json(['message' => 'La venta no existe'], 404);
         }
 
+        if ($bloqueo = $this->bloqueoCarga($factura)) {
+            return response()->json(['message' => $bloqueo], 422);
+        }
+
         return $this->pdf($this->voucherHtml($factura), 'voucher_' . $factura->id);
+    }
+
+    /** Cache de tbproductos.trozado por codigo, para no repetir la consulta
+     *  en cada voucher cuando se imprime un lote entero. */
+    private $trozados = [];
+
+    /**
+     * Codigos del detalle que son producto trozado.
+     *
+     * Lo trozado se entrega en piezas y la cantidad no dice nada util en el
+     * papel: la columna Cant de la boleta sale con un guion. La bandera es
+     * texto en tbproductos, asi que se acepta cualquiera de las formas con las
+     * que se puede haber marcado a mano.
+     */
+    private function codigosTrozados($detalles)
+    {
+        $faltan = collect($detalles)
+            ->map(function ($d) { return trim((string) $d->cod_prod); })
+            ->filter()
+            ->unique()
+            ->reject(function ($cod) { return array_key_exists($cod, $this->trozados); })
+            ->values();
+
+        if ($faltan->isNotEmpty()) {
+            $marcados = DB::table('tbproductos')
+                ->whereIn(DB::raw('TRIM(cod_prod)'), $faltan->all())
+                ->whereIn(DB::raw("UPPER(TRIM(COALESCE(trozado, '')))"), ['SI', '1', 'X', 'TRUE'])
+                ->get([DB::raw('TRIM(cod_prod) as cod')])
+                ->pluck('cod')
+                ->all();
+
+            foreach ($faltan as $cod) {
+                $this->trozados[$cod] = in_array($cod, $marcados, true);
+            }
+        }
+
+        return $this->trozados;
     }
 
     /** El voucher como HTML: aparte, para poder juntar varios en un PDF. */
@@ -1126,6 +1266,8 @@ class FacturacionController extends Controller
 
         $placa = $this->camion($factura);
 
+        $trozados = $this->codigosTrozados($factura->detalles);
+
         $filas = '';
         foreach ($factura->detalles as $i => $d) {
             // Como en la boleta de papel: CANT son las piezas que se entregan y
@@ -1133,9 +1275,11 @@ class FacturacionController extends Controller
             // en lo que va a granel.
             $peso = (float) $d->peso;
             $par = $i % 2 ? " class='par'" : '';
+            // Lo trozado no se cuenta: en su lugar va un guion.
+            $trozado = !empty($trozados[trim((string) $d->cod_prod)]);
 
             $filas .= "<tr$par>"
-                . "<td class='r'>" . number_format($d->cantidad, 2) . '</td>'
+                . "<td class='r'>" . ($trozado ? '—' : number_format($d->cantidad, 2)) . '</td>'
                 . "<td class='cod'>" . e($d->cod_prod) . '</td>'
                 . "<td class='c cod'>" . $this->celdaBarras($d->cod_prod) . '</td>'
                 . '<td>' . e($d->nombre) . '</td>'
@@ -1262,6 +1406,10 @@ class FacturacionController extends Controller
             return response()->json([
                 'message' => 'Esta venta se entregó como voucher, no tiene factura',
             ], 422);
+        }
+
+        if ($bloqueo = $this->bloqueoCarga($factura)) {
+            return response()->json(['message' => $bloqueo], 422);
         }
 
         return $this->pdf($this->facturaHtml($factura), 'factura_' . $factura->id);
@@ -1426,6 +1574,17 @@ class FacturacionController extends Controller
                 'message' => $documento === 'factura'
                     ? 'No hay facturas en lo que estás viendo'
                     : 'No hay vouchers en lo que estás viendo',
+            ], 422);
+        }
+
+        // Un lote sale entero o no sale: si alguno de los camiones todavia no
+        // reviso su carga se frena todo, porque el papel se reparte junto.
+        $camiones = $this->camionesSinVerificar($facturas);
+        if (!empty($camiones)) {
+            return response()->json([
+                'message' => count($camiones) === 1
+                    ? 'El camión ' . $camiones[0] . ' todavía no verificó su carga; no se puede imprimir el lote'
+                    : 'Estos camiones todavía no verificaron su carga: ' . implode(', ', $camiones),
             ], 422);
         }
 

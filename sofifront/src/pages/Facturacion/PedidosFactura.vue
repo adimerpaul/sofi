@@ -367,10 +367,19 @@ export default {
 
       this.$api.get('facturacion/' + pedido.factura_id + '/' + documento, { responseType: 'blob' })
         .then(res => imprimirPdfDirecto(res.data, documento + '_' + pedido.factura_id + '.pdf'))
-        .catch(() => {
+        .catch(async err => {
+          // El PDF viaja como blob, asi que el motivo del rechazo (por ejemplo
+          // que el caminero todavia no verifico su carga) hay que leerlo del
+          // propio blob o se pierde detras de un mensaje generico.
+          let mensaje = err.response?.data?.message
+          if (err.response?.data instanceof Blob) {
+            try {
+              mensaje = JSON.parse(await err.response.data.text()).message
+            } catch (e) { mensaje = null }
+          }
           this.$q.notify({
-            type: 'negative', position: 'top',
-            message: 'No se pudo imprimir el ' + documento
+            type: 'negative', position: 'top', timeout: 6000,
+            message: mensaje || 'No se pudo imprimir el ' + documento
           })
         })
         .finally(() => { this.imprimiendo = null })

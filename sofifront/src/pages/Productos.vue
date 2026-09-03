@@ -99,6 +99,16 @@
         </q-td>
       </template>
 
+      <!-- Trozado: solo se ve el check, el texto 'SI'/'NO' queda en la tabla. -->
+      <template v-slot:body-cell-trozado="props">
+        <q-td :props="props" class="text-center">
+          <q-icon
+            :name="esTrozado(props.row) ? 'check_box' : 'check_box_outline_blank'"
+            :color="esTrozado(props.row) ? 'primary' : 'grey-5'" size="18px"
+          />
+        </q-td>
+      </template>
+
       <!-- Opciones: primera columna para que no queden fuera de pantalla. -->
       <template v-slot:body-cell-acciones="props">
         <q-td :props="props" style="white-space: nowrap">
@@ -219,6 +229,10 @@
           />
           <q-input v-model.trim="edicion.tipo" outlined dense class="col-6 col-sm-3" label="Tipo"/>
 
+          <!-- Lo trozado se entrega en piezas: en la boleta la columna Cant
+               sale con un guion en vez del numero. -->
+          <q-checkbox v-model="edicion.trozado" class="col-12" label="Trozado (en la impresión no se muestra la cantidad)"/>
+
           <q-input v-model.number="edicion.Precio" outlined dense type="number" step="0.01" min="0" class="col-6 col-sm-4" label="Precio" prefix="Bs"/>
           <q-input v-model.number="edicion.Precio_Costo" outlined dense type="number" step="0.01" min="0" class="col-6 col-sm-4" label="Precio costo" prefix="Bs"/>
           <q-input v-model.number="edicion.Precio3" outlined dense type="number" step="0.01" min="0" class="col-6 col-sm-4" label="Precio 3" prefix="Bs"/>
@@ -265,7 +279,7 @@ export default {
       },
       // Precio3..Precio13 quedan ocultas por defecto: son 11 columnas que
       // hacen ilegible la tabla, pero el usuario puede activarlas.
-      visibleColumns: ['acciones', 'imagen', 'cod_prod', 'Producto', 'grupo', 'codUnid', 'Precio', 'Precio_Costo', 'cantidad'],
+      visibleColumns: ['acciones', 'imagen', 'cod_prod', 'Producto', 'grupo', 'codUnid', 'trozado', 'Precio', 'Precio_Costo', 'cantidad'],
       // Producto cuya foto se está subiendo, para el spinner de la miniatura.
       subiendo: null,
       productoImagen: null,
@@ -285,6 +299,7 @@ export default {
         { name: 'Producto', label: 'Producto', field: 'Producto', align: 'left', sortable: true },
         { name: 'grupo', label: 'Grupo', field: 'grupo', align: 'left', sortable: true },
         { name: 'codUnid', label: 'Unidad', field: 'codUnid', align: 'center', sortable: true },
+        { name: 'trozado', label: 'Trozado', field: 'trozado', align: 'center' },
         { name: 'Precio', label: 'Precio', field: 'Precio', align: 'right', sortable: true, format: v => Number(v || 0).toFixed(2) },
         { name: 'Precio_Costo', label: 'P. Costo', field: 'Precio_Costo', align: 'right', format: v => Number(v || 0).toFixed(2) },
         { name: 'PreCosto', label: 'PreCosto', field: 'PreCosto', align: 'right', sortable: true, format: v => Number(v || 0).toFixed(2) },
@@ -314,6 +329,12 @@ export default {
   methods: {
     num (v) {
       return Number(v || 0).toFixed(2)
+    },
+
+    // tbproductos guarda banderas como texto; se acepta lo que ya pueda haber
+    // cargado a mano en la tabla ('SI', '1', 'X') y no solo lo que grabamos.
+    esTrozado (row) {
+      return ['SI', '1', 'X', 'TRUE'].includes(String(row.trozado || '').trim().toUpperCase())
     },
 
     // Las fotos se sirven desde public/, no desde /api/, de ahi el recorte.
@@ -466,7 +487,9 @@ export default {
         Precio3: Number(row.Precio3) || 0,
         Precio4: Number(row.Precio4) || 0,
         Precio5: Number(row.Precio5) || 0,
-        Precio6: Number(row.Precio6) || 0
+        Precio6: Number(row.Precio6) || 0,
+        // En la tabla es texto ('SI' / 'NO'); en el formulario, un check.
+        trozado: this.esTrozado(row)
       }
       this.filaEditada = row
       this.gruposFiltrados = this.grupos

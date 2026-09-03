@@ -86,6 +86,7 @@ Route::group(['middleware'=>'auth:sanctum'],function (){
     // como si fueran el id de una factura.
     Route::get('/facturacion/lote/{documento}',[\App\Http\Controllers\FacturacionController::class,'lote']);
     Route::get('/facturacion/reporte',[\App\Http\Controllers\FacturacionController::class,'reporte']);
+    Route::get('/facturacion/carga',[\App\Http\Controllers\FacturacionController::class,'carga']);
     Route::get('/facturacion/camiones',[\App\Http\Controllers\FacturacionController::class,'camiones']);
     Route::get('/facturacion/{factura}/voucher',[\App\Http\Controllers\FacturacionController::class,'voucher']);
     Route::get('/facturacion/{factura}/factura',[\App\Http\Controllers\FacturacionController::class,'factura']);
@@ -99,6 +100,12 @@ Route::group(['middleware'=>'auth:sanctum'],function (){
     Route::get('/caminero/entregas',[\App\Http\Controllers\CamineroController::class,'entregas']);
     Route::post('/caminero/cobrar',[\App\Http\Controllers\CamineroController::class,'cobrar']);
     Route::get('/caminero/reporte',[\App\Http\Controllers\CamineroController::class,'reporte']);
+    // Antes de salir, el caminero revisa la carga de su camion producto por
+    // producto; hasta que no este completa, caja no imprime sus comprobantes.
+    Route::get('/caminero/carga',[\App\Http\Controllers\CamineroController::class,'carga']);
+    Route::get('/caminero/carga/reporte',[\App\Http\Controllers\CamineroController::class,'cargaReporte']);
+    Route::post('/caminero/carga/verificar',[\App\Http\Controllers\CamineroController::class,'verificarCarga']);
+    Route::post('/caminero/carga/verificar-todo',[\App\Http\Controllers\CamineroController::class,'verificarCargaTodo']);
 
     // Compras a proveedor: suben el stock de tbstock.
     Route::get('/compras',[\App\Http\Controllers\CompraController::class,'index']);

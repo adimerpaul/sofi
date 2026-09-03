@@ -40,6 +40,7 @@ class Producto extends Model{
         'Peso',
         'tipo',
         'imagen',
+        'trozado',
         'oferta',
         'codProdSin',
         'pqsiramento',

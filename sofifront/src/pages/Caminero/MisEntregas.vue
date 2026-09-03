@@ -1,170 +1,182 @@
 <template>
-  <q-page class="q-pa-xs">
-    <div class="row q-col-gutter-xs items-center q-mb-xs filtros">
-      <div class="col-6 col-md-2">
-        <q-input v-model="fecha" type="date" dense outlined @update:model-value="cargar"/>
-      </div>
-      <div class="col">
-        <q-input v-model.trim="buscar" dense outlined clearable placeholder="Cliente o nota"/>
-      </div>
-      <div class="col-auto">
-        <q-btn color="primary" unelevated dense padding="6px 10px" icon="refresh" :loading="cargando" @click="cargar">
+  <!-- Media pantalla de mapa y media de pedidos. El alto se fija a mano
+       porque el layout de la app arranca con min-height 0: sin esto los dos
+       bloques nacen aplastados. -->
+  <q-page class="pantalla">
+    <div class="mitad-mapa">
+      <l-map v-model="zoom" :zoom="zoom" :center="centro" @ready="mapaListo">
+        <!-- Tiles de Google: en Oruro tienen las calles y los nombres que el
+             caminero conoce. El key fuerza a rehacer la capa al cambiar de
+             tipo, que si no se queda con la anterior. -->
+        <l-tile-layer
+          :key="tipoMapa" :url="urlMapa" :subdomains="['mt0', 'mt1', 'mt2', 'mt3']"
+          :max-zoom="20" attribution="Google"
+        />
+        <l-marker
+          v-for="(entrega, indice) in filtradas" :key="entrega.factura_id"
+          :lat-lng="[entrega.latitud || 0, entrega.longitud || 0]"
+          :visible="!!Number(entrega.latitud)"
+          @click="abrirCobro(entrega)"
+        >
+          <l-icon>
+            <div class="marca" :class="claseEstado(entrega)">{{ indice + 1 }}</div>
+          </l-icon>
+        </l-marker>
+      </l-map>
+
+      <!-- Va a la derecha para no taparse con el zoom de Leaflet. -->
+      <div class="panel-alto row items-center no-wrap q-gutter-xs">
+        <q-input
+          v-model="fecha" type="date" dense outlined bg-color="white"
+          class="campo-fecha" @update:model-value="cargar"
+        />
+        <q-btn round dense unelevated color="white" text-color="primary" icon="refresh"
+               :loading="cargando" @click="cargar">
           <q-tooltip>Actualizar</q-tooltip>
         </q-btn>
-      </div>
-      <div class="col-auto">
-        <q-btn flat dense padding="6px 8px" color="primary" icon="summarize" to="/caminero/reporte">
+        <q-btn round dense unelevated color="white" text-color="primary" icon="my_location"
+               @click="encuadrar">
+          <q-tooltip>Centrar mis clientes</q-tooltip>
+        </q-btn>
+        <q-btn round dense unelevated color="white" text-color="primary" icon="layers">
+          <q-tooltip>Tipo de mapa</q-tooltip>
+          <q-menu auto-close>
+            <q-list dense style="min-width: 150px">
+              <q-item
+                v-for="tipo in tiposMapa" :key="tipo.valor"
+                clickable :active="tipoMapa === tipo.valor" active-class="bg-blue-1"
+                @click="cambiarMapa(tipo.valor)"
+              >
+                <q-item-section avatar style="min-width: 32px">
+                  <q-icon :name="tipo.icono" size="18px"/>
+                </q-item-section>
+                <q-item-section>{{ tipo.label }}</q-item-section>
+              </q-item>
+            </q-list>
+          </q-menu>
+        </q-btn>
+        <q-btn round dense unelevated color="white" text-color="primary" icon="summarize"
+               to="/caminero/reporte">
           <q-tooltip>Mi reporte del día</q-tooltip>
         </q-btn>
       </div>
+
+      <!-- Lo que tiene que rendir al volver: es el dato por el que le
+           preguntan en caja, asi que va fijo sobre el mapa. -->
+      <div class="panel-bajo">
+        <q-linear-progress
+          size="16px" :value="resumen.porcentaje / 100"
+          :color="resumen.pendientes ? 'orange-7' : 'positive'" track-color="blue-grey-2"
+        >
+          <div class="absolute-full flex flex-center">
+            <span class="texto-barra">
+              {{ resumen.cobradas }} de {{ resumen.comprobantes }} cobrados · {{ resumen.porcentaje }}%
+            </span>
+          </div>
+        </q-linear-progress>
+        <div class="row no-wrap caja">
+          <div class="col caja-dato">
+            <q-icon name="payments" color="green-8" size="15px"/>
+            <span class="caja-monto text-green-9">{{ money(resumen.efectivo) }}</span>
+          </div>
+          <div class="col caja-dato">
+            <q-icon name="qr_code_2" color="indigo-8" size="15px"/>
+            <span class="caja-monto text-indigo-9">{{ money(resumen.qr) }}</span>
+          </div>
+          <div class="col caja-dato">
+            <q-icon name="schedule" color="orange-9" size="15px"/>
+            <span class="caja-monto text-orange-9">{{ money(resumen.por_cobrar) }}</span>
+          </div>
+        </div>
+      </div>
     </div>
 
-    <!-- Lo que el caminero tiene que rendir al volver, siempre a la vista: es
-         el dato por el que le preguntan en caja. -->
-    <q-card flat bordered class="q-mb-xs rounded-borders">
-      <div class="row items-center no-wrap q-px-xs bg-grey-3 barra-titulo">
-        <div class="text-weight-bold text-grey-8">{{ placa || 'SIN CAMION' }}</div>
-        <q-space/>
-        <div class="text-weight-bolder" :class="resumen.pendientes ? 'text-orange-9' : 'text-green-9'">
-          {{ resumen.cobradas }}/{{ resumen.comprobantes }} · {{ resumen.porcentaje }}%
-        </div>
-      </div>
-      <q-linear-progress
-        size="14px" :value="resumen.porcentaje / 100"
-        :color="resumen.pendientes ? 'orange-7' : 'positive'" track-color="grey-4"
-      />
-      <div class="row text-center caja-totales">
-        <div class="col">
-          <div class="caja-rotulo">EFECTIVO</div>
-          <div class="caja-monto text-green-9">{{ money(resumen.efectivo) }}</div>
-        </div>
-        <div class="col">
-          <div class="caja-rotulo">QR</div>
-          <div class="caja-monto text-indigo-9">{{ money(resumen.qr) }}</div>
-        </div>
-        <div class="col">
-          <div class="caja-rotulo">POR COBRAR</div>
-          <div class="caja-monto text-orange-9">{{ money(resumen.por_cobrar) }}</div>
-        </div>
-      </div>
-      <div v-if="sinComprobante" class="bg-amber-2 text-amber-10 q-px-xs aviso">
-        {{ sinComprobante }} pedido(s) de tu camión todavía sin comprobante en caja
-      </div>
-    </q-card>
-
-    <!-- El mapa arranca cerrado: ocupa media pantalla y el caminero lo abre
-         solo cuando no ubica al cliente. -->
-    <q-card v-if="conCoordenadas.length" flat bordered class="q-mb-xs rounded-borders">
-      <q-expansion-item dense dense-toggle icon="map" label="Ver mapa" header-class="text-weight-medium">
-        <div class="mapa">
-          <l-map v-model="zoom" :zoom="zoom" :center="centro" @ready="mapaListo">
-            <l-tile-layer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"/>
-            <l-marker
-              v-for="(entrega, indice) in conCoordenadas" :key="entrega.factura_id"
-              :lat-lng="[entrega.latitud, entrega.longitud]"
-              @click="abrirCobro(entrega)"
-            >
-              <l-icon>
-                <q-badge :class="colorEstado(entrega)" style="padding: 2px">{{ indice + 1 }}</q-badge>
-              </l-icon>
-            </l-marker>
-          </l-map>
-        </div>
-      </q-expansion-item>
-    </q-card>
-
-    <div v-if="cargando" class="flex flex-center q-pa-lg">
-      <q-spinner color="primary" size="42px"/>
+    <div class="row items-center no-wrap q-px-xs barra-buscar">
+      <q-input
+        v-model.trim="buscar" dense outlined clearable class="col campo-buscar"
+        bg-color="white" placeholder="Cliente o pedido"
+      >
+        <template v-slot:prepend><q-icon name="search" size="16px"/></template>
+      </q-input>
+      <q-chip dense square size="sm" class="q-ml-xs q-my-none" color="blue-grey-8" text-color="white">
+        {{ filtradas.length }}
+      </q-chip>
+      <q-chip
+        v-if="sinComprobante" dense square size="sm" class="q-ml-xs q-my-none"
+        color="amber-3" text-color="amber-10" icon="warning"
+      >
+        {{ sinComprobante }}
+        <q-tooltip>Pedidos de tu camión todavía sin comprobante en caja</q-tooltip>
+      </q-chip>
     </div>
 
-    <q-card v-else-if="!filtradas.length" flat bordered class="text-center text-grey-7 q-pa-md">
-      <q-icon name="local_shipping" size="36px" class="q-mb-sm"/>
-      <div>No hay comprobantes de tu camión para esta fecha</div>
-    </q-card>
+    <!-- Tabla y no tarjetas: entran el triple de pedidos por pantalla y el
+         numero de cada fila es el mismo que el del mapa. -->
+    <div class="mitad-lista">
+      <div v-if="cargando" class="flex flex-center q-pa-lg">
+        <q-spinner color="primary" size="42px"/>
+      </div>
 
-    <div v-else class="row q-col-gutter-xs">
-      <div v-for="entrega in filtradas" :key="entrega.factura_id" class="col-12 col-sm-6 col-lg-4">
-        <q-card flat bordered class="rounded-borders shadow-1" :class="fondoTarjeta(entrega)">
-          <q-card-section class="q-pa-xs">
-            <div class="row items-center no-wrap q-mb-xs">
-              <q-badge color="primary" class="text-body2 q-pa-xs">#{{ entrega.nro_pedido }}</q-badge>
-              <div class="text-caption q-ml-sm ellipsis text-grey-7">
-                {{ entrega.tipo_comprobante }} #{{ entrega.factura_id }}
-              </div>
-              <q-space/>
-              <q-badge v-if="entrega.cobrada" color="positive">{{ entrega.tipago }}</q-badge>
-              <q-badge v-else-if="entrega.entrega_estado" color="red-8">{{ entrega.entrega_estado }}</q-badge>
-              <q-badge v-else color="orange-8">POR COBRAR</q-badge>
-            </div>
+      <div v-else-if="!filtradas.length" class="text-center text-grey-6 q-pa-lg">
+        <q-icon name="local_shipping" size="36px"/>
+        <div class="q-mt-sm">No hay comprobantes de tu camión para esta fecha</div>
+      </div>
 
-            <div class="text-subtitle2 text-weight-bold ellipsis-2-lines">
-              {{ entrega.cliente || entrega.nombre || 'Sin cliente' }}
-            </div>
-            <div class="text-caption ellipsis text-grey-7">
-              {{ entrega.direccion || 'Sin dirección' }}
-            </div>
-
-            <div class="row items-end q-mt-xs">
-              <div class="col">
-                <div class="text-caption text-grey-7">{{ entrega.productos }} productos</div>
-                <div class="text-h6 text-weight-bolder text-blue-grey-10">Bs {{ money(entrega.total) }}</div>
-              </div>
-              <div class="col-auto">
-                <q-btn
-                  v-if="entrega.telefono" flat dense round color="green-8" icon="call"
-                  :href="'tel:' + entrega.telefono"
-                />
-                <q-btn
-                  v-if="entrega.latitud" flat dense round color="blue-8" icon="navigation"
-                  :href="'https://www.google.com/maps/dir/?api=1&destination=' + entrega.latitud + ',' + entrega.longitud"
-                  target="_blank"
-                />
-              </div>
-            </div>
-            <div v-if="entrega.cobrada && entrega.tipago === 'MIXTO'" class="text-caption text-green-9">
-              Efectivo Bs {{ money(entrega.monto_efectivo) }} · QR Bs {{ money(entrega.monto_qr) }}
-            </div>
-            <div v-else-if="entrega.observacion && !entrega.cobrada && entrega.entrega_estado" class="text-caption text-red-9 ellipsis">
-              {{ entrega.observacion }}
-            </div>
-          </q-card-section>
-
-          <q-separator/>
-          <q-expansion-item
-            dense dense-toggle switch-toggle-side icon="receipt_long"
-            label="Ver comprobante" header-class="text-weight-medium"
-            @show="verDetalle(entrega)"
+      <table v-else class="tabla">
+        <thead>
+          <tr>
+            <th class="col-num">#</th>
+            <th>CLIENTE</th>
+            <th class="col-monto">MONTO</th>
+            <th class="col-acciones"></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr
+            v-for="(entrega, indice) in filtradas" :key="entrega.factura_id"
+            :class="claseFila(entrega)" @click="abrirCobro(entrega)"
           >
-            <div v-if="detalles[entrega.factura_id] === 'cargando'" class="q-pa-sm text-center">
-              <q-spinner color="primary" size="24px"/>
-            </div>
-            <q-list v-else-if="detalles[entrega.factura_id]" dense separator class="bg-grey-1">
-              <q-item v-for="item in detalles[entrega.factura_id]" :key="item.id" class="q-px-sm">
-                <q-item-section>
-                  <q-item-label lines="2">{{ item.nombre }}</q-item-label>
-                  <q-item-label caption>{{ item.cod_prod }}</q-item-label>
-                </q-item-section>
-                <q-item-section side class="text-right">
-                  <q-item-label>{{ cantidad(item.cantidad) }} × Bs {{ money(item.precio) }}</q-item-label>
-                  <q-item-label caption class="text-weight-bold">Bs {{ money(item.subtotal) }}</q-item-label>
-                </q-item-section>
-              </q-item>
-            </q-list>
-          </q-expansion-item>
-
-          <q-separator/>
-          <q-card-actions class="q-pa-xs">
-            <q-btn
-              v-if="!entrega.cobrada"
-              class="full-width q-py-xs text-weight-bold" color="positive" unelevated no-caps
-              icon="payments" label="Cobrar" @click="abrirCobro(entrega)"
-            />
-            <div v-else class="full-width text-center text-caption text-green-9 text-weight-bold">
-              Cobrado {{ entrega.entrega_hora }} · Bs {{ money(entrega.total) }}
-            </div>
-          </q-card-actions>
-        </q-card>
-      </div>
+            <td class="col-num">
+              <div class="marca" :class="claseEstado(entrega)">{{ indice + 1 }}</div>
+            </td>
+            <td>
+              <div class="linea-cliente ellipsis">{{ entrega.cliente || entrega.nombre || 'Sin cliente' }}</div>
+              <div class="linea-pie ellipsis">
+                <q-icon name="place" size="11px"/>
+                {{ entrega.direccion || 'Sin dirección' }}
+              </div>
+            </td>
+            <td class="col-monto">
+              <div class="monto">{{ money(entrega.total) }}</div>
+              <div class="linea-pie">
+                <q-icon :name="entrega.cobrada ? 'check_circle' : 'schedule'" size="11px"/>
+                {{ entrega.cobrada ? entrega.tipago : '#' + entrega.nro_pedido }}
+              </div>
+            </td>
+            <td class="col-acciones">
+              <q-btn dense flat round size="sm" icon="receipt_long" color="blue-grey-7"
+                     @click.stop="verComprobante(entrega)">
+                <q-tooltip>Ver comprobante</q-tooltip>
+              </q-btn>
+              <q-btn
+                v-if="entrega.telefono" dense flat round size="sm" icon="call" color="green-8"
+                :href="'tel:' + entrega.telefono" @click.stop
+              />
+              <q-btn
+                v-if="Number(entrega.latitud)" dense flat round size="sm" icon="navigation" color="blue-8"
+                :href="rutaMaps(entrega)" target="_blank" @click.stop
+              />
+              <q-btn
+                v-if="!entrega.cobrada" dense unelevated round size="sm" icon="payments"
+                color="positive" class="q-ml-xs" @click.stop="abrirCobro(entrega)"
+              >
+                <q-tooltip>Cobrar</q-tooltip>
+              </q-btn>
+              <q-icon v-else name="task_alt" color="positive" size="20px" class="q-ml-xs"/>
+            </td>
+          </tr>
+        </tbody>
+      </table>
     </div>
 
     <q-dialog v-model="dialogo" @hide="limpiarCobro">
@@ -184,10 +196,10 @@
             v-model="forma" spread no-caps unelevated dense
             toggle-color="primary" color="grey-3" text-color="grey-9"
             :options="[
-              { label: 'Efectivo', value: 'CONTADO' },
-              { label: 'QR', value: 'PAGO QR' },
-              { label: 'Mixto', value: 'MIXTO' },
-              { label: 'Crédito', value: 'CRÉDITO' }
+              { label: 'Efectivo', value: 'CONTADO', icon: 'payments' },
+              { label: 'QR', value: 'PAGO QR', icon: 'qr_code_2' },
+              { label: 'Mixto', value: 'MIXTO', icon: 'call_split' },
+              { label: 'Crédito', value: 'CRÉDITO', icon: 'schedule' }
             ]"
           />
 
@@ -230,10 +242,45 @@
         </q-card-actions>
       </q-card>
     </q-dialog>
+
+    <q-dialog v-model="dialogoDetalle">
+      <q-card style="min-width: 320px">
+        <q-card-section class="q-pb-xs">
+          <div class="text-subtitle1 text-weight-bold">{{ verEntrega.cliente }}</div>
+          <div class="text-caption text-grey-7">
+            {{ verEntrega.tipo_comprobante }} #{{ verEntrega.factura_id }} ·
+            Pedido #{{ verEntrega.nro_pedido }} · NIT {{ verEntrega.nit || '—' }}
+          </div>
+        </q-card-section>
+        <q-separator/>
+        <div v-if="detalles[verEntrega.factura_id] === 'cargando'" class="q-pa-md text-center">
+          <q-spinner color="primary" size="28px"/>
+        </div>
+        <q-list v-else dense separator style="max-height: 50vh; overflow-y: auto">
+          <q-item v-for="item in (detalles[verEntrega.factura_id] || [])" :key="item.id" class="q-px-sm">
+            <q-item-section>
+              <q-item-label lines="2">{{ item.nombre }}</q-item-label>
+              <q-item-label caption>{{ item.cod_prod }}</q-item-label>
+            </q-item-section>
+            <q-item-section side class="text-right">
+              <q-item-label>{{ cantidad(item.cantidad) }} × Bs {{ money(item.precio) }}</q-item-label>
+              <q-item-label caption class="text-weight-bold">Bs {{ money(item.subtotal) }}</q-item-label>
+            </q-item-section>
+          </q-item>
+        </q-list>
+        <q-separator/>
+        <q-card-actions class="q-pa-sm">
+          <div class="text-h6 text-weight-bolder text-blue-grey-10">Bs {{ money(verEntrega.total) }}</div>
+          <q-space/>
+          <q-btn flat no-caps color="grey-8" label="Cerrar" v-close-popup/>
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
   </q-page>
 </template>
 
 <script>
+import { markRaw } from 'vue'
 import { date } from 'quasar'
 import { LMap, LIcon, LTileLayer, LMarker } from '@vue-leaflet/vue-leaflet'
 import 'leaflet/dist/leaflet.css'
@@ -253,21 +300,42 @@ export default {
       resumen: { comprobantes: 0, cobradas: 0, pendientes: 0, porcentaje: 0, efectivo: 0, qr: 0, por_cobrar: 0 },
       detalles: {},
       dialogo: false,
+      dialogoDetalle: false,
+      verEntrega: {},
       cobro: {},
       forma: 'CONTADO',
       efectivo: 0,
       qr: 0,
       motivo: '',
       zoom: 13,
+      // lyrs de Google: r calles, s satelite, y hibrido, p relieve.
+      tipoMapa: 'r',
+      tiposMapa: [
+        { label: 'Mapa', valor: 'r', icono: 'map' },
+        { label: 'Satélite', valor: 's', icono: 'satellite' },
+        { label: 'Híbrido', valor: 'y', icono: 'layers' },
+        { label: 'Relieve', valor: 'p', icono: 'terrain' }
+      ],
       centro: [-17.9833, -67.15],
-      posicion: null
+      posicion: null,
+      mapa: null
     }
   },
   created () {
+    // El tipo de mapa es del caminero, no del dia: se recuerda entre visitas.
+    try {
+      const guardado = localStorage.getItem('caminero-tipo-mapa')
+      if (guardado && this.tiposMapa.some(tipo => tipo.valor === guardado)) {
+        this.tipoMapa = guardado
+      }
+    } catch (e) {}
     this.cargar()
     this.ubicar()
   },
   computed: {
+    urlMapa () {
+      return 'https://{s}.google.com/vt/lyrs=' + this.tipoMapa + '&x={x}&y={y}&z={z}'
+    },
     filtradas () {
       const texto = this.buscar.toLowerCase()
       if (!texto) return this.entregas
@@ -275,9 +343,6 @@ export default {
         String(entrega.cliente || '').toLowerCase().includes(texto) ||
         String(entrega.nro_pedido).includes(texto)
       )
-    },
-    conCoordenadas () {
-      return this.entregas.filter(entrega => Number(entrega.latitud) && Number(entrega.longitud))
     },
     cuadra () {
       return Math.abs((Number(this.efectivo) + Number(this.qr)) - Number(this.cobro.total || 0)) < 0.01
@@ -290,22 +355,41 @@ export default {
     cantidad (valor) {
       return Number(valor || 0).toLocaleString('es-BO', { maximumFractionDigits: 3 })
     },
-    fondoTarjeta (entrega) {
-      if (entrega.cobrada) return 'bg-green-2'
-      return entrega.entrega_estado ? 'bg-red-1' : ''
+    claseFila (entrega) {
+      if (entrega.cobrada) return 'fila-cobrada'
+      return entrega.entrega_estado ? 'fila-rechazada' : ''
     },
-    colorEstado (entrega) {
-      if (entrega.cobrada) return 'bg-green'
-      return entrega.entrega_estado ? 'bg-red' : 'bg-orange'
+    claseEstado (entrega) {
+      if (entrega.cobrada) return 'marca-verde'
+      return entrega.entrega_estado ? 'marca-roja' : 'marca-naranja'
+    },
+    cambiarMapa (valor) {
+      this.tipoMapa = valor
+      try { localStorage.setItem('caminero-tipo-mapa', valor) } catch (e) {}
+      // La capa se rehace y el mapa pierde el encuadre: se vuelve a poner.
+      this.$nextTick(this.encuadrar)
+    },
+    rutaMaps (entrega) {
+      return 'https://www.google.com/maps/dir/?api=1&destination=' +
+        entrega.latitud + ',' + entrega.longitud
     },
     mapaListo (mapa) {
-      // El mapa nace dentro de un desplegable cerrado, asi que al abrirlo
-      // calcula mal su tamaño hasta que se le avisa.
-      setTimeout(() => mapa.invalidateSize(), 200)
-      if (this.conCoordenadas.length) {
-        const primera = this.conCoordenadas[0]
-        this.centro = [Number(primera.latitud), Number(primera.longitud)]
-      }
+      this.mapa = markRaw(mapa)
+      // El mapa se dibuja antes de que el navegador reparta las dos mitades,
+      // asi que sin esto queda calculado a un alto que ya no es el suyo.
+      setTimeout(() => {
+        mapa.invalidateSize()
+        this.encuadrar()
+      }, 200)
+    },
+    // Todos los clientes del dia entran en pantalla: el caminero no tiene que
+    // buscar sus puntos moviendo el mapa.
+    encuadrar () {
+      const puntos = this.filtradas
+        .filter(entrega => Number(entrega.latitud) && Number(entrega.longitud))
+        .map(entrega => [Number(entrega.latitud), Number(entrega.longitud)])
+      if (!this.mapa || !puntos.length) return
+      this.mapa.fitBounds(puntos, { padding: [40, 40], maxZoom: 16 })
     },
     ubicar () {
       if (!navigator.geolocation) return
@@ -323,6 +407,7 @@ export default {
           this.entregas = res.data.entregas
           this.resumen = res.data.resumen
           this.sinComprobante = res.data.sin_comprobante
+          this.$nextTick(this.encuadrar)
         })
         .catch(err => {
           this.$q.notify({
@@ -335,7 +420,9 @@ export default {
     },
     // El detalle se pide una sola vez por comprobante y queda cacheado: en la
     // calle la señal es mala y no conviene repetir la consulta.
-    verDetalle (entrega) {
+    verComprobante (entrega) {
+      this.verEntrega = entrega
+      this.dialogoDetalle = true
       if (this.detalles[entrega.factura_id]) return
       this.detalles = { ...this.detalles, [entrega.factura_id]: 'cargando' }
       this.$api.get('facturacion/' + entrega.factura_id)
@@ -395,39 +482,159 @@ export default {
 </script>
 
 <style scoped>
-.filtros :deep(.q-field--dense .q-field__control),
-.filtros :deep(.q-field--dense .q-field__marginal) {
+/* 50px es el alto del toolbar de la app. */
+.pantalla {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 50px);
+  overflow: hidden;
+}
+.mitad-mapa {
+  position: relative;
+  flex: 0 0 50%;
+}
+.mitad-lista {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  background: #fff;
+}
+
+/* Los paneles flotan sobre el mapa; 500 los deja encima de las capas de
+   Leaflet y debajo de sus controles. */
+.panel-alto,
+.panel-bajo {
+  position: absolute;
+  z-index: 500;
+}
+.panel-alto {
+  top: 6px;
+  right: 6px;
+}
+.panel-bajo {
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 -1px 4px rgba(0, 0, 0, 0.25);
+}
+.campo-fecha {
+  width: 140px;
+}
+.texto-barra {
+  font-size: 10px;
+  font-weight: 700;
+  color: #263238;
+}
+.caja {
+  padding: 2px 0;
+}
+.caja-dato {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+}
+.caja-monto {
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.barra-buscar {
+  background: #eceff1;
+  border-top: 1px solid #cfd8dc;
+  border-bottom: 1px solid #cfd8dc;
+  padding: 4px 0;
+}
+.campo-buscar :deep(.q-field--dense .q-field__control),
+.campo-buscar :deep(.q-field--dense .q-field__marginal) {
   height: 30px;
   min-height: 30px;
 }
-.filtros :deep(.q-field__native),
-.filtros :deep(.q-field__input) {
+.campo-buscar :deep(.q-field__native) {
   font-size: 12px;
   padding: 0;
 }
 
-.barra-titulo {
-  height: 20px;
+/* El numero de la fila es el mismo que el del marcador en el mapa. */
+.marca {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  color: #fff;
   font-size: 11px;
-}
-.caja-totales {
-  padding: 2px 0;
-}
-.caja-rotulo {
-  font-size: 9px;
-  color: #757575;
-  letter-spacing: 0.5px;
-}
-.caja-monto {
-  font-size: 14px;
   font-weight: 700;
-  line-height: 1.1;
+  line-height: 22px;
+  text-align: center;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
 }
-.aviso {
-  font-size: 11px;
-  line-height: 18px;
+.marca-verde {
+  background: #2e7d32;
 }
-.mapa {
-  height: 260px;
+.marca-naranja {
+  background: #ef6c00;
+}
+.marca-roja {
+  background: #c62828;
+}
+
+.tabla {
+  width: 100%;
+  border-collapse: collapse;
+}
+.tabla th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: #cfd8dc;
+  color: #37474f;
+  font-size: 9px;
+  letter-spacing: 0.5px;
+  text-align: left;
+  padding: 2px 6px;
+}
+.tabla td {
+  padding: 3px 6px;
+  border-bottom: 1px solid #eceff1;
+  max-width: 0;
+}
+.tabla tbody tr {
+  cursor: pointer;
+}
+.tabla tbody tr:active {
+  background: #e3f2fd;
+}
+.fila-cobrada {
+  background: #e8f5e9;
+}
+.fila-rechazada {
+  background: #ffebee;
+}
+.linea-cliente {
+  font-size: 13px;
+  font-weight: 600;
+  color: #263238;
+}
+.linea-pie {
+  font-size: 10px;
+  color: #78909c;
+}
+.monto {
+  font-size: 14px;
+  font-weight: 800;
+  color: #263238;
+  text-align: right;
+}
+.col-num {
+  width: 30px;
+}
+.col-monto {
+  width: 86px;
+  text-align: right;
+}
+.col-acciones {
+  width: 150px;
+  white-space: nowrap;
+  text-align: right;
 }
 </style>

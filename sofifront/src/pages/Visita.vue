@@ -368,27 +368,28 @@
                 </template>
                 <template v-slot:body-cell-precio="props">
                   <q-td :props="props" auto-width>
-                    <div class="row items-center no-wrap">
-                      <input type="number" min="0" step="0.01" @keyup="tecleado(props.row)"
-                             v-model="props.row.precio" class="entrada-pedido entrada-precio">
+                    <!-- El precio ya no se escribe a mano: solo se cambia eligiendo
+                         uno de los precios cargados del producto. -->
+                    <div class="row items-center no-wrap cursor-pointer">
+                      <input type="number" readonly tabindex="-1"
+                             v-model="props.row.precio" class="entrada-pedido entrada-precio entrada-precio-bloqueada">
                       <q-btn flat dense size="sm" color="primary" icon="expand_more"
                              class="q-ma-none q-pa-none"
-                             :disable="!(props.row.precios || []).length">
-                        <q-menu auto-close>
-                          <q-list dense style="min-width: 165px">
-                            <q-item-label header class="q-py-xs">Precios del producto</q-item-label>
-                            <q-item v-for="opcion in props.row.precios" :key="opcion.etiqueta" clickable
-                                    :active="String(props.row.precio) === opcion.valor"
-                                    @click="elegirPrecio(props.row, opcion.valor)">
-                              <q-item-section>{{ opcion.etiqueta }}</q-item-section>
-                              <q-item-section side class="text-weight-bold text-primary">
-                                {{ opcion.valor }} Bs
-                              </q-item-section>
-                            </q-item>
-                          </q-list>
-                        </q-menu>
-                        <q-tooltip>Elegir uno de los precios del producto</q-tooltip>
-                      </q-btn>
+                             :disable="!(props.row.precios || []).length"/>
+                      <q-menu auto-close v-if="(props.row.precios || []).length">
+                        <q-list dense style="min-width: 165px">
+                          <q-item-label header class="q-py-xs">Precios del producto</q-item-label>
+                          <q-item v-for="opcion in props.row.precios" :key="opcion.etiqueta" clickable
+                                  :active="String(props.row.precio) === opcion.valor"
+                                  @click="elegirPrecio(props.row, opcion.valor)">
+                            <q-item-section>{{ opcion.etiqueta }}</q-item-section>
+                            <q-item-section side class="text-weight-bold text-primary">
+                              {{ opcion.valor }} Bs
+                            </q-item-section>
+                          </q-item>
+                        </q-list>
+                      </q-menu>
+                      <q-tooltip>Elegir uno de los precios del producto</q-tooltip>
                     </div>
                   </q-td>
                 </template>
@@ -1509,6 +1510,12 @@ export default {
 
 .entrada-precio
   width: 4em
+
+.entrada-precio-bloqueada
+  background-color: #f0f0f0
+  color: rgba(0, 0, 0, 0.7)
+  cursor: pointer
+  pointer-events: none
 
 .my-sticky-header-table
   /* height or max-height is important */
