@@ -356,13 +356,13 @@
                   <q-td :props="props" auto-width>
                     <div class="row items-center no-wrap">
                       <template v-if="props.row.tipo=='NORMAL'">
-                        <!-- <q-btn flat dense @click="agregar(props.row)" class="q-ma-none q-pa-none" color="positive"
-                               icon="add_circle"/> -->
+                        <q-btn flat dense @click="agregar(props.row)" class="q-ma-none q-pa-none" color="positive"
+                               icon="add_circle"/>
                         <input type="number" min="0" step="0.001" @keyup="tecleado(props.row)"
                                v-model="props.row.cantidad" class="entrada-pedido entrada-cantidad">
                       </template>
-                      <!-- <q-btn flat dense @click="quitar(props.row,props.rowIndex)" class="q-ma-none q-pa-none"
-                             color="negative" icon="remove_circle"/> -->
+                       <q-btn flat dense @click="quitar(props.row,props.rowIndex)" class="q-ma-none q-pa-none"
+                             color="negative" icon="remove_circle"/>
                     </div>
                   </q-td>
                 </template>
