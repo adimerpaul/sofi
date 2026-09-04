@@ -206,23 +206,48 @@ class CamineroController extends Controller
             if (!$tipago) {
                 return response()->json(['message' => 'Indica cómo se cobró la entrega'], 422);
             }
-            // El desglose lo decide la forma de pago: solo el mixto lo carga el
-            // caminero, y tiene que cuadrar con el total del comprobante.
-            if ($tipago === 'CONTADO') {
-                $efectivo = $total;
-            } elseif ($tipago === 'PAGO QR') {
-                $qr = $total;
-            } elseif ($tipago === 'MIXTO') {
+            // El credito se entrega sin plata: queda debiendo la nota entera.
+            if ($tipago !== 'CRÉDITO') {
                 $efectivo = round((float) ($datos['monto_efectivo'] ?? 0), 2);
                 $qr = round((float) ($datos['monto_qr'] ?? 0), 2);
-                if ($efectivo <= 0 || $qr <= 0) {
+
+                // Sin desglose se asume la nota entera por la via elegida, que
+                // es como cobraba esta pantalla antes de poder escribir montos.
+                if ($efectivo <= 0 && $qr <= 0) {
+                    if ($tipago === 'CONTADO') {
+                        $efectivo = $total;
+                    } elseif ($tipago === 'PAGO QR') {
+                        $qr = $total;
+                    }
+                }
+
+                // Cada via cobra lo suyo: en contado no entra nada por QR.
+                if ($tipago === 'CONTADO') {
+                    $qr = 0.0;
+                } elseif ($tipago === 'PAGO QR') {
+                    $efectivo = 0.0;
+                }
+
+                if ($tipago === 'MIXTO' && ($efectivo <= 0 || $qr <= 0)) {
                     return response()->json([
                         'message' => 'En un cobro mixto tienen que entrar montos por efectivo y por QR',
                     ], 422);
                 }
-                if (abs(($efectivo + $qr) - $total) > 0.01) {
+
+                // El cliente casi nunca paga justo: de una nota de 106.70
+                // entrega 106. Se guarda lo que de verdad entro y la diferencia
+                // queda a la vista contra el total del comprobante; lo que no
+                // se acepta es cobrar de mas, que siempre es un error de tipeo.
+                $pagado = round($efectivo + $qr, 2);
+
+                if ($pagado <= 0) {
                     return response()->json([
-                        'message' => 'Efectivo + QR debe sumar Bs ' . number_format($total, 2, '.', ''),
+                        'message' => 'Escribe cuánto pagó el cliente',
+                    ], 422);
+                }
+                if ($pagado - $total > 0.01) {
+                    return response()->json([
+                        'message' => 'No se puede cobrar más de Bs ' . number_format($total, 2, '.', ''),
                     ], 422);
                 }
             }
