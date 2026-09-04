@@ -55,20 +55,6 @@
     </style>
 </head>
 <body>
-@php
-    function colorPlaca($placa,$vehiculos) {
-        $color = '';
-        if (isset($vehiculos)) {
-            foreach ($vehiculos as $vehiculo) {
-                if ($vehiculo->placa == $placa) {
-                    $color = $vehiculo->colorStyle;
-                    break;
-                }
-            }
-        }
-        return $color;
-    }
-@endphp
 @foreach ($pedidos as $index => $pedido)
     <div class="@if ($index < count($pedidos) - 1) page @endif">
         <div class="header">

@@ -12,14 +12,22 @@
           :key="tipoMapa" :url="urlMapa" :subdomains="['mt0', 'mt1', 'mt2', 'mt3']"
           :max-zoom="20" attribution="Google"
         />
+        <!-- Una marca por puerta y no por pedido: el mismo cliente pide dos o
+             tres veces el mismo dia y las marcas se tapaban entre ellas. El
+             globito dice cuantos pedidos hay en ese punto, y al tocarlo se
+             abre la lista de todos. -->
         <l-marker
-          v-for="(entrega, indice) in filtradas" :key="entrega.factura_id"
-          :lat-lng="[entrega.latitud || 0, entrega.longitud || 0]"
-          :visible="!!Number(entrega.latitud)"
-          @click="abrirCobro(entrega)"
+          v-for="punto in marcadores" :key="punto.clave"
+          :lat-lng="punto.latLng"
+          @click="abrirPunto(punto)"
         >
           <l-icon>
-            <div class="marca" :class="claseEstado(entrega)">{{ indice + 1 }}</div>
+            <div class="marca" :class="clasePunto(punto.entregas)">
+              {{ punto.indice + 1 }}
+              <span v-if="punto.entregas.length > 1" class="marca-cuantos">
+                {{ punto.entregas.length }}
+              </span>
+            </div>
           </l-icon>
         </l-marker>
       </l-map>
@@ -134,7 +142,7 @@
         <tbody>
           <tr
             v-for="(entrega, indice) in filtradas" :key="entrega.factura_id"
-            :class="claseFila(entrega)" @click="abrirCobro(entrega)"
+            :class="claseFila(entrega)" @click="abrirPuntoDe(entrega)"
           >
             <td class="col-num">
               <div class="marca" :class="claseEstado(entrega)">{{ indice + 1 }}</div>
@@ -178,6 +186,108 @@
         </tbody>
       </table>
     </div>
+
+    <!-- Lo que sale al tocar una marca: todos los pedidos de esa puerta en una
+         tabla, con el mismo formato que la pantalla de ruta para que el
+         caminero no tenga que aprender otra pantalla. -->
+    <q-dialog
+      v-model="dialogoPunto" full-width
+      transition-show="slide-up" transition-hide="slide-down"
+    >
+      <q-card>
+        <q-card-section class="row items-center no-wrap q-gutter-sm q-pb-sm">
+          <q-icon name="place" size="md" color="blue-grey-8"/>
+          <div class="col">
+            <div class="text-subtitle1 text-weight-medium ellipsis">
+              {{ punto.cliente || punto.entregas.length + ' pedidos en este punto' }}
+            </div>
+            <div class="text-caption text-grey-7 ellipsis-2-lines">
+              <span v-if="punto.cliente && punto.entregas.length > 1">
+                {{ punto.entregas.length }} pedidos ·
+              </span>
+              {{ punto.direccion || 'Sin dirección' }}
+            </div>
+          </div>
+          <q-btn
+            v-if="punto.lat" type="a" target="_blank" no-caps dense
+            :href="'https://www.google.com/maps/dir/?api=1&destination=' + punto.lat + ',' + punto.lng"
+            icon="navigation" color="blue-8" label="Ir"
+          />
+        </q-card-section>
+
+        <q-separator/>
+
+        <q-card-section class="q-pa-none">
+          <q-table
+            dense flat :rows="punto.entregas" :columns="columnasPunto"
+            row-key="factura_id" :rows-per-page-options="[0]" hide-pagination
+          >
+            <template #body="props">
+              <q-tr :props="props" :class="claseFila(props.row)">
+                <q-td key="nro" :props="props">
+                  <div class="marca" :class="claseEstado(props.row)">{{ numero(props.row) }}</div>
+                </q-td>
+
+                <q-td key="cliente" :props="props">
+                  <div v-if="nombreFila(props.rowIndex)" class="text-weight-medium">
+                    {{ nombreFila(props.rowIndex) }}
+                  </div>
+                  <div class="text-caption text-grey-7">
+                    Pedido #{{ props.row.nro_pedido }} ·
+                    {{ props.row.tipo_comprobante }} #{{ props.row.factura_id }}
+                  </div>
+                </q-td>
+
+                <q-td key="total" :props="props">
+                  <div class="text-weight-bolder">Bs {{ money(props.row.total) }}</div>
+                  <div class="text-caption" :class="props.row.cobrada ? 'text-green-9' : 'text-grey-7'">
+                    {{ props.row.cobrada ? props.row.tipago : (props.row.entrega_estado || 'Pendiente') }}
+                  </div>
+                </q-td>
+
+                <q-td key="opcion" :props="props" class="text-no-wrap">
+                  <q-btn
+                    dense flat round size="sm" icon="receipt_long" color="blue-grey-7"
+                    @click="verComprobante(props.row)"
+                  >
+                    <q-tooltip>Ver comprobante</q-tooltip>
+                  </q-btn>
+                  <q-btn
+                    dense flat round size="sm" icon="feedback" color="primary"
+                    @click="abrirEncuesta(props.row)"
+                  >
+                    <q-tooltip>Encuesta</q-tooltip>
+                  </q-btn>
+                  <q-btn
+                    v-if="props.row.telefono" dense flat round size="sm" icon="call"
+                    color="green-8" :href="'tel:' + props.row.telefono"
+                  />
+                  <q-btn
+                    v-if="!props.row.cobrada" dense unelevated round size="sm"
+                    icon="payments" color="positive" class="q-ml-xs"
+                    @click="abrirCobro(props.row)"
+                  >
+                    <q-tooltip>Cobrar</q-tooltip>
+                  </q-btn>
+                  <q-icon v-else name="task_alt" color="positive" size="20px" class="q-ml-xs"/>
+                </q-td>
+              </q-tr>
+            </template>
+          </q-table>
+        </q-card-section>
+
+        <q-separator/>
+
+        <q-card-actions class="q-px-md">
+          <div class="text-caption text-grey-7">
+            Total del punto: <b>Bs {{ money(punto.total) }}</b>
+            <span v-if="punto.porCobrar"> · faltan cobrar {{ punto.porCobrar }}</span>
+          </div>
+          <q-space/>
+          <q-btn flat no-caps color="grey-8" label="Cerrar" v-close-popup/>
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
 
     <q-dialog v-model="dialogo" @hide="limpiarCobro">
       <q-card style="min-width: 300px">
@@ -276,6 +386,49 @@
         </q-card-actions>
       </q-card>
     </q-dialog>
+
+    <!-- El cliente escanea y responde desde su celular; el QR lo arma un
+         servicio, asi no hay que sumar una libreria al bundle. -->
+    <q-dialog v-model="dialogQR" transition-show="scale" transition-hide="scale">
+      <q-card style="min-width: 300px; max-width: 360px">
+        <q-card-section class="row items-center no-wrap q-pb-none">
+          <q-icon name="reviews" size="26px" class="q-mr-sm" color="primary"/>
+          <div class="col">
+            <div class="text-subtitle1 text-weight-bold">Encuesta de satisfacción</div>
+            <div class="text-caption text-grey-7 ellipsis">{{ qrCliente || 'Cliente' }}</div>
+          </div>
+          <q-btn round flat dense icon="close" v-close-popup/>
+        </q-card-section>
+
+        <q-card-section class="text-center q-pb-sm">
+          <q-img :src="qrSrc" ratio="1" spinner-color="primary" style="width: 220px"/>
+          <q-input
+            v-model="qrLink" dense readonly outlined class="q-mt-sm"
+            @focus="$event.target.select()"
+          >
+            <template v-slot:append>
+              <q-btn
+                round dense flat icon="content_copy" color="primary"
+                :disable="!qrLink" @click="copiarEncuesta"
+              >
+                <q-tooltip>Copiar enlace</q-tooltip>
+              </q-btn>
+            </template>
+          </q-input>
+        </q-card-section>
+
+        <q-card-actions class="column q-px-md q-pb-md q-gutter-y-sm">
+          <q-btn
+            v-if="qrWhatsapp" :href="qrWhatsapp" target="_blank" class="full-width"
+            color="green-7" icon="chat" label="Enviar por WhatsApp" no-caps unelevated
+          />
+          <q-btn
+            :href="qrLink" target="_blank" class="full-width" color="primary"
+            icon="open_in_new" label="Abrir encuesta" no-caps outline
+          />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
   </q-page>
 </template>
 
@@ -301,6 +454,22 @@ export default {
       detalles: {},
       dialogo: false,
       dialogoDetalle: false,
+      // El punto abierto se guarda por id y no por copia: asi al recargar
+      // despues de cobrar la lista del dialogo se actualiza sola.
+      dialogoPunto: false,
+      puntoIds: [],
+      columnasPunto: [
+        { name: 'nro', label: '#', field: 'factura_id', align: 'center' },
+        { name: 'cliente', label: 'PEDIDO', field: 'cliente', align: 'left' },
+        { name: 'total', label: 'MONTO', field: 'total', align: 'right' },
+        { name: 'opcion', label: '', field: 'factura_id', align: 'right' }
+      ],
+      // Encuesta de satisfaccion, igual que en la pantalla de ruta.
+      dialogQR: false,
+      qrLink: '',
+      qrSrc: '',
+      qrCliente: '',
+      qrWhatsapp: '',
       verEntrega: {},
       cobro: {},
       forma: 'CONTADO',
@@ -346,6 +515,69 @@ export default {
     },
     cuadra () {
       return Math.abs((Number(this.efectivo) + Number(this.qr)) - Number(this.cobro.total || 0)) < 0.01
+    },
+    /**
+     * Las marcas del mapa: una por puerta, no una por pedido.
+     *
+     * El mismo cliente pide dos y tres veces en el dia, y la tienda de al lado
+     * esta cargada en la misma esquina: todo eso llegaba con la misma
+     * coordenada y la ultima marca tapaba a las demas. Ahora esas entregas
+     * comparten una sola marca y se abren juntas al tocarla.
+     *
+     * Se agrupa por metros en el terreno y no por pixeles en pantalla para que
+     * la marca sea siempre la misma aunque el caminero acerque o aleje: si la
+     * agrupacion cambiara con el zoom, Leaflet tendria que rehacer las marcas
+     * a cada rato.
+     */
+    marcadores () {
+      const grupos = []
+
+      this.filtradas.forEach((entrega, indice) => {
+        const lat = Number(entrega.latitud)
+        const lng = Number(entrega.longitud)
+        // Sin coordenada no hay nada que poner en el mapa.
+        if (!lat || !lng) return
+
+        // Quince metros: la misma puerta aunque el GPS del vendedor la haya
+        // marcado dos veces desde la vereda de enfrente.
+        const junto = grupos.find(grupo => this.metros(grupo, { lat, lng }) < 15)
+
+        if (junto) junto.entregas.push(entrega)
+        else grupos.push({ lat, lng, indice, entregas: [entrega] })
+      })
+
+      return grupos.map(grupo => ({
+        // La clave no depende del zoom, asi que la marca no se rehace sola.
+        clave: grupo.entregas.map(entrega => entrega.factura_id).join('-'),
+        latLng: [grupo.lat, grupo.lng],
+        indice: grupo.indice,
+        entregas: grupo.entregas
+      }))
+    },
+    /** Las entregas del punto abierto, sacadas siempre de la lista viva. */
+    punto () {
+      const entregas = this.filtradas.filter(
+        entrega => this.puntoIds.includes(entrega.factura_id)
+      )
+      const primera = entregas[0] || {}
+      // Casi siempre la puerta es de un solo cliente que pidio varias veces:
+      // ahi el nombre va una vez en el encabezado y no en cada fila.
+      const nombres = [...new Set(entregas.map(this.clienteDe))]
+
+      return {
+        entregas,
+        cliente: nombres.length === 1 ? nombres[0] : '',
+        direccion: primera.direccion || '',
+        lat: Number(primera.latitud) || 0,
+        lng: Number(primera.longitud) || 0,
+        total: entregas.reduce((suma, entrega) => suma + Number(entrega.total || 0), 0),
+        porCobrar: entregas.filter(entrega => !entrega.cobrada).length
+      }
+    },
+    encuestaBase () {
+      // La encuesta la renderiza el backend, no el SPA: se deriva del API base
+      // (http://localhost:8000/api/ -> http://localhost:8000), igual que en Ruta.
+      return String(process.env.API || '').replace(/\/+$/, '').replace(/\/api$/, '')
     }
   },
   methods: {
@@ -363,6 +595,53 @@ export default {
       if (entrega.cobrada) return 'marca-verde'
       return entrega.entrega_estado ? 'marca-roja' : 'marca-naranja'
     },
+    // La marca de un punto con varios pedidos: verde solo cuando ya no queda
+    // nada por cobrar ahi, para que el caminero no se vaya de la puerta antes.
+    clasePunto (entregas) {
+      if (entregas.every(entrega => entrega.cobrada)) return 'marca-verde'
+      if (entregas.some(entrega => !entrega.cobrada && !entrega.entrega_estado)) {
+        return 'marca-naranja'
+      }
+      return 'marca-roja'
+    },
+    clienteDe (entrega) {
+      return entrega.cliente || entrega.nombre || 'Sin cliente'
+    },
+    /**
+     * El nombre que va en una fila del punto, o vacio si no hace falta.
+     *
+     * Si la puerta es de un solo cliente el nombre ya esta arriba; si hay
+     * varios, se escribe una vez y las filas que siguen del mismo quedan
+     * limpias, que era lo que se leia repetido.
+     */
+    nombreFila (indice) {
+      if (this.punto.cliente) return ''
+
+      const nombre = this.clienteDe(this.punto.entregas[indice])
+      if (indice === 0) return nombre
+
+      return this.clienteDe(this.punto.entregas[indice - 1]) === nombre ? '' : nombre
+    },
+    /** El numero que le toca en la lista de abajo, que es el que se ve. */
+    numero (entrega) {
+      return this.filtradas.findIndex(
+        fila => fila.factura_id === entrega.factura_id
+      ) + 1
+    },
+    abrirPunto (punto) {
+      this.puntoIds = punto.entregas.map(entrega => entrega.factura_id)
+      this.dialogoPunto = true
+    },
+    // Desde la lista se abre el mismo punto que desde el mapa: si el cliente
+    // tiene otro pedido en la misma puerta aparecen los dos juntos. Las
+    // entregas sin coordenada no estan en el mapa y se abren solas.
+    abrirPuntoDe (entrega) {
+      const punto = this.marcadores.find(marca => marca.entregas.some(
+        fila => fila.factura_id === entrega.factura_id
+      ))
+
+      this.abrirPunto(punto || { entregas: [entrega] })
+    },
     cambiarMapa (valor) {
       this.tipoMapa = valor
       try { localStorage.setItem('caminero-tipo-mapa', valor) } catch (e) {}
@@ -372,6 +651,64 @@ export default {
     rutaMaps (entrega) {
       return 'https://www.google.com/maps/dir/?api=1&destination=' +
         entrega.latitud + ',' + entrega.longitud
+    },
+    /**
+     * La encuesta de satisfaccion del cliente de esa entrega.
+     *
+     * Es la misma que usa la pantalla de ruta: la pagina la arma el backend,
+     * asi que el cliente puede recargarla sin perder lo que ya respondio.
+     */
+    abrirEncuesta (entrega) {
+      if (!entrega.cliente_id) {
+        this.$q.notify({
+          type: 'warning', position: 'top',
+          message: 'Esta venta no tiene un cliente registrado para encuestar'
+        })
+        return
+      }
+
+      const userId = this.$store.getters['login/user']?.CodAut
+      if (!userId) {
+        this.$q.notify({
+          type: 'negative', position: 'top',
+          message: 'No se pudo identificar al caminero'
+        })
+        return
+      }
+
+      this.qrLink = this.encuestaBase + '/encuesta/' +
+        encodeURIComponent(entrega.cliente_id) + '/' + encodeURIComponent(userId)
+      this.qrCliente = entrega.cliente || entrega.nombre || ''
+      this.qrSrc = 'https://api.qrserver.com/v1/create-qr-code/?size=320x320&margin=8&data=' +
+        encodeURIComponent(this.qrLink)
+      this.qrWhatsapp = this.linkWhatsapp(entrega.telefono, this.qrLink)
+      this.dialogQR = true
+    },
+    // Bolivia: los numeros de ocho digitos van con el 591 adelante.
+    linkWhatsapp (telefono, link) {
+      const numero = String(telefono || '').replace(/\D/g, '')
+      if (numero.length < 7) return ''
+
+      const completo = numero.length === 8 ? '591' + numero : numero
+      const texto = 'Hola, gracias por tu compra en Distribuidora Sofía 🐔\n' +
+        '¿Nos ayudas con una encuesta rápida? ' + link
+
+      return 'https://wa.me/' + completo + '?text=' + encodeURIComponent(texto)
+    },
+    copiarEncuesta () {
+      if (!this.qrLink) return
+
+      navigator.clipboard.writeText(this.qrLink)
+        .then(() => this.$q.notify({ type: 'positive', position: 'top', message: 'Link copiado' }))
+        .catch(() => this.$q.notify({ type: 'negative', position: 'top', message: 'No se pudo copiar' }))
+    },
+    /** Distancia aproximada en metros entre dos coordenadas cercanas. */
+    metros (a, b) {
+      const grado = 111320
+      const x = (a.lng - b.lng) * grado * Math.cos((a.lat * Math.PI) / 180)
+      const y = (a.lat - b.lat) * grado
+
+      return Math.hypot(x, y)
     },
     mapaListo (mapa) {
       this.mapa = markRaw(mapa)
@@ -558,6 +895,7 @@ export default {
 
 /* El numero de la fila es el mismo que el del marcador en el mapa. */
 .marca {
+  position: relative;
   width: 22px;
   height: 22px;
   border-radius: 50%;
@@ -567,6 +905,22 @@ export default {
   line-height: 22px;
   text-align: center;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+}
+/* Cuantos pedidos hay en esa puerta. Va en la esquina y no adentro para que
+   no se confunda con el numero de la fila. */
+.marca-cuantos {
+  position: absolute;
+  top: -6px;
+  right: -8px;
+  min-width: 15px;
+  height: 15px;
+  padding: 0 3px;
+  border-radius: 8px;
+  background: #263238;
+  color: #fff;
+  font-size: 9px;
+  line-height: 15px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
 }
 .marca-verde {
   background: #2e7d32;

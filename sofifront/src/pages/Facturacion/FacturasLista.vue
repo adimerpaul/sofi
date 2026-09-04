@@ -17,6 +17,16 @@
           <q-list dense style="min-width: 280px">
             <q-item-label header class="q-py-xs">Comprobantes del filtro</q-item-label>
 
+            <!-- Lo mas comun al cerrar el dia: el paquete completo, cada venta
+                 en el papel que le toca, en un solo tiro de impresora. -->
+            <q-item clickable v-close-popup @click="lote('todos', true)">
+              <q-item-section avatar><q-icon name="print" color="primary"/></q-item-section>
+              <q-item-section>
+                Imprimir todos los comprobantes
+                <q-item-label caption>Facturas y vouchers juntos, como se entregó cada venta</q-item-label>
+              </q-item-section>
+            </q-item>
+
             <q-item clickable v-close-popup @click="lote('voucher', true)">
               <q-item-section avatar><q-icon name="receipt_long" color="blue-grey-7"/></q-item-section>
               <q-item-section>
@@ -30,6 +40,14 @@
               <q-item-section>
                 Imprimir todas las facturas
                 <q-item-label caption>Solo las ventas entregadas como factura</q-item-label>
+              </q-item-section>
+            </q-item>
+
+            <q-item clickable v-close-popup @click="lote('todos', false)">
+              <q-item-section avatar><q-icon name="picture_as_pdf" color="red-7"/></q-item-section>
+              <q-item-section>
+                Descargar todos en PDF
+                <q-item-label caption>El paquete completo, como archivo</q-item-label>
               </q-item-section>
             </q-item>
 
@@ -110,10 +128,17 @@
             <template v-slot:append><q-icon name="search"/></template>
           </q-input>
         </div>
-        <div class="col-6 col-md-2">
-          <q-select
-            v-model="filtros.tipo" dense outlined clearable
-            label="Tipo" :options="['VENTA', 'FACTURA']"
+        <!-- El cajero casi siempre mira un solo tipo de comprobante: los chips
+             lo cambian de un toque, sin abrir un desplegable. -->
+        <div class="col-12 col-md-3 row items-center q-gutter-xs">
+          <q-chip
+            v-for="opcion in tiposComprobante" :key="opcion.label"
+            clickable dense
+            :color="filtros.tipo === opcion.valor ? opcion.color : 'grey-3'"
+            :text-color="filtros.tipo === opcion.valor ? 'white' : 'grey-8'"
+            :icon="opcion.icono"
+            :label="opcion.label + ' (' + (conteos[opcion.clave] || 0) + ')'"
+            @click="filtrarTipo(opcion.valor)"
           />
         </div>
         <!-- El camion sale del pedido que origino cada comprobante. -->
@@ -165,6 +190,7 @@
 
     <q-table
       flat bordered dense
+      class="tabla-compacta"
       :rows="facturas"
       :columns="columns"
       row-key="id"
@@ -191,6 +217,13 @@
         </q-td>
       </template>
 
+      <template v-slot:body-cell-fecha="props">
+        <q-td :props="props" style="white-space: nowrap">
+          {{ fechaCorta(props.value) }}
+          <span class="text-grey-7">{{ horaCorta(props.row.hora) }}</span>
+        </q-td>
+      </template>
+
       <template v-slot:body-cell-pedido="props">
         <q-td :props="props">
           <template v-if="props.value">
@@ -198,6 +231,22 @@
             <div class="text-caption text-grey-7">{{ nombreTipoPedido(props.row.pedido_tipo) }}</div>
           </template>
           <span v-else class="text-grey-6">Venta directa</span>
+        </q-td>
+      </template>
+
+      <!-- Como viene la revision del caminero sobre la canasta de esta venta:
+           mientras quede una sin revisar, el camion no puede imprimir. -->
+      <template v-slot:body-cell-carga="props">
+        <q-td :props="props" class="text-center">
+          <q-chip
+            v-if="props.value !== 'NO_APLICA'"
+            dense square
+            :color="chipCarga(props.value).color" text-color="white"
+            :icon="chipCarga(props.value).icono" :label="chipCarga(props.value).texto"
+          >
+            <q-tooltip>{{ detalleCarga(props.row) }}</q-tooltip>
+          </q-chip>
+          <span v-else class="text-grey-6">—</span>
         </q-td>
       </template>
 
@@ -239,23 +288,14 @@
         </q-td>
       </template>
 
-      <template v-slot:body-cell-vendedor="props">
-        <q-td :props="props">
-          <template v-if="props.row.vendedor">
-            {{ nombreVendedor(props.row.vendedor) }}
-            <div class="text-caption text-grey-7">CI {{ props.row.vendedor_ci || '—' }}</div>
-          </template>
-          <span v-else class="text-grey-6">{{ props.row.vendedor_ci || 'Sin vendedor' }}</span>
-        </q-td>
-      </template>
-
       <template v-slot:body-cell-acciones="props">
         <q-td :props="props" style="white-space: nowrap">
-          <q-btn-dropdown
-            color="primary" size="sm" dense no-caps icon="menu" label="Opciones"
+          <q-btn
+            flat round dense size="sm" color="grey-8" icon="more_vert"
             :loading="imprimiendo === props.row.id"
           >
-            <q-list dense style="min-width: 200px">
+            <q-menu>
+            <q-list dense style="min-width: 220px">
               <q-item clickable v-close-popup @click="verDetalle(props.row)">
                 <q-item-section avatar><q-icon name="visibility" color="primary"/></q-item-section>
                 <q-item-section>
@@ -369,7 +409,8 @@
                 </q-item>
               </template>
             </q-list>
-          </q-btn-dropdown>
+            </q-menu>
+          </q-btn>
         </q-td>
       </template>
 
@@ -390,6 +431,11 @@
           </div>
           <div class="text-caption">
             {{ sel.nombre || 'Sin cliente' }} · {{ fechaHora(sel) }}
+          </div>
+          <div class="text-caption">
+            <q-icon name="badge"/>
+            {{ sel.vendedor ? nombreVendedor(sel.vendedor) : 'Sin vendedor' }}
+            <span v-if="sel.vendedor_ci">· CI {{ sel.vendedor_ci }}</span>
           </div>
           <div class="text-caption">
             <template v-if="sel.pedido_nro">
@@ -556,21 +602,34 @@ export default {
       // mientras no se este mirando un camion de un solo dia.
       carga: null,
       loading: false,
+      // En el mostrador 'VENTA' es el voucher: la venta que no se entrego
+      // como factura.
+      tiposComprobante: [
+        { label: 'Todos', valor: null, clave: 'TODOS', icono: 'list', color: 'primary' },
+        { label: 'Facturas', valor: 'FACTURA', clave: 'FACTURA', icono: 'verified', color: 'green-7' },
+        { label: 'Vouchers', valor: 'VENTA', clave: 'VENTA', icono: 'receipt', color: 'blue-grey-6' }
+      ],
+      // Cuantos comprobantes de cada tipo hay con los filtros puestos; el
+      // backend los cuenta ignorando el chip elegido.
+      conteos: { TODOS: 0, FACTURA: 0, VENTA: 0 },
       filtros: filtrosPorDefecto(),
       pagination: { page: 1, rowsPerPage: 20, rowsNumber: 0 },
       columns: [
-        { name: 'acciones', label: 'Opciones', field: 'acciones', align: 'left' },
+        // Sin titulo: la columna es solo el boton de los tres puntos y la
+        // palabra 'Opciones' la hacia mas ancha que su contenido.
+        { name: 'acciones', label: '', field: 'acciones', align: 'center' },
         { name: 'id', label: 'Nº', field: 'id', align: 'left' },
         { name: 'tipo_comprobante', label: 'Tipo', field: 'tipo_comprobante', align: 'center' },
         // La comanda del pedido que origino el comprobante: es la relacion que
         // ata la venta con el pedido del preventista.
         { name: 'pedido', label: 'Pedido', field: 'pedido_nro', align: 'left' },
-        // La fecha llega como ISO completo; en la grilla va en dia/mes/anio.
-        { name: 'fecha', label: 'Fecha', field: 'fecha', align: 'left', format: v => fechaCorta(v) },
-        { name: 'hora', label: 'Hora', field: 'hora', align: 'left' },
+        // Fecha y hora van en la misma celda: son un solo dato para el cajero
+        // y separadas se comian dos columnas de la grilla.
+        { name: 'fecha', label: 'Fecha', field: 'fecha', align: 'left' },
         { name: 'nombre', label: 'Cliente', field: 'nombre', align: 'left' },
-        { name: 'vendedor', label: 'Vendedor', field: 'vendedor', align: 'left' },
         { name: 'placa', label: 'Camión', field: 'placa', align: 'left', format: v => v || '—' },
+        // El visto bueno del caminero sobre la canasta de este comprobante.
+        { name: 'carga', label: 'Carga', field: 'carga_estado', align: 'center' },
         { name: 'tipo_pago', label: 'Pago', field: 'tipo_pago', align: 'center' },
         { name: 'estado', label: 'Estado', field: 'estado', align: 'center' },
         { name: 'siat', label: 'Estado SIAT', field: 'estado_siat', align: 'left' },
@@ -604,6 +663,10 @@ export default {
       if (!valor) return ''
       return valor === 'NORMAL' ? 'EMBUTIDOS' : valor
     },
+    /** La hora del legado viene con segundos; en la grilla sobran. */
+    horaCorta (valor) {
+      return String(valor || '').substr(0, 5)
+    },
     fechaHora (factura) {
       return fechaCorta(factura.fecha) + ' ' + String(factura.hora || '')
     },
@@ -631,6 +694,36 @@ export default {
         .filter(Boolean)
         .join(' ') || 'Sin vendedor'
     },
+    /**
+     * Como se pinta la canasta de un comprobante. Verificada es lo unico que
+     * deja imprimir; lo demas dice por que todavia no.
+     */
+    chipCarga (estado) {
+      if (estado === 'VERIFICADA') return { color: 'green-7', icono: 'verified', texto: 'Verificada' }
+      if (estado === 'CAMBIO') return { color: 'deep-orange-7', icono: 'published_with_changes', texto: 'Cambió' }
+      return { color: 'orange-8', icono: 'pending', texto: 'Sin revisar' }
+    },
+
+    /** Lo que se lee al pasar por encima del chip. */
+    detalleCarga (row) {
+      if (row.carga_estado === 'VERIFICADA') {
+        const quien = row.carga_verificado_por || 'el caminero'
+        const cuando = row.carga_verificado_en ? ' el ' + this.verificadoEn(row.carga_verificado_en) : ''
+        const nota = row.carga_observacion ? ' · Observación: ' + row.carga_observacion : ''
+        return 'Canasta revisada por ' + quien + cuando + nota
+      }
+
+      if (row.carga_estado === 'CAMBIO') {
+        return 'La canasta se revisó, pero después cambió la venta: el caminero tiene que volver a revisarla'
+      }
+
+      if (row.carga_observacion) {
+        return 'Observación del caminero: ' + row.carga_observacion
+      }
+
+      return 'El caminero todavía no revisó esta canasta; hasta que lo haga no se imprime'
+    },
+
     /** Momento en que el caminero cerro la verificacion de su carga. */
     verificadoEn (valor) {
       return date.formatDate(String(valor).replace(' ', 'T'), 'DD/MM/YYYY HH:mm')
@@ -640,6 +733,12 @@ export default {
 
       const estadoSiat = String(row.estado_siat || '').toUpperCase()
       return row.tipo_comprobante === 'FACTURA' && !!row.cuf && !estadoSiat.includes('ANUL')
+    },
+    /** Los chips son excluyentes; 'Todos' es simplemente el filtro vacio. */
+    filtrarTipo (valor) {
+      if (this.filtros.tipo === valor) return
+      this.filtros.tipo = valor
+      this.recargar()
     },
     limpiar () {
       this.filtros = filtrosPorDefecto()
@@ -663,6 +762,7 @@ export default {
         })
       }).then(res => {
         this.facturas = res.data.data
+        this.conteos = res.data.conteos || { TODOS: 0, FACTURA: 0, VENTA: 0 }
         this.pagination.page = res.data.current_page
         this.pagination.rowsPerPage = rowsPerPage
         this.pagination.rowsNumber = res.data.total
@@ -756,12 +856,19 @@ export default {
         .finally(() => { this.exportando = false })
     },
 
-    /** Todos los comprobantes del filtro en un solo PDF. */
+    /**
+     * Los comprobantes del filtro en un solo PDF.
+     *
+     * documento: 'voucher', 'factura' o 'todos' (el paquete mezclado, cada
+     * venta en el papel con el que se entregó).
+     */
     lote (documento, imprimir) {
+      const nombre = documento === 'todos' ? 'comprobantes' : documento + 's'
+
       return this.bajarArchivo(
         'facturacion/lote/' + documento,
         this.paramsFiltro(),
-        documento + 's_' + (this.filtros.desde || 'todo') + '.pdf',
+        nombre + '_' + (this.filtros.desde || 'todo') + '.pdf',
         imprimir
       )
     },
@@ -939,3 +1046,43 @@ export default {
   }
 }
 </script>
+
+<style lang="scss" scoped>
+/*
+  El cajero mira esta grilla todo el dia y necesita ver muchas ventas de una:
+  se le quita el aire a las celdas y se achica la letra para que entren mas
+  filas y columnas sin tener que desplazar la pantalla a lo ancho.
+*/
+.tabla-compacta {
+  font-size: 12px;
+
+  :deep(th),
+  :deep(td) {
+    padding: 2px 6px;
+  }
+
+  :deep(thead th) {
+    font-size: 11px;
+    font-weight: 600;
+  }
+
+  /* Los chips de tipo, estado y carga son la mayor parte del ancho: sin esto
+     cada uno se lleva el espacio de una columna de texto. */
+  :deep(.q-chip),
+  :deep(.q-badge) {
+    font-size: 10px;
+    padding: 2px 5px;
+  }
+
+  :deep(.q-chip .q-icon) {
+    font-size: 13px;
+  }
+
+  /* El caption del cliente y del pedido va como segunda linea; achicarlo evita
+     que la fila crezca de alto por esa linea. */
+  :deep(.text-caption) {
+    font-size: 10px;
+    line-height: 1.2;
+  }
+}
+</style>

@@ -136,10 +136,20 @@
         v-for="comprobante in comprobantesFiltrados" :key="comprobante.factura_id"
         class="col-12 col-sm-6 col-lg-4"
       >
-        <q-card flat bordered class="rounded-borders shadow-1" :class="comprobante.verificado ? 'bg-green-2' : ''">
+        <q-card
+          flat bordered class="rounded-borders shadow-1"
+          :class="{ 'bg-green-2': comprobante.verificado, 'canasta-ocupada': guardando !== null }"
+        >
           <q-card-section class="q-pa-xs cursor-pointer" @click="alternar(comprobante)">
             <div class="row items-center no-wrap">
+              <!-- Tocando la tarjeta el boton de abajo puede quedar fuera de la
+                   pantalla, asi que el aviso de que se esta grabando va aca. -->
+              <q-spinner
+                v-if="guardando === comprobante.factura_id"
+                color="primary" size="30px" class="q-mr-sm"
+              />
               <q-icon
+                v-else
                 :name="comprobante.verificado ? 'check_circle' : 'radio_button_unchecked'"
                 :color="comprobante.verificado ? 'positive' : 'grey-6'" size="30px" class="q-mr-sm"
               />
@@ -298,13 +308,20 @@ export default {
     },
     comprobantesFiltrados () {
       const texto = (this.buscar || '').toLowerCase()
-      return this.comprobantes.filter(comprobante => {
+      const visibles = this.comprobantes.filter(comprobante => {
         if (this.soloPendientes && comprobante.verificado) return false
         if (!texto) return true
         return String(comprobante.nro_pedido || '').includes(texto) ||
           String(comprobante.nro_factura || comprobante.factura_id).includes(texto) ||
           (comprobante.cliente || '').toLowerCase().includes(texto)
       })
+
+      // Lo que falta revisar va primero: el caminero trabaja de arriba hacia
+      // abajo y lo ya verificado se le hunde solo, sin tener que buscarlo
+      // entre las canastas que todavia tiene que mirar. El orden dentro de
+      // cada grupo es el que vino del backend (por comprobante), y sort es
+      // estable, asi que no se altera.
+      return visibles.slice().sort((a, b) => Number(a.verificado) - Number(b.verificado))
     }
   },
   methods: {
@@ -346,8 +363,17 @@ export default {
       if (datos.placa !== undefined) this.placa = datos.placa
       if (datos.caminero !== undefined) this.caminero = datos.caminero
       if (datos.sin_facturar !== undefined) this.sinFacturar = datos.sin_facturar
-      this.comprobantes = datos.comprobantes
-      this.resumen = datos.resumen
+      // Al tildar una canasta vuelve solo esa: se cambia en su lugar en vez de
+      // reemplazar la lista entera, que en el celular se notaba como demora.
+      if (datos.comprobante) {
+        const indice = this.comprobantes.findIndex(
+          comprobante => comprobante.factura_id === datos.comprobante.factura_id
+        )
+        if (indice !== -1) this.comprobantes.splice(indice, 1, datos.comprobante)
+      } else if (datos.comprobantes) {
+        this.comprobantes = datos.comprobantes
+      }
+      if (datos.resumen) this.resumen = datos.resumen
     },
     // Tocar la tarjeta alcanza para el caso normal: la canasta subio completa.
     alternar (comprobante) {
@@ -371,6 +397,9 @@ export default {
       }, () => { this.dialogo = false })
     },
     enviar (cuerpo, alTerminar) {
+      // Con el celular en la mano es facil tocar dos veces la misma canasta
+      // mientras se esta grabando la anterior.
+      if (this.guardando !== null) return
       this.guardando = cuerpo.factura_id
       this.$api.post('caminero/carga/verificar', Object.assign({ fecha: this.fecha }, cuerpo))
         .then(res => {
@@ -440,5 +469,11 @@ export default {
 .filtros :deep(.q-field__input) {
   font-size: 12px;
   padding: 0;
+}
+/* Mientras se graba, las tarjetas no aceptan toques: el caminero ve que algo
+   esta pasando y no encola tildes que despues no sabe si entraron. */
+.canasta-ocupada {
+  pointer-events: none;
+  opacity: 0.7;
 }
 </style>

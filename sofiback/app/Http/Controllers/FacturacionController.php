@@ -41,7 +41,93 @@ class FacturacionController extends Controller
     {
         $perPage = min(max((int) $request->input('perPage', 20), 1), 200);
 
-        return $this->filtrar($request)->paginate($perPage);
+        $pagina = $this->filtrar($request)->paginate($perPage);
+
+        $this->adjuntarCarga($pagina->getCollection());
+
+        // Los conteos van pegados a la pagina y no en otra ruta: la pantalla
+        // los muestra junto a los filtros y pedirlos aparte era una segunda
+        // vuelta con los mismos parametros.
+        return response()->json($pagina->toArray() + ['conteos' => $this->conteos($request)]);
+    }
+
+    /**
+     * Cuantos comprobantes hay de cada tipo con los filtros puestos.
+     *
+     * Se ignora el filtro de tipo a proposito: los numeros tienen que seguir
+     * diciendo cuanto hay del otro lado aunque se este mirando uno solo, si no
+     * el chip elegido seria el unico con cantidad.
+     */
+    private function conteos(Request $request)
+    {
+        $sinTipo = Request::create('', 'GET', $request->except('tipo'));
+
+        $porTipo = $this->filtrar($sinTipo)->reorder()->setEagerLoads([])
+            ->groupBy('tipo_comprobante')
+            ->select('tipo_comprobante', DB::raw('COUNT(*) as total'))
+            ->pluck('total', 'tipo_comprobante');
+
+        return [
+            'FACTURA' => (int) $porTipo->get('FACTURA', 0),
+            'VENTA'   => (int) $porTipo->get('VENTA', 0),
+            'TODOS'   => (int) $porTipo->sum(),
+        ];
+    }
+
+    /**
+     * Le pega a cada comprobante como viene su revision de carga, para que el
+     * listado lo diga sin tener que abrir la pantalla del caminero.
+     *
+     * Se lee de carga_verificaciones en una sola consulta por pagina: pedirle
+     * el estado a CargaCamion fila por fila reconstruiria la carga entera del
+     * camion una vez por comprobante.
+     */
+    private function adjuntarCarga($facturas)
+    {
+        $marcas = collect();
+
+        if ($facturas->isNotEmpty()) {
+            $marcas = DB::table('carga_verificaciones')
+                ->whereIn('factura_id', $facturas->pluck('id')->all())
+                ->get()
+                ->keyBy('factura_id');
+        }
+
+        foreach ($facturas as $factura) {
+            $marca = $marcas->get($factura->id);
+
+            $factura->carga_observacion = $marca->observacion ?? null;
+            $factura->carga_verificado_por = $marca->verificado_por ?? null;
+            $factura->carga_verificado_en = $marca->verificado_en ?? null;
+            $factura->carga_estado = $this->estadoCarga($factura, $marca);
+        }
+    }
+
+    /**
+     * En que anda la canasta de un comprobante:
+     *
+     * NO_APLICA  no viaja en camion (venta de mostrador) o esta anulado
+     * PENDIENTE  el caminero todavia no la reviso, o la desmarco
+     * CAMBIO     la reviso, pero despues le cambiaron la venta: vuelve a contar
+     *            como pendiente porque la canasta ya no es la que miro
+     * VERIFICADA el caminero se hizo responsable de que este arriba
+     */
+    private function estadoCarga(Factura $factura, $marca)
+    {
+        if (!trim((string) $factura->placa) || $factura->estado === 'ANULADO') {
+            return 'NO_APLICA';
+        }
+
+        if (!$marca || !$marca->verificado) {
+            return 'PENDIENTE';
+        }
+
+        // Mismo criterio que CargaCamion: el visto bueno vale para la venta tal
+        // como estaba al revisarla, no para lo que se le agregue despues.
+        $cambio = (int) $marca->items_esperados !== $factura->detalles->count()
+            || abs((float) $marca->total_esperado - (float) $factura->total) > 0.01;
+
+        return $cambio ? 'CAMBIO' : 'VERIFICADA';
     }
 
     /**
@@ -1554,13 +1640,18 @@ class FacturacionController extends Controller
      */
     public function lote(Request $request, $documento)
     {
-        $documento = $documento === 'factura' ? 'factura' : 'voucher';
+        // 'todos' saca el paquete completo del filtro sin separar por tipo:
+        // cada venta en el papel que le toca, que es como caja lo reparte.
+        if (!in_array($documento, ['factura', 'voucher', 'todos'], true)) {
+            $documento = 'voucher';
+        }
 
         $facturas = $this->filtrar($request)
             ->when($documento === 'factura', function ($q) {
                 // La factura solo existe si la venta se entrego como factura.
                 $q->where('tipo_comprobante', 'FACTURA');
-            }, function ($q) {
+            })
+            ->when($documento === 'voucher', function ($q) {
                 // Las que se entregaron como factura no van en el lote de
                 // vouchers: cada venta se imprime en uno solo.
                 $q->where('tipo_comprobante', '<>', 'FACTURA');
@@ -1570,11 +1661,13 @@ class FacturacionController extends Controller
             ->get();
 
         if ($facturas->isEmpty()) {
-            return response()->json([
-                'message' => $documento === 'factura'
-                    ? 'No hay facturas en lo que estás viendo'
-                    : 'No hay vouchers en lo que estás viendo',
-            ], 422);
+            $vacio = [
+                'factura' => 'No hay facturas en lo que estás viendo',
+                'voucher' => 'No hay vouchers en lo que estás viendo',
+                'todos' => 'No hay comprobantes en lo que estás viendo',
+            ];
+
+            return response()->json(['message' => $vacio[$documento]], 422);
         }
 
         // Un lote sale entero o no sale: si alguno de los camiones todavia no
@@ -1589,12 +1682,19 @@ class FacturacionController extends Controller
         }
 
         $paginas = $facturas->map(function ($factura) use ($documento) {
-            return $documento === 'factura'
+            // En el lote mezclado manda como se entrego cada venta; en los
+            // otros dos el filtro ya dejo solo las que corresponden.
+            $comoFactura = $documento === 'factura'
+                || ($documento === 'todos' && $factura->tipo_comprobante === 'FACTURA');
+
+            return $comoFactura
                 ? $this->facturaHtml($factura)
                 : $this->voucherHtml($factura);
         })->implode("<div style='page-break-after: always'></div>");
 
-        return $this->pdf($paginas, $documento . 's_' . date('Y-m-d'));
+        $nombre = $documento === 'todos' ? 'comprobantes' : $documento . 's';
+
+        return $this->pdf($paginas, $nombre . '_' . date('Y-m-d'));
     }
 
     /**

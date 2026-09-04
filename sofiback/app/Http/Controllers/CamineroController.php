@@ -463,14 +463,17 @@ class CamineroController extends Controller
             return response()->json(['message' => 'Ese comprobante no sale en tu camión'], 404);
         }
 
-        $this->marcar($request, $fecha, $placa, $comprobante, (bool) $datos['verificado'], $datos['observacion'] ?? null);
+        $comprobante = $this->marcar(
+            $request, $fecha, $placa, $comprobante,
+            (bool) $datos['verificado'], $datos['observacion'] ?? null
+        );
 
-        $comprobantes = $servicio->comprobantes($fecha, $placa);
-
+        // Solo vuelve la canasta que se toco: mandar la carga entera en cada
+        // tilde obligaba al celular a redibujar toda la lista.
         return [
             'message' => $datos['verificado'] ? 'Canasta verificada' : 'Canasta desmarcada',
-            'resumen' => $servicio->estado($fecha, $placa, $comprobantes),
-            'comprobantes' => $comprobantes->values(),
+            'resumen' => $servicio->estado($fecha, $placa),
+            'comprobante' => $comprobante,
         ];
     }
 
@@ -491,54 +494,82 @@ class CamineroController extends Controller
         }
 
         $servicio = new CargaCamion();
-        $marcados = 0;
+        // Sin el detalle de cada canasta: para marcar alcanza con cuantos
+        // productos tenia y su total, que es lo que se guarda.
+        $comprobantes = $servicio->comprobantes($fecha, $placa, null, false);
 
-        foreach ($servicio->comprobantes($fecha, $placa) as $comprobante) {
+        $filas = [];
+        foreach ($comprobantes as $comprobante) {
             if ($comprobante['verificado'] || !empty($comprobante['observacion'])) {
                 continue;
             }
 
-            $this->marcar($request, $fecha, $placa, $comprobante, true, null);
-            $marcados++;
+            $filas[] = $this->fila($request, $fecha, $placa, $comprobante, true, null);
+        }
+
+        // Un solo viaje a la base en vez de un update por canasta: con un
+        // camion lleno eran decenas de consultas seguidas.
+        if ($filas) {
+            DB::table('carga_verificaciones')->upsert($filas, ['factura_id']);
         }
 
         $comprobantes = $servicio->comprobantes($fecha, $placa);
 
         return [
-            'message' => $marcados > 0
-                ? 'Se verificaron ' . $marcados . ' canastas'
+            'message' => count($filas) > 0
+                ? 'Se verificaron ' . count($filas) . ' canastas'
                 : 'No quedaba nada por verificar',
             'resumen' => $servicio->estado($fecha, $placa, $comprobantes),
             'comprobantes' => $comprobantes->values(),
         ];
     }
 
-    /** Guarda el visto bueno de una canasta. */
+    /**
+     * Guarda el visto bueno de una canasta y devuelve como quedo, para poder
+     * responder solo esa sin volver a armar la carga entera.
+     */
     private function marcar(Request $request, $fecha, $placa, array $comprobante, $verificado, $observacion)
+    {
+        $fila = $this->fila($request, $fecha, $placa, $comprobante, $verificado, $observacion);
+
+        DB::table('carga_verificaciones')->updateOrInsert(
+            ['factura_id' => $comprobante['factura_id']],
+            $fila
+        );
+
+        $comprobante['verificado'] = (bool) $verificado;
+        $comprobante['cambio'] = false;
+        $comprobante['observacion'] = $fila['observacion'];
+        $comprobante['verificado_por'] = $fila['verificado_por'];
+        $comprobante['verificado_en'] = $fila['verificado_en'];
+
+        return $comprobante;
+    }
+
+    /** Lo que se graba de una canasta revisada. */
+    private function fila(Request $request, $fecha, $placa, array $comprobante, $verificado, $observacion)
     {
         $ahora = date('Y-m-d H:i:s');
         $observacion = trim((string) $observacion);
 
-        DB::table('carga_verificaciones')->updateOrInsert(
-            ['factura_id' => $comprobante['factura_id']],
-            [
-                'fecha' => $fecha,
-                'placa' => $placa,
-                'pedido_nro' => $comprobante['nro_pedido'],
-                'pedido_tipo' => $comprobante['pedido_tipo'],
-                // Se guarda como estaba la venta al revisarla: si despues la
-                // cambian, el comprobante vuelve a quedar pendiente.
-                'items_esperados' => $comprobante['productos'],
-                'total_esperado' => $comprobante['total'],
-                'verificado' => $verificado,
-                'observacion' => $observacion !== '' ? $observacion : null,
-                'personal_id' => $request->user()->CodAut,
-                'verificado_por' => $this->nombre($request),
-                'verificado_en' => $verificado ? $ahora : null,
-                'created_at' => $ahora,
-                'updated_at' => $ahora,
-            ]
-        );
+        return [
+            'factura_id' => $comprobante['factura_id'],
+            'fecha' => $fecha,
+            'placa' => $placa,
+            'pedido_nro' => $comprobante['nro_pedido'],
+            'pedido_tipo' => $comprobante['pedido_tipo'],
+            // Se guarda como estaba la venta al revisarla: si despues la
+            // cambian, el comprobante vuelve a quedar pendiente.
+            'items_esperados' => $comprobante['productos'],
+            'total_esperado' => $comprobante['total'],
+            'verificado' => $verificado,
+            'observacion' => $observacion !== '' ? $observacion : null,
+            'personal_id' => $request->user()->CodAut,
+            'verificado_por' => $this->nombre($request),
+            'verificado_en' => $verificado ? $ahora : null,
+            'created_at' => $ahora,
+            'updated_at' => $ahora,
+        ];
     }
 
     /**

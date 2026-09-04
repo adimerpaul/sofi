@@ -51,19 +51,28 @@ class CargaCamion
      * Los comprobantes de ese dia que salen en ese camion, con su detalle y
      * con lo que el caminero ya reviso.
      */
-    public function comprobantes($fecha, $placa): Collection
+    public function comprobantes($fecha, $placa, $facturaId = null, $conItems = true): Collection
     {
-        $facturas = $this->facturas($fecha, $placa);
+        $facturas = $this->facturas($fecha, $placa, $facturaId);
 
         if ($facturas->isEmpty()) {
             return collect();
         }
 
-        $detalles = $this->detalles($facturas->pluck('factura_id'));
+        $ids = $facturas->pluck('factura_id');
+        // Para el resumen solo se compara cuantos productos tiene la canasta:
+        // ahi no hace falta traer linea por linea de todos los comprobantes.
+        $detalles = $conItems ? $this->detalles($ids) : null;
+        $conteos = $conItems ? null : $this->conteos($ids);
         $marcas = $this->marcas($fecha, $placa);
 
-        return $facturas->map(function ($factura) use ($detalles, $marcas) {
-            $items = ($detalles->get($factura->factura_id) ?? collect())->values()->all();
+        return $facturas->map(function ($factura) use ($detalles, $conteos, $marcas) {
+            $items = $detalles
+                ? ($detalles->get($factura->factura_id) ?? collect())->values()->all()
+                : [];
+            $productos = $detalles
+                ? count($items)
+                : (int) $conteos->get($factura->factura_id, 0);
             $marca = $marcas->get($factura->factura_id);
 
             $comprobante = [
@@ -80,7 +89,7 @@ class CargaCamion
                 'pedido_tipo' => strtoupper(trim((string) $factura->pedido_tipo)),
                 'placa' => $factura->placa,
                 'items' => $items,
-                'productos' => count($items),
+                'productos' => $productos,
                 'total' => round((float) $factura->total, 2),
             ];
 
@@ -107,7 +116,9 @@ class CargaCamion
      */
     public function estado($fecha, $placa, Collection $comprobantes = null): array
     {
-        $comprobantes = $comprobantes ?? $this->comprobantes($fecha, $placa);
+        // Sin la lista ya armada se rearma, pero sin el detalle de cada
+        // canasta: el resumen es solo conteos y el total del camion.
+        $comprobantes = $comprobantes ?? $this->comprobantes($fecha, $placa, null, false);
         $verificados = $comprobantes->where('verificado', true);
         $marcados = $comprobantes->filter(function ($comprobante) {
             return !empty($comprobante['verificado_en']);
@@ -140,9 +151,9 @@ class CargaCamion
     /** Un comprobante concreto de la carga, para validar lo que llega a marcar. */
     public function comprobante($fecha, $placa, $facturaId)
     {
-        return $this->comprobantes($fecha, $placa)->first(function ($comprobante) use ($facturaId) {
-            return (int) $comprobante['factura_id'] === (int) $facturaId;
-        });
+        // Se filtra por id en la consulta: armar la carga entera para sacar una
+        // sola canasta era lo que hacia lenta cada tilde del caminero.
+        return $this->comprobantes($fecha, $placa, (int) $facturaId)->first();
     }
 
     /**
@@ -186,9 +197,12 @@ class CargaCamion
     }
 
     /** Los comprobantes vigentes del dia que salen en ese camion. */
-    private function facturas($fecha, $placa): Collection
+    private function facturas($fecha, $placa, $facturaId = null): Collection
     {
         return DB::table('facturas as f')
+            ->when($facturaId, function ($consulta) use ($facturaId) {
+                return $consulta->where('f.id', $facturaId);
+            })
             // El camion vive en el pedido: sin pedido (venta de mostrador) el
             // comprobante no viaja en ningun camion.
             ->join('tbpedidos as p', function ($join) {
@@ -239,6 +253,17 @@ class CargaCamion
                 ];
             })
             ->groupBy('factura_id');
+    }
+
+    /** Cuantos productos tiene cada canasta, sin traer el detalle. */
+    private function conteos(Collection $facturaIds): Collection
+    {
+        return DB::table('factura_detalles')
+            ->whereIn('factura_id', $facturaIds->all())
+            ->whereNull('deleted_at')
+            ->groupBy('factura_id')
+            ->select('factura_id', DB::raw('COUNT(*) as productos'))
+            ->pluck('productos', 'factura_id');
     }
 
     /** Lo que el caminero ya marco ese dia en ese camion. */
