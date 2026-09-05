@@ -210,6 +210,13 @@
               {{ punto.direccion || 'Sin dirección' }}
             </div>
           </div>
+          <!-- La encuesta va arriba: es del cliente de la puerta, no de cada
+               nota. Solo baja a las filas si en el punto hay varios clientes. -->
+          <q-btn
+            v-if="punto.cliente && punto.entregas.length" dense no-caps
+            icon="feedback" color="primary" label="Encuesta" class="q-mr-xs"
+            @click="abrirEncuesta(punto.entregas[0])"
+          />
           <q-btn
             v-if="punto.lat" type="a" target="_blank" no-caps dense
             :href="'https://www.google.com/maps/dir/?api=1&destination=' + punto.lat + ',' + punto.lng"
@@ -225,118 +232,118 @@
             row-key="factura_id" :rows-per-page-options="[0]" hide-pagination
             :grid="esMovil"
           >
-            <!-- En el celular la fila no entra: cada pedido va como tarjeta,
-                 con el cobro a lo ancho para escribirlo con el pulgar. -->
+            <!-- En el celular la fila no entra como tabla: cada pedido va en
+                 una tarjeta de tres lineas, que es lo que se puede revisar de
+                 un vistazo parado al lado del camion. -->
             <template #item="props">
-              <div class="col-12 q-pa-xs">
-                <q-card flat bordered :class="claseFila(props.row)">
-                  <q-card-section class="q-pa-sm">
-                    <div class="row items-start no-wrap q-mb-xs">
-                      <div class="marca q-mr-sm" :class="claseEstado(props.row)">
-                        {{ numero(props.row) }}
+              <div class="col-12 q-px-xs q-pb-xs">
+                <q-card flat bordered class="q-pa-xs" :class="claseFila(props.row)">
+                  <div class="row items-center no-wrap">
+                    <div class="marca q-mr-xs" :class="claseEstado(props.row)">
+                      {{ numero(props.row) }}
+                    </div>
+                    <div class="col" style="min-width: 0">
+                      <div v-if="nombreFila(props.rowIndex)" class="text-weight-medium ellipsis">
+                        {{ nombreFila(props.rowIndex) }}
                       </div>
-                      <div class="col">
-                        <div v-if="nombreFila(props.rowIndex)" class="text-weight-medium ellipsis">
-                          {{ nombreFila(props.rowIndex) }}
-                        </div>
-                        <div class="text-caption text-grey-7">
-                          Pedido #{{ props.row.nro_pedido }} ·
-                          {{ props.row.tipo_comprobante }} #{{ props.row.factura_id }}
-                        </div>
-                      </div>
-                      <div class="text-subtitle1 text-weight-bolder q-ml-sm">
-                        Bs {{ money(props.row.total) }}
+                      <div class="text-caption text-grey-7 ellipsis">
+                        Pedido #{{ props.row.nro_pedido }} ·
+                        {{ props.row.tipo_comprobante }} #{{ props.row.factura_id }}
                       </div>
                     </div>
-
-                    <div v-if="props.row.cobrada" class="text-caption text-green-9">
-                      <q-icon name="task_alt" size="14px"/>
-                      {{ props.row.tipago }} · cobrado Bs {{ money(cobrado(props.row)) }}
-                      <span v-if="falto(props.row) > 0.009" class="text-red-9 text-weight-bold">
-                        · faltó Bs {{ money(falto(props.row)) }}
-                      </span>
+                    <div class="text-subtitle2 text-weight-bolder q-mx-xs">
+                      Bs {{ money(props.row.total) }}
                     </div>
-
-                    <div v-else-if="props.row.entrega_estado" class="text-caption text-red-9">
-                      <q-icon name="cancel" size="14px"/>
-                      {{ props.row.entrega_estado }}
-                      <span v-if="props.row.observacion">· {{ props.row.observacion }}</span>
-                    </div>
-
-                    <!-- El credito ya venia decidido de caja: al caminero solo
-                         se le recuerda que ahi no cobra nada. -->
-                    <div
-                      v-else-if="esCredito(props.row)"
-                      class="bg-orange-1 text-orange-10 rounded-borders q-pa-xs text-caption"
-                    >
-                      <q-icon name="schedule" size="16px"/>
-                      <b>Pedido a crédito.</b> Se entrega sin cobrar; el cliente paga después.
-                    </div>
-
-                    <template v-else-if="cobros[props.row.factura_id]">
-                      <q-btn-toggle
-                        :model-value="cobros[props.row.factura_id].forma"
-                        spread no-caps unelevated dense
-                        toggle-color="primary" color="grey-3" text-color="grey-9"
-                        :options="formasPago"
-                        @update:model-value="forma => cambiarForma(props.row, forma)"
-                      />
-
-                      <div
-                        v-if="cobros[props.row.factura_id].forma !== 'CRÉDITO'"
-                        class="row q-col-gutter-sm q-mt-xs"
-                      >
-                        <div v-if="cobros[props.row.factura_id].forma !== 'PAGO QR'" class="col">
-                          <q-input
-                            v-model.number="cobros[props.row.factura_id].efectivo"
-                            type="number" inputmode="decimal" outlined
-                            :label="cobros[props.row.factura_id].forma === 'MIXTO' ? 'Efectivo' : 'Cuánto pagó'"
-                            @update:model-value="ajustarQr(props.row)"
-                          />
-                        </div>
-                        <div v-if="cobros[props.row.factura_id].forma !== 'CONTADO'" class="col">
-                          <q-input
-                            v-model.number="cobros[props.row.factura_id].qr"
-                            type="number" inputmode="decimal" outlined label="QR"
-                          />
-                        </div>
-                      </div>
-
-                      <div class="text-subtitle2 q-mt-xs" :class="claseSaldo(props.row)">
-                        {{ leyendaSaldo(props.row) }}
-                      </div>
-                    </template>
-                  </q-card-section>
-
-                  <q-separator/>
-
-                  <q-card-actions class="q-px-sm q-py-xs">
                     <q-btn
-                      dense flat round icon="receipt_long" color="blue-grey-7"
+                      dense flat round size="sm" icon="receipt_long" color="blue-grey-7"
                       @click="verComprobante(props.row)"
                     />
                     <q-btn
-                      dense flat round icon="feedback" color="primary"
-                      @click="abrirEncuesta(props.row)"
+                      v-if="encuestaEnFila" dense flat round size="sm" icon="feedback"
+                      color="primary" @click="abrirEncuesta(props.row)"
                     />
                     <q-btn
-                      v-if="props.row.telefono" dense flat round icon="call"
+                      v-if="props.row.telefono" dense flat round size="sm" icon="call"
                       color="green-8" :href="'tel:' + props.row.telefono"
                     />
-                    <q-space/>
-                    <template v-if="!props.row.cobrada">
+                  </div>
+
+                  <div v-if="props.row.cobrada" class="text-caption text-green-9">
+                    <q-icon name="task_alt" size="14px"/>
+                    {{ props.row.tipago }} · cobrado Bs {{ money(cobrado(props.row)) }}
+                    <span v-if="falto(props.row) > 0.009" class="text-red-9 text-weight-bold">
+                      · faltó Bs {{ money(falto(props.row)) }}
+                    </span>
+                  </div>
+
+                  <div v-else-if="props.row.entrega_estado" class="text-caption text-red-9 ellipsis">
+                    <q-icon name="cancel" size="14px"/>
+                    {{ props.row.entrega_estado }}
+                    <span v-if="props.row.observacion">· {{ props.row.observacion }}</span>
+                  </div>
+
+                  <!-- El credito ya venia decidido de caja: al caminero solo se
+                       le recuerda que ahi no cobra nada. -->
+                  <div
+                    v-else-if="esCredito(props.row)"
+                    class="row items-center no-wrap q-mt-xs"
+                  >
+                    <div class="col text-caption text-orange-9 ellipsis">
+                      <q-icon name="schedule" size="14px"/>
+                      <b>A crédito</b> · se entrega sin cobrar
+                    </div>
+                    <q-btn
+                      dense flat round size="sm" icon="cancel" color="negative"
+                      @click="abrirNoEntrega(props.row)"
+                    />
+                    <q-btn
+                      dense unelevated round size="sm" icon="check" color="positive"
+                      class="q-ml-xs" :loading="guardando === props.row.factura_id"
+                      @click="cobrar(props.row)"
+                    />
+                  </div>
+
+                  <template v-else-if="cobros[props.row.factura_id]">
+                    <q-btn-toggle
+                      :model-value="cobros[props.row.factura_id].forma"
+                      spread no-caps unelevated dense size="sm" class="q-mt-xs"
+                      toggle-color="primary" color="grey-3" text-color="grey-9"
+                      :options="formasPago"
+                      @update:model-value="forma => cambiarForma(props.row, forma)"
+                    />
+
+                    <div class="row items-center no-wrap q-gutter-xs q-mt-xs">
+                      <q-input
+                        v-if="cobros[props.row.factura_id].forma !== 'PAGO QR'"
+                        v-model.number="cobros[props.row.factura_id].efectivo"
+                        type="number" inputmode="decimal" outlined dense
+                        class="col campo-monto"
+                        :label="cobros[props.row.factura_id].forma === 'MIXTO' ? 'Efectivo' : 'Pagó'"
+                        @update:model-value="ajustarQr(props.row)"
+                      />
+                      <q-input
+                        v-if="cobros[props.row.factura_id].forma !== 'CONTADO'"
+                        v-model.number="cobros[props.row.factura_id].qr"
+                        type="number" inputmode="decimal" outlined dense
+                        class="col campo-monto" label="QR"
+                      />
+                      <div
+                        class="col text-caption text-weight-medium ellipsis"
+                        :class="claseSaldo(props.row)"
+                      >
+                        {{ leyendaSaldo(props.row) }}
+                      </div>
                       <q-btn
-                        flat no-caps dense color="negative" icon="cancel" label="No entregó"
+                        dense flat round size="sm" icon="cancel" color="negative"
                         @click="abrirNoEntrega(props.row)"
                       />
                       <q-btn
-                        unelevated no-caps color="positive" icon="check"
-                        :label="esCredito(props.row) ? 'Entregar' : 'Cobrar'"
-                        class="q-ml-xs" :loading="guardando === props.row.factura_id"
+                        dense unelevated round size="sm" icon="check" color="positive"
+                        :loading="guardando === props.row.factura_id"
                         :disable="!cobroValido(props.row)" @click="cobrar(props.row)"
                       />
-                    </template>
-                  </q-card-actions>
+                    </div>
+                  </template>
                 </q-card>
               </div>
             </template>
@@ -422,8 +429,8 @@
                     <q-tooltip>Ver comprobante</q-tooltip>
                   </q-btn>
                   <q-btn
-                    dense flat round size="sm" icon="feedback" color="primary"
-                    @click="abrirEncuesta(props.row)"
+                    v-if="encuestaEnFila" dense flat round size="sm" icon="feedback"
+                    color="primary" @click="abrirEncuesta(props.row)"
                   >
                     <q-tooltip>Encuesta</q-tooltip>
                   </q-btn>
@@ -457,13 +464,23 @@
 
         <q-separator/>
 
-        <q-card-actions class="q-px-md">
+        <q-card-actions class="q-px-sm q-py-xs">
           <div class="text-caption text-grey-7">
-            Total del punto: <b>Bs {{ money(punto.total) }}</b>
-            <span v-if="punto.porCobrar"> · faltan cobrar {{ punto.porCobrar }}</span>
+            Punto: <b>Bs {{ money(punto.total) }}</b>
+            <span v-if="sumaACobrar > 0" class="text-green-9">
+              · cobrás Bs {{ money(sumaACobrar) }}
+            </span>
           </div>
           <q-space/>
-          <q-btn flat no-caps color="grey-8" label="Cerrar" v-close-popup/>
+          <q-btn flat dense no-caps color="grey-8" label="Cerrar" v-close-popup/>
+          <!-- En una puerta con varias notas se cuenta la plata una sola vez:
+               este boton cierra todas las pendientes de un toque. -->
+          <q-btn
+            v-if="pendientesPunto.length > 1" unelevated no-caps color="positive"
+            icon="done_all" :label="'Registrar los ' + pendientesPunto.length"
+            class="q-ml-xs" :loading="guardandoTodo" :disable="!todoValido"
+            @click="cobrarTodo"
+          />
         </q-card-actions>
       </q-card>
     </q-dialog>
@@ -590,6 +607,7 @@ export default {
       cargando: false,
       // El factura_id que se esta grabando, o null.
       guardando: null,
+      guardandoTodo: false,
       placa: '',
       sinComprobante: 0,
       entregas: [],
@@ -656,10 +674,19 @@ export default {
     },
     filtradas () {
       const texto = this.buscar.toLowerCase()
-      if (!texto) return this.entregas
-      return this.entregas.filter(entrega =>
-        String(entrega.cliente || '').toLowerCase().includes(texto) ||
-        String(entrega.nro_pedido).includes(texto)
+      const visibles = !texto
+        ? this.entregas
+        : this.entregas.filter(entrega =>
+          String(entrega.cliente || '').toLowerCase().includes(texto) ||
+          String(entrega.nro_pedido).includes(texto)
+        )
+
+      // Lo que ya se cerró —cobrado o marcado como no entregado— se hunde al
+      // final: el caminero trabaja de arriba hacia abajo y lo pendiente le
+      // queda siempre a mano, sin buscarlo entre lo que ya despachó. sort es
+      // estable, asi que dentro de cada grupo se respeta el orden que vino.
+      return visibles.slice().sort(
+        (a, b) => Number(this.cerrada(a)) - Number(this.cerrada(b))
       )
     },
     /**
@@ -725,6 +752,26 @@ export default {
     esMovil () {
       return this.$q.screen.lt.md
     },
+    /** Con varios clientes en la esquina, la encuesta vuelve a cada fila. */
+    encuestaEnFila () {
+      return !this.punto.cliente
+    },
+    /** Las notas del punto que todavia no se cerraron. */
+    pendientesPunto () {
+      return this.punto.entregas.filter(
+        entrega => !entrega.cobrada && !entrega.entrega_estado
+      )
+    },
+    /** Lo que va a entrar si se registra el punto tal como esta escrito. */
+    sumaACobrar () {
+      return this.pendientesPunto.reduce(
+        (suma, entrega) => suma + this.pagando(entrega), 0
+      )
+    },
+    todoValido () {
+      return this.pendientesPunto.length > 0 &&
+        this.pendientesPunto.every(entrega => this.cobroValido(entrega))
+    },
     encuestaBase () {
       // La encuesta la renderiza el backend, no el SPA: se deriva del API base
       // (http://localhost:8000/api/ -> http://localhost:8000), igual que en Ruta.
@@ -737,6 +784,10 @@ export default {
     },
     cantidad (valor) {
       return Number(valor || 0).toLocaleString('es-BO', { maximumFractionDigits: 3 })
+    },
+    /** Una nota cerrada: ya se cobró o quedó como no entregada. */
+    cerrada (entrega) {
+      return !!(entrega.cobrada || entrega.entrega_estado)
     },
     claseFila (entrega) {
       if (entrega.cobrada) return 'fila-cobrada'
@@ -797,11 +848,12 @@ export default {
       this.cobros = {}
       punto.entregas.forEach(entrega => {
         if (entrega.cobrada || entrega.entrega_estado) return
-        // La venta a credito se entrega sin plata; el resto arranca en
-        // efectivo por el total, que es lo que pasa casi siempre.
+        // El monto arranca vacio a proposito: primero se cuenta la plata que
+        // el cliente pone en la mano y recien ahi se escribe. Debajo del campo
+        // queda el recordatorio de cuanto tendria que entrar.
         this.cobros[entrega.factura_id] = this.esCredito(entrega)
-          ? { forma: 'CRÉDITO', efectivo: 0, qr: 0 }
-          : { forma: 'CONTADO', efectivo: Number(entrega.total), qr: 0 }
+          ? { forma: 'CRÉDITO', efectivo: null, qr: null }
+          : { forma: 'CONTADO', efectivo: null, qr: null }
       })
       this.dialogoPunto = true
     },
@@ -962,23 +1014,18 @@ export default {
     // plata una vez y despues solo dice por donde entro.
     cambiarForma (entrega, forma) {
       const cobro = this.cobros[entrega.factura_id]
-      const monto = this.pagando(entrega) || Number(entrega.total)
+      // Lo ya escrito se muda a la via nueva; si todavia no escribio nada, el
+      // campo sigue vacio con su recordatorio.
+      const monto = this.pagando(entrega) || null
 
       cobro.forma = forma
 
-      if (forma === 'CONTADO') {
-        cobro.efectivo = monto
-        cobro.qr = 0
-      } else if (forma === 'PAGO QR') {
+      if (forma === 'PAGO QR') {
         cobro.qr = monto
-        cobro.efectivo = 0
-      } else if (forma === 'MIXTO') {
-        cobro.efectivo = monto
-        cobro.qr = 0
+        cobro.efectivo = null
       } else {
-        // Credito: se entrega y queda debiendo la nota entera.
-        cobro.efectivo = 0
-        cobro.qr = 0
+        cobro.efectivo = monto
+        cobro.qr = null
       }
     },
     // En el mixto el QR se completa solo con lo que falta de la nota, que es
@@ -987,7 +1034,13 @@ export default {
       const cobro = this.cobros[entrega.factura_id]
       if (cobro.forma !== 'MIXTO') return
 
-      const resto = Number(entrega.total || 0) - Number(cobro.efectivo || 0)
+      // Mientras el efectivo este vacio no se inventa nada en el QR.
+      if (!(Number(cobro.efectivo) > 0)) {
+        cobro.qr = null
+        return
+      }
+
+      const resto = Number(entrega.total || 0) - Number(cobro.efectivo)
       cobro.qr = Math.round(Math.max(resto, 0) * 100) / 100
     },
     cobroValido (entrega) {
@@ -1008,6 +1061,9 @@ export default {
       if (cobro.forma === 'CRÉDITO') return 'Queda debiendo Bs ' + this.money(entrega.total)
 
       const pagado = this.pagando(entrega)
+      // Sin nada escrito todavia, lo util es recordarle cuanto tiene que pedir.
+      if (pagado <= 0) return 'Tendrías que cobrar Bs ' + this.money(entrega.total)
+
       const diferencia = Math.round((Number(entrega.total) - pagado) * 100) / 100
 
       if (diferencia > 0.009) return 'Falta Bs ' + this.money(diferencia)
@@ -1019,7 +1075,10 @@ export default {
       const cobro = this.cobros[entrega.factura_id]
       if (cobro.forma === 'CRÉDITO') return 'text-orange-9'
 
-      const diferencia = Math.round((Number(entrega.total) - this.pagando(entrega)) * 100) / 100
+      const pagado = this.pagando(entrega)
+      if (pagado <= 0) return 'text-blue-grey-7'
+
+      const diferencia = Math.round((Number(entrega.total) - pagado) * 100) / 100
       if (diferencia < -0.009) return 'text-red-9 text-weight-bold'
 
       return diferencia > 0.009 ? 'text-orange-9' : 'text-green-9'
@@ -1034,6 +1093,52 @@ export default {
         monto_qr: cobro.qr || 0,
         observacion: null
       })
+    },
+    /**
+     * Cierra de una vez todas las notas pendientes del punto.
+     *
+     * Van una atras de otra y no en paralelo: si una falla, las anteriores
+     * quedan guardadas igual y el caminero ve cuantas entraron.
+     */
+    async cobrarTodo () {
+      const pendientes = this.pendientesPunto.slice()
+      if (!pendientes.length) return
+
+      this.guardandoTodo = true
+      let hechas = 0
+
+      try {
+        for (const entrega of pendientes) {
+          const cobro = this.cobros[entrega.factura_id]
+
+          await this.$api.post('caminero/cobrar', {
+            factura_id: entrega.factura_id,
+            estado: 'ENTREGADO',
+            tipago: cobro.forma,
+            monto_efectivo: cobro.efectivo || 0,
+            monto_qr: cobro.qr || 0,
+            observacion: null,
+            lat: this.posicion?.latitude || null,
+            lng: this.posicion?.longitude || null
+          })
+          hechas++
+        }
+
+        this.$q.notify({
+          type: 'positive', position: 'top',
+          message: 'Se registraron ' + hechas + ' entregas'
+        })
+        this.dialogoPunto = false
+      } catch (err) {
+        this.$q.notify({
+          type: 'negative', position: 'top',
+          message: (err.response?.data?.message || 'No se pudo registrar la entrega') +
+            (hechas ? ' · quedaron guardadas ' + hechas : '')
+        })
+      } finally {
+        this.guardandoTodo = false
+        this.cargar()
+      }
     },
     abrirNoEntrega (entrega) {
       this.cobro = entrega
@@ -1248,5 +1353,10 @@ export default {
   width: 150px;
   white-space: nowrap;
   text-align: right;
+}
+/* Un monto no pasa de cuatro cifras: lo que sobra del ancho es para el
+   recordatorio de cuanto habria que cobrar y para los dos botones. */
+.campo-monto {
+  max-width: 108px;
 }
 </style>

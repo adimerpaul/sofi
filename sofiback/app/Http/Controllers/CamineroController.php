@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\PapeleriaSofia;
 use App\Services\CargaCamion;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\App;
@@ -18,6 +19,10 @@ use Illuminate\Support\Facades\DB;
  */
 class CamineroController extends Controller
 {
+    // Las hojas del recojo se imprimen con el mismo formato que la boleta de
+    // entrega: es papel de la misma casa y se archiva junto.
+    use PapeleriaSofia;
+
     /** Formas de pago con las que el caminero puede cerrar una entrega. */
     private const FORMAS_PAGO = ['CONTADO', 'PAGO QR', 'MIXTO', 'CRÉDITO'];
 
@@ -170,7 +175,8 @@ class CamineroController extends Controller
         $factura = DB::table('facturas')
             ->whereNull('deleted_at')
             ->where('id', $datos['factura_id'])
-            ->first(['id', 'cliente_id', 'nit', 'total', 'estado', 'pedido_nro', 'pedido_tipo', 'fecha']);
+            ->first(['id', 'cliente_id', 'nit', 'total', 'estado', 'tipo_pago',
+                'pedido_nro', 'pedido_tipo', 'fecha']);
 
         if (!$factura) {
             return response()->json(['message' => 'El comprobante no existe'], 404);
@@ -206,6 +212,14 @@ class CamineroController extends Controller
             if (!$tipago) {
                 return response()->json(['message' => 'Indica cómo se cobró la entrega'], 422);
             }
+            // El credito lo decide caja al facturar, no el caminero en la
+            // puerta: si la venta salio a credito se guarda asi aunque la
+            // pantalla mande otra cosa.
+            $formaVenta = mb_strtoupper(trim((string) $factura->tipo_pago), 'UTF-8');
+            if (in_array($formaVenta, ['CRÉDITO', 'CREDITO'], true)) {
+                $tipago = 'CRÉDITO';
+            }
+
             // El credito se entrega sin plata: queda debiendo la nota entera.
             if ($tipago !== 'CRÉDITO') {
                 $efectivo = round((float) ($datos['monto_efectivo'] ?? 0), 2);
@@ -307,7 +321,26 @@ class CamineroController extends Controller
             return response()->json(['message' => 'Tu usuario no tiene un camión asignado'], 422);
         }
 
-        $filas = DB::table('entregas as e')
+        $filas = $this->filasDelDia($fecha, $placa);
+        $grupos = $this->agrupar($filas);
+        $entregadas = $filas->where('estado', 'ENTREGADO');
+
+        $usuario = $request->user();
+
+        return [
+            'fecha' => $fecha,
+            'placa' => $placa,
+            'despachador' => trim($usuario->Nombre1 . ' ' . $usuario->App1),
+            'grupos' => $grupos,
+            'totales' => $this->totales($grupos, $entregadas),
+            'avance' => $this->avance($fecha, $placa, $filas),
+        ];
+    }
+
+    /** Lo que el caminero cerro ese dia con su camion. */
+    private function filasDelDia($fecha, $placa)
+    {
+        return DB::table('entregas as e')
             ->leftJoin('tbclientes as c', 'c.Cod_Aut', '=', 'e.cliente_id')
             ->where('e.fechaEntreg', $fecha)
             ->where('e.placa', $placa)
@@ -336,37 +369,192 @@ class CamineroController extends Controller
                 }
                 return $fila;
             });
+    }
 
+    /** Las mismas hojas que hoy se entregan en papel, en el mismo orden. */
+    private function agrupar($filas): array
+    {
         $entregadas = $filas->where('estado', 'ENTREGADO');
 
-        $grupos = [
+        return [
             'contados' => $entregadas->where('tipago', 'CONTADO')->values(),
             'qr' => $entregadas->where('tipago', 'PAGO QR')->values(),
             'mixtos' => $entregadas->where('tipago', 'MIXTO')->values(),
             'creditos' => $entregadas->where('tipago', 'CRÉDITO')->values(),
             'anulados' => $filas->where('estado', '<>', 'ENTREGADO')->values(),
         ];
+    }
 
-        $usuario = $request->user();
-
+    private function totales(array $grupos, $entregadas): array
+    {
         return [
-            'fecha' => $fecha,
-            'placa' => $placa,
-            'despachador' => trim($usuario->Nombre1 . ' ' . $usuario->App1),
-            'grupos' => $grupos,
-            'totales' => [
-                'contados' => round($grupos['contados']->sum('monto'), 2),
-                'qr' => round($grupos['qr']->sum('monto'), 2),
-                'mixtos' => round($grupos['mixtos']->sum('monto'), 2),
-                'creditos' => round($grupos['creditos']->sum('monto'), 2),
-                'anulados' => round($grupos['anulados']->sum('monto'), 2),
-                // Lo que el caminero rinde en caja al volver, ya separado por
-                // via: el mixto aporta a las dos.
-                'efectivo' => round($entregadas->sum('monto_efectivo'), 2),
-                'qr_cobrado' => round($entregadas->sum('monto_qr'), 2),
-            ],
-            'avance' => $this->avance($fecha, $placa, $filas),
+            'contados' => round($grupos['contados']->sum('monto'), 2),
+            'qr' => round($grupos['qr']->sum('monto'), 2),
+            'mixtos' => round($grupos['mixtos']->sum('monto'), 2),
+            'creditos' => round($grupos['creditos']->sum('monto'), 2),
+            'anulados' => round($grupos['anulados']->sum('monto'), 2),
+            // Lo que el caminero rinde en caja al volver, ya separado por via:
+            // el mixto aporta a las dos.
+            'efectivo' => round($entregadas->sum('monto_efectivo'), 2),
+            'qr_cobrado' => round($entregadas->sum('monto_qr'), 2),
         ];
+    }
+
+    /** Las hojas del recojo, una por forma de pago, como se entregan en papel. */
+    private const HOJAS = [
+        'contados' => 'CONTADOS DEL DÍA',
+        'qr' => 'PAGOS QR',
+        'mixtos' => 'MIXTOS',
+        'creditos' => 'CRÉDITOS',
+        'anulados' => 'ANULADOS',
+    ];
+
+    /**
+     * La hoja del recojo en PDF, con el mismo formato que la que hoy se
+     * imprime y se firma: titulo, fecha larga, una fila por nota y el total.
+     *
+     * Cada hoja se firma al pie, que es lo que hace que caja pueda reclamarle
+     * al caminero por lo que declaro haber cobrado.
+     */
+    public function reportePdf(Request $request)
+    {
+        $datos = $request->validate([
+            'fecha' => 'nullable|date',
+            'grupo' => 'nullable|string',
+        ]);
+
+        $fecha = $datos['fecha'] ?? date('Y-m-d');
+        $grupo = $datos['grupo'] ?? 'todos';
+
+        if ($grupo !== 'todos' && !isset(self::HOJAS[$grupo])) {
+            return response()->json(['message' => 'Esa hoja no existe'], 422);
+        }
+
+        $placa = $this->placa($request);
+        if ($placa === '') {
+            return response()->json(['message' => 'Tu usuario no tiene un camión asignado'], 422);
+        }
+
+        $filas = $this->filasDelDia($fecha, $placa);
+        $grupos = $this->agrupar($filas);
+        $caminero = $this->nombre($request);
+
+        $claves = $grupo === 'todos' ? array_keys(self::HOJAS) : [$grupo];
+        $hojas = [];
+
+        foreach ($claves as $clave) {
+            // En "todos" no se imprimen las hojas que quedaron sin ninguna
+            // nota: en papel esa hoja simplemente no se entrega.
+            if ($grupo === 'todos' && $grupos[$clave]->isEmpty()) {
+                continue;
+            }
+
+            $hojas[] = $this->hojaHtml(
+                self::HOJAS[$clave], $clave, $fecha, $caminero, $placa, $grupos[$clave]
+            );
+        }
+
+        if (!$hojas) {
+            return response()->json(['message' => 'No hay nada que imprimir en esta fecha'], 422);
+        }
+
+        return $this->pdf(
+            implode("<div style='page-break-after: always'></div>", $hojas),
+            ($grupo === 'todos' ? 'recojo' : $grupo) . '_' . $fecha
+        );
+    }
+
+    /**
+     * Una hoja del recojo, con el mismo formato que la boleta de entrega: la
+     * cabecera de la casa, la grilla oscura del detalle y el total en barra.
+     *
+     * Al pie va la firma, que es lo que hace que caja pueda reclamarle al
+     * caminero por lo que declaro haber cobrado.
+     */
+    private function hojaHtml($titulo, $clave, $fecha, $caminero, $placa, $filas)
+    {
+        $anulados = $clave === 'anulados';
+        $cuerpo = '';
+
+        foreach ($filas as $i => $fila) {
+            $par = $i % 2 ? " class='par'" : '';
+
+            $cuerpo .= "<tr$par>"
+                . "<td class='c gris'>" . ($i + 1) . '</td>'
+                . "<td class='c nota'>" . e($fila->nota) . '</td>'
+                . '<td>' . e($fila->cliente ?: 'SIN CLIENTE') . '</td>'
+                . ($anulados ? "<td class='cod'>" . e($fila->motivo) . '</td>' : '')
+                . "<td class='r'><b>" . number_format($fila->monto, 2) . '</b></td>'
+                . '</tr>';
+        }
+
+        if (!$cuerpo) {
+            $cuerpo = "<tr><td colspan='" . ($anulados ? 5 : 4) . "' class='c gris'"
+                . " style='padding:16px'>Sin notas en esta hoja</td></tr>";
+        }
+
+        // La caja roja de la derecha, igual que el "BOLETA DE ENTREGA" del
+        // voucher: dice que hoja es, de que dia y de que camion.
+        $caja = "<table class='caja-doc'>
+            <tr><td colspan='2' class='tit'>" . e($titulo) . "</td></tr>
+            <tr><td class='et'>Fecha</td><td class='r'>" . date('d/m/Y', strtotime($fecha)) . "</td></tr>
+            <tr><td class='et'>Camión</td><td class='r'><b>" . e($placa) . "</b></td></tr>
+            <tr><td class='et'>Notas</td><td class='r nro'>" . $filas->count() . "</td></tr>
+        </table>";
+
+        return '<style>' . $this->estilosImpresion() . "
+            .firma { margin-top: 52px; text-align: center; font-size: 9px; color: #666 }
+            .firma-linea { border-top: 1px solid #999; width: 62mm; margin: 0 auto 3px }
+            .firma b { color: #222; font-size: 10px }
+            .nota { color: #1a5fb4; font-weight: bold; font-size: 9px }
+        </style>"
+        . $this->cabeceraEmisor($caja)
+        . "<table class='datos'>
+            <tr>
+                <td style='width:55%'><span class='et'>Caminero</span><br><b>"
+                    . e($caminero) . "</b></td>
+                <td><span class='et'>Día del recojo</span><br>"
+                    . $this->fechaLarga($fecha) . "</td>
+            </tr>
+        </table>
+        <table class='detalle'>
+            <thead><tr>
+                <th style='width:28px'>N°</th>
+                <th style='width:64px'>Nota</th>
+                <th style='text-align:left'>Nombre del cliente</th>"
+                . ($anulados ? "<th style='width:170px;text-align:left'>Motivo</th>" : '') . "
+                <th style='width:78px' class='r'>Monto Bs.</th>
+            </tr></thead>
+            <tbody>$cuerpo</tbody>
+        </table>
+        <table class='totales' style='margin-top:9px'>
+            <tr class='final'>
+                <td>TOTAL " . e($titulo) . "</td>
+                <td class='r' style='width:120px'>Bs. "
+                    . number_format($filas->sum('monto'), 2) . "</td>
+            </tr>
+        </table>
+        <div class='firma'>
+            <div class='firma-linea'></div>
+            <b>" . e($caminero) . "</b><br>Firma del caminero
+        </div>
+        <div class='pie'><div class='legal'>"
+            . e(config('siat.emisor')['nombre']) . ' &middot; ' . e($titulo)
+            . ' del ' . date('d/m/Y', strtotime($fecha)) . ' &middot; camión ' . e($placa)
+            . ' &middot; generado el ' . date('d/m/Y H:i') . "</div></div>";
+    }
+
+    /** SÁBADO, 29 DE AGOSTO DE 2026: como sale en la hoja de papel. */
+    private function fechaLarga($fecha)
+    {
+        $dias = ['DOMINGO', 'LUNES', 'MARTES', 'MIÉRCOLES', 'JUEVES', 'VIERNES', 'SÁBADO'];
+        $meses = ['ENERO', 'FEBRERO', 'MARZO', 'ABRIL', 'MAYO', 'JUNIO', 'JULIO',
+            'AGOSTO', 'SEPTIEMBRE', 'OCTUBRE', 'NOVIEMBRE', 'DICIEMBRE'];
+
+        $tiempo = strtotime($fecha);
+
+        return $dias[(int) date('w', $tiempo)] . ', ' . (int) date('j', $tiempo)
+            . ' DE ' . $meses[(int) date('n', $tiempo) - 1] . ' DE ' . date('Y', $tiempo);
     }
 
     /**

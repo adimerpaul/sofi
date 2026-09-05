@@ -100,6 +100,8 @@ Route::group(['middleware'=>'auth:sanctum'],function (){
     Route::get('/caminero/entregas',[\App\Http\Controllers\CamineroController::class,'entregas']);
     Route::post('/caminero/cobrar',[\App\Http\Controllers\CamineroController::class,'cobrar']);
     Route::get('/caminero/reporte',[\App\Http\Controllers\CamineroController::class,'reporte']);
+    // Las hojas del recojo en PDF, una por forma de pago, para firmar.
+    Route::get('/caminero/reporte/pdf',[\App\Http\Controllers\CamineroController::class,'reportePdf']);
     // Antes de salir, el caminero revisa la carga de su camion producto por
     // producto; hasta que no este completa, caja no imprime sus comprobantes.
     Route::get('/caminero/carga',[\App\Http\Controllers\CamineroController::class,'carga']);

@@ -10,10 +10,41 @@
           <q-tooltip>Actualizar</q-tooltip>
         </q-btn>
       </div>
+      <!-- Cada hoja se imprime y se firma por separado, igual que en papel:
+           el caminero entrega la de contados, la de QR y la de créditos. -->
       <div class="col-auto">
-        <q-btn flat dense padding="6px 8px" color="primary" icon="print" @click="imprimir">
-          <q-tooltip>Imprimir</q-tooltip>
-        </q-btn>
+        <q-btn-dropdown
+          color="primary" unelevated dense no-caps icon="print" label="Imprimir"
+          padding="6px 10px" :loading="imprimiendo"
+        >
+          <q-list dense style="min-width: 220px">
+            <q-item clickable v-close-popup @click="hoja('todos')">
+              <q-item-section avatar><q-icon name="print" color="primary"/></q-item-section>
+              <q-item-section>
+                Todas las hojas
+                <q-item-label caption>Una por forma de pago, sin las vacías</q-item-label>
+              </q-item-section>
+            </q-item>
+
+            <q-separator class="q-my-xs"/>
+
+            <q-item
+              v-for="seccion in secciones" :key="seccion.clave"
+              clickable v-close-popup @click="hoja(seccion.clave)"
+            >
+              <q-item-section avatar>
+                <q-icon :name="seccion.icono" :color="seccion.color"/>
+              </q-item-section>
+              <q-item-section>
+                {{ seccion.titulo }}
+                <q-item-label caption>
+                  {{ seccion.filas.length }} nota{{ seccion.filas.length === 1 ? '' : 's' }} ·
+                  Bs {{ money(seccion.total) }}
+                </q-item-label>
+              </q-item-section>
+            </q-item>
+          </q-list>
+        </q-btn-dropdown>
       </div>
       <div class="col-auto">
         <q-btn flat dense padding="6px 8px" color="primary" icon="local_shipping" to="/caminero/entregas">
@@ -120,6 +151,7 @@
 
 <script>
 import { date } from 'quasar'
+import { imprimirPdfDirecto } from 'src/utils/impresion.js'
 
 export default {
   name: 'ReporteEntregasCaminero',
@@ -127,6 +159,7 @@ export default {
     return {
       fecha: this.$route.query.fecha || date.formatDate(new Date(), 'YYYY-MM-DD'),
       cargando: false,
+      imprimiendo: false,
       placa: '',
       despachador: '',
       grupos: { contados: [], qr: [], mixtos: [], creditos: [], anulados: [] },
@@ -141,11 +174,11 @@ export default {
     // Las mismas hojas que hoy se entregan en papel, en el mismo orden.
     secciones () {
       return [
-        { clave: 'contados', titulo: 'CONTADOS DEL DÍA', fondo: 'bg-green-2 text-green-10', filas: this.grupos.contados, total: this.totales.contados },
-        { clave: 'qr', titulo: 'PAGOS QR', fondo: 'bg-indigo-2 text-indigo-10', filas: this.grupos.qr, total: this.totales.qr },
-        { clave: 'mixtos', titulo: 'MIXTOS', fondo: 'bg-teal-2 text-teal-10', filas: this.grupos.mixtos, total: this.totales.mixtos },
-        { clave: 'creditos', titulo: 'CRÉDITOS', fondo: 'bg-blue-grey-2 text-blue-grey-10', filas: this.grupos.creditos, total: this.totales.creditos },
-        { clave: 'anulados', titulo: 'ANULADOS', fondo: 'bg-red-2 text-red-10', filas: this.grupos.anulados, total: this.totales.anulados }
+        { clave: 'contados', titulo: 'CONTADOS DEL DÍA', icono: 'payments', color: 'green-8', fondo: 'bg-green-2 text-green-10', filas: this.grupos.contados, total: this.totales.contados },
+        { clave: 'qr', titulo: 'PAGOS QR', icono: 'qr_code_2', color: 'indigo-8', fondo: 'bg-indigo-2 text-indigo-10', filas: this.grupos.qr, total: this.totales.qr },
+        { clave: 'mixtos', titulo: 'MIXTOS', icono: 'call_split', color: 'teal-8', fondo: 'bg-teal-2 text-teal-10', filas: this.grupos.mixtos, total: this.totales.mixtos },
+        { clave: 'creditos', titulo: 'CRÉDITOS', icono: 'schedule', color: 'blue-grey-8', fondo: 'bg-blue-grey-2 text-blue-grey-10', filas: this.grupos.creditos, total: this.totales.creditos },
+        { clave: 'anulados', titulo: 'ANULADOS', icono: 'cancel', color: 'red-8', fondo: 'bg-red-2 text-red-10', filas: this.grupos.anulados, total: this.totales.anulados }
       ]
     },
     fechaLarga () {
@@ -156,8 +189,29 @@ export default {
     money (valor) {
       return Number(valor || 0).toFixed(2)
     },
-    imprimir () {
-      window.print()
+    /**
+     * Baja una hoja del recojo y la manda directo a la impresora.
+     *
+     * El PDF lo arma el backend con el formato de la hoja de papel —titulo,
+     * fecha larga, notas, total y la firma al pie— para que lo que se firma
+     * sea siempre igual, se imprima desde el celular o desde la oficina.
+     */
+    hoja (grupo) {
+      this.imprimiendo = true
+
+      this.$api.get('caminero/reporte/pdf', {
+        params: { fecha: this.fecha, grupo }, responseType: 'blob'
+      })
+        .then(res => imprimirPdfDirecto(res.data, grupo + '_' + this.fecha + '.pdf'))
+        .catch(async err => {
+          let mensaje = 'No se pudo generar la hoja'
+          // El error viaja como blob por el responseType: hay que leerlo.
+          try {
+            mensaje = JSON.parse(await err.response.data.text()).message || mensaje
+          } catch (e) { /* el error no vino en JSON */ }
+          this.$q.notify({ type: 'negative', position: 'top', message: mensaje })
+        })
+        .finally(() => { this.imprimiendo = false })
     },
     cargar () {
       this.cargando = true

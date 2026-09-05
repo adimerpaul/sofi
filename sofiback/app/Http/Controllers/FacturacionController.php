@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\PapeleriaSofia;
 use App\Models\Factura;
 use App\Services\CargaCamion;
 use App\Services\SiatService;
@@ -30,6 +31,10 @@ use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
  */
 class FacturacionController extends Controller
 {
+    // El formato de papel de la casa: los mismos estilos y cabecera que usan
+    // las hojas del recojo del caminero.
+    use PapeleriaSofia;
+
     /** Fecha centinela del legado para "sin valor". */
     private const FECHA_NULA = '1899-11-30 04:32:36';
 
@@ -1157,127 +1162,6 @@ class FacturacionController extends Controller
             'factura' => $factura->fresh(),
             'siat' => $respuestaSiat,
         ]);
-    }
-
-    /**
-     * Hoja de estilos comun de los impresos.
-     *
-     * Va en un solo sitio para que el voucher y la factura se vean como
-     * documentos de la misma casa. Ojo: dompdf no soporta flexbox ni grid, asi
-     * que la maquetacion se hace con tablas y anchos en porcentaje.
-     */
-    private function estilosImpresion()
-    {
-        return "
-            @page { margin: 12mm 11mm 20mm 11mm }
-            * { font-family: 'DejaVu Sans', sans-serif }
-            body { font-size: 9.5px; color: #222 }
-            .c { text-align: center } .r { text-align: right }
-            .gris { color: #777 }
-
-            /* Cabecera: logo, datos del emisor y caja del documento. */
-            .cabecera { width: 100%; border-collapse: collapse }
-            .cabecera td { vertical-align: top; padding: 0 }
-            .logo { width: 118px }
-            .empresa { font-size: 14px; font-weight: bold; color: #c1272d; letter-spacing: .5px }
-            .empresa-dato { font-size: 8.5px; color: #555; line-height: 1.45 }
-
-            .caja-doc { border: 1.5px solid #c1272d; border-radius: 3px; width: 100% }
-            .caja-doc .tit { background: #c1272d; color: #fff; font-size: 10px;
-                             font-weight: bold; text-align: center; padding: 3px; letter-spacing: 1px }
-            .caja-doc td { padding: 2px 6px; font-size: 9px }
-            .caja-doc .et { color: #666 }
-            .caja-doc .nro { font-size: 15px; font-weight: bold; color: #c1272d }
-
-            /* Datos del cliente. */
-            .datos { width: 100%; border-collapse: collapse; margin-top: 8px;
-                     border: 1px solid #ccc; border-radius: 3px }
-            .datos td { padding: 3.5px 6px; border-bottom: 1px solid #eee; font-size: 9px }
-            .datos .et { color: #777; font-size: 8px; text-transform: uppercase; letter-spacing: .3px }
-
-            /* Detalle. */
-            .detalle { width: 100%; border-collapse: collapse; margin-top: 9px }
-            .detalle th { background: #37474f; color: #fff; font-size: 8px; font-weight: bold;
-                          padding: 5px 4px; text-transform: uppercase; letter-spacing: .4px }
-            .detalle td { padding: 4px; border-bottom: 1px solid #e4e4e4; font-size: 9px }
-            .detalle tr.par td { background: #fafafa }
-            .detalle .cod { color: #666; font-size: 8.5px }
-
-            /* Totales. */
-            .totales { width: 100%; border-collapse: collapse }
-            .totales td { padding: 3.5px 8px; font-size: 9.5px; border-bottom: 1px solid #eee }
-            .totales .final td { background: #37474f; color: #fff; font-size: 12px;
-                                 font-weight: bold; border: 0 }
-            .literal { border: 1px solid #ddd; padding: 6px 8px; font-size: 9px; line-height: 1.5 }
-            .literal b { color: #555 }
-
-            .aviso { border: 1.5px solid #c62828; background: #ffebee; color: #c62828;
-                     font-weight: bold; text-align: center; padding: 5px; margin: 7px 0; font-size: 9.5px }
-
-            .copia { text-align: center; font-size: 10px; font-weight: bold;
-                     letter-spacing: 4px; color: #999; margin-top: 6px }
-            .pie { position: fixed; bottom: -14mm; left: 0; right: 0 }
-            .legal { font-size: 7.5px; color: #888; text-align: center; line-height: 1.5 }
-        ";
-    }
-
-    /**
-     * Numero del codigo de barras del producto, para la columna del detalle.
-     *
-     * Va en numero y no como imagen: es lo que se pidio para la impresion.
-     * Unos pocos productos tienen una letra al final (500104D), asi que se
-     * dejan solo los digitos; la columna Codigo sigue con el codigo completo.
-     */
-    private function celdaBarras($codigo)
-    {
-        $numero = preg_replace('/\D/', '', (string) $codigo);
-
-        return $numero !== '' ? e($numero) : '&mdash;';
-    }
-    /**
-     * Camion con el que sale la venta.
-     *
-     * En Sofia el camion es tbpedidos.placa, asi que solo lo tiene lo que nace
-     * de un pedido: una venta de mostrador sale sin placa.
-     */
-    private function camion($factura)
-    {
-        if (!$factura->pedido_nro || !$factura->pedido_tipo) {
-            return '';
-        }
-
-        $placa = DB::table('tbpedidos')
-            ->where('NroPed', $factura->pedido_nro)
-            ->whereRaw('UPPER(TRIM(tipo)) = ?', [strtoupper(trim($factura->pedido_tipo))])
-            ->value('placa');
-
-        return trim((string) $placa);
-    }
-
-    /** Bloque de cabecera con el logo y los datos del emisor. */
-    private function cabeceraEmisor($cajaDerecha)
-    {
-        $emisor = config('siat.emisor');
-        $logo = is_file(public_path('img/sofia.png'))
-            ? base64_encode(file_get_contents(public_path('img/sofia.png')))
-            : '';
-
-        return "<table class='cabecera'>
-            <tr>
-                <td style='width:130px'>"
-                    . ($logo ? "<img class='logo' src='data:image/png;base64,$logo'>" : '')
-                . "</td>
-                <td style='padding-left:6px'>
-                    <div class='empresa'>" . e($emisor['nombre']) . "</div>
-                    <div class='empresa-dato'>
-                        " . e($emisor['sucursal']) . " &middot; NIT " . e(config('siat.nit')) . "<br>
-                        " . e($emisor['direccion']) . "<br>
-                        Telf. " . e($emisor['telefono']) . " &middot; " . e($emisor['ciudad']) . "
-                    </div>
-                </td>
-                <td style='width:210px'>$cajaDerecha</td>
-            </tr>
-        </table>";
     }
 
     /**
