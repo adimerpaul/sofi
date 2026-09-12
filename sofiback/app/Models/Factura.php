@@ -36,6 +36,11 @@ class Factura extends Model
         'observacion',
         'pedido_nro',
         'pedido_tipo',
+        // Retorno parcial: de que comprobante salio y en que punto del reparto
+        // nace. Ver AddRetornoParcialToFacturas.
+        'factura_origen_id',
+        'confirmado_camion',
+        'entregado_camion',
         'nro_factura',
         'codigo_sucursal',
         'codigo_punto_venta',

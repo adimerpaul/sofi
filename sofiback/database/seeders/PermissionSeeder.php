@@ -32,6 +32,7 @@ class PermissionSeeder extends Seeder
             'cobrosrealizados',
             'cobranza',
             'miscobranzas',
+            'cobranzasrecojo',
             'productos',
             'nopedido',
             'horariosenvio',
@@ -69,10 +70,12 @@ class PermissionSeeder extends Seeder
                 'miscobranzas', 'productos', 'nopedido', 'avance', 'altacliente', 'cambioscalidad',
             ],
             'cobrador' => [
+                'cobranzasrecojo',
                 'cobrosrealizados', 'cobranza', 'miscobranzas', 'altacliente', 'cambioscalidad',
                 'pedidos', 'encuestasIndex',
             ],
             'encargado' => [
+                'cobranzasrecojo',
                 'horariosenvio', 'generar', 'genreporte', 'entrega', 'reporte',
                 'pedidos', 'encuestasIndex', 'usuario', 'ventas',
             ],

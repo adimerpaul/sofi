@@ -49,6 +49,7 @@ class FacturacionController extends Controller
         $pagina = $this->filtrar($request)->paginate($perPage);
 
         $this->adjuntarCarga($pagina->getCollection());
+        $this->adjuntarEntrega($pagina->getCollection());
 
         // Los conteos van pegados a la pagina y no en otra ruta: la pantalla
         // los muestra junto a los filtros y pedirlos aparte era una segunda
@@ -102,10 +103,68 @@ class FacturacionController extends Controller
             $marca = $marcas->get($factura->id);
 
             $factura->carga_observacion = $marca->observacion ?? null;
+            $factura->carga_observado = (bool) ($marca->observado ?? false);
             $factura->carga_verificado_por = $marca->verificado_por ?? null;
             $factura->carga_verificado_en = $marca->verificado_en ?? null;
             $factura->carga_estado = $this->estadoCarga($factura, $marca);
         }
+    }
+
+    /**
+     * Si el comprobante llego o no al cliente.
+     *
+     * La entrega la registra el caminero desde su celular y cuelga de la
+     * factura, igual que el visto bueno de la carga. Se lee de una sola
+     * consulta por pagina por el mismo motivo.
+     *
+     * De un comprobante puede haber mas de un intento -se fue, no estaba, se
+     * volvio- asi que se toma el ultimo: es el que vale.
+     */
+    private function adjuntarEntrega($facturas)
+    {
+        $entregas = collect();
+
+        if ($facturas->isNotEmpty()) {
+            $entregas = DB::table('entregas')
+                ->whereIn('factura_id', $facturas->pluck('id')->all())
+                ->orderBy('id')
+                ->get()
+                ->keyBy('factura_id');
+        }
+
+        foreach ($facturas as $factura) {
+            $entrega = $entregas->get($factura->id);
+
+            $factura->entrega_estado = $this->estadoEntrega($factura, $entrega);
+            $factura->entrega_hora = $entrega->hora ?? null;
+            $factura->entrega_fecha = $entrega->fechaEntreg ?? null;
+            $factura->entrega_tipago = $entrega->tipago ?? null;
+            $factura->entrega_monto = $entrega ? round((float) $entrega->monto, 2) : null;
+            // Viene con espacios cuando el caminero no escribio nada: sin
+            // recortar, la pantalla pinta una linea de observacion vacia.
+            $observacion = trim((string) ($entrega->observacion ?? ''));
+            $factura->entrega_observacion = $observacion !== '' ? $observacion : null;
+        }
+    }
+
+    /**
+     * En que anda la entrega de un comprobante:
+     *
+     * NO_APLICA  no viaja en camion (venta de mostrador) o esta anulado
+     * PENDIENTE  todavia esta en el camion
+     * ENTREGADO / NO ENTREGADO / RECHAZADO  lo que marco el caminero
+     */
+    private function estadoEntrega(Factura $factura, $entrega)
+    {
+        if (!trim((string) $factura->placa) || $factura->estado === 'ANULADO') {
+            return 'NO_APLICA';
+        }
+
+        if (!$entrega) {
+            return 'PENDIENTE';
+        }
+
+        return trim((string) $entrega->estado) ?: 'PENDIENTE';
     }
 
     /**
@@ -132,7 +191,13 @@ class FacturacionController extends Controller
         $cambio = (int) $marca->items_esperados !== $factura->detalles->count()
             || abs((float) $marca->total_esperado - (float) $factura->total) > 0.01;
 
-        return $cambio ? 'CAMBIO' : 'VERIFICADA';
+        if ($cambio) {
+            return 'CAMBIO';
+        }
+
+        // Observada tambien esta revisada -no frena la impresion-, pero se
+        // distingue para que caja vea que hay algo pendiente de resolver.
+        return $marca->observado ? 'OBSERVADA' : 'VERIFICADA';
     }
 
     /**
@@ -1165,6 +1230,7 @@ class FacturacionController extends Controller
     }
 
     /**
+<<<<<<< HEAD
      * Numero del codigo de barras del producto, para la columna del detalle.
      *
      * Va en numero y no como imagen: es lo que se pidio para la impresion.
@@ -1176,6 +1242,253 @@ class FacturacionController extends Controller
         $numero = preg_replace('/\D/', '', (string) $codigo);
 
         return $numero !== '' ? e($numero) : '&mdash;';
+=======
+     * Retorno parcial: el cliente recibe el pedido pero devuelve algunos items.
+     *
+     * Un comprobante emitido no se corrige. La factura porque el SIAT no lo
+     * permite, y el voucher porque se decidio tratarlo igual: si las dos vias
+     * dejan el mismo rastro, el inventario y los reportes se leen de una sola
+     * manera. Entonces lo que se hace es anular el original y emitir uno nuevo
+     * con lo que de verdad quedo en la puerta.
+     *
+     * El inventario cierra solo: la anulacion devuelve TODO lo que habia
+     * salido y el comprobante nuevo descuenta unicamente lo entregado, asi que
+     * al almacen vuelve exactamente lo retornado, producto por producto.
+     */
+    public function retornoParcial(Request $request, $id)
+    {
+        $datos = $request->validate([
+            'items'              => 'required|array|min:1',
+            'items.*.cod_prod'   => 'required|string|max:25',
+            'items.*.cantidad'   => 'required|numeric|min:0',
+            'items.*.peso'       => 'nullable|numeric|min:0',
+            'codigo_motivo'      => 'nullable|integer|between:1,4',
+            'observacion'        => 'nullable|string|max:200',
+        ]);
+
+        $original = Factura::with('detalles')->find($id);
+        if (!$original) {
+            return response()->json(['message' => 'El comprobante no existe'], 404);
+        }
+        if ($original->estado === 'ANULADO') {
+            return response()->json(['message' => 'El comprobante ya está anulado'], 422);
+        }
+
+        $ci = trim((string) ($request->user()->ci ?? ''));
+        if ($ci === '') {
+            return response()->json(['message' => 'El usuario no tiene CI en personal'], 422);
+        }
+
+        // Lo entregado se compara contra la linea original: no se puede
+        // "devolver" algo que la nota nunca tuvo ni entregar de mas, que
+        // siempre es un error de tipeo del cajero.
+        $porCodigo = $original->detalles->keyBy(function ($d) {
+            return trim((string) $d->cod_prod);
+        });
+
+        $lineas = [];
+        $subtotal = 0;
+
+        foreach ($datos['items'] as $item) {
+            $cod = trim((string) $item['cod_prod']);
+            $linea = $porCodigo->get($cod);
+
+            if (!$linea) {
+                return response()->json([
+                    'message' => 'El producto ' . $cod . ' no está en este comprobante',
+                ], 422);
+            }
+
+            $cantidad = round((float) $item['cantidad'], 3);
+            // Solo lo que va por kilo lleva peso; en el resto la linea se cobra
+            // por cantidad, igual que al emitir.
+            $peso = (float) $linea->peso > 0 && isset($item['peso'])
+                ? round((float) $item['peso'], 3)
+                : null;
+
+            // Una linea entregada entera se deja tal cual vino, sin recalcular:
+            // el retorno no es el momento de corregir precios ni pesos.
+            if ($cantidad <= 0 && ($peso === null || $peso <= 0)) {
+                continue;
+            }
+
+            if ($cantidad - (float) $linea->cantidad > 0.001) {
+                return response()->json([
+                    'message' => 'De ' . trim($linea->nombre) . ' no se puede entregar más de '
+                        . rtrim(rtrim(number_format((float) $linea->cantidad, 3, '.', ''), '0'), '.'),
+                ], 422);
+            }
+            if ($peso !== null && $peso - (float) $linea->peso > 0.001) {
+                return response()->json([
+                    'message' => 'De ' . trim($linea->nombre) . ' no se puede entregar más de '
+                        . rtrim(rtrim(number_format((float) $linea->peso, 3, '.', ''), '0'), '.') . ' kg',
+                ], 422);
+            }
+
+            $precio = round((float) $linea->precio, 2);
+            $importe = round(($peso ?? $cantidad) * $precio, 2);
+            $subtotal += $importe;
+
+            $lineas[] = [
+                'cod_prod' => $cod,
+                'nombre'   => $linea->nombre,
+                'unidad'   => $linea->unidad,
+                'cantidad' => $cantidad,
+                // Lo que decia la nota original: es lo que permite ver despues
+                // cuanto se devolvio sin tener que cruzar los dos documentos.
+                'cantidad_pedida' => (float) $linea->cantidad,
+                'peso'     => $peso,
+                'precio'   => $precio,
+                'subtotal' => $importe,
+            ];
+        }
+
+        if (!$lineas) {
+            return response()->json([
+                'message' => 'Si no se entregó nada, anulá el comprobante en vez de hacer un retorno parcial',
+            ], 422);
+        }
+
+        $subtotal = round($subtotal, 2);
+        if ($subtotal >= round((float) $original->subtotal, 2) - 0.001) {
+            return response()->json([
+                'message' => 'Se entregó todo: no hay nada que devolver',
+            ], 422);
+        }
+
+        // El descuento de la nota original se reparte en la misma proporcion:
+        // si se entrego la mitad, el cliente conserva la mitad del descuento.
+        $descuentoOriginal = round((float) $original->descuento, 2);
+        $descuento = $descuentoOriginal > 0 && (float) $original->subtotal > 0
+            ? round($descuentoOriginal * ($subtotal / (float) $original->subtotal), 2)
+            : 0;
+
+        $motivo = (int) ($datos['codigo_motivo'] ?? 3);
+
+        // Impuestos primero: si el SIAT rechaza la anulacion no se toca nada
+        // local, porque quedarian dos comprobantes vivos por la misma venta.
+        $respuestaSiat = null;
+        if ($original->tipo_comprobante === 'FACTURA' && $original->cuf
+            && $original->estado_siat !== SiatService::ESTADO_SIMULADO) {
+            $siat = new SiatService();
+
+            try {
+                $respuestaSiat = $siat->anularFactura($original, $motivo);
+            } catch (\Throwable $e) {
+                return response()->json([
+                    'message' => 'No se pudo anular en Impuestos: ' . $siat->mensajeError($e),
+                ], 422);
+            }
+
+            if (empty($respuestaSiat['transaccion'])) {
+                return response()->json([
+                    'message' => 'Impuestos rechazó la anulación: ' . $respuestaSiat['mensaje'],
+                    'siat' => $respuestaSiat,
+                ], 422);
+            }
+        }
+
+        $motivos = [
+            1 => 'FACTURA MAL EMITIDA',
+            2 => 'DATOS DE EMISION INCORRECTOS',
+            3 => 'FACTURA O NOTA DEVUELTA',
+            4 => 'SUSTITUCION DE FACTURA EMITIDA EN CONTINGENCIA',
+        ];
+
+        $usuario = $request->user();
+        $nota = trim((string) ($datos['observacion'] ?? ''));
+
+        $nueva = DB::transaction(function () use (
+            $original, $lineas, $subtotal, $descuento, $motivo, $motivos, $ci, $usuario, $nota
+        ) {
+            $devueltas = $original->detalles->map(function ($d) {
+                return [
+                    'cod_prod' => $d->cod_prod,
+                    'cantidad' => (float) $d->cantidad,
+                    'peso'     => (float) $d->peso,
+                    'precio'   => (float) $d->precio,
+                ];
+            })->all();
+
+            // Vuelve el pedido entero y despues sale lo entregado: la
+            // diferencia es exactamente lo que el camion trajo de regreso.
+            $this->moverStock($devueltas, $original->id, $ci, date('Y-m-d H:i:s'), 'ANULACION');
+
+            $original->update([
+                'estado'           => 'ANULADO',
+                'motivo_anulacion' => $motivos[$motivo],
+                'anulado_at'       => now(),
+            ]);
+
+            $nueva = Factura::create([
+                'user_id'          => $usuario->CodAut,
+                'cliente_id'       => $original->cliente_id,
+                'vendedor_ci'      => $original->vendedor_ci,
+                'fecha'            => date('Y-m-d'),
+                'hora'             => date('H:i:s'),
+                'nit'              => $original->nit,
+                'nombre'           => $original->nombre,
+                'tipo_comprobante' => $original->tipo_comprobante,
+                'tipo_pago'        => $original->tipo_pago,
+                'estado'           => 'ACTIVO',
+                'subtotal'         => $subtotal,
+                'descuento'        => $descuento,
+                'total'            => round($subtotal - $descuento, 2),
+                'observacion'      => trim('Retorno parcial de la nota ' . $original->id . '. ' . $nota),
+                'pedido_nro'       => $original->pedido_nro,
+                'pedido_tipo'      => $original->pedido_tipo,
+                'factura_origen_id' => $original->id,
+                // El reparto ya paso: el comprobante nuevo no vuelve a salir en
+                // la lista del caminero ni se le pide cobrar de nuevo.
+                'confirmado_camion' => true,
+                'entregado_camion'  => true,
+            ]);
+
+            $nueva->detalles()->createMany($lineas);
+            $this->moverStock($lineas, $nueva->id, $ci, date('Y-m-d H:i:s'), 'SALIDA');
+
+            // La plata que el caminero cobro en la puerta era por esta venta,
+            // no por la que se acaba de anular: si la entrega se quedara
+            // apuntando al comprobante muerto, su reporte del dia no cerraria.
+            DB::table('entregas')
+                ->where('factura_id', $original->id)
+                ->update([
+                    'factura_id' => $nueva->id,
+                    'monto'      => round($subtotal - $descuento, 2),
+                ]);
+
+            return $nueva;
+        });
+
+        if ($nueva->tipo_comprobante !== 'FACTURA') {
+            return response()->json([
+                'message'  => 'Nota ' . $original->id . ' anulada y reemplazada por la ' . $nueva->id
+                    . '; al almacén volvió lo que el cliente devolvió',
+                'anulada'  => $original->fresh(),
+                'factura'  => $nueva->load('detalles'),
+                'siat'     => $respuestaSiat,
+            ], 201);
+        }
+
+        // Fuera de la transaccion, igual que al emitir: un problema con
+        // Impuestos no debe deshacer el stock ni la anulacion, que ya paso.
+        $siat = new SiatService();
+        $nueva = config('siat.simulado')
+            ? $siat->simularEmision($nueva)
+            : $siat->emitirFactura($nueva, $usuario->CodAut);
+
+        return response()->json([
+            'message' => 'Factura ' . $original->id . ' anulada y reemplazada por la ' . $nueva->id
+                . '. ' . $this->mensajeEmision($nueva),
+            'anulada' => $original->fresh(),
+            'factura' => $nueva->load('detalles'),
+            'siat'    => [
+                'estado'  => $nueva->estado_siat,
+                'mensaje' => $nueva->mensaje_siat,
+                'cuf'     => $nueva->cuf,
+            ],
+        ], 201);
+>>>>>>> f67465abf5c28525e2b533914820c038e04be00c
     }
 
     /**
@@ -1265,7 +1578,6 @@ class FacturacionController extends Controller
             $filas .= "<tr$par>"
                 . "<td class='r'>" . ($trozado ? '—' : number_format($d->cantidad, 2)) . '</td>'
                 . "<td class='cod'>" . e($d->cod_prod) . '</td>'
-                . "<td class='c cod'>" . $this->celdaBarras($d->cod_prod) . '</td>'
                 . '<td>' . e($d->nombre) . '</td>'
                 . "<td class='c'>" . e($d->unidad) . '</td>'
                 . "<td class='r'>" . ($peso > 0 ? number_format($peso, 3) : '—') . '</td>'
@@ -1324,7 +1636,6 @@ class FacturacionController extends Controller
             <tr>
                 <th style='width:7%'>Cant</th>
                 <th style='width:8%'>Código</th>
-                <th style='width:10%'>Cód. barras</th>
                 <th>Concepto</th>
                 <th style='width:6%'>Unid</th>
                 <th style='width:9%'>Peso Kg</th>
@@ -1410,7 +1721,6 @@ class FacturacionController extends Controller
 
             $filas .= "<tr$par>"
                 . "<td class='cod'>" . e($d->cod_prod) . '</td>'
-                . "<td class='c cod'>" . $this->celdaBarras($d->cod_prod) . '</td>'
                 // Lo declarado a Impuestos es lo que se cobra: en lo que va por
                 // kilo, el peso. Tiene que coincidir con lo que manda el SIAT.
                 . "<td class='r'>" . number_format($d->cantidad_facturada, 2) . '</td>'
@@ -1484,7 +1794,6 @@ class FacturacionController extends Controller
         <table class='detalle'>
             <tr>
                 <th style='width:9%'>Código</th>
-                <th style='width:10%'>Cód. barras</th>
                 <th style='width:8%'>Cantidad</th>
                 <th style='width:12%'>Unidad</th>
                 <th>Descripción</th>

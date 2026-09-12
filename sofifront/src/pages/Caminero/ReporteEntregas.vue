@@ -11,7 +11,8 @@
         </q-btn>
       </div>
       <!-- Cada hoja se imprime y se firma por separado, igual que en papel:
-           el caminero entrega la de contados, la de QR y la de créditos. -->
+           el caminero entrega la de contados, la de QR y la de créditos.
+           No hay hoja de mixtos: esa nota va en las dos hojas de cobro. -->
       <div class="col-auto">
         <q-btn-dropdown
           color="primary" unelevated dense no-caps icon="print" label="Imprimir"
@@ -125,8 +126,10 @@
                   <td class="col-nota">{{ fila.nota }}</td>
                   <td class="ellipsis">
                     {{ fila.cliente || 'Sin cliente' }}
-                    <span v-if="seccion.clave === 'mixtos'" class="desglose">
-                      (Ef {{ money(fila.monto_efectivo) }} · QR {{ money(fila.monto_qr) }})
+                    <!-- El mixto sale en las dos hojas de cobro, cada una por
+                         su parte: se avisa para que no parezca pago de menos. -->
+                    <span v-if="fila.tipago === 'MIXTO' && seccion.clave !== 'anulados'" class="desglose">
+                      (mixto: Ef {{ money(fila.monto_efectivo) }} · QR {{ money(fila.monto_qr) }})
                     </span>
                   </td>
                   <td v-if="seccion.clave === 'anulados'" class="col-motivo ellipsis">
@@ -162,8 +165,8 @@ export default {
       imprimiendo: false,
       placa: '',
       despachador: '',
-      grupos: { contados: [], qr: [], mixtos: [], creditos: [], anulados: [] },
-      totales: { contados: 0, qr: 0, mixtos: 0, creditos: 0, anulados: 0, efectivo: 0, qr_cobrado: 0 },
+      grupos: { contados: [], qr: [], creditos: [], anulados: [] },
+      totales: { contados: 0, qr: 0, creditos: 0, anulados: 0, efectivo: 0, qr_cobrado: 0 },
       avance: { pedidos: 0, cerradas: 0, cobradas: 0, pendientes: 0, porcentaje: 0 }
     }
   },
@@ -171,12 +174,13 @@ export default {
     this.cargar()
   },
   computed: {
-    // Las mismas hojas que hoy se entregan en papel, en el mismo orden.
+    // Las mismas hojas que hoy se entregan en papel, en el mismo orden. El
+    // mixto no tiene hoja propia: su efectivo va en contados y su QR en la
+    // hoja de QR, asi que cada hoja es una sola forma de cobro.
     secciones () {
       return [
         { clave: 'contados', titulo: 'CONTADOS DEL DÍA', icono: 'payments', color: 'green-8', fondo: 'bg-green-2 text-green-10', filas: this.grupos.contados, total: this.totales.contados },
         { clave: 'qr', titulo: 'PAGOS QR', icono: 'qr_code_2', color: 'indigo-8', fondo: 'bg-indigo-2 text-indigo-10', filas: this.grupos.qr, total: this.totales.qr },
-        { clave: 'mixtos', titulo: 'MIXTOS', icono: 'call_split', color: 'teal-8', fondo: 'bg-teal-2 text-teal-10', filas: this.grupos.mixtos, total: this.totales.mixtos },
         { clave: 'creditos', titulo: 'CRÉDITOS', icono: 'schedule', color: 'blue-grey-8', fondo: 'bg-blue-grey-2 text-blue-grey-10', filas: this.grupos.creditos, total: this.totales.creditos },
         { clave: 'anulados', titulo: 'ANULADOS', icono: 'cancel', color: 'red-8', fondo: 'bg-red-2 text-red-10', filas: this.grupos.anulados, total: this.totales.anulados }
       ]

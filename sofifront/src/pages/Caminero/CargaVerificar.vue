@@ -138,7 +138,11 @@
       >
         <q-card
           flat bordered class="rounded-borders shadow-1"
-          :class="{ 'bg-green-2': comprobante.verificado, 'canasta-ocupada': guardando !== null }"
+          :class="{
+            'bg-green-2': comprobante.verificado && !comprobante.observado,
+            'bg-deep-orange-1': comprobante.observado,
+            'canasta-ocupada': guardando !== null
+          }"
         >
           <q-card-section class="q-pa-xs cursor-pointer" @click="alternar(comprobante)">
             <div class="row items-center no-wrap">
@@ -184,8 +188,10 @@
 
             <!-- Lo que el caminero anoto al revisar: queda a la vista porque es
                  lo que despues sale en el papel que firma. -->
-            <div v-if="comprobante.observacion" class="text-caption text-red-9 text-weight-bold q-mt-xs">
-              <q-icon name="report_problem" size="14px"/> {{ comprobante.observacion }}
+            <div v-if="comprobante.observacion" class="text-caption text-weight-bold q-mt-xs"
+                 :class="comprobante.observado ? 'text-deep-orange-9' : 'text-red-9'">
+              <q-icon name="report_problem" size="14px"/>
+              <span v-if="comprobante.observado" class="q-mr-xs">OBSERVADA:</span>{{ comprobante.observacion }}
             </div>
           </q-card-section>
 
@@ -212,9 +218,16 @@
 
           <q-separator/>
           <q-card-actions class="q-pa-xs">
+            <!-- Revisar una canasta termina de dos maneras: visto bueno, u
+                 observada con el motivo. Las dos la dan por revisada y dejan
+                 salir el camion; la observada llega marcada a facturacion. -->
             <q-btn
-              flat dense no-caps size="sm" color="primary" icon="edit_note"
-              :label="comprobante.observacion ? 'Editar observación' : 'Anotar algo'"
+              dense no-caps size="sm" :outline="!comprobante.observado" unelevated
+              :color="comprobante.observado ? 'deep-orange-7' : 'deep-orange-8'"
+              :text-color="comprobante.observado ? 'white' : undefined"
+              icon="report_problem"
+              :label="comprobante.observado ? 'Ver observación' : 'Observar'"
+              :loading="guardando === comprobante.factura_id"
               @click="abrirObservacion(comprobante)"
             />
             <q-space/>
@@ -248,12 +261,19 @@
           <q-input
             v-model.trim="observacion" dense outlined autogrow autofocus
             label="Qué pasó con esta canasta" maxlength="190" counter
+            :error="intentado && !observacion"
+            error-message="Escribí el motivo: es lo que va a ver caja"
           />
         </q-card-section>
         <q-card-actions align="right">
           <q-btn flat no-caps label="Cancelar" color="grey-8" v-close-popup/>
+          <!-- Quitar la observacion deja la canasta con el visto bueno normal. -->
           <q-btn
-            unelevated no-caps color="positive" icon="check" label="Guardar y verificar"
+            v-if="editando.observado" flat no-caps color="grey-8" icon="undo" label="Quitar observación"
+            :loading="guardando === editando.factura_id" @click="quitarObservacion"
+          />
+          <q-btn
+            unelevated no-caps color="deep-orange-8" icon="report_problem" label="Guardar observación"
             :loading="guardando === editando.factura_id" @click="guardarObservacion"
           />
         </q-card-actions>
@@ -290,7 +310,9 @@ export default {
       },
       dialogo: false,
       editando: {},
-      observacion: ''
+      observacion: '',
+      // Recien despues de intentar guardar se marca en rojo el campo vacio.
+      intentado: false
     }
   },
   created () {
@@ -376,24 +398,42 @@ export default {
       if (datos.resumen) this.resumen = datos.resumen
     },
     // Tocar la tarjeta alcanza para el caso normal: la canasta subio completa.
+    // El visto bueno limpio: si la canasta estaba observada, deja de estarlo.
     alternar (comprobante) {
       this.enviar({
         factura_id: comprobante.factura_id,
         verificado: !comprobante.verificado,
+        observado: false,
         // Al desmarcar se borra lo anotado: la canasta vuelve a estar sin mirar.
-        observacion: comprobante.verificado ? '' : (comprobante.observacion || '')
+        observacion: ''
       })
     },
     abrirObservacion (comprobante) {
       this.editando = comprobante
       this.observacion = comprobante.observacion || ''
+      this.intentado = false
       this.dialogo = true
     },
+    // Observar cierra la revision igual que el visto bueno, pero dejando el
+    // motivo escrito. Sin motivo no se guarda: caja recibiria una canasta
+    // marcada y ninguna explicacion.
     guardarObservacion () {
+      this.intentado = true
+      if (!this.observacion) return
+
       this.enviar({
         factura_id: this.editando.factura_id,
         verificado: true,
+        observado: true,
         observacion: this.observacion
+      }, () => { this.dialogo = false })
+    },
+    quitarObservacion () {
+      this.enviar({
+        factura_id: this.editando.factura_id,
+        verificado: true,
+        observado: false,
+        observacion: ''
       }, () => { this.dialogo = false })
     },
     enviar (cuerpo, alTerminar) {

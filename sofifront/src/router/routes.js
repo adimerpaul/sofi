@@ -80,6 +80,10 @@ const routes = [
       { path: '/caminero/carga', component: () => import('pages/Caminero/CargaVerificar.vue'), meta: { requiresAuth: true } },
       { path: '/caminero/entregas', component: () => import('pages/Caminero/MisEntregas.vue'), meta: { requiresAuth: true } },
       { path: '/caminero/reporte', component: () => import('pages/Caminero/ReporteEntregas.vue'), meta: { requiresAuth: true } },
+      // Administracion del recojo: consume GET /cobranzas/recojo, /camiones y /pdf.
+      { path: '/cobranzas/recojo', component: () => import('pages/Cobranzas/RecojoCamiones.vue'), meta: { requiresAuth: true } },
+      // GET /creditos y /creditos/clientes; POST /creditos; GET/POST /creditos/{origen}/{id}/abonos.
+      { path: '/cobranzas/creditos', component: () => import('pages/Cobranzas/CreditosClientes.vue'), meta: { requiresAuth: true } },
       { path: '/encuestasIndex', component: () => import('pages/encuesta/EncuestaIndex.vue'), meta: { requiresAuth: true } },
       { path: '/horariosenvio', component: () => import('pages/HorariosEnvio.vue'), meta: { requiresAuth: true } },
       // ClienteFotografias

@@ -101,6 +101,9 @@ class CargaCamion
             );
 
             $comprobante['verificado'] = $marca ? ((bool) $marca->verificado && !$cambio) : false;
+            // Si la venta cambio despues, la observacion tampoco sigue valiendo:
+            // se reviso otra canasta.
+            $comprobante['observado'] = $marca ? ((bool) $marca->observado && !$cambio) : false;
             $comprobante['cambio'] = (bool) $cambio;
             $comprobante['observacion'] = $marca->observacion ?? null;
             $comprobante['verificado_por'] = $marca->verificado_por ?? null;
@@ -135,6 +138,9 @@ class CargaCamion
             'con_observacion' => $comprobantes->filter(function ($comprobante) {
                 return !empty($comprobante['observacion']);
             })->count(),
+            // Observadas: cerradas por el caminero pero con algo que reclamar.
+            // Cuentan como revisadas, asi que no frenan la impresion.
+            'observados' => $comprobantes->where('observado', true)->count(),
             // Un camion sin comprobantes no esta verificado: no hay nada que
             // revisar, pero tampoco un caminero que se haya hecho responsable.
             'completo' => $comprobantes->isNotEmpty()
