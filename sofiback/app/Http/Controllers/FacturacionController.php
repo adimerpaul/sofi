@@ -1230,7 +1230,6 @@ class FacturacionController extends Controller
     }
 
     /**
-<<<<<<< HEAD
      * Numero del codigo de barras del producto, para la columna del detalle.
      *
      * Va en numero y no como imagen: es lo que se pidio para la impresion.
@@ -1242,7 +1241,9 @@ class FacturacionController extends Controller
         $numero = preg_replace('/\D/', '', (string) $codigo);
 
         return $numero !== '' ? e($numero) : '&mdash;';
-=======
+    }
+
+    /**
      * Retorno parcial: el cliente recibe el pedido pero devuelve algunos items.
      *
      * Un comprobante emitido no se corrige. La factura porque el SIAT no lo
@@ -1488,7 +1489,6 @@ class FacturacionController extends Controller
                 'cuf'     => $nueva->cuf,
             ],
         ], 201);
->>>>>>> f67465abf5c28525e2b533914820c038e04be00c
     }
 
     /**

@@ -739,16 +739,7 @@ class ExcelController extends Controller
                     }
                 }
 
-<<<<<<< HEAD
-                // La observacion va pegada al detalle del pedido, en el hueco
-                // siguiente al ultimo producto de esa fila: en preparacion se
-                // lee el pedido y su nota de corrido, sin cruzar la hoja.
-                if ($r->Observaciones != null) {
-                    $cell1 = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($col) . $c;
-                    $sheet->setCellValue($cell1, $r->bonificacionId == null ?
-                        $r->Observaciones : $r->Nombres . ' - ' . $r->Observaciones);
-=======
-                // Observaciones: siempre en la columna fija AE (a la derecha de la grilla).
+                // Observaciones: despues del ultimo producto de cada pedido.
                 //
                 // En una bonificacion la columna F no lleva al cliente sino la
                 // cuenta a la que se carga la baja ("BAJAS POR CALIDAD" o "BAJAS
@@ -764,9 +755,8 @@ class ExcelController extends Controller
                 }
 
                 if ($observacion !== '') {
-                    $cell1 = 'AE' . $c;
+                    $cell1 = Coordinate::stringFromColumnIndex($col) . $c;
                     $sheet->setCellValue($cell1, $observacion);
->>>>>>> f67465abf5c28525e2b533914820c038e04be00c
                     $sheet->getStyle($cell1)->applyFromArray([
                         'alignment' => [
                             'horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_LEFT,
