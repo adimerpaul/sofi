@@ -1165,6 +1165,20 @@ class FacturacionController extends Controller
     }
 
     /**
+     * Numero del codigo de barras del producto, para la columna del detalle.
+     *
+     * Va en numero y no como imagen: es lo que se pidio para la impresion.
+     * Unos pocos productos tienen una letra al final (500104D), asi que se
+     * dejan solo los digitos; la columna Codigo sigue con el codigo completo.
+     */
+    private function celdaBarras($codigo)
+    {
+        $numero = preg_replace('/\D/', '', (string) $codigo);
+
+        return $numero !== '' ? e($numero) : '&mdash;';
+    }
+
+    /**
      * Voucher: la boleta de entrega, en tamano carta.
      *
      * Replica la boleta que se imprime en papel: cabecera con los datos del
@@ -1234,7 +1248,7 @@ class FacturacionController extends Controller
             ])))
             : '';
 
-        $placa = $this->camion($factura);
+        $placa = $this->camionDeFactura($factura);
 
         $trozados = $this->codigosTrozados($factura->detalles);
 
@@ -1388,7 +1402,7 @@ class FacturacionController extends Controller
     /** La factura como HTML: aparte, para poder juntar varias en un PDF. */
     private function facturaHtml(Factura $factura)
     {
-        $placa = $this->camion($factura);
+        $placa = $this->camionDeFactura($factura);
 
         $filas = '';
         foreach ($factura->detalles as $i => $d) {

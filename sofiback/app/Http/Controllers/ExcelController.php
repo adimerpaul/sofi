@@ -567,6 +567,10 @@ class ExcelController extends Controller
         };
 
         $c = 4;
+        // La observacion ya no va en una columna fija: se pega al final del
+        // detalle de cada pedido, asi que el ancho de la hoja lo marca la fila
+        // mas larga y hay que ir siguiendolo.
+        $colMax = 6; // F: nombre del cliente
 
         foreach ($preventistas as $value) {
             // Nombre del preventista en columna F
@@ -730,13 +734,16 @@ class ExcelController extends Controller
                             $sheet->getStyle($cell2)->getFont()->setBold(true)->getColor()->setRGB('FF0000');
                         }
 
+                        $colMax = max($colMax, $col + 1);
                         $col += 4;
                     }
                 }
 
-                // Observaciones: siempre en la columna fija AE (a la derecha de la grilla)
+                // La observacion va pegada al detalle del pedido, en el hueco
+                // siguiente al ultimo producto de esa fila: en preparacion se
+                // lee el pedido y su nota de corrido, sin cruzar la hoja.
                 if ($r->Observaciones != null) {
-                    $cell1 = 'AE' . $c;
+                    $cell1 = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($col) . $c;
                     $sheet->setCellValue($cell1, $r->bonificacionId == null ?
                         $r->Observaciones : $r->Nombres . ' - ' . $r->Observaciones);
                     $sheet->getStyle($cell1)->applyFromArray([
@@ -745,15 +752,14 @@ class ExcelController extends Controller
                             'vertical' => \PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER,
                         ],
                     ]);
+                    $colMax = max($colMax, $col);
                 }
 
                 $c++;
             }
         }
 
-        // Encabezado de la columna de observaciones
-        $sheet->setCellValue('AE3', 'OBSERVACION');
-        $sheet->getStyle('AE3')->getFont()->setBold(true);
+        $colFinal = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($colMax);
 
         // Ancho de columnas por defecto (la plantilla trae anchos personalizados)
         foreach ($sheet->getColumnDimensions() as $colDim) {
@@ -767,7 +773,7 @@ class ExcelController extends Controller
         $sheet->getColumnDimension('F')->setWidth(35);
 
         // Letra 12 y alto de fila por defecto en toda la grilla de datos
-        $sheet->getStyle('A4:AE' . ($c + 1))->getFont()->setSize(12);
+        $sheet->getStyle('A4:' . $colFinal . ($c + 1))->getFont()->setSize(12);
         for ($fila = 4; $fila <= $c + 1; $fila++) {
             $sheet->getRowDimension($fila)->setRowHeight(-1);
         }
@@ -781,7 +787,7 @@ class ExcelController extends Controller
                 $sheet->getRowDimension($fila)->setRowHeight(-1);
             }
         }
-        $sheet->getPageSetup()->setPrintArea('A1:AE' . ($c + 1));
+        $sheet->getPageSetup()->setPrintArea('A1:' . $colFinal . ($c + 1));
 
         // Vista normal (la plantilla venia en vista previa de salto de pagina)
         $sheet->getSheetView()->setView(\PhpOffice\PhpSpreadsheet\Worksheet\SheetView::SHEETVIEW_NORMAL);

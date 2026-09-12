@@ -218,7 +218,14 @@ class CargaCamion
             ->whereRaw("TRIM(COALESCE(p.placa, '')) = ?", [$placa])
             // Un pedido tiene muchas lineas: sin agrupar, el comprobante
             // saldria repetido una vez por cada una.
-            ->groupBy('f.id')
+            // MariaDB con ONLY_FULL_GROUP_BY no deduce la dependencia
+            // funcional de la PK: hay que nombrar cada columna de f que sale
+            // sin agregar.
+            ->groupBy([
+                'f.id', 'f.nro_factura', 'f.tipo_comprobante', 'f.estado',
+                'f.hora', 'f.tipo_pago', 'f.total', 'f.pedido_nro',
+                'f.pedido_tipo', 'f.nit', 'f.nombre',
+            ])
             ->orderBy('f.id')
             ->get([
                 'f.id as factura_id', 'f.nro_factura', 'f.tipo_comprobante', 'f.estado',
