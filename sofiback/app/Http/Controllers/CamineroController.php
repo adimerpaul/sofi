@@ -661,7 +661,11 @@ class CamineroController extends Controller
             'fecha' => 'nullable|date',
             'factura_id' => 'required|integer',
             'verificado' => 'required|boolean',
-            'observacion' => 'nullable|string|max:190',
+            // Observar es cerrar la revision dejando constancia de que algo no
+            // cuadraba, asi que el texto no es opcional: sin el, caja recibe una
+            // canasta marcada y ningun motivo.
+            'observado' => 'nullable|boolean',
+            'observacion' => 'nullable|string|max:190|required_if:observado,1',
         ]);
 
         $fecha = $datos['fecha'] ?? date('Y-m-d');
@@ -676,15 +680,22 @@ class CamineroController extends Controller
             return response()->json(['message' => 'Ese comprobante no sale en tu camión'], 404);
         }
 
+        // Una canasta observada tambien queda revisada: el camion sale igual y
+        // caja puede imprimir, pero le llega marcada para que la resuelva.
+        $observado = (bool) ($datos['observado'] ?? false);
+        $verificado = (bool) $datos['verificado'] || $observado;
+
         $comprobante = $this->marcar(
             $request, $fecha, $placa, $comprobante,
-            (bool) $datos['verificado'], $datos['observacion'] ?? null
+            $verificado, $datos['observacion'] ?? null, $observado
         );
 
         // Solo vuelve la canasta que se toco: mandar la carga entera en cada
         // tilde obligaba al celular a redibujar toda la lista.
         return [
-            'message' => $datos['verificado'] ? 'Canasta verificada' : 'Canasta desmarcada',
+            'message' => $observado
+                ? 'Canasta observada'
+                : ($verificado ? 'Canasta verificada' : 'Canasta desmarcada'),
             'resumen' => $servicio->estado($fecha, $placa),
             'comprobante' => $comprobante,
         ];
@@ -717,7 +728,7 @@ class CamineroController extends Controller
                 continue;
             }
 
-            $filas[] = $this->fila($request, $fecha, $placa, $comprobante, true, null);
+            $filas[] = $this->fila($request, $fecha, $placa, $comprobante, true, null, false);
         }
 
         // Un solo viaje a la base en vez de un update por canasta: con un
@@ -741,9 +752,9 @@ class CamineroController extends Controller
      * Guarda el visto bueno de una canasta y devuelve como quedo, para poder
      * responder solo esa sin volver a armar la carga entera.
      */
-    private function marcar(Request $request, $fecha, $placa, array $comprobante, $verificado, $observacion)
+    private function marcar(Request $request, $fecha, $placa, array $comprobante, $verificado, $observacion, $observado = false)
     {
-        $fila = $this->fila($request, $fecha, $placa, $comprobante, $verificado, $observacion);
+        $fila = $this->fila($request, $fecha, $placa, $comprobante, $verificado, $observacion, $observado);
 
         DB::table('carga_verificaciones')->updateOrInsert(
             ['factura_id' => $comprobante['factura_id']],
@@ -751,6 +762,7 @@ class CamineroController extends Controller
         );
 
         $comprobante['verificado'] = (bool) $verificado;
+        $comprobante['observado'] = (bool) $observado;
         $comprobante['cambio'] = false;
         $comprobante['observacion'] = $fila['observacion'];
         $comprobante['verificado_por'] = $fila['verificado_por'];
@@ -760,7 +772,7 @@ class CamineroController extends Controller
     }
 
     /** Lo que se graba de una canasta revisada. */
-    private function fila(Request $request, $fecha, $placa, array $comprobante, $verificado, $observacion)
+    private function fila(Request $request, $fecha, $placa, array $comprobante, $verificado, $observacion, $observado = false)
     {
         $ahora = date('Y-m-d H:i:s');
         $observacion = trim((string) $observacion);
@@ -776,6 +788,8 @@ class CamineroController extends Controller
             'items_esperados' => $comprobante['productos'],
             'total_esperado' => $comprobante['total'],
             'verificado' => $verificado,
+            // Las dos cierran la revision; observado dice con cual de las dos.
+            'observado' => $observado,
             'observacion' => $observacion !== '' ? $observacion : null,
             'personal_id' => $request->user()->CodAut,
             'verificado_por' => $this->nombre($request),

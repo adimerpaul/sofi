@@ -102,6 +102,7 @@ class FacturacionController extends Controller
             $marca = $marcas->get($factura->id);
 
             $factura->carga_observacion = $marca->observacion ?? null;
+            $factura->carga_observado = (bool) ($marca->observado ?? false);
             $factura->carga_verificado_por = $marca->verificado_por ?? null;
             $factura->carga_verificado_en = $marca->verificado_en ?? null;
             $factura->carga_estado = $this->estadoCarga($factura, $marca);
@@ -132,7 +133,13 @@ class FacturacionController extends Controller
         $cambio = (int) $marca->items_esperados !== $factura->detalles->count()
             || abs((float) $marca->total_esperado - (float) $factura->total) > 0.01;
 
-        return $cambio ? 'CAMBIO' : 'VERIFICADA';
+        if ($cambio) {
+            return 'CAMBIO';
+        }
+
+        // Observada tambien esta revisada -no frena la impresion-, pero se
+        // distingue para que caja vea que hay algo pendiente de resolver.
+        return $marca->observado ? 'OBSERVADA' : 'VERIFICADA';
     }
 
     /**

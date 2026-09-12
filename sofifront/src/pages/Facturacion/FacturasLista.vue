@@ -176,8 +176,8 @@
           Carga del camión {{ carga.placa }} verificada por {{ carga.verificado_por || 'el caminero' }}
           <span v-if="carga.verificado_en">el {{ verificadoEn(carga.verificado_en) }}</span>.
           Se puede imprimir.
-          <span v-if="carga.con_observacion" class="text-weight-bold">
-            · {{ carga.con_observacion }} canastas con observación
+          <span v-if="carga.observados" class="text-weight-bold text-deep-orange-9">
+            · {{ carga.observados }} {{ carga.observados === 1 ? 'canasta observada' : 'canastas observadas' }}
           </span>
         </template>
         <template v-else>
@@ -238,14 +238,25 @@
            mientras quede una sin revisar, el camion no puede imprimir. -->
       <template v-slot:body-cell-carga="props">
         <q-td :props="props" class="text-center">
-          <q-chip
-            v-if="props.value !== 'NO_APLICA'"
-            dense square
-            :color="chipCarga(props.value).color" text-color="white"
-            :icon="chipCarga(props.value).icono" :label="chipCarga(props.value).texto"
-          >
-            <q-tooltip>{{ detalleCarga(props.row) }}</q-tooltip>
-          </q-chip>
+          <template v-if="props.value !== 'NO_APLICA'">
+            <q-chip
+              dense square
+              :color="chipCarga(props.value).color" text-color="white"
+              :icon="chipCarga(props.value).icono" :label="chipCarga(props.value).texto"
+            >
+              <q-tooltip>{{ detalleCarga(props.row) }}</q-tooltip>
+            </q-chip>
+            <!-- Lo que anoto el caminero va a la vista y no solo en el tooltip:
+                 es lo que caja tiene que resolver antes de que salga el camion. -->
+            <div
+              v-if="props.row.carga_observacion"
+              class="text-caption text-weight-medium celda-observacion"
+              :class="props.value === 'OBSERVADA' ? 'text-deep-orange-9' : 'text-grey-8'"
+            >
+              {{ props.row.carga_observacion }}
+              <q-tooltip>{{ props.row.carga_observacion }}</q-tooltip>
+            </div>
+          </template>
           <span v-else class="text-grey-6">—</span>
         </q-td>
       </template>
@@ -700,12 +711,21 @@ export default {
      */
     chipCarga (estado) {
       if (estado === 'VERIFICADA') return { color: 'green-7', icono: 'verified', texto: 'Verificada' }
+      // Observada tambien esta revisada y no frena la impresion, pero se
+      // distingue del visto bueno limpio.
+      if (estado === 'OBSERVADA') return { color: 'deep-orange-7', icono: 'report_problem', texto: 'Observada' }
       if (estado === 'CAMBIO') return { color: 'deep-orange-7', icono: 'published_with_changes', texto: 'Cambió' }
       return { color: 'orange-8', icono: 'pending', texto: 'Sin revisar' }
     },
 
     /** Lo que se lee al pasar por encima del chip. */
     detalleCarga (row) {
+      if (row.carga_estado === 'OBSERVADA') {
+        const quien = row.carga_verificado_por || 'el caminero'
+        const cuando = row.carga_verificado_en ? ' el ' + this.verificadoEn(row.carga_verificado_en) : ''
+        return 'Observada por ' + quien + cuando + ' · ' + (row.carga_observacion || 'sin motivo')
+      }
+
       if (row.carga_estado === 'VERIFICADA') {
         const quien = row.carga_verificado_por || 'el caminero'
         const cuando = row.carga_verificado_en ? ' el ' + this.verificadoEn(row.carga_verificado_en) : ''
@@ -1053,6 +1073,19 @@ export default {
   se le quita el aire a las celdas y se achica la letra para que entren mas
   filas y columnas sin tener que desplazar la pantalla a lo ancho.
 */
+/* La observacion del caminero se recorta a dos lineas: es texto libre y sin
+   tope estiraria la fila. El tooltip de la celda muestra el resto. */
+.celda-observacion {
+  max-width: 190px;
+  margin: 2px auto 0;
+  line-height: 1.15;
+  white-space: normal;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
 .tabla-compacta {
   font-size: 12px;
 

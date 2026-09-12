@@ -734,11 +734,24 @@ class ExcelController extends Controller
                     }
                 }
 
-                // Observaciones: siempre en la columna fija AE (a la derecha de la grilla)
-                if ($r->Observaciones != null) {
+                // Observaciones: siempre en la columna fija AE (a la derecha de la grilla).
+                //
+                // En una bonificacion la columna F no lleva al cliente sino la
+                // cuenta a la que se carga la baja ("BAJAS POR CALIDAD" o "BAJAS
+                // POR BONIFICACIONES"), asi que el nombre real del cliente solo
+                // aparece aca. Por eso se escribe aunque el pedido no traiga
+                // observacion: sin esto preparacion no sabe a quien va.
+                $observacion = trim((string) $r->Observaciones);
+                if ($r->bonificacionId != null) {
+                    $nombreCliente = trim((string) $r->Nombres);
+                    $observacion = $observacion === ''
+                        ? $nombreCliente
+                        : $nombreCliente . ' - ' . $observacion;
+                }
+
+                if ($observacion !== '') {
                     $cell1 = 'AE' . $c;
-                    $sheet->setCellValue($cell1, $r->bonificacionId == null ?
-                        $r->Observaciones : $r->Nombres . ' - ' . $r->Observaciones);
+                    $sheet->setCellValue($cell1, $observacion);
                     $sheet->getStyle($cell1)->applyFromArray([
                         'alignment' => [
                             'horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_LEFT,
