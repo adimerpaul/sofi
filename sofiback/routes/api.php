@@ -95,6 +95,8 @@ Route::group(['middleware'=>'auth:sanctum'],function (){
     Route::get('/facturacion/{factura}',[\App\Http\Controllers\FacturacionController::class,'show']);
     Route::post('/facturacion',[\App\Http\Controllers\FacturacionController::class,'store']);
     Route::put('/facturacion/{factura}/anular',[\App\Http\Controllers\FacturacionController::class,'anular']);
+    // Retorno parcial: anula el comprobante y emite otro con lo entregado.
+    Route::put('/facturacion/{factura}/retorno-parcial',[\App\Http\Controllers\FacturacionController::class,'retornoParcial']);
 
     // El caminero solo ve lo de su camion: la placa sale de su usuario, no
     // viaja en la peticion.
@@ -105,6 +107,17 @@ Route::group(['middleware'=>'auth:sanctum'],function (){
     Route::get('/caminero/reporte/pdf',[\App\Http\Controllers\CamineroController::class,'reportePdf']);
     // Antes de salir, el caminero revisa la carga de su camion producto por
     // producto; hasta que no este completa, caja no imprime sus comprobantes.
+    // Cobranzas ve el recojo de todos los camiones, no solo el suyo: es
+    // quien recibe la plata al final del dia. Mismo servicio que el caminero.
+    Route::get('/cobranzas/recojo',[\App\Http\Controllers\CobranzaRecojoController::class,'reporte']);
+    Route::get('/cobranzas/recojo/camiones',[\App\Http\Controllers\CobranzaRecojoController::class,'camiones']);
+    Route::get('/cobranzas/recojo/pdf',[\App\Http\Controllers\CobranzaRecojoController::class,'reportePdf']);
+    Route::get('/creditos/clientes',[\App\Http\Controllers\CreditoController::class,'clientes']);
+    Route::get('/creditos',[\App\Http\Controllers\CreditoController::class,'index']);
+    Route::post('/creditos',[\App\Http\Controllers\CreditoController::class,'store']);
+    Route::get('/creditos/{origen}/{id}/abonos',[\App\Http\Controllers\CreditoController::class,'historial']);
+    Route::post('/creditos/{origen}/{id}/abonos',[\App\Http\Controllers\CreditoController::class,'abonar']);
+
     Route::get('/caminero/carga',[\App\Http\Controllers\CamineroController::class,'carga']);
     Route::get('/caminero/carga/reporte',[\App\Http\Controllers\CamineroController::class,'cargaReporte']);
     Route::post('/caminero/carga/verificar',[\App\Http\Controllers\CamineroController::class,'verificarCarga']);
@@ -266,5 +279,4 @@ Route::post('/exportar-pedidos', [MobilController::class, 'exportarPedidosFlutte
 Route::post('/reporteTotalProductos', [MobilController::class, 'reporteTotalProductos']);
 
 Route::get('/pedidos-simple', [\App\Http\Controllers\MobilController::class, 'pedidosSimple']);
-
 

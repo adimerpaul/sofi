@@ -261,6 +261,30 @@
         </q-td>
       </template>
 
+      <template v-slot:body-cell-entrega="props">
+        <q-td :props="props" class="text-center">
+          <template v-if="props.value !== 'NO_APLICA'">
+            <q-chip
+              dense square
+              :color="chipEntrega(props.value).color" text-color="white"
+              :icon="chipEntrega(props.value).icono" :label="chipEntrega(props.value).texto"
+            >
+              <q-tooltip>{{ detalleEntrega(props.row) }}</q-tooltip>
+            </q-chip>
+            <!-- El motivo de una no entrega es lo que caja tiene que resolver,
+                 asi que va a la vista y no escondido en el tooltip. -->
+            <div
+              v-if="props.row.entrega_observacion && props.value !== 'ENTREGADO'"
+              class="text-caption text-weight-medium text-red-9 celda-observacion"
+            >
+              {{ props.row.entrega_observacion }}
+              <q-tooltip>{{ props.row.entrega_observacion }}</q-tooltip>
+            </div>
+          </template>
+          <span v-else class="text-grey-6">—</span>
+        </q-td>
+      </template>
+
       <template v-slot:body-cell-estado="props">
         <q-td :props="props" class="text-center">
           <q-badge :color="props.value === 'ANULADO' ? 'negative' : 'positive'" text-color="white">
@@ -406,6 +430,21 @@
                   </q-item-label>
                 </q-item-section>
               </q-item>
+
+              <!-- El cliente recibió el pedido pero devolvió algunos items: el
+                   comprobante no se corrige, se anula y se emite otro. -->
+              <template v-if="can('facturacionAnular') && props.row.estado !== 'ANULADO'">
+                <q-separator/>
+                <q-item clickable v-close-popup @click="pedirRetorno(props.row)">
+                  <q-item-section avatar><q-icon name="assignment_return" color="deep-orange-7"/></q-item-section>
+                  <q-item-section>
+                    Retorno parcial
+                    <q-item-label caption>
+                      Anula y emite otro con lo que sí se entregó
+                    </q-item-label>
+                  </q-item-section>
+                </q-item>
+              </template>
 
               <template v-if="can('facturacionAnular') && puedeAnular(props.row)">
                 <q-separator/>
@@ -567,6 +606,79 @@
         </q-card-actions>
       </q-card>
     </q-dialog>
+
+    <!-- Retorno parcial: se escribe lo que el cliente SÍ recibió. Lo que no,
+         vuelve al almacén al anularse el comprobante original. -->
+    <q-dialog v-model="dialogRetorno">
+      <q-card style="width: 720px; max-width: 96vw">
+        <q-card-section class="bg-deep-orange-7 text-white q-py-sm">
+          <div class="text-subtitle1 text-weight-bold">Retorno parcial · #{{ sel.id }}</div>
+          <div class="text-caption">
+            {{ sel.tipo_comprobante === 'FACTURA' ? 'La factura' : 'El voucher' }}
+            se anula y se emite otro con lo entregado
+          </div>
+        </q-card-section>
+
+        <q-card-section class="q-pa-none">
+          <q-markup-table dense flat wrap-cells>
+            <thead>
+            <tr class="bg-grey-2">
+              <th class="text-left">Producto</th>
+              <th class="text-right">Salió</th>
+              <th class="text-right" style="width: 110px">Entregado</th>
+              <th class="text-right" style="width: 100px">Importe</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr v-for="fila in retorno" :key="fila.cod_prod">
+              <td>
+                <div>{{ fila.nombre }}</div>
+                <div class="text-caption text-grey-7">{{ fila.cod_prod }}</div>
+              </td>
+              <td class="text-right">{{ cant(fila.original, fila.unidad) }}</td>
+              <td class="text-right">
+                <q-input
+                  v-model.number="fila.entregado" type="number" inputmode="decimal"
+                  dense outlined :min="0" :max="fila.original" step="0.001"
+                  :error="fila.entregado > fila.original"
+                />
+              </td>
+              <td class="text-right">{{ money(fila.entregado * fila.precio) }}</td>
+            </tr>
+            </tbody>
+          </q-markup-table>
+        </q-card-section>
+
+        <q-card-section class="q-py-sm">
+          <q-input
+            v-model.trim="observacionRetorno" dense outlined counter maxlength="200"
+            label="¿Por qué se devolvió?"
+          />
+          <div class="row q-mt-sm text-body2">
+            <div class="col">Nota original</div>
+            <div class="col-auto">Bs {{ money(sel.total) }}</div>
+          </div>
+          <div class="row text-body2 text-weight-bold">
+            <div class="col">Comprobante nuevo</div>
+            <div class="col-auto">Bs {{ money(totalRetorno) }}</div>
+          </div>
+          <div class="row text-body2 text-deep-orange-9">
+            <div class="col">Vuelve al almacén</div>
+            <div class="col-auto">Bs {{ money(sel.total - totalRetorno) }}</div>
+          </div>
+        </q-card-section>
+
+        <q-separator/>
+        <q-card-actions align="right" class="q-pa-sm">
+          <q-btn flat dense no-caps label="Cancelar" v-close-popup/>
+          <q-btn
+            color="deep-orange-7" dense unelevated no-caps
+            label="Anular y emitir el nuevo"
+            :disable="!retornoValido" :loading="retornando" @click="guardarRetorno"
+          />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
   </q-page>
 </template>
 
@@ -606,6 +718,11 @@ export default {
         { label: '4 - Sustitución de factura emitida en contingencia', value: 4 }
       ],
       anulando: false,
+      // Retorno parcial: una fila por producto con lo que el cliente sí recibió.
+      dialogRetorno: false,
+      retorno: [],
+      observacionRetorno: '',
+      retornando: false,
       imprimiendo: null,
       exportando: false,
       camiones: [],
@@ -641,6 +758,9 @@ export default {
         { name: 'placa', label: 'Camión', field: 'placa', align: 'left', format: v => v || '—' },
         // El visto bueno del caminero sobre la canasta de este comprobante.
         { name: 'carga', label: 'Carga', field: 'carga_estado', align: 'center' },
+        // Si el comprobante llego o no al cliente: lo marca el caminero al
+        // entregar, y es lo que caja mira para saber que quedo en la calle.
+        { name: 'entrega', label: 'Entrega', field: 'entrega_estado', align: 'center' },
         { name: 'tipo_pago', label: 'Pago', field: 'tipo_pago', align: 'center' },
         { name: 'estado', label: 'Estado', field: 'estado', align: 'center' },
         { name: 'siat', label: 'Estado SIAT', field: 'estado_siat', align: 'left' },
@@ -651,6 +771,24 @@ export default {
   computed: {
     can () {
       return this.$store.getters['login/can']
+    },
+    /** Lo que va a costar el comprobante nuevo. */
+    totalRetorno () {
+      return this.retorno.reduce(
+        (suma, fila) => suma + (Number(fila.entregado) || 0) * Number(fila.precio), 0
+      )
+    },
+    /**
+     * Hay retorno cuando se entregó algo, pero no todo: si no salió nada la
+     * anulación a secas es lo correcto, y si salió todo no hay nada que hacer.
+     */
+    retornoValido () {
+      if (this.retorno.some(f => Number(f.entregado) < 0 || Number(f.entregado) > f.original)) {
+        return false
+      }
+      const algo = this.retorno.some(f => Number(f.entregado) > 0)
+      const devuelto = this.retorno.some(f => Number(f.entregado) < f.original)
+      return algo && devuelto
     }
   },
   created () {
@@ -709,6 +847,30 @@ export default {
      * Como se pinta la canasta de un comprobante. Verificada es lo unico que
      * deja imprimir; lo demas dice por que todavia no.
      */
+    chipEntrega (estado) {
+      if (estado === 'ENTREGADO') return { color: 'green-7', icono: 'inventory', texto: 'Entregada' }
+      if (estado === 'NO ENTREGADO') return { color: 'red-7', icono: 'block', texto: 'No entregada' }
+      if (estado === 'RECHAZADO') return { color: 'deep-orange-9', icono: 'thumb_down', texto: 'Rechazada' }
+      return { color: 'blue-grey-5', icono: 'local_shipping', texto: 'En camión' }
+    },
+    detalleEntrega (row) {
+      if (row.entrega_estado === 'PENDIENTE') {
+        return 'Todavía va en el camión: el caminero no la marcó'
+      }
+
+      const cuando = row.entrega_fecha
+        ? ' el ' + this.verificadoEn(row.entrega_fecha + ' ' + (row.entrega_hora || '00:00:00'))
+        : ''
+
+      if (row.entrega_estado === 'ENTREGADO') {
+        const como = row.entrega_tipago ? ' · Cobrada por ' + row.entrega_tipago : ''
+        const monto = row.entrega_monto != null ? ' · Bs ' + this.money(row.entrega_monto) : ''
+        return 'Entregada' + cuando + como + monto
+      }
+
+      const motivo = row.entrega_observacion ? ' · ' + row.entrega_observacion : ''
+      return (row.entrega_estado === 'RECHAZADO' ? 'Rechazada' : 'No entregada') + cuando + motivo
+    },
     chipCarga (estado) {
       if (estado === 'VERIFICADA') return { color: 'green-7', icono: 'verified', texto: 'Verificada' }
       // Observada tambien esta revisada y no frena la impresion, pero se
@@ -1016,6 +1178,86 @@ export default {
       this.$api.get('facturacion/' + row.id)
         .then(res => { this.sel = res.data })
         .catch(() => {})
+    },
+
+    /**
+     * Abre el retorno parcial con todo marcado como entregado: el cajero solo
+     * baja lo que volvió, que es siempre menos que lo que salió.
+     */
+    async pedirRetorno (row) {
+      this.sel = row
+      this.observacionRetorno = ''
+      this.retorno = []
+
+      // El listado puede venir sin detalle; sin las líneas no hay retorno.
+      let factura = row
+      if (!row.detalles || !row.detalles.length) {
+        try {
+          const res = await this.$api.get('facturacion/' + row.id)
+          factura = res.data
+          this.sel = factura
+        } catch (err) {
+          this.avisar(err, 'No se pudo leer el detalle del comprobante')
+          return
+        }
+      }
+
+      this.retorno = (factura.detalles || []).map(d => {
+        // Lo que va por kilo se cobra por peso; el resto, por cantidad. Se
+        // edita el mismo número que factura la línea, no los dos.
+        const porPeso = Number(d.peso) > 0
+        const original = Number(porPeso ? d.peso : d.cantidad) || 0
+        return {
+          cod_prod: d.cod_prod,
+          nombre: d.nombre,
+          unidad: d.unidad,
+          porPeso,
+          cantidad: Number(d.cantidad) || 0,
+          precio: Number(d.precio) || 0,
+          original,
+          entregado: original
+        }
+      })
+
+      if (!this.retorno.length) {
+        this.avisar({}, 'El comprobante no tiene productos')
+        return
+      }
+
+      this.dialogRetorno = true
+    },
+
+    guardarRetorno () {
+      this.retornando = true
+
+      const items = this.retorno
+        .filter(fila => Number(fila.entregado) > 0)
+        .map(fila => ({
+          cod_prod: fila.cod_prod,
+          // En lo que va por kilo el número editado son los kilos; la cantidad
+          // de piezas se manda tal como salió, que es lo que subió al camión.
+          cantidad: fila.porPeso ? fila.cantidad : Number(fila.entregado),
+          peso: fila.porPeso ? Number(fila.entregado) : null
+        }))
+
+      this.$api.put('facturacion/' + this.sel.id + '/retorno-parcial', {
+        items,
+        codigo_motivo: 3,
+        observacion: this.observacionRetorno
+      })
+        .then(res => {
+          this.$q.notify({
+            message: res.data.message,
+            color: 'positive',
+            icon: 'check_circle',
+            position: 'top',
+            timeout: 6000
+          })
+          this.dialogRetorno = false
+          this.onRequest({ pagination: this.pagination })
+        })
+        .catch(err => { this.avisar(err, 'No se pudo registrar el retorno parcial') })
+        .finally(() => { this.retornando = false })
     },
 
     pedirAnulacion (row) {

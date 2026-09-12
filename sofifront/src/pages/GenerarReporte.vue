@@ -14,13 +14,13 @@
               <q-btn color="info" icon="search" label="Consultar" type="submit"/>
             </div>
             <div class="col-2 flex flex-center">
-              <q-btn color="green" icon="description" label="Pollo EXCEL" @click="exportPollo" dense/>
+              <q-btn color="green" icon="description" label="Pollo EXCEL" @click="abrirReporte('pollo')" dense/>
             </div>
             <div class="col-2 flex flex-center">
-              <q-btn color="accent" icon="description" label="Cerdo EXCEL" @click="exportCerdo" dense/>
+              <q-btn color="accent" icon="description" label="Cerdo EXCEL" @click="abrirReporte('cerdo')" dense/>
             </div>
             <div class="col-2 flex flex-center">
-              <q-btn color="orange-10" icon="description" label="Embut EXCEL" @click="exportEmbutido" dense/>
+              <q-btn color="orange-10" icon="description" label="Embut EXCEL" @click="abrirReporte('embutido')" dense/>
             </div>
           </div>
         </q-form>
@@ -36,7 +36,7 @@
           </template>
           <template v-slot:body-cell-excel="props">
             <q-td :props="props">
-              <q-btn color="green" icon="list" size="xs" label="Excel" @click="generarConsulta(props.row)"/>
+              <q-btn color="green" icon="list" size="xs" label="Excel" @click="abrirReporte('vendedor', props.row)"/>
             </q-td>
           </template>
           <template v-slot:body-cell-vendedor="props">
@@ -57,6 +57,23 @@
       <!--        <q-btn style="width: 100%" @click="expedidos" color="red" icon="download" label="importar pedidos"> </q-btn>-->
       <!--  </div>-->
     </div>
+    <q-dialog v-model="dialogReporte" :persistent="generandoReporte">
+      <q-card style="width: 440px; max-width: 95vw">
+        <q-card-section class="text-h6">Exportar reporte</q-card-section>
+        <q-card-section class="q-pt-none">
+          <div class="q-mb-md">{{ reporteSeleccionado.titulo }}</div>
+          <div class="row q-col-gutter-sm">
+            <q-input class="col-12 col-sm-6" v-model="fecha" type="date" outlined dense label="Desde" :disable="generandoReporte"/>
+            <q-input class="col-12 col-sm-6" v-model="fecha2" type="date" outlined dense label="Hasta" :disable="generandoReporte"/>
+          </div>
+          <div class="text-caption q-mt-md">El Excel incluye la zona del cliente.</div>
+        </q-card-section>
+        <q-card-actions align="right">
+          <q-btn flat label="Cancelar" v-close-popup :disable="generandoReporte"/>
+          <q-btn color="green" icon="download" label="Descargar Excel" :loading="generandoReporte" @click="descargarReporte"/>
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
   </q-page>
 </template>
 
@@ -72,6 +89,9 @@ export default {
       cliente3070: 'BAJAS POR CALIDAD',
       url: process.env.API,
       filter: '',
+      dialogReporte: false,
+      generandoReporte: false,
+      reporteSeleccionado: {},
       personales: [],
       pedPollo: [],
       pedCerdo: [],
@@ -89,6 +109,35 @@ export default {
     this.consultar()
   },
   methods: {
+    abrirReporte(tipo, vendedor = null) {
+      const titulos = { pollo: 'Pollo', cerdo: 'Cerdo', embutido: 'Embutidos' }
+      this.reporteSeleccionado = {
+        tipo,
+        vendedor,
+        titulo: vendedor ? 'Pedidos de ' + vendedor.vendedor : titulos[tipo]
+      }
+      this.dialogReporte = true
+    },
+    async descargarReporte() {
+      if (this.generandoReporte) return
+      if (!this.fecha || !this.fecha2 || this.fecha > this.fecha2) {
+        this.$q.notify({ message: 'Seleccione un rango de fechas v?lido.', color: 'negative' })
+        return
+      }
+      this.generandoReporte = true
+      try {
+        const { tipo, vendedor } = this.reporteSeleccionado
+        if (tipo === 'vendedor') await this.generarConsulta(vendedor)
+        else if (tipo === 'pollo') await this.exportPollo()
+        else if (tipo === 'cerdo') await this.exportCerdo()
+        else if (tipo === 'embutido') await this.exportEmbutido()
+        this.dialogReporte = false
+      } catch (error) {
+        this.$q.notify({ message: 'No se pudo generar el reporte. Intente nuevamente.', color: 'negative' })
+      } finally {
+        this.generandoReporte = false
+      }
+    },
     toNumber(value) {
       const parsed = parseFloat(value)
       return Number.isNaN(parsed) ? 0 : parsed
@@ -110,6 +159,7 @@ export default {
         Apm: '',
         Id: '',
         Nombres: 'TOTAL GENERAL',
+        zona: '',
         NroPed: '',
         cod_prod: '',
         Cant: '',
@@ -127,9 +177,9 @@ export default {
       return content
     },
     exportPollo() {
-      this.$q.loading.show()
 
-      this.$api.post('reportePollo2', {ini: this.fecha, fin: this.fecha2}).then(res => {
+
+      return this.$api.post('reportePollo2', {ini: this.fecha, fin: this.fecha2}).then(res => {
         if (res.data.length == 0) {
           this.$q.notify({
             message: 'No Ay pedido Pollo',
@@ -145,6 +195,8 @@ export default {
               {label: "preventista", value: "preventista"},
               // {label: "Cliente", value: "Nombres"},
               {label: "cliente", value: row => row.bonificacionId == null? row.Nombres : row.bonificacionId == 2728 ? this.cliente2728 : this.cliente3070},
+
+              {label: "Zona", value: row => row.zona ?? ''},
               {label: "fecha", value: "fecha"},
               {label: "Observaciones", value: "Observaciones"},
               {label: "producto", value: "producto"},
@@ -169,13 +221,13 @@ export default {
         xlsx(datacaja, settings) // Will download the excel file
 
       })
-      this.$q.loading.hide()
+
 
     },
     exportCerdo() {
-      this.$q.loading.show()
 
-      this.$api.post('reporteCerdoTodo', {ini: this.fecha, fin: this.fecha2}).then(res => {
+
+      return this.$api.post('reporteCerdoTodo', {ini: this.fecha, fin: this.fecha2}).then(res => {
         if (res.data.length == 0) {
           this.$q.notify({
             message: 'No Ay pedido Cerdo',
@@ -194,6 +246,8 @@ export default {
               {label: "CI/NIT", value: "Id"},
               // {label: "cliente", value: "Nombres"},
               {label: "cliente", value: row => row.bonificacionId == null? row.Nombres : row.bonificacionId == 2728 ? this.cliente2728 : this.cliente3070},
+
+              {label: "Zona", value: row => row.zona ?? ''},
               {label: "pfrial", value: "pfrial"},
               {label: "entero", value: "entero"},
               {label: "desmembre", value: "desmembre"},
@@ -219,13 +273,13 @@ export default {
         xlsx(datacaja, settings) // Will download the excel file
 
       })
-      this.$q.loading.hide()
+
 
     },
     exportEmbutido() {
-      this.$q.loading.show()
 
-      this.$api.post('reporteEmbutidoTodo', {ini: this.fecha, fin: this.fecha2}).then(res => {
+
+      return this.$api.post('reporteEmbutidoTodo', {ini: this.fecha, fin: this.fecha2}).then(res => {
         if (res.data.length == 0) {
           this.$q.notify({
             message: 'No Ay pedido Embutido',
@@ -243,6 +297,8 @@ export default {
               {label: "preventista", value: row => row.Nombre1 + ' ' + row.App1 + ' ' + row.Apm},
               {label: "CI/NIT", value: "Id"},
               {label: "cliente", value: "Nombres"},
+
+              {label: "Zona", value: row => row.zona ?? ''},
               {label: "NroPed", value: "NroPed"},
               {label: "cod_prod", value: "cod_prod"},
               //{label: "Cant", value: "Cant"}, converit en entero o cambiar el punto por coma
@@ -271,7 +327,7 @@ export default {
         xlsx(datacaja, settings) // Will download the excel file
 
       })
-      this.$q.loading.hide()
+
 
     },
     consultar() {
@@ -303,6 +359,8 @@ export default {
             {label: "CI/NIT", value: "Id"},
             // {label: "cliente", value: "Nombres"},
             {label: "cliente", value: row => row.bonificacionId == null? row.Nombres : row.bonificacionId == 2728 ? this.cliente2728 : this.cliente3070},
+
+            {label: "Zona", value: row => row.zona ?? ''},
             {label: "pfrial", value: "pfrial"},
             {label: "entero", value: "entero"},
             {label: "desmembre", value: "desmembre"},
@@ -324,6 +382,8 @@ export default {
             {label: "CI/NIT", value: "Id"},
             // {label: "cliente", value: "Nombres"},
             {label: "cliente", value: row => row.bonificacionId == null? row.Nombres : row.bonificacionId == 2728 ? this.cliente2728 : this.cliente3070},
+
+            {label: "Zona", value: row => row.zona ?? ''},
             {label: "NroPed", value: "NroPed"},
             {label: "cod_prod", value: "cod_prod"},
             {label: "Cant", value: row => row.Cant === '' ? '' : this.formatDecimal(row.Cant)},
@@ -348,6 +408,8 @@ export default {
             {label: "CI/NIT", value: "Id"},
             // {label: "cliente", value: "Nombres"},
             {label: "cliente", value: row => row.bonificacionId == null? row.Nombres : row.bonificacionId == 2728 ? this.cliente2728 : this.cliente3070},
+
+            {label: "Zona", value: row => row.zona ?? ''},
             {label: "cbrasa5", value: "cbrasa5"},
             {label: "ubrasa5", value: "ubrasa5"},
             {label: "cbrasa6", value: "cbrasa6"},

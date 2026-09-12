@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Controllers\Concerns\PapeleriaSofia;
 use App\Services\CargaCamion;
+use App\Services\RecojoDelDia;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\DB;
@@ -111,8 +112,36 @@ class CamineroController extends Controller
                 ->keyBy('factura_id');
         }
 
-        $lista = $facturas->map(function ($factura) use ($entregas) {
+        // Lo que va dentro de cada nota. En la puerta el cliente revisa bulto
+        // por bulto, asi que el caminero necesita ver el detalle sin salir de
+        // la pantalla; va en la misma respuesta y no en un endpoint aparte
+        // porque el camion trabaja con senal mala y una sola llamada le deja
+        // todo el reparto cargado.
+        $detalles = collect();
+        if ($facturas->isNotEmpty()) {
+            $detalles = DB::table('factura_detalles')
+                ->whereIn('factura_id', $facturas->pluck('factura_id')->all())
+                ->whereNull('deleted_at')
+                ->orderBy('id')
+                ->get(['factura_id', 'cod_prod', 'nombre', 'unidad',
+                    'cantidad', 'peso', 'precio', 'subtotal'])
+                ->groupBy('factura_id');
+        }
+
+        $lista = $facturas->map(function ($factura) use ($entregas, $detalles) {
             $entrega = $entregas->get($factura->factura_id);
+            $factura->detalles = ($detalles->get($factura->factura_id) ?? collect())
+                ->map(function ($linea) {
+                    return [
+                        'cod_prod' => trim((string) $linea->cod_prod),
+                        'nombre'   => trim((string) $linea->nombre),
+                        'unidad'   => trim((string) $linea->unidad),
+                        'cantidad' => (float) $linea->cantidad,
+                        'peso'     => (float) $linea->peso,
+                        'precio'   => (float) $linea->precio,
+                        'subtotal' => (float) $linea->subtotal,
+                    ];
+                })->values();
             $factura->total = (float) $factura->total;
             $factura->entrega_id = $entrega->id ?? null;
             $factura->entrega_estado = $entrega->estado ?? null;
@@ -308,8 +337,8 @@ class CamineroController extends Controller
     }
 
     /**
-     * El recojo del dia tal como se entrega en papel: contados, creditos, QR,
-     * mixtos y anulados, cada uno con sus notas y su total.
+     * El recojo del dia tal como se entrega en papel: contados, QR, creditos
+     * y anulados, cada uno con sus notas y su total.
      */
     public function reporte(Request $request)
     {
@@ -321,8 +350,11 @@ class CamineroController extends Controller
             return response()->json(['message' => 'Tu usuario no tiene un camión asignado'], 422);
         }
 
-        $filas = $this->filasDelDia($fecha, $placa);
-        $grupos = $this->agrupar($filas);
+        // El mismo servicio que usa cobranzas: la hoja que el caminero firma
+        // tiene que ser identica a la que despues le reclaman.
+        $recojo = new RecojoDelDia();
+        $filas = $recojo->filas($fecha, $placa);
+        $grupos = $recojo->agrupar($filas);
         $entregadas = $filas->where('estado', 'ENTREGADO');
 
         $usuario = $request->user();
@@ -332,82 +364,33 @@ class CamineroController extends Controller
             'placa' => $placa,
             'despachador' => trim($usuario->Nombre1 . ' ' . $usuario->App1),
             'grupos' => $grupos,
-            'totales' => $this->totales($grupos, $entregadas),
+            'totales' => $recojo->totales($grupos, $entregadas),
             'avance' => $this->avance($fecha, $placa, $filas),
         ];
     }
 
-    /** Lo que el caminero cerro ese dia con su camion. */
-    private function filasDelDia($fecha, $placa)
+    /**
+     * Las notas que dejaron plata por una via, con el monto de esa via y no el
+     * total del comprobante: del mixto se lleva su parte, y del contado corto
+     * lo que de verdad pago el cliente.
+     */
+    private function porVia($entregadas, string $columna)
     {
-        return DB::table('entregas as e')
-            ->leftJoin('tbclientes as c', 'c.Cod_Aut', '=', 'e.cliente_id')
-            ->where('e.fechaEntreg', $fecha)
-            ->where('e.placa', $placa)
-            ->orderBy('e.comanda')
-            ->get([
-                'e.id', 'e.comanda as nota', 'e.estado', 'e.tipago', 'e.hora',
-                DB::raw('COALESCE(e.monto, 0) as monto'),
-                DB::raw('COALESCE(e.monto_efectivo, 0) as monto_efectivo'),
-                DB::raw('COALESCE(e.monto_qr, 0) as monto_qr'),
-                DB::raw("TRIM(COALESCE(e.observacion, '')) as motivo"),
-                DB::raw("TRIM(COALESCE(c.Nombres, '')) as cliente"),
-            ])
-            ->map(function ($fila) {
-                $fila->monto = (float) $fila->monto;
-                $fila->monto_efectivo = (float) $fila->monto_efectivo;
-                $fila->monto_qr = (float) $fila->monto_qr;
-                // Las entregas de la ruta de siempre no traen desglose: se
-                // deduce del tipago para que el dinero cuadre igual. Solo el
-                // mixto necesita las columnas cargadas.
-                if ($fila->estado === 'ENTREGADO' && $fila->monto_efectivo == 0 && $fila->monto_qr == 0) {
-                    if ($fila->tipago === 'CONTADO') {
-                        $fila->monto_efectivo = $fila->monto;
-                    } elseif ($fila->tipago === 'PAGO QR') {
-                        $fila->monto_qr = $fila->monto;
-                    }
-                }
-                return $fila;
-            });
+        return $entregadas
+            ->filter(function ($fila) use ($columna) {
+                return $fila->{$columna} > 0;
+            })
+            ->map(function ($fila) use ($columna) {
+                // Copia propia: la fila del mixto va en las dos hojas y cada
+                // una muestra su monto.
+                $copia = clone $fila;
+                $copia->monto = round($fila->{$columna}, 2);
+
+                return $copia;
+            })
+            ->values();
     }
 
-    /** Las mismas hojas que hoy se entregan en papel, en el mismo orden. */
-    private function agrupar($filas): array
-    {
-        $entregadas = $filas->where('estado', 'ENTREGADO');
-
-        return [
-            'contados' => $entregadas->where('tipago', 'CONTADO')->values(),
-            'qr' => $entregadas->where('tipago', 'PAGO QR')->values(),
-            'mixtos' => $entregadas->where('tipago', 'MIXTO')->values(),
-            'creditos' => $entregadas->where('tipago', 'CRÉDITO')->values(),
-            'anulados' => $filas->where('estado', '<>', 'ENTREGADO')->values(),
-        ];
-    }
-
-    private function totales(array $grupos, $entregadas): array
-    {
-        return [
-            'contados' => round($grupos['contados']->sum('monto'), 2),
-            'qr' => round($grupos['qr']->sum('monto'), 2),
-            'mixtos' => round($grupos['mixtos']->sum('monto'), 2),
-            'creditos' => round($grupos['creditos']->sum('monto'), 2),
-            'anulados' => round($grupos['anulados']->sum('monto'), 2),
-            // Lo que el caminero rinde en caja al volver, ya separado por via:
-            // el mixto aporta a las dos.
-            'efectivo' => round($entregadas->sum('monto_efectivo'), 2),
-            'qr_cobrado' => round($entregadas->sum('monto_qr'), 2),
-        ];
-    }
-
-    /** Las hojas del recojo, una por forma de pago, como se entregan en papel. */
-    private const HOJAS = [
-        'contados' => 'CONTADOS DEL DÍA',
-        'qr' => 'PAGOS QR',
-        'mixtos' => 'MIXTOS',
-        'creditos' => 'CRÉDITOS',
-        'anulados' => 'ANULADOS',
-    ];
 
     /**
      * La hoja del recojo en PDF, con el mismo formato que la que hoy se
@@ -426,7 +409,7 @@ class CamineroController extends Controller
         $fecha = $datos['fecha'] ?? date('Y-m-d');
         $grupo = $datos['grupo'] ?? 'todos';
 
-        if ($grupo !== 'todos' && !isset(self::HOJAS[$grupo])) {
+        if ($grupo !== 'todos' && !isset(RecojoDelDia::HOJAS[$grupo])) {
             return response()->json(['message' => 'Esa hoja no existe'], 422);
         }
 
@@ -435,11 +418,12 @@ class CamineroController extends Controller
             return response()->json(['message' => 'Tu usuario no tiene un camión asignado'], 422);
         }
 
-        $filas = $this->filasDelDia($fecha, $placa);
-        $grupos = $this->agrupar($filas);
+        $recojo = new RecojoDelDia();
+        $filas = $recojo->filas($fecha, $placa);
+        $grupos = $recojo->agrupar($filas);
         $caminero = $this->nombre($request);
 
-        $claves = $grupo === 'todos' ? array_keys(self::HOJAS) : [$grupo];
+        $claves = $grupo === 'todos' ? array_keys(RecojoDelDia::HOJAS) : [$grupo];
         $hojas = [];
 
         foreach ($claves as $clave) {
@@ -449,8 +433,8 @@ class CamineroController extends Controller
                 continue;
             }
 
-            $hojas[] = $this->hojaHtml(
-                self::HOJAS[$clave], $clave, $fecha, $caminero, $placa, $grupos[$clave]
+            $hojas[] = $recojo->hojaHtml(
+                RecojoDelDia::HOJAS[$clave], $clave, $fecha, $caminero, $placa, $grupos[$clave]
             );
         }
 
@@ -462,99 +446,6 @@ class CamineroController extends Controller
             implode("<div style='page-break-after: always'></div>", $hojas),
             ($grupo === 'todos' ? 'recojo' : $grupo) . '_' . $fecha
         );
-    }
-
-    /**
-     * Una hoja del recojo, con el mismo formato que la boleta de entrega: la
-     * cabecera de la casa, la grilla oscura del detalle y el total en barra.
-     *
-     * Al pie va la firma, que es lo que hace que caja pueda reclamarle al
-     * caminero por lo que declaro haber cobrado.
-     */
-    private function hojaHtml($titulo, $clave, $fecha, $caminero, $placa, $filas)
-    {
-        $anulados = $clave === 'anulados';
-        $cuerpo = '';
-
-        foreach ($filas as $i => $fila) {
-            $par = $i % 2 ? " class='par'" : '';
-
-            $cuerpo .= "<tr$par>"
-                . "<td class='c gris'>" . ($i + 1) . '</td>'
-                . "<td class='c nota'>" . e($fila->nota) . '</td>'
-                . '<td>' . e($fila->cliente ?: 'SIN CLIENTE') . '</td>'
-                . ($anulados ? "<td class='cod'>" . e($fila->motivo) . '</td>' : '')
-                . "<td class='r'><b>" . number_format($fila->monto, 2) . '</b></td>'
-                . '</tr>';
-        }
-
-        if (!$cuerpo) {
-            $cuerpo = "<tr><td colspan='" . ($anulados ? 5 : 4) . "' class='c gris'"
-                . " style='padding:16px'>Sin notas en esta hoja</td></tr>";
-        }
-
-        // La caja roja de la derecha, igual que el "BOLETA DE ENTREGA" del
-        // voucher: dice que hoja es, de que dia y de que camion.
-        $caja = "<table class='caja-doc'>
-            <tr><td colspan='2' class='tit'>" . e($titulo) . "</td></tr>
-            <tr><td class='et'>Fecha</td><td class='r'>" . date('d/m/Y', strtotime($fecha)) . "</td></tr>
-            <tr><td class='et'>Camión</td><td class='r'><b>" . e($placa) . "</b></td></tr>
-            <tr><td class='et'>Notas</td><td class='r nro'>" . $filas->count() . "</td></tr>
-        </table>";
-
-        return '<style>' . $this->estilosImpresion() . "
-            .firma { margin-top: 52px; text-align: center; font-size: 9px; color: #666 }
-            .firma-linea { border-top: 1px solid #999; width: 62mm; margin: 0 auto 3px }
-            .firma b { color: #222; font-size: 10px }
-            .nota { color: #1a5fb4; font-weight: bold; font-size: 9px }
-        </style>"
-        . $this->cabeceraEmisor($caja)
-        . "<table class='datos'>
-            <tr>
-                <td style='width:55%'><span class='et'>Caminero</span><br><b>"
-                    . e($caminero) . "</b></td>
-                <td><span class='et'>Día del recojo</span><br>"
-                    . $this->fechaLarga($fecha) . "</td>
-            </tr>
-        </table>
-        <table class='detalle'>
-            <thead><tr>
-                <th style='width:28px'>N°</th>
-                <th style='width:64px'>Nota</th>
-                <th style='text-align:left'>Nombre del cliente</th>"
-                . ($anulados ? "<th style='width:170px;text-align:left'>Motivo</th>" : '') . "
-                <th style='width:78px' class='r'>Monto Bs.</th>
-            </tr></thead>
-            <tbody>$cuerpo</tbody>
-        </table>
-        <table class='totales' style='margin-top:9px'>
-            <tr class='final'>
-                <td>TOTAL " . e($titulo) . "</td>
-                <td class='r' style='width:120px'>Bs. "
-                    . number_format($filas->sum('monto'), 2) . "</td>
-            </tr>
-        </table>
-        <div class='firma'>
-            <div class='firma-linea'></div>
-            <b>" . e($caminero) . "</b><br>Firma del caminero
-        </div>
-        <div class='pie'><div class='legal'>"
-            . e(config('siat.emisor')['nombre']) . ' &middot; ' . e($titulo)
-            . ' del ' . date('d/m/Y', strtotime($fecha)) . ' &middot; camión ' . e($placa)
-            . ' &middot; generado el ' . date('d/m/Y H:i') . "</div></div>";
-    }
-
-    /** SÁBADO, 29 DE AGOSTO DE 2026: como sale en la hoja de papel. */
-    private function fechaLarga($fecha)
-    {
-        $dias = ['DOMINGO', 'LUNES', 'MARTES', 'MIÉRCOLES', 'JUEVES', 'VIERNES', 'SÁBADO'];
-        $meses = ['ENERO', 'FEBRERO', 'MARZO', 'ABRIL', 'MAYO', 'JUNIO', 'JULIO',
-            'AGOSTO', 'SEPTIEMBRE', 'OCTUBRE', 'NOVIEMBRE', 'DICIEMBRE'];
-
-        $tiempo = strtotime($fecha);
-
-        return $dias[(int) date('w', $tiempo)] . ', ' . (int) date('j', $tiempo)
-            . ' DE ' . $meses[(int) date('n', $tiempo) - 1] . ' DE ' . date('Y', $tiempo);
     }
 
     /**

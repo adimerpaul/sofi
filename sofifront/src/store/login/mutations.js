@@ -5,6 +5,10 @@ export function someMutation (state) {
 export function auth_request(state){
   state.status = 'loading'
 }
+export function actualizarPermisos(state, permisos) {
+  state.permisos = permisos || []
+  state.user = { ...state.user, permisos: state.permisos }
+}
 export function auth_success(state, data){
   state.status = 'success'
   state.token = data.token

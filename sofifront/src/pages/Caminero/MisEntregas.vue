@@ -250,6 +250,17 @@
                         Pedido #{{ props.row.nro_pedido }} ·
                         {{ props.row.tipo_comprobante }} #{{ props.row.factura_id }}
                       </div>
+                      <!-- En la puerta el cliente revisa bulto por bulto: el
+                           detalle se abre aca mismo, sin ir al comprobante. -->
+                      <div
+                        v-if="props.row.detalles && props.row.detalles.length"
+                        class="text-caption text-primary linea-detalle"
+                        @click.stop="verDetalle(props.row)"
+                      >
+                        <q-icon :name="detalleAbierto[props.row.factura_id] ? 'expand_less' : 'expand_more'" size="14px"/>
+                        {{ props.row.detalles.length }}
+                        {{ props.row.detalles.length === 1 ? 'producto' : 'productos' }}
+                      </div>
                     </div>
                     <div class="text-subtitle2 text-weight-bolder q-mx-xs">
                       Bs {{ money(props.row.total) }}
@@ -267,6 +278,14 @@
                       color="green-8" :href="'tel:' + props.row.telefono"
                     />
                   </div>
+
+                  <table v-if="detalleAbierto[props.row.factura_id]" class="tabla-detalle">
+                    <tr v-for="(item, i) in props.row.detalles" :key="i">
+                      <td class="det-cant">{{ cantidadTexto(item) }}</td>
+                      <td class="det-nombre">{{ item.nombre }}</td>
+                      <td class="det-monto">{{ money(item.subtotal) }}</td>
+                    </tr>
+                  </table>
 
                   <div v-if="props.row.cobrada" class="text-caption text-green-9">
                     <q-icon name="task_alt" size="14px"/>
@@ -362,6 +381,22 @@
                     Pedido #{{ props.row.nro_pedido }} ·
                     {{ props.row.tipo_comprobante }} #{{ props.row.factura_id }}
                   </div>
+                  <div
+                    v-if="props.row.detalles && props.row.detalles.length"
+                    class="text-caption text-primary linea-detalle"
+                    @click.stop="verDetalle(props.row)"
+                  >
+                    <q-icon :name="detalleAbierto[props.row.factura_id] ? 'expand_less' : 'expand_more'" size="14px"/>
+                    {{ props.row.detalles.length }}
+                    {{ props.row.detalles.length === 1 ? 'producto' : 'productos' }}
+                  </div>
+                  <table v-if="detalleAbierto[props.row.factura_id]" class="tabla-detalle">
+                    <tr v-for="(item, i) in props.row.detalles" :key="i">
+                      <td class="det-cant">{{ cantidadTexto(item) }}</td>
+                      <td class="det-nombre">{{ item.nombre }}</td>
+                      <td class="det-monto">{{ money(item.subtotal) }}</td>
+                    </tr>
+                  </table>
                 </q-td>
 
                 <!-- El recojo se hace aca mismo: la nota dice 106.70 pero el
@@ -621,6 +656,8 @@ export default {
       puntoIds: [],
       // Lo que se esta por cobrar en cada fila, por factura_id.
       cobros: {},
+      // Qué notas tienen el detalle de productos desplegado, por factura_id.
+      detalleAbierto: {},
       // Sin crédito: no lo elige el caminero, ya viene decidido en la venta.
       formasPago: [
         { label: 'Efectivo', value: 'CONTADO' },
@@ -784,6 +821,35 @@ export default {
     },
     cantidad (valor) {
       return Number(valor || 0).toLocaleString('es-BO', { maximumFractionDigits: 3 })
+    },
+    /** Abre o cierra el detalle de productos de una nota. */
+    verDetalle (entrega) {
+      const id = entrega.factura_id
+      // Reasignar el objeto entero y no una clave suelta: así la tarjeta del
+      // celular, que Quasar rearma al desplegar, se entera del cambio.
+      this.detalleAbierto = {
+        ...this.detalleAbierto,
+        [id]: !this.detalleAbierto[id]
+      }
+    },
+    /**
+     * La cantidad como la cuenta el caminero en la puerta.
+     *
+     * En lo que va por peso la nota lleva dos numeros distintos: las piezas
+     * que se cargan (2 barras de jamon) y los kilos que se cobran (8.8). El
+     * caminero cuenta las piezas y el cliente reclama por los kilos, asi que
+     * cuando no coinciden van los dos.
+     */
+    cantidadTexto (item) {
+      const peso = Number(item.peso) || 0
+      const cant = Number(item.cantidad) || 0
+
+      if (peso > 0 && Math.abs(peso - cant) > 0.001) {
+        return this.cantidad(cant) + ' × ' + this.cantidad(peso) + ' kg'
+      }
+      if (peso > 0) return this.cantidad(peso) + ' kg'
+
+      return this.cantidad(cant) + (item.unidad ? ' ' + item.unidad : '')
     },
     /** Una nota cerrada: ya se cobró o quedó como no entregada. */
     cerrada (entrega) {
@@ -1335,6 +1401,37 @@ export default {
 .linea-pie {
   font-size: 10px;
   color: #78909c;
+}
+/* El detalle se revisa parado al lado del camion: letra chica pero con las
+   cantidades alineadas a la derecha, que es como se cuentan los bultos. */
+.linea-detalle {
+  cursor: pointer;
+  user-select: none;
+}
+.tabla-detalle {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 3px;
+  font-size: 11px;
+}
+.tabla-detalle td {
+  padding: 2px 4px;
+  border-top: 1px solid #eceff1;
+  color: #37474f;
+}
+.det-cant {
+  width: 62px;
+  text-align: right;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.det-nombre {
+  word-break: break-word;
+}
+.det-monto {
+  width: 62px;
+  text-align: right;
+  white-space: nowrap;
 }
 .monto {
   font-size: 14px;

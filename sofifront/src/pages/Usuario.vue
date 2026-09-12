@@ -56,15 +56,16 @@
             PERMISOS
             <span class="text-weight-regular text-grey">— los "por rol" se quitan desmarcando el rol</span>
           </div>
+          <q-input v-model="filtroPermisos" outlined dense clearable placeholder="Buscar permiso: Cobrar, créditos, camiones..." class="q-my-sm"/>
           <div class="row">
-            <div class="col-6 col-sm-4 col-md-3" v-for="p in permisos" :key="p">
+            <div class="col-6 col-sm-4 col-md-3" v-for="p in permisosFiltrados" :key="p">
               <q-checkbox
                 size="xs"
                 dense
                 :model-value="porRol(p) || permisosUsuario.includes(p)"
                 :disable="porRol(p)"
                 @update:model-value="togglePermiso(p, $event)"
-                :label="p"
+                :label="nombrePermiso(p)"
                 class="texto-check"
               >
                 <q-badge v-if="porRol(p)" outline color="grey" class="q-ml-xs badge-rol">rol</q-badge>
@@ -90,6 +91,7 @@ export default {
   data() {
     return {
       filter: '',
+      filtroPermisos: '',
       usuarios: [],
       usuario: null,
       roles: [],
@@ -100,6 +102,11 @@ export default {
     }
   },
   computed: {
+    permisosFiltrados() {
+      const normalizar = texto => texto.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
+      const filtro = normalizar((this.filtroPermisos || '').trim())
+      return this.permisos.filter(p => normalizar(p + ' ' + this.nombrePermiso(p)).includes(filtro))
+    },
     usuariosFiltrados() {
       const f = (this.filter || '').toLowerCase().trim()
       if (f === '') return this.usuarios
@@ -113,6 +120,15 @@ export default {
     this.cargar()
   },
   methods: {
+    nombrePermiso(p) {
+      const nombres = {
+        cobranzasrecojo: 'Cobrar — Todos los camiones, créditos y deudas',
+        misentregasreporte: 'Mi reporte de entregas (caminero)',
+        misentregas: 'Mis entregas (caminero)',
+        cargacamion: 'Verificar carga (caminero)'
+      }
+      return nombres[p] || p
+    },
     nombreCompleto(u) {
       return [u.Nombre1, u.Nombre2, u.App1, u.Apm]
         .map(x => (x || '').trim())
@@ -173,6 +189,9 @@ export default {
         this.rolesUsuario = res.data.roles
         this.permisosUsuario = res.data.permisos
         this.$q.notify({ type: 'positive', message: 'Permisos actualizados' })
+        if (String(this.usuario.CodAut) === String(this.$store.getters['login/user'].CodAut)) {
+          this.$store.commit('login/actualizarPermisos', res.data.efectivos)
+        }
       }).catch(() => {
         this.$q.notify({ type: 'negative', message: 'Error al guardar los permisos' })
       }).finally(() => {
