@@ -16,17 +16,22 @@ class ProductoController extends Controller{
     public function index(){
 //        return DB::SELECT("SELECT p.cod_prod,p.Producto,p.Precio,p.codUnid,p.tipo, (select (SUM(s.cant)-SUM(s.saldo)) from tbstock s where s.cod_prod=p.cod_prod group by p.cod_prod) as cantidad from tbproductos p");
         $productos = Producto::select([
-            'cod_prod',
-            'Producto',
+            DB::raw('TRIM(cod_prod) as cod_prod'),
+            DB::raw('TRIM(Producto) as Producto'),
             'Precio',
             // Los otros 12 precios de la lista: el pedido en Visita deja elegir
             // cualquiera de ellos en vez de escribir el monto a mano.
             'Precio_Costo',
             'Precio3', 'Precio4', 'Precio5', 'Precio6', 'Precio7', 'Precio8',
             'Precio9', 'Precio10', 'Precio11', 'Precio12', 'Precio13',
-            'codUnid',
+            // Precio por unidad de los productos que se piden por bulto pero se
+            // cobran por peso: en cero, el pedido multiplica por Precio como siempre.
+            'precioAprox',
+            DB::raw('TRIM(codUnid) as codUnid'),
             'tipo',
             'trozado',
+            // Miniatura para el buscador de productos del pedido.
+            'imagen',
             DB::raw('(SELECT SUM(s.cant - s.saldo) FROM tbstock s WHERE s.cod_prod = tbproductos.cod_prod) as cantidad')
         ])
 //            que no tena el texto inactivo
@@ -43,6 +48,7 @@ class ProductoController extends Controller{
     /** Campos editables que son numericos; el resto se trata como texto. */
     private const CAMPOS_NUMERICOS = [
         'Precio', 'Precio_Costo', 'Precio3', 'Precio4', 'Precio5', 'Precio6',
+        'precioAprox',
     ];
 
     /**
@@ -113,6 +119,9 @@ class ProductoController extends Controller{
             'Precio4'      => 'nullable|numeric|min:0',
             'Precio5'      => 'nullable|numeric|min:0',
             'Precio6'      => 'nullable|numeric|min:0',
+            // Precio referencial que se muestra al vendedor; la columna es
+            // decimal(10,3) y admite 0 como "sin referencia".
+            'precioAprox'  => 'nullable|numeric|min:0',
             // El formulario manda un check; en la tabla se guarda 'SI' o 'NO'.
             'trozado'      => 'nullable|boolean',
         ]);
@@ -157,6 +166,111 @@ class ProductoController extends Controller{
         ]);
     }
 
+    /**
+     * Valores de las columnas legadas de tbproductos que la pantalla no pide.
+     *
+     * tbproductos viene del sistema viejo: casi todas sus columnas son NOT NULL
+     * y sin default, asi que un INSERT que no las mande falla. Estos son los
+     * mismos valores que llevan las altas hechas desde el sistema de escritorio.
+     */
+    private const DEFECTOS_ALTA = [
+        'cod_pdr'      => '',
+        'TipPro'       => 'PF',
+        'Precio7'      => 0, 'Precio8'  => 0, 'Precio9'  => 0, 'Precio10' => 0,
+        'Precio11'     => 0, 'Precio12' => 0, 'Precio13' => 0,
+        'PreCosto'     => 0,
+        'stock'        => 'S',
+        'Imprime'      => 'CUENTAS',
+        'UnidCja'      => 0,
+        'CantPren'     => 1,
+        'Peso'         => 0,
+        'codProdSin'   => '99100',
+        'pqsiramento'  => '',
+        'codgruppasin' => '463040',
+        'credit'       => 0,
+    ];
+
+    /**
+     * Da de alta un producto.
+     *
+     * El codigo lo puede escribir el usuario; si lo deja vacio se asigna el
+     * siguiente numero libre. No se toca tbstock: el producto nace sin stock y
+     * entra por los movimientos normales de almacen.
+     */
+    public function crear(Request $request)
+    {
+        $datos = $request->validate([
+            'cod_prod'     => 'nullable|string|max:25',
+            'Producto'     => 'required|string|max:105',
+            'Nomcomer'     => 'nullable|string|max:190',
+            'cod_grup'     => 'required|string|max:25',
+            'codUnid'      => 'required|string|max:15',
+            'tipo'         => 'nullable|string|max:255',
+            'Precio'       => 'nullable|numeric|min:0',
+            'Precio_Costo' => 'nullable|numeric|min:0',
+            'Precio3'      => 'nullable|numeric|min:0',
+            'Precio4'      => 'nullable|numeric|min:0',
+            'Precio5'      => 'nullable|numeric|min:0',
+            'Precio6'      => 'nullable|numeric|min:0',
+            'precioAprox'  => 'nullable|numeric|min:0',
+            'trozado'      => 'nullable|boolean',
+        ]);
+
+        $grupo = trim((string) $datos['cod_grup']);
+        $existeGrupo = DB::table('tbgrupos')->whereRaw('TRIM(Cod_grup) = ?', [$grupo])->exists();
+        if (!$existeGrupo) {
+            return response()->json(['message' => 'El grupo ' . $grupo . ' no existe'], 422);
+        }
+
+        $codProd = trim((string) ($datos['cod_prod'] ?? ''));
+        if ($codProd === '') {
+            $codProd = $this->siguienteCodigo();
+        } elseif (Producto::whereRaw('TRIM(cod_prod) = ?', [$codProd])->exists()) {
+            return response()->json(['message' => 'Ya existe un producto con el código ' . $codProd], 422);
+        }
+
+        $producto = new Producto();
+        foreach (self::DEFECTOS_ALTA as $campo => $valor) {
+            $producto->$campo = $valor;
+        }
+
+        $producto->cod_prod = $codProd;
+        $producto->cod_grup = $grupo;
+        $producto->Producto = trim((string) $datos['Producto']);
+        // Nomcomer y tipo son NOT NULL: un campo vacio del formulario llega
+        // como null (ConvertEmptyStringsToNull) y hay que bajarlo a cadena.
+        $producto->Nomcomer = trim((string) ($datos['Nomcomer'] ?? ''));
+        $producto->codUnid = trim((string) $datos['codUnid']);
+        $producto->tipo = trim((string) ($datos['tipo'] ?? '')) ?: 'NORMAL';
+        $producto->trozado = $request->boolean('trozado') ? 'SI' : 'NO';
+
+        foreach (self::CAMPOS_NUMERICOS as $campo) {
+            $producto->$campo = round((float) ($datos[$campo] ?? 0), 3);
+        }
+
+        $producto->save();
+
+        return response()->json([
+            'message'  => 'Producto creado',
+            'producto' => $producto->fresh(),
+        ], 201);
+    }
+
+    /**
+     * Siguiente codigo libre, cuando el usuario no escribe uno.
+     *
+     * Hay codigos no numericos en la tabla (los viejos con letras); se ignoran
+     * para el calculo y solo se mira el mayor numero usado.
+     */
+    private function siguienteCodigo()
+    {
+        $maximo = (int) DB::table('tbproductos')
+            ->whereRaw("TRIM(cod_prod) REGEXP '^[0-9]+$'")
+            ->max(DB::raw('CAST(TRIM(cod_prod) AS UNSIGNED)'));
+
+        return (string) ($maximo + 1);
+    }
+
     /** Quita la foto del producto y la borra del disco. */
     public function quitarImagen($codProd)
     {
@@ -194,6 +308,7 @@ class ProductoController extends Controller{
         'grupo'    => 'grupo',
         'codUnid'  => 'p.codUnid',
         'Precio'   => 'p.Precio',
+        'precioAprox' => 'p.precioAprox',
         'PreCosto' => 'p.PreCosto',
         'cantidad' => 'cantidad',
     ];
@@ -249,6 +364,7 @@ class ProductoController extends Controller{
                 'p.Precio', 'p.Precio_Costo', 'p.Precio3', 'p.Precio4', 'p.Precio5',
                 'p.Precio6', 'p.Precio7', 'p.Precio8', 'p.Precio9', 'p.Precio10',
                 'p.Precio11', 'p.Precio12', 'p.Precio13', 'p.PreCosto',
+                'p.precioAprox',
                 'p.imagen',
                 // Bandera de texto: la pantalla la maneja como check.
                 DB::raw("UPPER(TRIM(COALESCE(p.trozado, 'NO'))) as trozado"),

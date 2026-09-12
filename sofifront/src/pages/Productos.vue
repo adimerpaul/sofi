@@ -10,6 +10,12 @@
           <span class="text-caption">Resultados:</span>&nbsp;<b>{{ pagination.rowsNumber }}</b>
         </q-chip>
       </div>
+      <div class="col-auto">
+        <q-btn
+          dense unelevated no-caps color="primary" icon="add"
+          label="Nuevo producto" @click="abrirCreacion"
+        />
+      </div>
     </div>
 
     <q-card flat bordered class="q-pa-sm q-mb-md">
@@ -206,13 +212,20 @@
     <q-dialog v-model="dialogEditar">
       <q-card style="width: 640px; max-width: 96vw">
         <q-card-section class="bg-primary text-white q-py-sm">
-          <div class="text-subtitle1 text-weight-bold">Actualizar producto</div>
-          <div class="text-caption">{{ edicion.cod_prod }}</div>
+          <div class="text-subtitle1 text-weight-bold">{{ creando ? 'Nuevo producto' : 'Actualizar producto' }}</div>
+          <div class="text-caption">{{ creando ? 'Se da de alta sin stock' : edicion.cod_prod }}</div>
         </q-card-section>
 
         <q-card-section class="row q-col-gutter-sm">
+          <!-- El codigo solo se elige al dar de alta: cambiarlo despues dejaria
+               huerfanas las lineas de tbventas que lo referencian. -->
           <q-input
-            v-model.trim="edicion.Producto" outlined dense class="col-12"
+            v-if="creando"
+            v-model.trim="edicion.cod_prod" outlined dense class="col-12 col-sm-4"
+            label="Código" hint="Vacío = se asigna el siguiente"
+          />
+          <q-input
+            v-model.trim="edicion.Producto" outlined dense :class="creando ? 'col-12 col-sm-8' : 'col-12'"
             label="Producto" :rules="[v => !!v || 'El nombre es obligatorio']"
           />
           <q-input v-model.trim="edicion.Nomcomer" outlined dense class="col-12" label="Nombre comercial"/>
@@ -220,12 +233,12 @@
           <q-select
             v-model="edicion.cod_grup" outlined dense clearable emit-value map-options
             use-input fill-input hide-selected input-debounce="0"
-            class="col-12 col-sm-6" label="Grupo"
+            class="col-12 col-sm-6" :label="creando ? 'Grupo *' : 'Grupo'"
             :options="gruposFiltrados" @filter="filtrarGrupos"
           />
           <q-select
             v-model="edicion.codUnid" outlined dense clearable
-            class="col-6 col-sm-3" label="Unidad" :options="unidades"
+            class="col-6 col-sm-3" :label="creando ? 'Unidad *' : 'Unidad'" :options="unidades"
           />
           <q-input v-model.trim="edicion.tipo" outlined dense class="col-6 col-sm-3" label="Tipo"/>
 
@@ -235,6 +248,7 @@
 
           <q-input v-model.number="edicion.Precio" outlined dense type="number" step="0.01" min="0" class="col-6 col-sm-4" label="Precio" prefix="Bs"/>
           <q-input v-model.number="edicion.Precio_Costo" outlined dense type="number" step="0.01" min="0" class="col-6 col-sm-4" label="Precio costo" prefix="Bs"/>
+          <q-input v-model.number="edicion.precioAprox" outlined dense type="number" step="0.01" min="0" class="col-6 col-sm-4" label="Precio aprox." prefix="Bs"/>
           <q-input v-model.number="edicion.Precio3" outlined dense type="number" step="0.01" min="0" class="col-6 col-sm-4" label="Precio 3" prefix="Bs"/>
           <q-input v-model.number="edicion.Precio4" outlined dense type="number" step="0.01" min="0" class="col-6 col-sm-4" label="Precio 4" prefix="Bs"/>
           <q-input v-model.number="edicion.Precio5" outlined dense type="number" step="0.01" min="0" class="col-6 col-sm-4" label="Precio 5" prefix="Bs"/>
@@ -246,7 +260,8 @@
           <q-btn flat dense no-caps label="Cancelar" v-close-popup/>
           <q-btn
             color="positive" dense unelevated no-caps icon="save" label="Guardar"
-            :disable="!edicion.Producto" :loading="guardando" @click="guardarEdicion"
+            :disable="!edicion.Producto || (creando && (!edicion.cod_grup || !edicion.codUnid))"
+            :loading="guardando" @click="guardarEdicion"
           />
         </q-card-actions>
       </q-card>
@@ -279,13 +294,15 @@ export default {
       },
       // Precio3..Precio13 quedan ocultas por defecto: son 11 columnas que
       // hacen ilegible la tabla, pero el usuario puede activarlas.
-      visibleColumns: ['acciones', 'imagen', 'cod_prod', 'Producto', 'grupo', 'codUnid', 'trozado', 'Precio', 'Precio_Costo', 'cantidad'],
+      visibleColumns: ['acciones', 'imagen', 'cod_prod', 'Producto', 'grupo', 'codUnid', 'trozado', 'Precio', 'Precio_Costo', 'precioAprox', 'cantidad'],
       // Producto cuya foto se está subiendo, para el spinner de la miniatura.
       subiendo: null,
       productoImagen: null,
       // Fila sobre la que se está arrastrando una imagen.
       arrastrando: null,
       dialogEditar: false,
+      // El mismo diálogo sirve para alta y edición; esto decide cuál.
+      creando: false,
       guardando: false,
       edicion: {},
       // Fila de la tabla que se está editando, para refrescarla al guardar.
@@ -302,6 +319,7 @@ export default {
         { name: 'trozado', label: 'Trozado', field: 'trozado', align: 'center' },
         { name: 'Precio', label: 'Precio', field: 'Precio', align: 'right', sortable: true, format: v => Number(v || 0).toFixed(2) },
         { name: 'Precio_Costo', label: 'P. Costo', field: 'Precio_Costo', align: 'right', format: v => Number(v || 0).toFixed(2) },
+        { name: 'precioAprox', label: 'P. Aprox.', field: 'precioAprox', align: 'right', sortable: true, format: v => Number(v || 0).toFixed(2) },
         { name: 'PreCosto', label: 'PreCosto', field: 'PreCosto', align: 'right', sortable: true, format: v => Number(v || 0).toFixed(2) },
         { name: 'cantidad', label: 'Stock', field: 'cantidad', align: 'right', sortable: true }
       ]
@@ -471,6 +489,31 @@ export default {
       })
     },
 
+    abrirCreacion () {
+      // Mismos campos que la edición, en blanco. El código puede quedar vacío:
+      // el backend asigna el siguiente libre.
+      this.edicion = {
+        cod_prod: '',
+        Producto: '',
+        Nomcomer: '',
+        cod_grup: this.filtros.grupo || '',
+        codUnid: this.filtros.unidad || '',
+        tipo: 'NORMAL',
+        Precio: 0,
+        Precio_Costo: 0,
+        precioAprox: 0,
+        Precio3: 0,
+        Precio4: 0,
+        Precio5: 0,
+        Precio6: 0,
+        trozado: false
+      }
+      this.filaEditada = null
+      this.gruposFiltrados = this.grupos
+      this.creando = true
+      this.dialogEditar = true
+    },
+
     abrirEdicion (row) {
       // Se edita una copia: si cancela, la fila de la tabla queda intacta.
       // Los textos van con '' y no null: las columnas de tbproductos son
@@ -484,6 +527,7 @@ export default {
         tipo: row.tipo || '',
         Precio: Number(row.Precio) || 0,
         Precio_Costo: Number(row.Precio_Costo) || 0,
+        precioAprox: Number(row.precioAprox) || 0,
         Precio3: Number(row.Precio3) || 0,
         Precio4: Number(row.Precio4) || 0,
         Precio5: Number(row.Precio5) || 0,
@@ -493,6 +537,7 @@ export default {
       }
       this.filaEditada = row
       this.gruposFiltrados = this.grupos
+      this.creando = false
       this.dialogEditar = true
     },
 
@@ -508,7 +553,11 @@ export default {
     guardarEdicion () {
       this.guardando = true
 
-      this.$api.put('productos/' + encodeURIComponent(this.edicion.cod_prod), this.edicion)
+      const peticion = this.creando
+        ? this.$api.post('productos', this.edicion)
+        : this.$api.put('productos/' + encodeURIComponent(this.edicion.cod_prod), this.edicion)
+
+      peticion
         .then(res => {
           this.$q.notify({
             message: res.data.message,
@@ -521,8 +570,12 @@ export default {
           // join y el stock de tbstock, asi que copiar solo los campos
           // editados dejaba la tabla mostrando el grupo anterior.
           this.onRequest({ pagination: this.pagination })
+          // Un grupo o una unidad nuevos tienen que aparecer en los filtros.
+          if (this.creando) this.cargarFiltros()
         })
-        .catch(err => { this.avisarError(err, 'No se pudo actualizar el producto') })
+        .catch(err => {
+          this.avisarError(err, this.creando ? 'No se pudo crear el producto' : 'No se pudo actualizar el producto')
+        })
         .finally(() => { this.guardando = false })
     },
 

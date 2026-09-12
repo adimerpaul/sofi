@@ -322,12 +322,48 @@
         <q-card-section class="q-pt-none">
           <div class="row">
             <div class="col-10">
-              <q-select label="Productos" dense outlined class="q-ma-xs" use-input input-debounce="0" @filter="filterFn"
-                        :options="productos" v-model="producto">
+              <q-select label="Producto" dense outlined class="q-ma-xs" use-input input-debounce="0"
+                        @filter="filterFn" :options="productos" v-model="producto"
+                        hide-selected fill-input options-dense
+                        popup-content-class="lista-productos" @keyup.enter="agregarpedido">
+                <template v-slot:prepend>
+                  <q-icon name="search" size="18px"/>
+                </template>
+                <!-- Cada opcion entra en una fila con foto, codigo, unidad, stock
+                     y precio: asi el vendedor elige mirando y no leyendo una
+                     linea larga de texto corrido. -->
+                <template v-slot:option="scope">
+                  <q-item v-bind="scope.itemProps" class="opcion-producto">
+                    <q-item-section avatar class="opcion-foto">
+                      <q-avatar rounded size="34px" class="foto-producto">
+                        <img v-if="scope.opt.imagen" :src="urlImagen(scope.opt.imagen)" alt="">
+                        <q-icon v-else name="inventory_2" size="17px" color="grey-6"/>
+                      </q-avatar>
+                    </q-item-section>
+                    <q-item-section>
+                      <q-item-label lines="1" class="text-weight-medium">{{ scope.opt.Producto }}</q-item-label>
+                      <q-item-label caption class="row items-center no-wrap">
+                        <span class="cod-producto">{{ scope.opt.cod_prod }}</span>
+                        <q-badge outline color="blue-grey-6" class="q-ml-xs" :label="scope.opt.codUnid"/>
+                        <span class="q-ml-xs" :class="scope.opt.cantidad > 0 ? 'text-positive' : 'text-grey-6'">
+                          {{ scope.opt.cantidad > 0 ? scope.opt.stockTxt : 'sin stock' }}
+                        </span>
+                      </q-item-label>
+                    </q-item-section>
+                    <q-item-section side class="opcion-precio">
+                      <q-item-label class="text-weight-bold text-primary">{{ scope.opt.precioTxt }} Bs</q-item-label>
+                      <!-- Con precio aproximado el subtotal no sale del precio por
+                           kilo, asi que se avisa desde la misma lista. -->
+                      <q-item-label v-if="scope.opt.aprox > 0" caption class="text-orange-9 text-weight-medium">
+                        ~{{ scope.opt.aproxTxt }} c/u
+                      </q-item-label>
+                    </q-item-section>
+                  </q-item>
+                </template>
                 <template v-slot:no-option>
                   <q-item>
                     <q-item-section class="text-grey">
-                      No results
+                      Sin resultados
                     </q-item-section>
                   </q-item>
                 </template>
@@ -355,7 +391,11 @@
                 <template v-slot:body-cell-cantidad="props">
                   <q-td :props="props" auto-width>
                     <div class="row items-center no-wrap">
-                      <template v-if="props.row.tipo=='NORMAL'">
+                      <!-- Pollo, cerdo y res se cargan por piezas en el dialogo
+                           del icono de al lado, por eso no llevan cantidad. La
+                           excepcion es el que tiene precio aproximado: ese se
+                           pide por bulto y el subtotal sale de cantidad x monto. -->
+                      <template v-if="props.row.tipo=='NORMAL' || props.row.precioAprox > 0">
                         <q-btn flat dense @click="agregar(props.row)" class="q-ma-none q-pa-none" color="positive"
                                icon="add_circle"/>
                         <input type="number" min="0" step="0.001" @keyup="tecleado(props.row)"
@@ -948,13 +988,25 @@ export default {
         // console.log(res.data)
         this.productos = []
         // this.productos=res.data
+        // Los textos se arman una sola vez y no en el template: la lista tiene
+        // cientos de productos y se vuelve a pintar con cada tecla del buscador.
         res.data.forEach(r => {
           let d = r
-          // console.log(d)
           if (d.cantidad == null || d.cantidad == undefined) {
             d.cantidad = 0
           }
-          d.label = r.cod_prod + '-' + r.Producto + ' ' + parseFloat(r.Precio).toFixed(2) + 'Bs ' + parseFloat(r.cantidad).toFixed(2) + r.codUnid
+          d.cod_prod = String(r.cod_prod || '').trim()
+          d.Producto = String(r.Producto || '').trim()
+          d.codUnid = String(r.codUnid || '').trim()
+          d.precioTxt = (parseFloat(r.Precio) || 0).toFixed(2)
+          d.aprox = parseFloat(r.precioAprox) || 0
+          d.aproxTxt = d.aprox.toFixed(2)
+          d.stockTxt = (parseFloat(d.cantidad) || 0).toFixed(2) + ' ' + d.codUnid
+          // Lo que queda escrito en el campo al elegir.
+          d.label = d.cod_prod + ' · ' + d.Producto
+          // El buscador mira solo codigo y nombre: si mirara la linea entera,
+          // escribir "23" tambien traeria todo lo que cuesta 23 Bs.
+          d.busqueda = this.normalizar(d.cod_prod + ' ' + d.Producto)
           this.productos.push(d)
         })
         this.productos2 = this.productos
@@ -1228,21 +1280,37 @@ export default {
       // })
 
     },
+    /**
+     * Subtotal de una fila del pedido.
+     *
+     * Hay productos que se piden por bulto pero se cobran por peso (la caja de
+     * pollo, el cerdo entero): cuando se toma el pedido todavia no se sabe
+     * cuanto pesan, asi que el precio por kilo no sirve para adelantar el
+     * monto. Para esos se carga precioAprox -lo que sale aproximadamente cada
+     * unidad- y el subtotal se calcula con ese monto, sin que el vendedor
+     * tenga que elegir nada. En cero, que es como quedan todos los demas, se
+     * multiplica por el precio de siempre.
+     */
+    calcularSubtotal(fila) {
+      const cantidad = parseFloat(fila.cantidad) || 0
+      const aprox = parseFloat(fila.precioAprox) || 0
+      const unitario = aprox > 0 ? aprox : (parseFloat(fila.precio) || 0)
+      return (cantidad * unitario).toFixed(2)
+    },
     agregar(producto) {
-      producto.cantidad = producto.cantidad + 1
-      producto.subtotal = (producto.cantidad * parseFloat(producto.precio)).toFixed(2)
+      producto.cantidad = (parseFloat(producto.cantidad) || 0) + 1
+      producto.subtotal = this.calcularSubtotal(producto)
     },
     quitar(producto, index) {
       if (producto.cantidad == 1) {
         this.misproductos.splice(index, 1);
       } else {
-        producto.cantidad = producto.cantidad - 1
-        producto.subtotal = (producto.cantidad * parseFloat(producto.precio)).toFixed(2)
+        producto.cantidad = (parseFloat(producto.cantidad) || 0) - 1
+        producto.subtotal = this.calcularSubtotal(producto)
       }
     },
     tecleado(e) {
-      // console.log(e)
-      e.subtotal = (e.cantidad * e.precio).toFixed(2)
+      e.subtotal = this.calcularSubtotal(e)
     },
     // tbproductos guarda 13 precios de venta: Precio es el 1 y Precio_Costo el
     // 2 (el nombre es heredado, no es el costo), despues Precio3..Precio13.
@@ -1362,9 +1430,13 @@ export default {
         cod_prod: this.producto.cod_prod,
         precio: parseFloat(this.producto.Precio).toFixed(2),
         precios: this.listaPrecios(this.producto),
+        // Si el producto lo trae, el subtotal sale de este monto y no del
+        // precio por kilo.
+        precioAprox: parseFloat(this.producto.precioAprox) || 0,
         cantidad: 1,
-        subtotal: parseFloat(this.producto.Precio).toFixed(2)
+        subtotal: '0.00'
       })
+      this.misproductos[0].subtotal = this.calcularSubtotal(this.misproductos[0])
       this.producto = {label: ''} //comentarpedido
     },
     clickpedido() {
@@ -1434,20 +1506,40 @@ export default {
       this.center = [c.Latitud, c.longitud]
     },
     filterFn(val, update) {
-      if (val === '') {
+      const texto = this.normalizar(val).trim()
+      if (texto === '') {
         update(() => {
           this.productos = this.productos2
-
-          // here you have access to "ref" which
-          // is the Vue reference of the QSelect
         })
         return
       }
 
       update(() => {
-        const needle = val.toLowerCase()
-        this.productos = this.productos2.filter(v => v.label.toLowerCase().indexOf(needle) > -1)
+        // Palabra por palabra: "pollo entero" encuentra igual aunque en el
+        // nombre del producto esas dos palabras no esten pegadas ni en ese orden.
+        const terminos = texto.split(/\s+/)
+        const encontrados = this.productos2.filter(p => terminos.every(t => p.busqueda.indexOf(t) > -1))
+        // El que empieza con el codigo tecleado va arriba: el vendedor que se
+        // sabe el codigo lo escribe y lo quiere en la primera fila. El sort es
+        // estable, asi que el resto conserva el orden por stock del backend.
+        const codigo = texto.split(/\s+/)[0]
+        encontrados.sort((a, b) => {
+          return (a.cod_prod.toLowerCase().startsWith(codigo) ? 0 : 1) -
+                 (b.cod_prod.toLowerCase().startsWith(codigo) ? 0 : 1)
+        })
+        this.productos = encontrados
       })
+    },
+    /** Sin tildes y en minusculas, para que "pollito" encuentre "POLLITO". */
+    normalizar(texto) {
+      return String(texto == null ? '' : texto)
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/\p{Diacritic}/gu, '')
+    },
+    /** Las fotos se sirven desde public/, no desde /api. */
+    urlImagen(ruta) {
+      return String(this.$url || '').replace(/api\/?$/, '') + ruta
     },
     onReady(mapObject) {
       mapObject.locate();
@@ -1507,6 +1599,30 @@ export default {
 
 .entrada-cantidad
   width: 3em
+
+.lista-productos
+  max-height: 60vh
+
+.opcion-producto
+  min-height: 42px
+  padding: 3px 8px
+
+  .opcion-foto
+    min-width: 34px
+    padding-right: 8px
+
+  .opcion-precio
+    align-items: flex-end
+    padding-left: 8px
+
+.foto-producto
+  border: 1px solid rgba(0, 0, 0, 0.12)
+  background: #fafafa
+
+.cod-producto
+  font-family: monospace
+  font-weight: 600
+  color: #1976d2
 
 .entrada-precio
   width: 4em

@@ -31,6 +31,7 @@ class Producto extends Model{
         'Precio11',
         'Precio12',
         'Precio13',
+        'precioAprox',
         'PreCosto',
         'stock',
         'Imprime',

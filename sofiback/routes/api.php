@@ -66,6 +66,7 @@ Route::group(['middleware'=>'auth:sanctum'],function (){
     Route::get('/filtrosProducto',[\App\Http\Controllers\ProductoController::class,'filtrosProducto']);
     Route::get('/productos/excel',[\App\Http\Controllers\ProductoController::class,'exportarExcel']);
     Route::get('/productos/pdf',[\App\Http\Controllers\ProductoController::class,'exportarPdf']);
+    Route::post('/productos',[\App\Http\Controllers\ProductoController::class,'crear']);
     Route::put('/productos/{codProd}',[\App\Http\Controllers\ProductoController::class,'actualizar']);
     Route::delete('/productos/{codProd}',[\App\Http\Controllers\ProductoController::class,'eliminar']);
     Route::post('/productos/{codProd}/imagen',[\App\Http\Controllers\ProductoController::class,'subirImagen']);
