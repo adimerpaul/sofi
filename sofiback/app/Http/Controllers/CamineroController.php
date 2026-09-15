@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Controllers\Concerns\PapeleriaSofia;
 use App\Services\CargaCamion;
 use App\Services\RecojoDelDia;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\DB;
@@ -108,7 +109,7 @@ class CamineroController extends Controller
                 ->whereIn('factura_id', $facturas->pluck('factura_id')->all())
                 ->orderBy('id')
                 ->get(['id', 'factura_id', 'estado', 'tipago', 'monto', 'monto_efectivo',
-                    'monto_qr', 'pago', 'observacion', 'hora'])
+                    'monto_qr', 'pago', 'observacion', 'retorno_detalle', 'hora'])
                 ->keyBy('factura_id');
         }
 
@@ -150,7 +151,11 @@ class CamineroController extends Controller
             $factura->monto_qr = $entrega ? (float) $entrega->monto_qr : 0;
             $factura->observacion = $entrega->observacion ?? null;
             $factura->entrega_hora = $entrega->hora ?? null;
-            $factura->cobrada = $entrega && $entrega->estado === 'ENTREGADO';
+            // Lo que el cliente devolvio, producto por producto, si hubo retorno parcial.
+            $factura->retorno = !empty($entrega->retorno_detalle)
+                ? json_decode($entrega->retorno_detalle, true)
+                : null;
+            $factura->cobrada = $entrega && in_array($entrega->estado, RecojoDelDia::ESTADOS_COBRADOS, true);
             return $factura;
         });
 
@@ -196,22 +201,180 @@ class CamineroController extends Controller
             'lng' => 'nullable|numeric',
         ]);
 
+        [$factura, $placa, $error] = $this->facturaDelCamion($request, $datos['factura_id']);
+        if ($error) {
+            return $error;
+        }
+
+        $total = round((float) $factura->total, 2);
+        $efectivo = 0.0;
+        $qr = 0.0;
+        $tipago = null;
+
+        if ($datos['estado'] === 'ENTREGADO') {
+            $cobro = $this->montosCobro($datos, $factura, $total);
+            if ($cobro instanceof JsonResponse) {
+                return $cobro;
+            }
+            [$tipago, $efectivo, $qr] = $cobro;
+        } elseif (empty($datos['observacion'])) {
+            return response()->json(['message' => 'Escribe el motivo de la no entrega'], 422);
+        }
+
+        $id = $this->registrarEntrega($request, $factura, $placa, [
+            'estado' => $datos['estado'],
+            'monto' => $total,
+            'monto_efectivo' => $efectivo,
+            'monto_qr' => $qr,
+            'tipago' => $tipago,
+            'observacion' => $datos['observacion'] ?? ' ',
+        ], $datos);
+
+        return ['id' => $id, 'message' => 'Entrega registrada'];
+    }
+
+    /**
+     * Retorno parcial: el cliente se queda con parte de la nota y devuelve el
+     * resto.
+     *
+     * El comprobante NO se modifica: la entrega queda como RETORNO PARCIAL con
+     * el detalle producto por producto de lo que salio y lo que se entrego, y
+     * con el cobro de lo que el cliente se quedo. Caja lo ve en facturacion y
+     * desde ahi edita el comprobante (lo anula y emite otro con lo entregado).
+     */
+    public function retornoParcial(Request $request)
+    {
+        $datos = $request->validate([
+            'factura_id' => 'required|integer',
+            'items' => 'required|array|min:1',
+            'items.*.cod_prod' => 'required|string|max:25',
+            'items.*.entregado' => 'required|numeric|min:0',
+            'tipago' => 'nullable|in:' . implode(',', self::FORMAS_PAGO),
+            'monto_efectivo' => 'nullable|numeric|min:0',
+            'monto_qr' => 'nullable|numeric|min:0',
+            'observacion' => 'nullable|string|max:90',
+            'lat' => 'nullable|numeric',
+            'lng' => 'nullable|numeric',
+        ]);
+
+        [$factura, $placa, $error] = $this->facturaDelCamion($request, $datos['factura_id']);
+        if ($error) {
+            return $error;
+        }
+
+        $entregados = collect($datos['items'])->mapWithKeys(function ($item) {
+            return [trim((string) $item['cod_prod']) => round((float) $item['entregado'], 3)];
+        });
+
+        $lineas = [];
+        $nuevoTotal = 0.0;
+        $algoEntregado = false;
+        $cambios = [];
+
+        $detalles = DB::table('factura_detalles')
+            ->where('factura_id', $factura->id)
+            ->whereNull('deleted_at')
+            ->orderBy('id')
+            ->get(['cod_prod', 'nombre', 'unidad', 'cantidad', 'peso', 'precio']);
+
+        foreach ($detalles as $detalle) {
+            $codigo = trim((string) $detalle->cod_prod);
+            // Lo que va por kilo se devuelve en kilos: es lo que se cobra.
+            $porPeso = (float) $detalle->peso > 0;
+            $original = round((float) ($porPeso ? $detalle->peso : $detalle->cantidad), 3);
+            $entregado = $entregados->has($codigo) ? $entregados->get($codigo) : $original;
+            $unidad = $porPeso ? 'kg' : (trim((string) $detalle->unidad) ?: 'u');
+
+            if ($entregado - $original > 0.001) {
+                return response()->json([
+                    'message' => 'De ' . trim($detalle->nombre) . ' no se puede entregar más de '
+                        . $this->numero($original) . ' ' . $unidad,
+                ], 422);
+            }
+
+            $subtotal = round($entregado * (float) $detalle->precio, 2);
+            $nuevoTotal += $subtotal;
+            $algoEntregado = $algoEntregado || $entregado > 0;
+
+            if ($original - $entregado > 0.001) {
+                $cambios[] = trim($detalle->nombre) . ' ' . $this->numero($original)
+                    . ' -> ' . $this->numero($entregado) . ' ' . $unidad;
+            }
+
+            $lineas[] = [
+                'cod_prod' => $codigo,
+                'nombre' => trim((string) $detalle->nombre),
+                'unidad' => trim((string) $detalle->unidad),
+                'por_peso' => $porPeso,
+                'original' => $original,
+                'entregado' => $entregado,
+                'precio' => (float) $detalle->precio,
+                'subtotal' => $subtotal,
+            ];
+        }
+
+        if (!$cambios) {
+            return response()->json(['message' => 'No se devolvió nada: registrá la entrega normal'], 422);
+        }
+        if (!$algoEntregado) {
+            return response()->json(['message' => 'No se entregó nada: marcá la nota como no entregada'], 422);
+        }
+
+        $nuevoTotal = round($nuevoTotal, 2);
+        $cobro = $this->montosCobro($datos, $factura, $nuevoTotal);
+        if ($cobro instanceof JsonResponse) {
+            return $cobro;
+        }
+        [$tipago, $efectivo, $qr] = $cobro;
+
+        // Todo lo que cambio queda escrito en la observacion, legible sin abrir
+        // el detalle. La columna es corta y latin1: se recorta y se limpia de
+        // lo que latin1 no admite (emojis, flechas), que haria fallar el insert.
+        $motivo = trim((string) ($datos['observacion'] ?? ''));
+        $texto = 'RETORNO PARCIAL: ' . implode('; ', $cambios) . ($motivo !== '' ? ' - ' . $motivo : '');
+        $texto = mb_convert_encoding(mb_convert_encoding(mb_substr($texto, 0, 255), 'ISO-8859-1', 'UTF-8'), 'UTF-8', 'ISO-8859-1');
+
+        $id = $this->registrarEntrega($request, $factura, $placa, [
+            'estado' => 'RETORNO PARCIAL',
+            'monto' => $nuevoTotal,
+            'monto_efectivo' => $efectivo,
+            'monto_qr' => $qr,
+            'tipago' => $tipago,
+            'observacion' => $texto,
+            'retorno_detalle' => json_encode([
+                'factura_original' => (int) $factura->id,
+                'total_original' => round((float) $factura->total, 2),
+                'total_entregado' => $nuevoTotal,
+                'motivo' => $motivo,
+                'items' => $lineas,
+            ], JSON_UNESCAPED_UNICODE),
+        ], $datos);
+
+        return ['id' => $id, 'message' => 'Retorno parcial registrado: caja tiene que editar el comprobante'];
+    }
+
+    /**
+     * El comprobante que se quiere cerrar, siempre que viaje en el camion del
+     * usuario y todavia este abierto. Devuelve [factura, placa, error].
+     */
+    private function facturaDelCamion(Request $request, $facturaId)
+    {
         $placa = $this->placa($request);
         if ($placa === '') {
-            return response()->json(['message' => 'Tu usuario no tiene un camión asignado'], 422);
+            return [null, '', response()->json(['message' => 'Tu usuario no tiene un camión asignado'], 422)];
         }
 
         $factura = DB::table('facturas')
             ->whereNull('deleted_at')
-            ->where('id', $datos['factura_id'])
+            ->where('id', $facturaId)
             ->first(['id', 'cliente_id', 'nit', 'total', 'estado', 'tipo_pago',
                 'pedido_nro', 'pedido_tipo', 'fecha']);
 
         if (!$factura) {
-            return response()->json(['message' => 'El comprobante no existe'], 404);
+            return [null, $placa, response()->json(['message' => 'El comprobante no existe'], 404)];
         }
         if ($factura->estado === 'ANULADO') {
-            return response()->json(['message' => 'El comprobante está anulado'], 422);
+            return [null, $placa, response()->json(['message' => 'El comprobante está anulado'], 422)];
         }
 
         $pedido = DB::table('tbpedidos')
@@ -221,107 +384,107 @@ class CamineroController extends Controller
             ->first([DB::raw("TRIM(COALESCE(placa, '')) as placa"), 'fecha']);
 
         if (!$pedido || $pedido->placa !== $placa) {
-            return response()->json(['message' => 'Ese pedido no va en tu camión'], 403);
+            return [null, $placa, response()->json(['message' => 'Ese pedido no va en tu camión'], 403)];
         }
 
+        // Cobrada entera o con retorno parcial, la nota ya esta cerrada.
         $yaCobrada = DB::table('entregas')
             ->where('factura_id', $factura->id)
-            ->where('estado', 'ENTREGADO')
+            ->whereIn('estado', RecojoDelDia::ESTADOS_COBRADOS)
             ->exists();
         if ($yaCobrada) {
-            return response()->json(['message' => 'Esa entrega ya fue cobrada'], 422);
+            return [null, $placa, response()->json(['message' => 'Esa entrega ya fue cobrada'], 422)];
         }
 
-        $total = round((float) $factura->total, 2);
-        $efectivo = 0.0;
-        $qr = 0.0;
+        return [$factura, $placa, null];
+    }
+
+    /**
+     * Forma de pago y montos de un cobro contra el total que corresponde.
+     * Devuelve [tipago, efectivo, qr] o la respuesta de error.
+     */
+    private function montosCobro(array $datos, $factura, float $total)
+    {
         $tipago = $datos['tipago'] ?? null;
+        if (!$tipago) {
+            return response()->json(['message' => 'Indica cómo se cobró la entrega'], 422);
+        }
 
-        if ($datos['estado'] === 'ENTREGADO') {
-            if (!$tipago) {
-                return response()->json(['message' => 'Indica cómo se cobró la entrega'], 422);
-            }
-            // El credito lo decide caja al facturar, no el caminero en la
-            // puerta: si la venta salio a credito se guarda asi aunque la
-            // pantalla mande otra cosa.
-            $formaVenta = mb_strtoupper(trim((string) $factura->tipo_pago), 'UTF-8');
-            if (in_array($formaVenta, ['CRÉDITO', 'CREDITO'], true)) {
-                $tipago = 'CRÉDITO';
-            }
+        // El credito lo decide caja al facturar, no el caminero en la
+        // puerta: si la venta salio a credito se guarda asi aunque la
+        // pantalla mande otra cosa.
+        $formaVenta = mb_strtoupper(trim((string) $factura->tipo_pago), 'UTF-8');
+        if (in_array($formaVenta, ['CRÉDITO', 'CREDITO'], true)) {
+            $tipago = 'CRÉDITO';
+        }
 
-            // El credito se entrega sin plata: queda debiendo la nota entera.
-            if ($tipago !== 'CRÉDITO') {
-                $efectivo = round((float) ($datos['monto_efectivo'] ?? 0), 2);
-                $qr = round((float) ($datos['monto_qr'] ?? 0), 2);
+        // El credito se entrega sin plata: queda debiendo la nota entera.
+        if ($tipago === 'CRÉDITO') {
+            return [$tipago, 0.0, 0.0];
+        }
 
-                // Sin desglose se asume la nota entera por la via elegida, que
-                // es como cobraba esta pantalla antes de poder escribir montos.
-                if ($efectivo <= 0 && $qr <= 0) {
-                    if ($tipago === 'CONTADO') {
-                        $efectivo = $total;
-                    } elseif ($tipago === 'PAGO QR') {
-                        $qr = $total;
-                    }
-                }
+        $efectivo = round((float) ($datos['monto_efectivo'] ?? 0), 2);
+        $qr = round((float) ($datos['monto_qr'] ?? 0), 2);
 
-                // Cada via cobra lo suyo: en contado no entra nada por QR.
-                if ($tipago === 'CONTADO') {
-                    $qr = 0.0;
-                } elseif ($tipago === 'PAGO QR') {
-                    $efectivo = 0.0;
-                }
-
-                if ($tipago === 'MIXTO' && ($efectivo <= 0 || $qr <= 0)) {
-                    return response()->json([
-                        'message' => 'En un cobro mixto tienen que entrar montos por efectivo y por QR',
-                    ], 422);
-                }
-
-                // El cliente casi nunca paga justo: de una nota de 106.70
-                // entrega 106. Se guarda lo que de verdad entro y la diferencia
-                // queda a la vista contra el total del comprobante; lo que no
-                // se acepta es cobrar de mas, que siempre es un error de tipeo.
-                $pagado = round($efectivo + $qr, 2);
-
-                if ($pagado <= 0) {
-                    return response()->json([
-                        'message' => 'Escribe cuánto pagó el cliente',
-                    ], 422);
-                }
-                if ($pagado - $total > 0.01) {
-                    return response()->json([
-                        'message' => 'No se puede cobrar más de Bs ' . number_format($total, 2, '.', ''),
-                    ], 422);
-                }
-            }
-        } else {
-            $tipago = null;
-            if (empty($datos['observacion'])) {
-                return response()->json(['message' => 'Escribe el motivo de la no entrega'], 422);
+        // Sin desglose se asume la nota entera por la via elegida, que
+        // es como cobraba esta pantalla antes de poder escribir montos.
+        if ($efectivo <= 0 && $qr <= 0) {
+            if ($tipago === 'CONTADO') {
+                $efectivo = $total;
+            } elseif ($tipago === 'PAGO QR') {
+                $qr = $total;
             }
         }
 
+        // Cada via cobra lo suyo: en contado no entra nada por QR.
+        if ($tipago === 'CONTADO') {
+            $qr = 0.0;
+        } elseif ($tipago === 'PAGO QR') {
+            $efectivo = 0.0;
+        }
+
+        if ($tipago === 'MIXTO' && ($efectivo <= 0 || $qr <= 0)) {
+            return response()->json([
+                'message' => 'En un cobro mixto tienen que entrar montos por efectivo y por QR',
+            ], 422);
+        }
+
+        // El cliente casi nunca paga justo: de una nota de 106.70
+        // entrega 106. Se guarda lo que de verdad entro y la diferencia
+        // queda a la vista contra el total del comprobante; lo que no
+        // se acepta es cobrar de mas, que siempre es un error de tipeo.
+        $pagado = round($efectivo + $qr, 2);
+
+        if ($pagado <= 0) {
+            return response()->json(['message' => 'Escribe cuánto pagó el cliente'], 422);
+        }
+        if ($pagado - $total > 0.01) {
+            return response()->json([
+                'message' => 'No se puede cobrar más de Bs ' . number_format($total, 2, '.', ''),
+            ], 422);
+        }
+
+        return [$tipago, $efectivo, $qr];
+    }
+
+    /** Graba la entrega con lo comun a todos los cierres. */
+    private function registrarEntrega(Request $request, $factura, $placa, array $campos, array $datos)
+    {
         $usuario = $request->user();
         $cliente = DB::table('tbclientes')->where('Cod_Aut', $factura->cliente_id)
             ->first(['Id', 'Latitud', 'longitud']);
 
-        $id = DB::table('entregas')->insertGetId([
+        return DB::table('entregas')->insertGetId($campos + [
             'cliente_id' => $factura->cliente_id ?: 0,
             'cinit' => $cliente->Id ?? $factura->nit,
             'comanda' => $factura->pedido_nro,
             'factura_id' => $factura->id,
-            'monto' => $total,
-            'monto_efectivo' => $efectivo,
-            'monto_qr' => $qr,
-            'pago' => $efectivo + $qr,
-            'tipago' => $tipago,
+            'pago' => (float) $campos['monto_efectivo'] + (float) $campos['monto_qr'],
             'despachador' => trim($usuario->Nombre1 . ' ' . $usuario->App1),
             'personal_id' => $usuario->CodAut,
             'placa' => $placa,
             'lat' => (string) ($datos['lat'] ?? ''),
             'lng' => (string) ($datos['lng'] ?? ''),
-            'estado' => $datos['estado'],
-            'observacion' => $datos['observacion'] ?? ' ',
             'fecha' => date('Y-m-d'),
             // El dia de reparto es el del comprobante, no el del pedido: asi
             // lo cobrado sale en el reporte del mismo dia en que se ve la lista.
@@ -332,8 +495,12 @@ class CamineroController extends Controller
                 $cliente->Latitud ?? null, $cliente->longitud ?? null
             ),
         ]);
+    }
 
-        return ['id' => $id, 'message' => 'Entrega registrada'];
+    /** 3.000 -> 3, 2.500 -> 2.5: como se escribe una cantidad a mano. */
+    private function numero($valor)
+    {
+        return rtrim(rtrim(number_format((float) $valor, 3, '.', ''), '0'), '.');
     }
 
     /**
@@ -355,7 +522,7 @@ class CamineroController extends Controller
         $recojo = new RecojoDelDia();
         $filas = $recojo->filas($fecha, $placa);
         $grupos = $recojo->agrupar($filas);
-        $entregadas = $filas->where('estado', 'ENTREGADO');
+        $entregadas = $filas->whereIn('estado', RecojoDelDia::ESTADOS_COBRADOS);
 
         $usuario = $request->user();
 
@@ -471,7 +638,7 @@ class CamineroController extends Controller
         }
 
         $cerradas = $filas->pluck('nota')->unique()->count();
-        $cobradas = $filas->where('estado', 'ENTREGADO')->pluck('nota')->unique()->count();
+        $cobradas = $filas->whereIn('estado', RecojoDelDia::ESTADOS_COBRADOS)->pluck('nota')->unique()->count();
         // Nunca pasa del 100%: si se cerro mas de lo que figura despachado,
         // el reparto ya esta completo y el porcentaje deja de informar.
         $total = max($salieron, $cerradas);
@@ -609,30 +776,13 @@ class CamineroController extends Controller
         }
 
         $servicio = new CargaCamion();
-        // Sin el detalle de cada canasta: para marcar alcanza con cuantos
-        // productos tenia y su total, que es lo que se guarda.
-        $comprobantes = $servicio->comprobantes($fecha, $placa, null, false);
-
-        $filas = [];
-        foreach ($comprobantes as $comprobante) {
-            if ($comprobante['verificado'] || !empty($comprobante['observacion'])) {
-                continue;
-            }
-
-            $filas[] = $this->fila($request, $fecha, $placa, $comprobante, true, null, false);
-        }
-
-        // Un solo viaje a la base en vez de un update por canasta: con un
-        // camion lleno eran decenas de consultas seguidas.
-        if ($filas) {
-            DB::table('carga_verificaciones')->upsert($filas, ['factura_id']);
-        }
+        $marcadas = $servicio->verificarTodo($fecha, $placa, $request->user()->CodAut, $this->nombre($request));
 
         $comprobantes = $servicio->comprobantes($fecha, $placa);
 
         return [
-            'message' => count($filas) > 0
-                ? 'Se verificaron ' . count($filas) . ' canastas'
+            'message' => $marcadas > 0
+                ? 'Se verificaron ' . $marcadas . ' canastas'
                 : 'No quedaba nada por verificar',
             'resumen' => $servicio->estado($fecha, $placa, $comprobantes),
             'comprobantes' => $comprobantes->values(),
@@ -665,29 +815,10 @@ class CamineroController extends Controller
     /** Lo que se graba de una canasta revisada. */
     private function fila(Request $request, $fecha, $placa, array $comprobante, $verificado, $observacion, $observado = false)
     {
-        $ahora = date('Y-m-d H:i:s');
-        $observacion = trim((string) $observacion);
-
-        return [
-            'factura_id' => $comprobante['factura_id'],
-            'fecha' => $fecha,
-            'placa' => $placa,
-            'pedido_nro' => $comprobante['nro_pedido'],
-            'pedido_tipo' => $comprobante['pedido_tipo'],
-            // Se guarda como estaba la venta al revisarla: si despues la
-            // cambian, el comprobante vuelve a quedar pendiente.
-            'items_esperados' => $comprobante['productos'],
-            'total_esperado' => $comprobante['total'],
-            'verificado' => $verificado,
-            // Las dos cierran la revision; observado dice con cual de las dos.
-            'observado' => $observado,
-            'observacion' => $observacion !== '' ? $observacion : null,
-            'personal_id' => $request->user()->CodAut,
-            'verificado_por' => $this->nombre($request),
-            'verificado_en' => $verificado ? $ahora : null,
-            'created_at' => $ahora,
-            'updated_at' => $ahora,
-        ];
+        return (new CargaCamion())->fila(
+            $fecha, $placa, $comprobante, $verificado, $observacion, $observado,
+            $request->user()->CodAut, $this->nombre($request)
+        );
     }
 
     /**

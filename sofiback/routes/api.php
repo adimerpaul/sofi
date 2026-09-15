@@ -88,12 +88,16 @@ Route::group(['middleware'=>'auth:sanctum'],function (){
     Route::get('/facturacion/lote/{documento}',[\App\Http\Controllers\FacturacionController::class,'lote']);
     Route::get('/facturacion/reporte',[\App\Http\Controllers\FacturacionController::class,'reporte']);
     Route::get('/facturacion/carga',[\App\Http\Controllers\FacturacionController::class,'carga']);
+    // Caja aprueba la carga de todo un camion de una vez.
+    Route::post('/facturacion/carga/aprobar',[\App\Http\Controllers\FacturacionController::class,'aprobarCarga']);
     Route::get('/facturacion/camiones',[\App\Http\Controllers\FacturacionController::class,'camiones']);
     Route::get('/facturacion/{factura}/voucher',[\App\Http\Controllers\FacturacionController::class,'voucher']);
     Route::get('/facturacion/{factura}/factura',[\App\Http\Controllers\FacturacionController::class,'factura']);
     Route::get('/facturacion/{factura}/url-impuestos',[\App\Http\Controllers\FacturacionController::class,'urlImpuestos']);
     Route::get('/facturacion/{factura}',[\App\Http\Controllers\FacturacionController::class,'show']);
     Route::post('/facturacion',[\App\Http\Controllers\FacturacionController::class,'store']);
+    // Caja marca la canasta de un comprobante como revisada o sin revisar.
+    Route::post('/facturacion/{factura}/carga',[\App\Http\Controllers\FacturacionController::class,'marcarCarga']);
     Route::put('/facturacion/{factura}/anular',[\App\Http\Controllers\FacturacionController::class,'anular']);
     // Retorno parcial: anula el comprobante y emite otro con lo entregado.
     Route::put('/facturacion/{factura}/retorno-parcial',[\App\Http\Controllers\FacturacionController::class,'retornoParcial']);
@@ -102,6 +106,8 @@ Route::group(['middleware'=>'auth:sanctum'],function (){
     // viaja en la peticion.
     Route::get('/caminero/entregas',[\App\Http\Controllers\CamineroController::class,'entregas']);
     Route::post('/caminero/cobrar',[\App\Http\Controllers\CamineroController::class,'cobrar']);
+    // El cliente se queda con parte de la nota: no toca el comprobante, lo edita caja.
+    Route::post('/caminero/retorno-parcial',[\App\Http\Controllers\CamineroController::class,'retornoParcial']);
     Route::get('/caminero/reporte',[\App\Http\Controllers\CamineroController::class,'reporte']);
     // Las hojas del recojo en PDF, una por forma de pago, para firmar.
     Route::get('/caminero/reporte/pdf',[\App\Http\Controllers\CamineroController::class,'reportePdf']);

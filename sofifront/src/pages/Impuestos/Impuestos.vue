@@ -361,8 +361,11 @@
                        :loading="verificando === f.id" @click="verificarFactura(f)">
                   <q-tooltip>Preguntar al SIAT</q-tooltip>
                 </q-btn>
-                <q-btn dense flat round size="sm" icon="print" color="grey-8" @click="imprimirFactura(f)">
-                  <q-tooltip>Imprimir la factura</q-tooltip>
+                <q-btn
+                  dense flat round size="sm" icon="print" color="grey-8"
+                  :disable="f.estado === 'ANULADO'" @click="imprimirFactura(f)"
+                >
+                  <q-tooltip>{{ f.estado === 'ANULADO' ? 'Anulada: no se imprime' : 'Imprimir la factura' }}</q-tooltip>
                 </q-btn>
                 <q-btn
                   v-if="puedeGenerar && f.estado_siat === 'ERROR'"

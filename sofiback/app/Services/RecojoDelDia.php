@@ -23,6 +23,12 @@ class RecojoDelDia
 {
     use PapeleriaSofia;
 
+    /**
+     * Estados de entrega que traen plata: el retorno parcial tambien se cobra,
+     * solo que por lo que el cliente se quedo.
+     */
+    public const ESTADOS_COBRADOS = ['ENTREGADO', 'RETORNO PARCIAL'];
+
     /** Las hojas del recojo, una por forma de pago, como se entregan en papel. */
     public const HOJAS = [
         'contados' => 'CONTADOS DEL DÍA',
@@ -81,14 +87,14 @@ class RecojoDelDia
     /** Las mismas hojas que hoy se entregan en papel, en el mismo orden. */
     public function agrupar($filas): array
     {
-        $entregadas = $filas->where('estado', 'ENTREGADO');
+        $entregadas = $filas->whereIn('estado', self::ESTADOS_COBRADOS);
 
         return [
             'contados' => $entregadas->where('tipago', 'CONTADO')->values(),
             'qr' => $entregadas->where('tipago', 'PAGO QR')->values(),
             'mixtos' => $entregadas->where('tipago', 'MIXTO')->values(),
             'creditos' => $entregadas->where('tipago', 'CRÉDITO')->values(),
-            'anulados' => $filas->where('estado', '<>', 'ENTREGADO')->values(),
+            'anulados' => $filas->whereNotIn('estado', self::ESTADOS_COBRADOS)->values(),
         ];
     }
 

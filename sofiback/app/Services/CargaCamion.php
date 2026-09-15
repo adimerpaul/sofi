@@ -163,6 +163,63 @@ class CargaCamion
     }
 
     /**
+     * Da por buenas de golpe todas las canastas que todavia no se tocaron y
+     * devuelve cuantas marco.
+     *
+     * Lo que ya tiene una observacion escrita no se pisa, para no borrar sin
+     * querer un faltante que el caminero anoto.
+     */
+    public function verificarTodo($fecha, $placa, $personalId, $nombre): int
+    {
+        // Sin el detalle de cada canasta: para marcar alcanza con cuantos
+        // productos tenia y su total, que es lo que se guarda.
+        $filas = [];
+        foreach ($this->comprobantes($fecha, $placa, null, false) as $comprobante) {
+            if ($comprobante['verificado'] || !empty($comprobante['observacion'])) {
+                continue;
+            }
+
+            $filas[] = $this->fila($fecha, $placa, $comprobante, true, null, false, $personalId, $nombre);
+        }
+
+        // Un solo viaje a la base en vez de un update por canasta: con un
+        // camion lleno eran decenas de consultas seguidas.
+        if ($filas) {
+            DB::table('carga_verificaciones')->upsert($filas, ['factura_id']);
+        }
+
+        return count($filas);
+    }
+
+    /** Lo que se graba de una canasta revisada. */
+    public function fila($fecha, $placa, array $comprobante, $verificado, $observacion, $observado, $personalId, $nombre): array
+    {
+        $ahora = date('Y-m-d H:i:s');
+        $observacion = trim((string) $observacion);
+
+        return [
+            'factura_id' => $comprobante['factura_id'],
+            'fecha' => $fecha,
+            'placa' => $placa,
+            'pedido_nro' => $comprobante['nro_pedido'],
+            'pedido_tipo' => $comprobante['pedido_tipo'],
+            // Se guarda como estaba la venta al revisarla: si despues la
+            // cambian, el comprobante vuelve a quedar pendiente.
+            'items_esperados' => $comprobante['productos'],
+            'total_esperado' => $comprobante['total'],
+            'verificado' => $verificado,
+            // Las dos cierran la revision; observado dice con cual de las dos.
+            'observado' => $observado,
+            'observacion' => $observacion !== '' ? $observacion : null,
+            'personal_id' => $personalId,
+            'verificado_por' => $nombre,
+            'verificado_en' => $verificado ? $ahora : null,
+            'created_at' => $ahora,
+            'updated_at' => $ahora,
+        ];
+    }
+
+    /**
      * Pedidos de la carga en curso que todavia no pasaron por caja.
      *
      * No son parte de lo que se revisa —no hay comprobante que imprimir— pero

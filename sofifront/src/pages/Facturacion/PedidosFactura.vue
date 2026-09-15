@@ -164,8 +164,16 @@
                   <q-item-label v-if="item.observacion" caption>{{ item.observacion }}</q-item-label>
                 </q-item-section>
                 <q-item-section side>
-                  <q-item-label>{{ cantidad(item.cantidad) }} {{ item.unidad }}</q-item-label>
+                  <q-item-label v-if="item.cantidad !== null">{{ cantidad(item.cantidad) }} {{ item.unidad }}</q-item-label>
                   <q-item-label v-if="item.precio" caption>Bs {{ money(item.precio) }}</q-item-label>
+                </q-item-section>
+              </q-item>
+              <q-item v-for="(dato, indice) in pedido.detalle_pollo.datos" :key="'dato-' + indice" class="q-px-sm bg-orange-1">
+                <q-item-section>
+                  <q-item-label caption>{{ dato.etiqueta }}</q-item-label>
+                </q-item-section>
+                <q-item-section side>
+                  <q-item-label class="text-weight-medium">{{ dato.valor }}</q-item-label>
                 </q-item-section>
               </q-item>
             </q-list>

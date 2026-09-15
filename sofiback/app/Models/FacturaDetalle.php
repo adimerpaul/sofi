@@ -19,6 +19,12 @@ class FacturaDetalle extends Model
 {
     use HasFactory, SoftDeletes;
 
+    /** Lo que pesa cada canastillo vacio con el que se pesa pollo, cerdo o res. */
+    public const KG_CANASTILLO = 2;
+
+    /** Los pedidos que se pesan en canastillos. */
+    public const TIPOS_CON_CANASTILLOS = ['POLLO', 'CERDO', 'RES'];
+
     protected $table = 'factura_detalles';
 
     protected $fillable = [
@@ -29,6 +35,8 @@ class FacturaDetalle extends Model
         'cantidad',
         'cantidad_pedida',
         'peso',
+        'peso_bruto',
+        'canastillos',
         'precio',
         'subtotal',
     ];
@@ -37,6 +45,8 @@ class FacturaDetalle extends Model
         'cantidad'        => 'decimal:3',
         'cantidad_pedida' => 'decimal:3',
         'peso'            => 'decimal:3',
+        'peso_bruto'      => 'decimal:3',
+        'canastillos'     => 'integer',
         'precio'   => 'decimal:2',
         'subtotal' => 'decimal:2',
     ];

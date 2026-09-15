@@ -49,7 +49,7 @@ class CobranzaRecojoController extends Controller
                 'placa' => $placa,
                 'caminero' => $recojo->caminero($delCamion, $placa),
                 'grupos' => $grupos,
-                'totales' => $recojo->totales($grupos, $delCamion->where('estado', 'ENTREGADO')),
+                'totales' => $recojo->totales($grupos, $delCamion->whereIn('estado', RecojoDelDia::ESTADOS_COBRADOS)),
                 'notas' => $delCamion->count(),
             ];
         }
@@ -61,7 +61,7 @@ class CobranzaRecojoController extends Controller
             'camion' => $camion ?: null,
             'camiones' => $camiones,
             // El total del dia, sumando todos los camiones que se muestran.
-            'totales' => $recojo->totales($todos, $filas->where('estado', 'ENTREGADO')),
+            'totales' => $recojo->totales($todos, $filas->whereIn('estado', RecojoDelDia::ESTADOS_COBRADOS)),
             'notas' => $filas->count(),
         ];
     }

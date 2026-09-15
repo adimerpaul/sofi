@@ -27,15 +27,24 @@
             <q-chip v-else dense square size="sm" outline color="grey-7" icon="local_shipping">
               Sin camion
             </q-chip>
-            <q-chip v-if="pedido.horario" dense square size="sm" outline color="grey-7" icon="schedule">
-              {{ pedido.horario }}
-            </q-chip>
           </div>
         </q-card-section>
       </q-card>
 
       <!-- El pedido volvio a la cola porque su venta se anulo: lo que ya se
            habia pesado y corregido llega cargado, no hay que rehacerlo. -->
+      <!-- El caminero marco un retorno parcial: las cantidades ya vienen con
+           lo que el cliente se quedo, listas para emitir el comprobante nuevo. -->
+      <q-banner v-if="pedido.retorno" dense rounded class="bg-deep-orange-1 text-deep-orange-10 q-mb-sm">
+        <template v-slot:avatar><q-icon name="assignment_return" color="deep-orange-8"/></template>
+        <div class="text-weight-medium">
+          Retorno parcial marcado por {{ pedido.retorno.caminero || 'el caminero' }}:
+          se quedó Bs {{ money(pedido.retorno.total_entregado) }} de Bs {{ money(pedido.retorno.total_original) }}
+        </div>
+        <div class="text-caption">{{ pedido.retorno.observacion }}</div>
+        <div class="text-caption">Las cantidades ya vienen corregidas; revisalas y emití el nuevo.</div>
+      </q-banner>
+
       <q-banner v-if="pedido.anulada" dense rounded class="bg-blue-1 text-blue-10 q-mb-sm">
         <template v-slot:avatar><q-icon name="history" color="blue-8"/></template>
         <div class="text-weight-medium">
@@ -51,27 +60,16 @@
         <div class="text-caption">Revisá los pesos y cantidades antes de volver a cobrar.</div>
       </q-banner>
 
-      <q-card v-if="pedido.detalle_pollo.productos.length || pedido.detalle_pollo.observaciones.length" flat bordered class="rounded-borders q-mb-sm bg-orange-1">
-        <q-card-section class="q-pa-sm">
-          <div class="text-subtitle2 text-weight-bold"><q-icon name="restaurant"/> Detalle completo de pollo</div>
-          <div v-for="(texto, indice) in pedido.detalle_pollo.observaciones" :key="'obs-' + indice" class="text-body2 q-mt-xs">
-            <q-icon name="sticky_note_2" color="amber-9"/> {{ texto }}
-          </div>
-        </q-card-section>
-        <q-separator/>
-        <q-list dense separator>
-          <q-item v-for="(dato, indice) in pedido.detalle_pollo.productos" :key="'especial-' + indice">
-            <q-item-section>
-              <q-item-label class="text-weight-bold">{{ dato.nombre }}</q-item-label>
-              <q-item-label v-if="dato.observacion" caption>{{ dato.observacion }}</q-item-label>
-            </q-item-section>
-            <q-item-section side>
-              <q-item-label>{{ cantidad(dato.cantidad) }} {{ dato.unidad }}</q-item-label>
-              <q-item-label v-if="dato.precio" caption>Bs {{ money(dato.precio) }}</q-item-label>
-            </q-item-section>
-          </q-item>
-        </q-list>
-      </q-card>
+      <!-- Todo lo que cargo el preventista en una sola linea, como en la hoja
+           de pesos: productos, observacion y precios. -->
+      <div v-if="detalleLinea.length" class="rounded-borders q-mb-sm q-px-sm q-py-xs bg-orange-1 text-body2 detalle-linea">
+        <q-icon name="restaurant" color="orange-9" class="q-mr-xs"/>
+        <template v-for="(parte, indice) in detalleLinea" :key="'parte-' + indice">
+          <span v-if="indice" class="text-grey-6"> · </span>
+          <span v-if="parte.etiqueta" class="text-grey-8">{{ parte.etiqueta }} </span>
+          <span class="text-weight-bold">{{ parte.valor }}</span>
+        </template>
+      </div>
 
       <div class="row items-center q-mb-xs">
         <div class="col text-subtitle2 text-weight-bold">Productos ({{ items.length }})</div>
@@ -100,6 +98,9 @@
               <!-- Aviso de que lo que se entrega ya no es lo que pidio el
                    cliente. Se ve solo aca, al revisar: no se guarda ni sale en
                    el comprobante impreso. -->
+              <q-item-label v-if="item.retorno" caption class="text-deep-orange-9 text-weight-medium">
+                <q-icon name="assignment_return"/> Corregido por el retorno parcial
+              </q-item-label>
               <q-item-label v-if="item.recuperado" caption class="text-blue-9 text-weight-medium">
                 <q-icon name="history"/> Recuperado de la venta anulada
               </q-item-label>
@@ -122,7 +123,15 @@
                 </div>
                 <!-- Lo que va por kilo se pesa en el mostrador: ese peso, y no
                      la cantidad de piezas, es lo que multiplica al precio. -->
-                <div v-if="esPeso(item)" class="col-3">
+                <div v-if="esPeso(item) && conCanastillos" class="col-3">
+                  <q-input
+                    v-model.number="item.peso_bruto" type="number" min="0.001" step="0.001"
+                    dense outlined label="P. bruto kg" bg-color="orange-1"
+                    :error="!(Number(item.peso) > 0)" hide-bottom-space
+                    @update:model-value="actualizar(item)"
+                  />
+                </div>
+                <div v-else-if="esPeso(item)" class="col-3">
                   <q-input
                     v-model.number="item.peso" type="number" min="0.001" step="0.001"
                     dense outlined label="Peso kg" bg-color="orange-1"
@@ -134,10 +143,37 @@
                   <q-input
                     v-model.number="item.precio" type="number" min="0" step="0.01"
                     dense outlined label="Precio Bs" @update:model-value="actualizar(item)"
-                  />
+                    :readonly="!puedeCambiarPrecio"
+                  >
+                    <template v-if="!puedeCambiarPrecio" v-slot:append>
+                      <q-icon name="lock" size="14px" color="grey">
+                        <q-tooltip>No tiene permiso para cambiar el precio</q-tooltip>
+                      </q-icon>
+                    </template>
+                  </q-input>
                 </div>
                 <div class="col-2 flex flex-center">
                   <q-btn flat round dense color="negative" icon="delete" @click="items.splice(indice, 1)"/>
+                </div>
+              </div>
+
+              <!-- Pollo, cerdo y res se pesan dentro de los canastillos: se
+                   cobra el neto, el bruto menos lo que pesan los canastillos.
+                   Sin canastillos el neto es el mismo bruto. -->
+              <div v-if="esPeso(item) && conCanastillos" class="row q-col-gutter-xs q-mt-xs items-center">
+                <div class="col-3">
+                  <q-input
+                    v-model.number="item.canastillos" type="number" min="0" step="1"
+                    dense outlined label="Canastillos" @update:model-value="actualizar(item)"
+                  />
+                </div>
+                <div class="col text-caption">
+                  <span v-if="Number(item.canastillos) > 0" class="text-grey-8">
+                    {{ item.canastillos }} × {{ kgCanastillo }} kg = {{ cantidad(kgCanastillos(item)) }} kg ·
+                  </span>
+                  <span :class="Number(item.peso) > 0 ? 'text-weight-bold' : 'text-negative text-weight-bold'">
+                    Peso neto {{ Number(item.peso) > 0 ? cantidad(item.peso) + ' kg' : '—' }}
+                  </span>
                 </div>
               </div>
             </q-item-section>
@@ -254,8 +290,29 @@ export default {
     numeroPedido () { return this.$route.params.pedido },
     tipoPedido () { return String(this.$route.params.tipo || '').toUpperCase() },
     nombreTipo () { return this.tipoPedido === 'NORMAL' ? 'EMBUTIDOS' : this.tipoPedido },
+    // Lo dice el backend: pollo, cerdo y res se pesan en canastillos.
+    conCanastillos () { return !!(this.pedido && this.pedido.con_canastillos) },
+    kgCanastillo () { return Number((this.pedido && this.pedido.kg_canastillo) || 2) },
+    // Sin el permiso el precio queda con el del pedido o el del catalogo.
+    puedeCambiarPrecio () { return this.$store.getters['login/can']('facturacionPrecio') },
     total () {
       return this.items.reduce((suma, item) => suma + this.facturable(item) * Number(item.precio || 0), 0)
+    },
+    // El detalle de pollo armado como una sola linea: productos con su
+    // cantidad, observaciones y los datos con valor (los vacios no ocupan lugar).
+    detalleLinea () {
+      const detalle = (this.pedido && this.pedido.detalle_pollo) || {}
+      const productos = (detalle.productos || []).map(dato => ({
+        etiqueta: dato.nombre,
+        valor: [
+          dato.cantidad !== null ? this.cantidad(dato.cantidad) + ' ' + dato.unidad : '',
+          dato.precio ? 'Bs ' + this.money(dato.precio) : '',
+          dato.observacion || ''
+        ].filter(Boolean).join(' ')
+      }))
+      const observaciones = (detalle.observaciones || []).map(texto => ({ etiqueta: '', valor: texto }))
+      const datos = (detalle.datos || []).filter(dato => dato.valor && dato.valor !== '—')
+      return [...productos, ...observaciones, ...datos]
     },
     // Lo que se entrega distinto de lo que pidio el cliente, para avisarlo
     // arriba de la lista. Es informativo: no viaja al backend.
@@ -299,7 +356,15 @@ export default {
     facturable (item) {
       return Number((this.esPeso(item) ? item.peso : item.cantidad) || 0)
     },
+    kgCanastillos (item) {
+      return Math.max(0, Math.trunc(Number(item.canastillos) || 0)) * this.kgCanastillo
+    },
     actualizar (item) {
+      // Con canastillos el peso que se cobra no se escribe: sale del bruto.
+      if (this.esPeso(item) && this.conCanastillos) {
+        const bruto = Number(item.peso_bruto) || 0
+        item.peso = bruto > 0 ? Math.round((bruto - this.kgCanastillos(item)) * 1000) / 1000 : null
+      }
       item.total = Math.round(this.facturable(item) * Number(item.precio || 0) * 100) / 100
     },
     cargarPedido () {
@@ -307,6 +372,16 @@ export default {
         .then(res => {
           this.pedido = res.data.pedido
           this.items = res.data.items
+          // Lo recuperado de una venta anulada antes de los canastillos solo
+          // tiene el peso: se toma como bruto sin canastillos.
+          if (this.conCanastillos) {
+            this.items.forEach(item => {
+              if (this.esPeso(item) && !(Number(item.peso_bruto) > 0) && Number(item.peso) > 0) {
+                item.peso_bruto = Number(item.peso)
+                item.canastillos = 0
+              }
+            })
+          }
           // Las lineas por kilo llegan sin pesar, asi que su importe arranca
           // en cero hasta que el cajero escriba el peso.
           this.items.forEach(this.actualizar)
@@ -358,6 +433,8 @@ export default {
           // No viene del pedido: no hay cantidad pedida contra que comparar.
           cantidad_pedida: null,
           peso: null,
+          peso_bruto: null,
+          canastillos: null,
           precio: Number(producto.precio || 0),
           total: producto.unidad === 'KG' ? 0 : Number(producto.precio || 0)
         })
@@ -406,6 +483,10 @@ export default {
           ...(this.esNuevo(item) ? {} : { cantidad_pedida: Number(item.cantidad_pedida) }),
           // El peso solo viaja en lo que se vende por kilo.
           ...(this.esPeso(item) ? { peso: Number(item.peso) } : {}),
+          // Con canastillos va el bruto: el backend recalcula el neto.
+          ...(this.esPeso(item) && this.conCanastillos
+            ? { peso_bruto: Number(item.peso_bruto), canastillos: Math.trunc(Number(item.canastillos) || 0) }
+            : {}),
           precio: Number(item.precio)
         }))
       }).then(res => {
@@ -428,3 +509,10 @@ export default {
   }
 }
 </script>
+
+<style scoped>
+/* Una linea apretada; si en el celular no entra, sigue abajo en vez de cortarse. */
+.detalle-linea {
+  line-height: 1.3;
+}
+</style>

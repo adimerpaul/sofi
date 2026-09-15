@@ -125,7 +125,9 @@ export default {
         cobranzasrecojo: 'Cobrar — Todos los camiones, créditos y deudas',
         misentregasreporte: 'Mi reporte de entregas (caminero)',
         misentregas: 'Mis entregas (caminero)',
-        cargacamion: 'Verificar carga (caminero)'
+        cargacamion: 'Verificar carga (caminero)',
+        facturacionPrecio: 'Cambiar precio al facturar pedidos',
+        facturacionAprobarCarga: 'Aprobar la carga de un camión (facturación)'
       }
       return nombres[p] || p
     },

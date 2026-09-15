@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Controllers\Concerns\PapeleriaSofia;
 use App\Models\Factura;
+use App\Models\FacturaDetalle;
 use App\Services\CargaCamion;
 use App\Services\SiatService;
 use Illuminate\Http\Request;
@@ -40,6 +41,9 @@ class FacturacionController extends Controller
 
     /** Tope de comprobantes por PDF; mas que esto no se imprime de una vez. */
     private const MAX_LOTE = 150;
+
+    /** Lo anulado ya no vale: no se imprime por ninguna via. */
+    private const NO_IMPRIME_ANULADO = 'El comprobante está anulado: no se puede imprimir';
 
     /** Listado de lo emitido, con filtros de la pantalla. */
     public function index(Request $request)
@@ -144,6 +148,11 @@ class FacturacionController extends Controller
             // recortar, la pantalla pinta una linea de observacion vacia.
             $observacion = trim((string) ($entrega->observacion ?? ''));
             $factura->entrega_observacion = $observacion !== '' ? $observacion : null;
+            // Producto por producto lo que el cliente se quedo, si el caminero
+            // marco un retorno parcial: es lo que caja usa para editar.
+            $factura->entrega_retorno = !empty($entrega->retorno_detalle)
+                ? json_decode($entrega->retorno_detalle, true)
+                : null;
         }
     }
 
@@ -281,31 +290,63 @@ class FacturacionController extends Controller
     }
 
     /**
-     * Camiones que tienen comprobantes en lo que se esta filtrando.
+     * Una fila por camion con lo que lleva facturado, igual que en la pantalla
+     * de pedidos por facturar: de los pedidos enviados en el rango de fechas,
+     * cuantos ya tienen comprobante vigente.
      *
-     * Se ignora el filtro de camion para armar las opciones: si no, al elegir
-     * uno el desplegable se quedaria con ese solo y no habria como cambiarlo.
+     * Se ignora el filtro de camion: si no, al elegir uno la lista se quedaria
+     * con ese solo y no habria como cambiarlo.
      */
     public function camiones(Request $request)
     {
-        $sinCamion = Request::create('', 'GET', $request->except('camion'));
+        $desde = $request->input('desde') ?: date('Y-m-d');
+        $hasta = $request->input('hasta') ?: $desde;
 
-        $numeros = $this->filtrar($sinCamion)->reorder()
-            ->pluck('pedido_nro')->filter()->unique()->values();
+        // El comprobante lleva la fecha del dia en que se cobro y el pedido la
+        // del dia en que se tomo (normalmente el anterior): ademas del rango se
+        // suman los dias de los pedidos cobrados en el rango, o filtrando por
+        // hoy no saldria ningun camion.
+        $cobrados = Factura::whereDate('fecha', '>=', $desde)->whereDate('fecha', '<=', $hasta)
+            ->whereNotNull('pedido_nro')->distinct()->pluck('pedido_nro');
+        $dias = $cobrados->isEmpty() ? collect() : DB::table('tbpedidos')
+            ->whereIn('NroPed', $cobrados)
+            ->distinct()->pluck(DB::raw('DATE(fecha) as dia'));
 
-        if ($numeros->isEmpty()) {
-            return response()->json([]);
-        }
-
-        return DB::table('tbpedidos')
-            ->whereIn('NroPed', $numeros)
-            ->whereRaw("TRIM(COALESCE(placa, '')) <> ''")
-            ->groupBy('placa')
-            ->orderBy('placa')
+        // Una fila por pedido (numero y tipo), marcada si ya se cobro.
+        $pedidos = DB::table('tbpedidos as p')
+            ->leftJoin('facturas as f', function ($join) {
+                $join->on('f.pedido_nro', '=', 'p.NroPed')
+                    ->on(DB::raw('UPPER(TRIM(f.pedido_tipo))'), '=', DB::raw('UPPER(TRIM(p.tipo))'))
+                    ->whereNull('f.deleted_at')
+                    ->where('f.estado', '<>', 'ANULADO');
+            })
+            ->where(function ($w) use ($desde, $hasta, $dias) {
+                $w->where(function ($rango) use ($desde, $hasta) {
+                    $rango->whereDate('p.fecha', '>=', $desde)->whereDate('p.fecha', '<=', $hasta);
+                });
+                if ($dias->isNotEmpty()) {
+                    $w->orWhereIn(DB::raw('DATE(p.fecha)'), $dias->all());
+                }
+            })
+            ->whereRaw("UPPER(TRIM(p.estado)) = 'ENVIADO'")
+            ->where('p.bonificacion', 0)
+            ->groupBy('p.NroPed', DB::raw('UPPER(TRIM(p.tipo))'))
             ->get([
-                DB::raw('TRIM(placa) as placa'),
-                DB::raw('COUNT(DISTINCT NroPed) as pedidos'),
+                DB::raw("TRIM(COALESCE(MIN(p.placa), '')) as placa"),
+                DB::raw("TRIM(COALESCE(MIN(p.colorStyle), '')) as color"),
+                DB::raw('MAX(f.id) as factura_id'),
             ]);
+
+        return $pedidos->groupBy(function ($pedido) {
+            return $pedido->placa !== '' ? $pedido->placa : 'SIN';
+        })->map(function ($grupo, $placa) {
+            return [
+                'placa'      => $placa,
+                'color'      => (string) optional($grupo->firstWhere('color', '!=', ''))->color,
+                'total'      => $grupo->count(),
+                'facturados' => $grupo->whereNotNull('factura_id')->count(),
+            ];
+        })->values();
     }
 
     /**
@@ -321,6 +362,91 @@ class FacturacionController extends Controller
         ]);
 
         return (new CargaCamion())->estado($datos['fecha'], trim($datos['camion']));
+    }
+
+    /**
+     * Caja aprueba de una vez la carga entera de un camion, sin esperar a que
+     * el caminero la revise canasta por canasta. Queda a nombre de quien la
+     * aprobo; lo observado por el caminero no se pisa.
+     */
+    public function aprobarCarga(Request $request)
+    {
+        if (!$request->user()->can('facturacionAprobarCarga')) {
+            return response()->json(['message' => 'No tiene permiso para aprobar la carga del camión'], 403);
+        }
+
+        $datos = $request->validate([
+            'fecha' => 'required|date',
+            'camion' => 'required|string|max:100',
+        ]);
+
+        $fecha = date('Y-m-d', strtotime($datos['fecha']));
+        $placa = trim($datos['camion']);
+        $usuario = $request->user();
+
+        $servicio = new CargaCamion();
+        $marcadas = $servicio->verificarTodo(
+            $fecha, $placa, $usuario->CodAut, trim($usuario->Nombre1 . ' ' . $usuario->App1)
+        );
+
+        return [
+            'message' => $marcadas > 0
+                ? 'Camión ' . $placa . ' aprobado: ' . $marcadas . ' canastas'
+                : 'El camión ' . $placa . ' no tenía canastas por aprobar',
+            'carga' => $servicio->estado($fecha, $placa),
+        ];
+    }
+
+    /**
+     * Caja marca la canasta de un solo comprobante como revisada (o la vuelve
+     * a sin revisar), sin esperar al caminero ni aprobar el camion entero.
+     */
+    public function marcarCarga(Request $request, $id)
+    {
+        if (!$request->user()->can('facturacionAprobarCarga')) {
+            return response()->json(['message' => 'No tiene permiso para aprobar la carga'], 403);
+        }
+
+        $datos = $request->validate(['verificado' => 'required|boolean']);
+
+        $factura = Factura::find($id);
+        if (!$factura) {
+            return response()->json(['message' => 'La factura no existe'], 404);
+        }
+        if ($factura->estado === 'ANULADO') {
+            return response()->json(['message' => 'El comprobante está anulado'], 422);
+        }
+
+        $placa = $this->camionDeFactura($factura);
+        if ($placa === '') {
+            return response()->json(['message' => 'El comprobante no sale en ningún camión'], 422);
+        }
+
+        $fecha = $factura->fecha instanceof \DateTimeInterface
+            ? $factura->fecha->format('Y-m-d')
+            : substr((string) $factura->fecha, 0, 10);
+
+        $servicio = new CargaCamion();
+        $comprobante = $servicio->comprobante($fecha, $placa, $factura->id);
+        if (!$comprobante) {
+            return response()->json(['message' => 'El comprobante no aparece en la carga del camión ' . $placa], 404);
+        }
+
+        $verificado = $request->boolean('verificado');
+        $usuario = $request->user();
+        DB::table('carga_verificaciones')->updateOrInsert(
+            ['factura_id' => $factura->id],
+            $servicio->fila(
+                $fecha, $placa, $comprobante, $verificado, null, false,
+                $usuario->CodAut, trim($usuario->Nombre1 . ' ' . $usuario->App1)
+            )
+        );
+
+        return [
+            'message' => $verificado
+                ? 'Canasta #' . $factura->id . ' marcada como revisada'
+                : 'Canasta #' . $factura->id . ' vuelve a sin revisar',
+        ];
     }
 
     /**
@@ -426,6 +552,10 @@ class FacturacionController extends Controller
             return response()->json([
                 'message' => 'Esta venta no tiene una factura fiscal disponible en Impuestos',
             ], 422);
+        }
+
+        if ($factura->estado === 'ANULADO') {
+            return response()->json(['message' => self::NO_IMPRIME_ANULADO], 422);
         }
 
         return response()->json([
@@ -759,9 +889,16 @@ class FacturacionController extends Controller
                 // Lo que va por kilo se pesa recien al cobrar: el peso sale en
                 // blanco para que el cajero escriba lo de la balanza.
                 $item->peso = null;
+                $item->peso_bruto = null;
+                $item->canastillos = null;
                 $item->total = round($item->cantidad * $item->precio, 2);
                 return $item;
             });
+
+        // Pollo, cerdo y res se pesan en canastillos: la pantalla pide bruto y
+        // canastillos en vez del peso directo.
+        $cabecera->con_canastillos = in_array($datos['tipo'], FacturaDetalle::TIPOS_CON_CANASTILLOS, true);
+        $cabecera->kg_canastillo = FacturaDetalle::KG_CANASTILLO;
 
         $filasPedido = DB::table('tbpedidos')->where('NroPed', $nroPedido)
             ->whereRaw('UPPER(TRIM(tipo)) = ?', [$datos['tipo']])->where('bonificacion', 0)
@@ -779,8 +916,17 @@ class FacturacionController extends Controller
             ->first();
 
         $cabecera->anulada = null;
+        $cabecera->retorno = null;
         if ($anulada) {
             $items = $this->recuperarAnulada($items, $anulada);
+
+            // Si el caminero habia marcado un retorno parcial sobre esa venta,
+            // lo que se vuelve a cobrar es lo que el cliente se quedo.
+            $retorno = $this->retornoDe($anulada->id);
+            if ($retorno) {
+                $items = $this->aplicarRetorno($items, $retorno);
+                $cabecera->retorno = $retorno;
+            }
             $cabecera->anulada = [
                 'id'               => $anulada->id,
                 'nro_factura'      => $anulada->nro_factura,
@@ -809,6 +955,108 @@ class FacturacionController extends Controller
      * se habia corregido al cobrar, y los productos que el cajero habia
      * agregado a mano vuelven a la lista.
      */
+    /**
+     * El retorno parcial que el caminero marco sobre un comprobante, con su
+     * detalle y la entrega de donde sale; null si no hubo.
+     */
+    private function retornoDe($facturaId)
+    {
+        $entrega = DB::table('entregas')
+            ->where('factura_id', $facturaId)
+            ->orderByDesc('id')
+            ->first(['id', 'estado', 'observacion', 'retorno_detalle', 'despachador', 'fecha', 'hora']);
+
+        if (!$entrega || $entrega->estado !== 'RETORNO PARCIAL' || empty($entrega->retorno_detalle)) {
+            return null;
+        }
+
+        return json_decode($entrega->retorno_detalle, true) + [
+            'entrega_id'  => $entrega->id,
+            'observacion' => trim((string) $entrega->observacion),
+            'caminero'    => trim((string) $entrega->despachador),
+            'registrado'  => $entrega->fecha . ' ' . substr((string) $entrega->hora, 0, 5),
+        ];
+    }
+
+    /**
+     * Pone en cada linea lo que el cliente se quedo segun el retorno parcial.
+     * Lo devuelto entero sale de la lista; el peso vuelve sin bruto ni
+     * canastillos porque ya no es el que marco la balanza.
+     */
+    private function aplicarRetorno($items, array $retorno)
+    {
+        $porCodigo = collect($retorno['items'] ?? [])->keyBy('cod_prod');
+
+        return $items->map(function ($item) use ($porCodigo) {
+            $linea = $porCodigo->get(trim((string) $item->cod_prod));
+            if (!$linea || abs((float) $linea['original'] - (float) $linea['entregado']) < 0.001) {
+                return $item;
+            }
+            $entregado = (float) $linea['entregado'];
+            if ($entregado <= 0) {
+                return null;
+            }
+            if (!empty($linea['por_peso'])) {
+                $item->peso = $entregado;
+                $item->peso_bruto = null;
+                $item->canastillos = null;
+            } else {
+                $item->cantidad = $entregado;
+            }
+            $item->total = round(($item->peso ?: $item->cantidad) * (float) $item->precio, 2);
+            $item->retorno = true;
+            return $item;
+        })->filter()->values();
+    }
+
+    /**
+     * Cuando se emite de nuevo un pedido cuya venta anterior tenia un retorno
+     * parcial, esa entrega pasa al comprobante nuevo: el cobro ya se hizo en
+     * la puerta y la nota no tiene que volver a salir como pendiente en la
+     * lista del caminero. La carga tambien queda revisada, porque el camion
+     * ya salio con ella.
+     */
+    private function heredarRetorno(Factura $nueva, $usuario)
+    {
+        $anterior = Factura::where('pedido_nro', $nueva->pedido_nro)
+            ->where('pedido_tipo', $nueva->pedido_tipo)
+            ->where('estado', 'ANULADO')
+            ->where('id', '<', $nueva->id)
+            ->orderByDesc('id')
+            ->first(['id']);
+
+        $retorno = $anterior ? $this->retornoDe($anterior->id) : null;
+        if (!$retorno) {
+            return;
+        }
+
+        DB::table('entregas')->where('id', $retorno['entrega_id'])->update([
+            'factura_id' => $nueva->id,
+            'monto'      => round((float) $nueva->total, 2),
+        ]);
+
+        $marca = DB::table('carga_verificaciones')->where('factura_id', $anterior->id)->first();
+        if ($marca && $marca->verificado) {
+            $ahora = date('Y-m-d H:i:s');
+            DB::table('carga_verificaciones')->updateOrInsert(['factura_id' => $nueva->id], [
+                'fecha'           => optional($nueva->fecha)->format('Y-m-d') ?? date('Y-m-d'),
+                'placa'           => $marca->placa,
+                'pedido_nro'      => $nueva->pedido_nro,
+                'pedido_tipo'     => $nueva->pedido_tipo,
+                'items_esperados' => $nueva->detalles()->count(),
+                'total_esperado'  => round((float) $nueva->total, 2),
+                'verificado'      => true,
+                'observado'       => false,
+                'observacion'     => 'Reemitida por retorno parcial de #' . $anterior->id,
+                'personal_id'     => $usuario->CodAut,
+                'verificado_por'  => trim($usuario->Nombre1 . ' ' . $usuario->App1),
+                'verificado_en'   => $ahora,
+                'created_at'      => $ahora,
+                'updated_at'      => $ahora,
+            ]);
+        }
+    }
+
     private function recuperarAnulada($items, Factura $anulada)
     {
         $porCodigo = $anulada->detalles->keyBy(function ($detalle) {
@@ -823,6 +1071,8 @@ class FacturacionController extends Controller
             $item->cantidad = (float) $detalle->cantidad;
             // El peso solo se recupera si de verdad se peso algo.
             $item->peso = (float) $detalle->peso > 0 ? (float) $detalle->peso : null;
+            $item->peso_bruto = (float) $detalle->peso_bruto > 0 ? (float) $detalle->peso_bruto : null;
+            $item->canastillos = $item->peso_bruto !== null ? (int) $detalle->canastillos : null;
             $item->precio = (float) $detalle->precio;
             $item->total = round(($item->peso ?: $item->cantidad) * $item->precio, 2);
             $item->recuperado = true;
@@ -839,6 +1089,7 @@ class FacturacionController extends Controller
                 continue;
             }
             $peso = (float) $detalle->peso > 0 ? (float) $detalle->peso : null;
+            $pesoBruto = (float) $detalle->peso_bruto > 0 ? (float) $detalle->peso_bruto : null;
             $items->push((object) [
                 'cod_prod' => $codigo,
                 'nombre'   => $detalle->nombre,
@@ -848,6 +1099,8 @@ class FacturacionController extends Controller
                 // No venia en el pedido: no hay cantidad pedida con que compararlo.
                 'cantidad_pedida' => null,
                 'peso'     => $peso,
+                'peso_bruto'  => $pesoBruto,
+                'canastillos' => $pesoBruto !== null ? (int) $detalle->canastillos : null,
                 'precio'   => (float) $detalle->precio,
                 'total'    => round(($peso ?: (float) $detalle->cantidad) * (float) $detalle->precio, 2),
                 'recuperado' => true,
@@ -865,34 +1118,68 @@ class FacturacionController extends Controller
         // carga, asi que vive en un solo sitio.
         $productos = CargaCamion::PRODUCTOS_POLLO;
         $cortes = CargaCamion::CORTES_POLLO;
+        $datos = collect();
         foreach ($filas as $fila) {
             foreach (['Observaciones', 'Canttxt', 'comentario'] as $campo) {
                 $texto = trim((string) ($fila->{$campo} ?? ''));
                 if ($texto !== '') $observaciones->push($texto);
             }
             foreach ($productos as [$nombre, $caja, $unidad, $precio, $obs]) {
-                $this->agregarDetallePollo($detalles, $fila, $nombre, $caja, 'CJA', $precio, $obs);
-                $this->agregarDetallePollo($detalles, $fila, $nombre, $unidad, 'UND', $precio, $obs);
+                $conCaja = $this->agregarDetallePollo($detalles, $fila, $nombre, $caja, 'CJA', $precio, $obs);
+                $conUnidad = $this->agregarDetallePollo($detalles, $fila, $nombre, $unidad, 'UND', $precio, $obs);
+                if (!$conCaja && !$conUnidad) {
+                    $this->agregarSinCantidad($detalles, $fila, $nombre, $precio, $obs);
+                }
             }
             foreach ($cortes as [$nombre, $cantidad, $unidad, $precio, $obs]) {
-                $this->agregarDetallePollo($detalles, $fila, $nombre, $cantidad, strtoupper(trim((string) ($fila->{$unidad} ?? 'KG'))), $precio, $obs);
+                if (!$this->agregarDetallePollo($detalles, $fila, $nombre, $cantidad, strtoupper(trim((string) ($fila->{$unidad} ?? 'KG'))), $precio, $obs)) {
+                    $this->agregarSinCantidad($detalles, $fila, $nombre, $precio, $obs);
+                }
             }
-            $this->agregarDetallePollo($detalles, $fila, 'Rango', 'rango', 'KG', 'bs', null);
+            // Rango va en unidades y sin precio propio, como en la hoja de pesos.
+            $this->agregarDetallePollo($detalles, $fila, 'Rango', 'rango', 'U', null, null);
+
+            // Las mismas columnas de la hoja de pesos pollo (generarXlsPollo).
+            if (strtoupper(trim((string) ($fila->tipo ?? ''))) === 'POLLO') {
+                $valor = function ($campo) use ($fila) {
+                    return trim((string) ($fila->{$campo} ?? ''));
+                };
+                foreach ([
+                    ['P. Trozado', $valor('bs2')],
+                    ['P. Pollo', $valor('bs')],
+                ] as [$etiqueta, $texto]) {
+                    $datos->push(['etiqueta' => $etiqueta, 'valor' => $texto === '' ? '—' : $texto]);
+                }
+            }
         }
         return [
             'observaciones' => $observaciones->unique()->values(),
             'productos' => $detalles->unique(fn ($d) => implode('|', $d))->values(),
+            'datos' => $datos->unique(fn ($d) => implode('|', $d))->values(),
         ];
     }
 
     private function agregarDetallePollo($detalles, $fila, $nombre, $campo, $unidad, $campoPrecio, $campoObservacion)
     {
         $cantidad = $fila->{$campo} ?? null;
-        if ($cantidad === null || $cantidad === '' || (float) $cantidad == 0) return;
+        if ($cantidad === null || $cantidad === '' || (float) $cantidad == 0) return false;
         $detalles->push([
             'nombre' => $nombre, 'cantidad' => (float) $cantidad, 'unidad' => $unidad ?: 'KG',
-            'precio' => (float) ($fila->{$campoPrecio} ?? $fila->bs ?? $fila->bs2 ?? 0),
+            'precio' => $campoPrecio ? (float) ($fila->{$campoPrecio} ?? 0) : 0,
             'observacion' => $campoObservacion ? trim((string) ($fila->{$campoObservacion} ?? '')) : '',
+        ]);
+        return true;
+    }
+
+    /** Un producto sin cantidad pero con precio u observacion igual se muestra. */
+    private function agregarSinCantidad($detalles, $fila, $nombre, $campoPrecio, $campoObservacion)
+    {
+        $precio = (float) ($fila->{$campoPrecio} ?? 0);
+        $observacion = trim((string) ($fila->{$campoObservacion} ?? ''));
+        if ($precio == 0 && $observacion === '') return;
+        $detalles->push([
+            'nombre' => $nombre, 'cantidad' => null, 'unidad' => '',
+            'precio' => $precio, 'observacion' => $observacion,
         ]);
     }
 
@@ -907,6 +1194,10 @@ class FacturacionController extends Controller
             'items.*.cantidad_pedida' => 'nullable|numeric|min:0',
             // Solo lo que va a granel lo trae; es lo que se cobra en esas lineas.
             'items.*.peso'     => 'nullable|numeric|min:0',
+            // Pollo, cerdo y res se pesan en canastillos: la balanza marca el
+            // bruto y el neto que se cobra sale de restarle los canastillos.
+            'items.*.peso_bruto'  => 'nullable|numeric|min:0',
+            'items.*.canastillos' => 'nullable|integer|min:0',
             'items.*.precio'   => 'required|numeric|min:0',
             'tipo_comprobante' => 'nullable|in:VENTA,FACTURA',
             'tipo_pago'        => 'nullable|string|max:20',
@@ -945,6 +1236,33 @@ class FacturacionController extends Controller
         if ($faltantes->isNotEmpty()) {
             return response()->json([
                 'message' => 'No existen los productos: ' . $faltantes->implode(', '),
+            ], 422);
+        }
+
+        // Con canastillos el neto lo calcula el servidor a partir del bruto:
+        // asi lo impreso (bruto, canastillos, neto) siempre cuadra con lo
+        // cobrado, aunque la pantalla mande otro peso.
+        $conCanastillos = in_array($datos['pedido_tipo'] ?? null, FacturaDetalle::TIPOS_CON_CANASTILLOS, true);
+        $negativos = collect();
+        foreach ($datos['items'] as $i => $item) {
+            $prod = $productos[trim($item['cod_prod'])];
+            if (!$conCanastillos || !$this->esGranel($prod) || !isset($item['peso_bruto'])
+                || (float) $item['peso_bruto'] <= 0) {
+                unset($datos['items'][$i]['peso_bruto'], $datos['items'][$i]['canastillos']);
+                continue;
+            }
+            $canastillos = (int) ($item['canastillos'] ?? 0);
+            $neto = round((float) $item['peso_bruto'] - $canastillos * FacturaDetalle::KG_CANASTILLO, 3);
+            if ($neto <= 0) {
+                $negativos->push(trim($prod->Producto));
+            }
+            $datos['items'][$i]['canastillos'] = $canastillos;
+            $datos['items'][$i]['peso'] = $neto;
+        }
+
+        if ($negativos->isNotEmpty()) {
+            return response()->json([
+                'message' => 'Los canastillos pesan más que el peso bruto en: ' . $negativos->implode(', '),
             ], 422);
         }
 
@@ -1000,6 +1318,37 @@ class FacturacionController extends Controller
             if ($vigente) {
                 return response()->json(['message' => 'Este pedido ya fue facturado o convertido en voucher'], 422);
             }
+
+            // Sin permiso el precio no se toca: vale el del pedido o, en lo
+            // que se agrega al cobrar, el del catalogo.
+            if (!$usuario->can('facturacionPrecio')) {
+                $delPedido = DB::table('tbpedidos')
+                    ->where('NroPed', $datos['pedido_nro'])
+                    ->whereRaw('UPPER(TRIM(tipo)) = ?', [$datos['pedido_tipo']])
+                    ->where('bonificacion', 0)
+                    ->get([DB::raw('TRIM(cod_prod) as cod_prod'), 'precio'])
+                    ->groupBy('cod_prod');
+
+                $cambiados = collect($datos['items'])
+                    ->filter(function ($item) use ($productos, $delPedido) {
+                        $cod = trim($item['cod_prod']);
+                        $permitidos = collect($delPedido->get($cod, []))->pluck('precio')
+                            ->push($productos[$cod]->Precio)
+                            ->map(function ($v) {
+                                return round((float) $v, 2);
+                            });
+                        return !$permitidos->contains(round((float) $item['precio'], 2));
+                    })
+                    ->map(function ($item) use ($productos) {
+                        return trim($productos[trim($item['cod_prod'])]->Producto);
+                    });
+
+                if ($cambiados->isNotEmpty()) {
+                    return response()->json([
+                        'message' => 'No tiene permiso para cambiar el precio de: ' . $cambiados->implode(', '),
+                    ], 403);
+                }
+            }
         }
 
         $factura = DB::transaction(function () use ($datos, $productos, $usuario, $ci, $cliente, $tipo, $nit) {
@@ -1035,6 +1384,13 @@ class FacturacionController extends Controller
                         ? round((float) $item['cantidad_pedida'], 3)
                         : null,
                     'peso'     => $peso,
+                    // De donde salio el neto, solo en lo pesado con canastillos.
+                    'peso_bruto'  => $peso !== null && isset($item['peso_bruto'])
+                        ? round((float) $item['peso_bruto'], 3)
+                        : null,
+                    'canastillos' => $peso !== null && isset($item['peso_bruto'])
+                        ? (int) $item['canastillos']
+                        : null,
                     'precio'   => $precio,
                     'subtotal' => $importe,
                 ];
@@ -1066,6 +1422,10 @@ class FacturacionController extends Controller
 
             // Lo vendido sale del inventario.
             $this->moverStock($lineas, $factura->id, $ci, date('Y-m-d H:i:s'), 'SALIDA');
+
+            if ($factura->pedido_nro) {
+                $this->heredarRetorno($factura, $usuario);
+            }
 
             return $factura;
         });
@@ -1339,6 +1699,10 @@ class FacturacionController extends Controller
                 // cuanto se devolvio sin tener que cruzar los dos documentos.
                 'cantidad_pedida' => (float) $linea->cantidad,
                 'peso'     => $peso,
+                // El bruto y los canastillos solo siguen valiendo si el peso
+                // no cambio; con otro neto ya no se sabe como se peso.
+                'peso_bruto'  => $peso !== null && abs($peso - (float) $linea->peso) < 0.001 ? $linea->peso_bruto : null,
+                'canastillos' => $peso !== null && abs($peso - (float) $linea->peso) < 0.001 ? $linea->canastillos : null,
                 'precio'   => $precio,
                 'subtotal' => $importe,
             ];
@@ -1504,6 +1868,10 @@ class FacturacionController extends Controller
             return response()->json(['message' => 'La venta no existe'], 404);
         }
 
+        if ($factura->estado === 'ANULADO') {
+            return response()->json(['message' => self::NO_IMPRIME_ANULADO], 422);
+        }
+
         if ($bloqueo = $this->bloqueoCarga($factura)) {
             return response()->json(['message' => $bloqueo], 422);
         }
@@ -1565,6 +1933,13 @@ class FacturacionController extends Controller
 
         $trozados = $this->codigosTrozados($factura->detalles);
 
+        // Si algo se peso con canastillos la boleta lleva, como la de papel,
+        // P. Bruto, canastillos y sus kg antes del P. Neto. Sin canastillos
+        // queda la grilla de siempre.
+        $conCanastillos = $factura->detalles->contains(function ($d) {
+            return (float) $d->peso_bruto > 0;
+        });
+
         $filas = '';
         foreach ($factura->detalles as $i => $d) {
             // Como en la boleta de papel: CANT son las piezas que se entregan y
@@ -1575,12 +1950,24 @@ class FacturacionController extends Controller
             // Lo trozado no se cuenta: en su lugar va un guion.
             $trozado = !empty($trozados[trim((string) $d->cod_prod)]);
 
+            if ($conCanastillos) {
+                // Lo pesado sin canastillos tiene el bruto igual al neto.
+                $bruto = (float) $d->peso_bruto > 0 ? (float) $d->peso_bruto : $peso;
+                $canastillos = (float) $d->peso_bruto > 0 ? (int) $d->canastillos : 0;
+                $columnasPeso = "<td class='r'>" . ($bruto > 0 ? number_format($bruto, 2) : '—') . '</td>'
+                    . "<td class='c'>" . ($canastillos > 0 ? $canastillos : '—') . '</td>'
+                    . "<td class='r'>" . ($canastillos > 0
+                        ? number_format($canastillos * FacturaDetalle::KG_CANASTILLO, 2) : '—') . '</td>';
+            } else {
+                $columnasPeso = "<td class='r'>" . ($peso > 0 ? number_format($peso, 3) : '—') . '</td>';
+            }
+
             $filas .= "<tr$par>"
                 . "<td class='r'>" . ($trozado ? '—' : number_format($d->cantidad, 2)) . '</td>'
                 . "<td class='cod'>" . e($d->cod_prod) . '</td>'
                 . '<td>' . e($d->nombre) . '</td>'
                 . "<td class='c'>" . e($d->unidad) . '</td>'
-                . "<td class='r'>" . ($peso > 0 ? number_format($peso, 3) : '—') . '</td>'
+                . $columnasPeso
                 . "<td class='r'>" . number_format($d->cantidad_facturada, 2) . '</td>'
                 . "<td class='r'>" . number_format($d->precio, 2) . '</td>'
                 . "<td class='r'><b>" . number_format($d->subtotal, 2) . '</b></td>'
@@ -1638,7 +2025,9 @@ class FacturacionController extends Controller
                 <th style='width:8%'>Código</th>
                 <th>Concepto</th>
                 <th style='width:6%'>Unid</th>
-                <th style='width:9%'>Peso Kg</th>
+                " . ($conCanastillos
+                    ? "<th style='width:8%'>P. Bruto</th><th style='width:6%'>Canast.</th><th style='width:7%'>Kg Canast.</th>"
+                    : "<th style='width:9%'>Peso Kg</th>") . "
                 <th style='width:9%'>P. Neto</th>
                 <th style='width:10%'>P. Unit</th>
                 <th style='width:11%'>Total</th>
@@ -1701,6 +2090,10 @@ class FacturacionController extends Controller
             return response()->json([
                 'message' => 'Esta venta se entregó como voucher, no tiene factura',
             ], 422);
+        }
+
+        if ($factura->estado === 'ANULADO') {
+            return response()->json(['message' => self::NO_IMPRIME_ANULADO], 422);
         }
 
         if ($bloqueo = $this->bloqueoCarga($factura)) {
@@ -1854,6 +2247,8 @@ class FacturacionController extends Controller
         }
 
         $facturas = $this->filtrar($request)
+            // Aunque el filtro muestre anulados, esos no salen en el papel.
+            ->where('estado', '<>', 'ANULADO')
             ->when($documento === 'factura', function ($q) {
                 // La factura solo existe si la venta se entrego como factura.
                 $q->where('tipo_comprobante', 'FACTURA');
@@ -1869,9 +2264,9 @@ class FacturacionController extends Controller
 
         if ($facturas->isEmpty()) {
             $vacio = [
-                'factura' => 'No hay facturas en lo que estás viendo',
-                'voucher' => 'No hay vouchers en lo que estás viendo',
-                'todos' => 'No hay comprobantes en lo que estás viendo',
+                'factura' => 'No hay facturas vigentes en lo que estás viendo (las anuladas no se imprimen)',
+                'voucher' => 'No hay vouchers vigentes en lo que estás viendo (los anulados no se imprimen)',
+                'todos' => 'No hay comprobantes vigentes en lo que estás viendo (los anulados no se imprimen)',
             ];
 
             return response()->json(['message' => $vacio[$documento]], 422);

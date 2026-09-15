@@ -15,7 +15,7 @@
           :loading="exportando"
         >
           <q-list dense style="min-width: 280px">
-            <q-item-label header class="q-py-xs">Comprobantes del filtro</q-item-label>
+            <q-item-label header class="q-py-xs">Comprobantes del filtro (los anulados no se imprimen)</q-item-label>
 
             <!-- Lo mas comun al cerrar el dia: el paquete completo, cada venta
                  en el papel que le toca, en un solo tiro de impresora. -->
@@ -141,24 +141,53 @@
             @click="filtrarTipo(opcion.valor)"
           />
         </div>
-        <!-- El camion sale del pedido que origino cada comprobante. -->
-        <div class="col-6 col-md-2">
-          <q-select
-            v-model="filtros.camion" dense outlined clearable emit-value map-options
-            label="Camión" :options="camiones" @update:model-value="recargar"
-          >
-            <template v-slot:prepend><q-icon name="local_shipping"/></template>
-          </q-select>
-        </div>
         <div class="col-6 col-md-2">
           <q-select
             v-model="filtros.estado" dense outlined clearable
             label="Estado" :options="['ACTIVO', 'ANULADO']"
           />
         </div>
-        <div class="col-12 col-md row items-center q-gutter-sm">
+        <!-- col-md-auto y no col-md: con los filtros sumando 12 columnas, un
+             col-md (ancho base 0) se metia en la misma linea sin ancho y los
+             botones desaparecian. -->
+        <div class="col-12 col-md-auto row items-center q-gutter-sm">
           <q-btn :loading="loading" color="primary" icon="search" no-caps label="Buscar" @click="recargar"/>
           <q-btn flat color="grey-7" icon="layers_clear" no-caps label="Limpiar" @click="limpiar"/>
+        </div>
+      </div>
+
+      <!-- Una linea por camion con lo que ya lleva facturado, igual que en
+           pedidos por facturar; tocando se filtra a ese camion. -->
+      <div v-if="camiones.length" class="q-mt-sm rounded-borders camion-caja">
+        <div class="row items-center no-wrap q-px-xs bg-grey-3 camion-titulo">
+          <div class="text-weight-bold text-grey-8">CARGA POR CAMION</div>
+          <q-space/>
+          <div class="text-weight-bolder" :class="facturadosTotal === pedidosTotal ? 'text-green-9' : 'text-orange-9'">
+            {{ facturadosTotal }}/{{ pedidosTotal }} · {{ porcentajeTotal }}%
+          </div>
+          <q-btn v-if="filtros.camion" flat dense no-caps size="sm" padding="0 4px" class="q-ml-xs" color="primary"
+                 icon="clear" label="Todos" @click="alternarCamion(filtros.camion)"/>
+        </div>
+        <div
+          v-for="opcion in camiones" :key="opcion.value"
+          class="row items-center no-wrap camion-fila"
+          :class="filtros.camion === opcion.value ? 'bg-blue-2' : ''"
+          @click="alternarCamion(opcion.value)"
+        >
+          <div class="camion-placa ellipsis" :style="estiloColor(opcion.color)">{{ opcion.placa }}</div>
+          <q-linear-progress
+            class="col q-mx-xs" rounded size="13px" :value="opcion.progreso"
+            :color="opcion.completo ? 'positive' : 'orange-7'" track-color="grey-4"
+          >
+            <div class="absolute-full flex flex-center">
+              <span class="camion-porcentaje" :class="opcion.progreso > 0.55 ? 'text-white' : 'text-grey-9'">
+                {{ opcion.porcentaje }}%
+              </span>
+            </div>
+          </q-linear-progress>
+          <div class="camion-conteo" :class="opcion.completo ? 'text-green-9' : 'text-grey-9'">
+            {{ opcion.facturados }}/{{ opcion.total }}
+          </div>
         </div>
       </div>
 
@@ -184,6 +213,14 @@
           El camión {{ carga.placa }} todavía no verificó su carga
           ({{ carga.verificados }}/{{ carga.comprobantes }} canastas): sus facturas y vouchers
           no se pueden imprimir hasta que el caminero termine de revisarla.
+        </template>
+        <!-- Atajo de caja: aprueba todas las canastas del camion de una vez. -->
+        <template v-if="!carga.completo && can('facturacionAprobarCarga')" v-slot:action>
+          <q-btn
+            unelevated no-caps color="green-8" icon="done_all"
+            :label="'Aprobar camión ' + carga.placa"
+            :loading="aprobandoCarga" @click="aprobarCarga"
+          />
         </template>
       </q-banner>
     </q-card>
@@ -246,6 +283,15 @@
             >
               <q-tooltip>{{ detalleCarga(props.row) }}</q-tooltip>
             </q-chip>
+            <!-- Caja da por revisada la canasta sin esperar al caminero. -->
+            <q-btn
+              v-if="can('facturacionAprobarCarga') && puedeRevisar(props.row)"
+              dense unelevated no-caps size="sm" padding="0 6px" color="green-8" icon="done"
+              label="Revisado" class="q-ml-xs"
+              :loading="marcandoCarga === props.row.id" @click="marcarCarga(props.row, true)"
+            >
+              <q-tooltip>Marcar la carga como revisada</q-tooltip>
+            </q-btn>
             <!-- Lo que anoto el caminero va a la vista y no solo en el tooltip:
                  es lo que caja tiene que resolver antes de que salga el camion. -->
             <div
@@ -275,11 +321,21 @@
                  asi que va a la vista y no escondido en el tooltip. -->
             <div
               v-if="props.row.entrega_observacion && props.value !== 'ENTREGADO'"
-              class="text-caption text-weight-medium text-red-9 celda-observacion"
+              class="text-caption text-weight-medium celda-observacion"
+              :class="props.value === 'RETORNO PARCIAL' ? 'text-deep-orange-9' : 'text-red-9'"
             >
               {{ props.row.entrega_observacion }}
               <q-tooltip>{{ props.row.entrega_observacion }}</q-tooltip>
             </div>
+            <!-- El caminero marco que el cliente devolvio parte: caja edita el
+                 comprobante (anula y emite otro con lo que se quedo). -->
+            <q-btn
+              v-if="retornoPendiente(props.row) && can('facturacionAnular')"
+              dense unelevated no-caps size="sm" padding="0 6px" color="deep-orange-7" icon="edit"
+              label="Editar" class="q-mt-xs" @click="pedirEdicion(props.row)"
+            >
+              <q-tooltip>Anular y emitir otro con lo que se quedó el cliente</q-tooltip>
+            </q-btn>
           </template>
           <span v-else class="text-grey-6">—</span>
         </q-td>
@@ -331,54 +387,44 @@
           >
             <q-menu>
             <q-list dense style="min-width: 220px">
-              <q-item clickable v-close-popup @click="verDetalle(props.row)">
-                <q-item-section avatar><q-icon name="visibility" color="primary"/></q-item-section>
-                <q-item-section>
-                  Ver detalle
-                  <q-item-label caption>
-                    {{ fechaCorta(props.row.fecha) }} {{ props.row.hora }}
-                  </q-item-label>
-                </q-item-section>
-              </q-item>
-
-              <!-- Atajo a lo que cambio respecto del pedido; abre el mismo
-                   detalle, donde los cambios salen resaltados. -->
-              <q-item
-                clickable v-close-popup
-                :disable="!cambiadas(props.row).length"
-                @click="verDetalle(props.row)"
-              >
-                <q-item-section avatar>
-                  <q-icon name="published_with_changes" color="deep-orange"/>
-                </q-item-section>
-                <q-item-section>
-                  Cambios del pedido
-                  <q-item-label caption>
-                    {{ cambiadas(props.row).length
-                      ? cambiadas(props.row).length + ' producto(s) con otra cantidad'
-                      : 'Salió igual a lo pedido' }}
-                  </q-item-label>
-                </q-item-section>
-              </q-item>
+              <!-- La revision de la canasta, de un lado al otro. -->
+              <template v-if="can('facturacionAprobarCarga') && props.row.carga_estado !== 'NO_APLICA'">
+                <q-item v-if="puedeRevisar(props.row)" clickable v-close-popup @click="marcarCarga(props.row, true)">
+                  <q-item-section avatar><q-icon name="done_all" color="green-8"/></q-item-section>
+                  <q-item-section>
+                    Marcar carga revisada
+                    <q-item-label caption>Pasa de "{{ chipCarga(props.row.carga_estado).texto }}" a revisada</q-item-label>
+                  </q-item-section>
+                </q-item>
+                <!-- Lo observado no se desmarca desde aca: se perderia la nota del caminero. -->
+                <q-item v-else-if="props.row.carga_estado === 'VERIFICADA'" clickable v-close-popup @click="marcarCarga(props.row, false)">
+                  <q-item-section avatar><q-icon name="undo" color="orange-8"/></q-item-section>
+                  <q-item-section>
+                    Volver a sin revisar
+                    <q-item-label caption>Quita la revisión de la canasta</q-item-label>
+                  </q-item-section>
+                </q-item>
+              </template>
 
               <q-separator/>
 
-              <q-item clickable v-close-popup @click="imprimir(props.row, 'voucher')">
-                <q-item-section avatar><q-icon name="receipt" color="blue-grey-7"/></q-item-section>
-                <q-item-section>Imprimir voucher</q-item-section>
-              </q-item>
-
-              <!-- Solo las que se entregaron como factura tienen factura. -->
+              <!-- Una sola opcion: el tipo de comprobante dice si sale factura o
+                   voucher. Lo anulado ya no vale y no se imprime. -->
               <q-item
                 clickable v-close-popup
-                :disable="props.row.tipo_comprobante !== 'FACTURA'"
-                @click="imprimir(props.row, 'factura')"
+                :disable="props.row.estado === 'ANULADO'"
+                @click="imprimir(props.row, documentoDe(props.row))"
               >
-                <q-item-section avatar><q-icon name="verified" color="green-7"/></q-item-section>
+                <q-item-section avatar>
+                  <q-icon :name="documentoDe(props.row) === 'factura' ? 'verified' : 'receipt'"
+                          :color="documentoDe(props.row) === 'factura' ? 'green-7' : 'blue-grey-7'"/>
+                </q-item-section>
                 <q-item-section>
-                  Imprimir factura
-                  <q-item-label v-if="props.row.tipo_comprobante !== 'FACTURA'" caption>
-                    Se entregó como voucher
+                  Imprimir
+                  <q-item-label caption>
+                    {{ props.row.estado === 'ANULADO'
+                      ? 'Anulado: no se imprime'
+                      : (documentoDe(props.row) === 'factura' ? 'Factura' : 'Voucher') }}
                   </q-item-label>
                 </q-item-section>
               </q-item>
@@ -386,12 +432,18 @@
               <q-separator/>
 
               <!-- Lo mismo que se imprime, pero guardado en un archivo. -->
-              <q-item clickable v-close-popup @click="descargarPdf(props.row)">
+              <q-item
+                clickable v-close-popup
+                :disable="props.row.estado === 'ANULADO'"
+                @click="descargarPdf(props.row)"
+              >
                 <q-item-section avatar><q-icon name="picture_as_pdf" color="red-7"/></q-item-section>
                 <q-item-section>
                   Descargar PDF
                   <q-item-label caption>
-                    {{ props.row.tipo_comprobante === 'FACTURA' ? 'Factura' : 'Voucher' }} en archivo
+                    {{ props.row.estado === 'ANULADO'
+                      ? 'Anulado: no se imprime'
+                      : (props.row.tipo_comprobante === 'FACTURA' ? 'Factura' : 'Voucher') + ' en archivo' }}
                   </q-item-label>
                 </q-item-section>
               </q-item>
@@ -419,7 +471,7 @@
 
               <q-item
                 clickable v-close-popup
-                :disable="props.row.tipo_comprobante !== 'FACTURA' || !props.row.cuf"
+                :disable="props.row.tipo_comprobante !== 'FACTURA' || !props.row.cuf || props.row.estado === 'ANULADO'"
                 @click="abrirEnImpuestos(props.row)"
               >
                 <q-item-section avatar><q-icon name="account_balance" color="deep-orange-7"/></q-item-section>
@@ -428,19 +480,24 @@
                   <q-item-label v-if="!props.row.cuf" caption>
                     La factura todavía no tiene CUF
                   </q-item-label>
+                  <q-item-label v-else-if="props.row.estado === 'ANULADO'" caption>
+                    Anulada: no se imprime
+                  </q-item-label>
                 </q-item-section>
               </q-item>
 
-              <!-- El cliente recibió el pedido pero devolvió algunos items: el
-                   comprobante no se corrige, se anula y se emite otro. -->
+              <!-- Un comprobante emitido no se corrige: se anula y el pedido
+                   vuelve a abrirse con todo cargado para emitir uno nuevo. -->
               <template v-if="can('facturacionAnular') && props.row.estado !== 'ANULADO'">
                 <q-separator/>
-                <q-item clickable v-close-popup @click="pedirRetorno(props.row)">
-                  <q-item-section avatar><q-icon name="assignment_return" color="deep-orange-7"/></q-item-section>
+                <q-item clickable v-close-popup :disable="!props.row.pedido_nro" @click="pedirEdicion(props.row)">
+                  <q-item-section avatar><q-icon name="edit" color="deep-orange-7"/></q-item-section>
                   <q-item-section>
-                    Retorno parcial
+                    Editar
                     <q-item-label caption>
-                      Anula y emite otro con lo que sí se entregó
+                      {{ props.row.pedido_nro
+                        ? 'Anula este y crea uno nuevo con los cambios'
+                        : 'Venta directa: anular y registrar otra' }}
                     </q-item-label>
                   </q-item-section>
                 </q-item>
@@ -580,12 +637,18 @@
       <q-card style="min-width: 340px">
         <q-card-section class="q-py-sm">
           <div class="text-subtitle1 text-weight-bold">
-            {{ sel.estado === 'ANULADO' ? 'Anular en Impuestos' : 'Anular' }} #{{ sel.id }}
+            {{ editando ? 'Editar' : (sel.estado === 'ANULADO' ? 'Anular en Impuestos' : 'Anular') }} #{{ sel.id }}
           </div>
           <div class="text-caption text-grey-7">
-            {{ sel.estado === 'ANULADO'
-              ? 'La anulación local ya existe; ahora se enviará al SIAT sin volver a mover el stock.'
-              : 'Se anulará en el SIAT y quedará registrada como anulada en Sofia.' }}
+            <template v-if="editando">
+              Este comprobante se anula y se abre el pedido #{{ sel.pedido_nro }} con todo lo cobrado
+              cargado, para corregirlo y emitir uno nuevo.
+            </template>
+            <template v-else>
+              {{ sel.estado === 'ANULADO'
+                ? 'La anulación local ya existe; ahora se enviará al SIAT sin volver a mover el stock.'
+                : 'Se anulará en el SIAT y quedará registrada como anulada en Sofia.' }}
+            </template>
           </div>
         </q-card-section>
         <q-card-section class="q-pt-none">
@@ -600,85 +663,14 @@
         <q-card-actions align="right" class="q-pa-sm">
           <q-btn flat dense no-caps label="Cancelar" v-close-popup/>
           <q-btn
-            color="negative" dense unelevated no-caps label="Anular"
+            :color="editando ? 'deep-orange-7' : 'negative'" dense unelevated no-caps
+            :label="editando ? 'Anular y editar' : 'Anular'"
             :disable="!codigoMotivoAnulacion" :loading="anulando" @click="anular"
           />
         </q-card-actions>
       </q-card>
     </q-dialog>
 
-    <!-- Retorno parcial: se escribe lo que el cliente SÍ recibió. Lo que no,
-         vuelve al almacén al anularse el comprobante original. -->
-    <q-dialog v-model="dialogRetorno">
-      <q-card style="width: 720px; max-width: 96vw">
-        <q-card-section class="bg-deep-orange-7 text-white q-py-sm">
-          <div class="text-subtitle1 text-weight-bold">Retorno parcial · #{{ sel.id }}</div>
-          <div class="text-caption">
-            {{ sel.tipo_comprobante === 'FACTURA' ? 'La factura' : 'El voucher' }}
-            se anula y se emite otro con lo entregado
-          </div>
-        </q-card-section>
-
-        <q-card-section class="q-pa-none">
-          <q-markup-table dense flat wrap-cells>
-            <thead>
-            <tr class="bg-grey-2">
-              <th class="text-left">Producto</th>
-              <th class="text-right">Salió</th>
-              <th class="text-right" style="width: 110px">Entregado</th>
-              <th class="text-right" style="width: 100px">Importe</th>
-            </tr>
-            </thead>
-            <tbody>
-            <tr v-for="fila in retorno" :key="fila.cod_prod">
-              <td>
-                <div>{{ fila.nombre }}</div>
-                <div class="text-caption text-grey-7">{{ fila.cod_prod }}</div>
-              </td>
-              <td class="text-right">{{ cant(fila.original, fila.unidad) }}</td>
-              <td class="text-right">
-                <q-input
-                  v-model.number="fila.entregado" type="number" inputmode="decimal"
-                  dense outlined :min="0" :max="fila.original" step="0.001"
-                  :error="fila.entregado > fila.original"
-                />
-              </td>
-              <td class="text-right">{{ money(fila.entregado * fila.precio) }}</td>
-            </tr>
-            </tbody>
-          </q-markup-table>
-        </q-card-section>
-
-        <q-card-section class="q-py-sm">
-          <q-input
-            v-model.trim="observacionRetorno" dense outlined counter maxlength="200"
-            label="¿Por qué se devolvió?"
-          />
-          <div class="row q-mt-sm text-body2">
-            <div class="col">Nota original</div>
-            <div class="col-auto">Bs {{ money(sel.total) }}</div>
-          </div>
-          <div class="row text-body2 text-weight-bold">
-            <div class="col">Comprobante nuevo</div>
-            <div class="col-auto">Bs {{ money(totalRetorno) }}</div>
-          </div>
-          <div class="row text-body2 text-deep-orange-9">
-            <div class="col">Vuelve al almacén</div>
-            <div class="col-auto">Bs {{ money(sel.total - totalRetorno) }}</div>
-          </div>
-        </q-card-section>
-
-        <q-separator/>
-        <q-card-actions align="right" class="q-pa-sm">
-          <q-btn flat dense no-caps label="Cancelar" v-close-popup/>
-          <q-btn
-            color="deep-orange-7" dense unelevated no-caps
-            label="Anular y emitir el nuevo"
-            :disable="!retornoValido" :loading="retornando" @click="guardarRetorno"
-          />
-        </q-card-actions>
-      </q-card>
-    </q-dialog>
   </q-page>
 </template>
 
@@ -718,17 +710,17 @@ export default {
         { label: '4 - Sustitución de factura emitida en contingencia', value: 4 }
       ],
       anulando: false,
-      // Retorno parcial: una fila por producto con lo que el cliente sí recibió.
-      dialogRetorno: false,
-      retorno: [],
-      observacionRetorno: '',
-      retornando: false,
+      // El dialogo de anulacion tambien sirve para Editar: anula y abre el pedido.
+      editando: false,
       imprimiendo: null,
       exportando: false,
       camiones: [],
       // Como viene la verificacion de la carga del camion filtrado; null
       // mientras no se este mirando un camion de un solo dia.
       carga: null,
+      aprobandoCarga: false,
+      // Id del comprobante cuya canasta se esta marcando desde la grilla.
+      marcandoCarga: null,
       loading: false,
       // En el mostrador 'VENTA' es el voucher: la venta que no se entrego
       // como factura.
@@ -772,23 +764,14 @@ export default {
     can () {
       return this.$store.getters['login/can']
     },
-    /** Lo que va a costar el comprobante nuevo. */
-    totalRetorno () {
-      return this.retorno.reduce(
-        (suma, fila) => suma + (Number(fila.entregado) || 0) * Number(fila.precio), 0
-      )
+    pedidosTotal () {
+      return this.camiones.reduce((suma, fila) => suma + fila.total, 0)
     },
-    /**
-     * Hay retorno cuando se entregó algo, pero no todo: si no salió nada la
-     * anulación a secas es lo correcto, y si salió todo no hay nada que hacer.
-     */
-    retornoValido () {
-      if (this.retorno.some(f => Number(f.entregado) < 0 || Number(f.entregado) > f.original)) {
-        return false
-      }
-      const algo = this.retorno.some(f => Number(f.entregado) > 0)
-      const devuelto = this.retorno.some(f => Number(f.entregado) < f.original)
-      return algo && devuelto
+    facturadosTotal () {
+      return this.camiones.reduce((suma, fila) => suma + fila.facturados, 0)
+    },
+    porcentajeTotal () {
+      return this.pedidosTotal ? Math.round((this.facturadosTotal / this.pedidosTotal) * 100) : 0
     }
   },
   created () {
@@ -851,7 +834,16 @@ export default {
       if (estado === 'ENTREGADO') return { color: 'green-7', icono: 'inventory', texto: 'Entregada' }
       if (estado === 'NO ENTREGADO') return { color: 'red-7', icono: 'block', texto: 'No entregada' }
       if (estado === 'RECHAZADO') return { color: 'deep-orange-9', icono: 'thumb_down', texto: 'Rechazada' }
+      if (estado === 'RETORNO PARCIAL') return { color: 'deep-orange-7', icono: 'assignment_return', texto: 'Retorno parcial' }
       return { color: 'blue-grey-5', icono: 'local_shipping', texto: 'En camión' }
+    },
+    /**
+     * Retorno parcial todavia sin aplicar: la entrega sigue colgada del
+     * comprobante original. Una vez editado, pasa al comprobante nuevo.
+     */
+    retornoPendiente (row) {
+      return row.entrega_estado === 'RETORNO PARCIAL' && row.estado !== 'ANULADO' &&
+        !!row.entrega_retorno && Number(row.entrega_retorno.factura_original) === Number(row.id)
     },
     detalleEntrega (row) {
       if (row.entrega_estado === 'PENDIENTE') {
@@ -869,6 +861,11 @@ export default {
       }
 
       const motivo = row.entrega_observacion ? ' · ' + row.entrega_observacion : ''
+      if (row.entrega_estado === 'RETORNO PARCIAL') {
+        const monto = row.entrega_monto != null ? ' · se quedó Bs ' + this.money(row.entrega_monto) : ''
+        const aplicado = this.retornoPendiente(row) ? ' · falta editar el comprobante' : ' · ya aplicado'
+        return 'Retorno parcial' + cuando + monto + aplicado + motivo
+      }
       return (row.entrega_estado === 'RECHAZADO' ? 'Rechazada' : 'No entregada') + cuando + motivo
     },
     chipCarga (estado) {
@@ -999,16 +996,90 @@ export default {
         .catch(() => { this.carga = null })
     },
 
-    // Solo se ofrecen los camiones que de verdad tienen comprobantes en el
-    // rango; se recargan con la lista porque dependen de las fechas.
+    /**
+     * Caja aprueba de una vez todas las canastas del camion filtrado, sin
+     * esperar al caminero. Lo que el caminero dejo observado no se toca.
+     */
+    // Sin revisar o cambiada despues de revisarse: lo que todavia frena la
+    // impresion y caja puede dar por bueno.
+    puedeRevisar (row) {
+      return ['PENDIENTE', 'CAMBIO'].includes(row.carga_estado)
+    },
+
+    /** Marca (o desmarca) la canasta de un solo comprobante. */
+    marcarCarga (row, verificado) {
+      this.marcandoCarga = row.id
+      this.$api.post('facturacion/' + row.id + '/carga', { verificado })
+        .then(res => {
+          this.$q.notify({ type: 'positive', position: 'top', message: res.data.message })
+          this.onRequest({ pagination: this.pagination })
+        })
+        .catch(err => { this.avisar(err, 'No se pudo cambiar la carga') })
+        .finally(() => { this.marcandoCarga = null })
+    },
+
+    aprobarCarga () {
+      const { placa, pendientes } = this.carga
+      this.$q.dialog({
+        title: 'Aprobar camión ' + placa,
+        message: 'Se darán por verificadas las ' + pendientes + ' canastas pendientes del ' +
+          this.fechaCorta(this.filtros.desde) + ' y ya se podrán imprimir sus comprobantes.',
+        cancel: { flat: true, label: 'Cancelar', noCaps: true },
+        ok: { color: 'green-8', label: 'Aprobar', noCaps: true, unelevated: true },
+        persistent: true
+      }).onOk(() => {
+        this.aprobandoCarga = true
+        this.$api.post('facturacion/carga/aprobar', { fecha: this.filtros.desde, camion: placa })
+          .then(res => {
+            this.$q.notify({ type: 'positive', position: 'top', message: res.data.message })
+            this.recargar()
+          })
+          .catch(err => { this.avisar(err, 'No se pudo aprobar el camión') })
+          .finally(() => { this.aprobandoCarga = false })
+      })
+    },
+
+    // Los camiones con pedidos enviados en el rango, cada uno con cuanto lleva
+    // facturado; se recargan con la lista porque dependen de las fechas.
     cargarCamiones () {
       this.$api.get('facturacion/camiones', { params: this.paramsFiltro() })
         .then(res => {
-          this.camiones = res.data
-            .map(c => ({ label: c.placa + ' (' + c.pedidos + ')', value: c.placa }))
-            .concat([{ label: 'Sin camión', value: 'SIN' }])
+          this.camiones = res.data.map(fila => {
+            const progreso = fila.total ? fila.facturados / fila.total : 0
+            return {
+              value: fila.placa,
+              placa: fila.placa === 'SIN' ? 'Sin camion' : fila.placa,
+              color: fila.color,
+              total: fila.total,
+              facturados: fila.facturados,
+              progreso,
+              porcentaje: Math.round(progreso * 100),
+              completo: fila.total > 0 && fila.facturados === fila.total
+            }
+          }).sort((uno, otro) => {
+            // Lo que falta facturar arriba; completos y "sin camion" al fondo.
+            if (uno.value === 'SIN') return 1
+            if (otro.value === 'SIN') return -1
+            if (uno.completo !== otro.completo) return uno.completo ? 1 : -1
+            return uno.placa.localeCompare(otro.placa)
+          })
         })
         .catch(() => { this.camiones = [] })
+    },
+    // Tocar el camion ya filtrado lo suelta y vuelve a mostrar todos.
+    alternarCamion (valor) {
+      this.filtros.camion = this.filtros.camion === valor ? null : valor
+      this.recargar()
+    },
+    // colorStyle del pedido viene como 'background-color: #RRGGBB'; el texto
+    // se pone negro o blanco segun que tan claro sea ese fondo.
+    estiloColor (color) {
+      const estilo = (color || '').trim()
+      const hex = /#([0-9a-f]{6})/i.exec(estilo)
+      if (!hex) return 'background-color: #ECEFF1; color: #37474F'
+      const valor = parseInt(hex[1], 16)
+      const luz = (0.299 * ((valor >> 16) & 255) + 0.587 * ((valor >> 8) & 255) + 0.114 * (valor & 255)) / 255
+      return estilo.replace(/;\s*$/, '') + '; color: ' + (luz > 0.6 ? '#212121' : '#FFFFFF')
     },
 
     /**
@@ -1180,91 +1251,31 @@ export default {
         .catch(() => {})
     },
 
-    /**
-     * Abre el retorno parcial con todo marcado como entregado: el cajero solo
-     * baja lo que volvió, que es siempre menos que lo que salió.
-     */
-    async pedirRetorno (row) {
-      this.sel = row
-      this.observacionRetorno = ''
-      this.retorno = []
-
-      // El listado puede venir sin detalle; sin las líneas no hay retorno.
-      let factura = row
-      if (!row.detalles || !row.detalles.length) {
-        try {
-          const res = await this.$api.get('facturacion/' + row.id)
-          factura = res.data
-          this.sel = factura
-        } catch (err) {
-          this.avisar(err, 'No se pudo leer el detalle del comprobante')
-          return
-        }
-      }
-
-      this.retorno = (factura.detalles || []).map(d => {
-        // Lo que va por kilo se cobra por peso; el resto, por cantidad. Se
-        // edita el mismo número que factura la línea, no los dos.
-        const porPeso = Number(d.peso) > 0
-        const original = Number(porPeso ? d.peso : d.cantidad) || 0
-        return {
-          cod_prod: d.cod_prod,
-          nombre: d.nombre,
-          unidad: d.unidad,
-          porPeso,
-          cantidad: Number(d.cantidad) || 0,
-          precio: Number(d.precio) || 0,
-          original,
-          entregado: original
-        }
-      })
-
-      if (!this.retorno.length) {
-        this.avisar({}, 'El comprobante no tiene productos')
-        return
-      }
-
-      this.dialogRetorno = true
-    },
-
-    guardarRetorno () {
-      this.retornando = true
-
-      const items = this.retorno
-        .filter(fila => Number(fila.entregado) > 0)
-        .map(fila => ({
-          cod_prod: fila.cod_prod,
-          // En lo que va por kilo el número editado son los kilos; la cantidad
-          // de piezas se manda tal como salió, que es lo que subió al camión.
-          cantidad: fila.porPeso ? fila.cantidad : Number(fila.entregado),
-          peso: fila.porPeso ? Number(fila.entregado) : null
-        }))
-
-      this.$api.put('facturacion/' + this.sel.id + '/retorno-parcial', {
-        items,
-        codigo_motivo: 3,
-        observacion: this.observacionRetorno
-      })
-        .then(res => {
-          this.$q.notify({
-            message: res.data.message,
-            color: 'positive',
-            icon: 'check_circle',
-            position: 'top',
-            timeout: 6000
-          })
-          this.dialogRetorno = false
-          this.onRequest({ pagination: this.pagination })
-        })
-        .catch(err => { this.avisar(err, 'No se pudo registrar el retorno parcial') })
-        .finally(() => { this.retornando = false })
+    /** 'factura' o 'voucher', segun como se emitio el comprobante. */
+    documentoDe (row) {
+      return row.tipo_comprobante === 'FACTURA' ? 'factura' : 'voucher'
     },
 
     pedirAnulacion (row) {
       this.sel = row
+      this.editando = false
       this.codigoMotivoAnulacion = null
       this.dialogAnular = true
     },
+
+    /**
+     * Editar es anular y volver a emitir: se anula este comprobante y se abre
+     * su pedido, que llega con lo cobrado ya cargado (cantidades, pesos y
+     * precios) para corregirlo y emitir uno nuevo.
+     */
+    pedirEdicion (row) {
+      this.sel = row
+      this.editando = true
+      // Con retorno parcial el motivo es la nota devuelta; si no, mal emitida.
+      this.codigoMotivoAnulacion = this.retornoPendiente(row) ? 3 : 1
+      this.dialogAnular = true
+    },
+
     anular () {
       this.anulando = true
 
@@ -1272,13 +1283,24 @@ export default {
         codigo_motivo: this.codigoMotivoAnulacion
       })
         .then(res => {
+          this.dialogAnular = false
+          if (this.editando && this.sel.pedido_nro) {
+            this.$q.notify({
+              type: 'positive', position: 'top',
+              message: 'Comprobante #' + this.sel.id + ' anulado: corregí el pedido y emití el nuevo'
+            })
+            this.$router.push({
+              path: '/facturacion/pedidos/' + this.sel.pedido_nro + '/' + this.sel.pedido_tipo,
+              query: this.sel.placa ? { camion: this.sel.placa } : {}
+            })
+            return
+          }
           this.$q.notify({
             message: res.data.message,
             color: 'positive',
             icon: 'check_circle',
             position: 'top'
           })
-          this.dialogAnular = false
           this.onRequest({ pagination: this.pagination })
         })
         .catch(err => { this.avisar(err, 'No se pudo anular') })
@@ -1326,6 +1348,42 @@ export default {
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
+}
+
+/* Mismas filas planas de 22px que en pedidos por facturar. */
+.camion-caja {
+  border: 1px solid #e0e0e0;
+  overflow: hidden;
+}
+.camion-titulo {
+  height: 20px;
+  font-size: 11px;
+}
+.camion-fila {
+  height: 22px;
+  padding: 0 4px;
+  cursor: pointer;
+  border-top: 1px solid #e0e0e0;
+}
+.camion-placa {
+  width: 88px;
+  height: 17px;
+  line-height: 17px;
+  padding: 0 4px;
+  border-radius: 3px;
+  font-size: 11px;
+  font-weight: 600;
+}
+.camion-porcentaje {
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+}
+.camion-conteo {
+  width: 42px;
+  text-align: right;
+  font-size: 11px;
+  font-weight: 700;
 }
 
 .tabla-compacta {

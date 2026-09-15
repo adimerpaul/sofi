@@ -294,6 +294,9 @@
                       · faltó Bs {{ money(falto(props.row)) }}
                     </span>
                   </div>
+                  <div v-if="props.row.retorno" class="text-caption text-deep-orange-9">
+                    <q-icon name="assignment_return" size="14px"/> {{ props.row.observacion }}
+                  </div>
 
                   <div v-else-if="props.row.entrega_estado" class="text-caption text-red-9 ellipsis">
                     <q-icon name="cancel" size="14px"/>
@@ -314,6 +317,10 @@
                     <q-btn
                       dense flat round size="sm" icon="cancel" color="negative"
                       @click="abrirNoEntrega(props.row)"
+                    />
+                    <q-btn
+                      dense flat round size="sm" icon="assignment_return" color="deep-orange-8"
+                      @click="abrirRetorno(props.row)"
                     />
                     <q-btn
                       dense unelevated round size="sm" icon="check" color="positive"
@@ -355,6 +362,10 @@
                       <q-btn
                         dense flat round size="sm" icon="cancel" color="negative"
                         @click="abrirNoEntrega(props.row)"
+                      />
+                      <q-btn
+                        dense flat round size="sm" icon="assignment_return" color="deep-orange-8"
+                        @click="abrirRetorno(props.row)"
                       />
                       <q-btn
                         dense unelevated round size="sm" icon="check" color="positive"
@@ -410,6 +421,9 @@
                     <span v-if="falto(props.row) > 0.009" class="text-red-9 text-weight-bold">
                       · faltó Bs {{ money(falto(props.row)) }}
                     </span>
+                  </div>
+                  <div v-if="props.row.retorno" class="text-caption text-deep-orange-9">
+                    <q-icon name="assignment_return" size="14px"/> {{ props.row.observacion }}
                   </div>
 
                   <div v-else-if="props.row.entrega_estado" class="text-caption text-red-9">
@@ -481,6 +495,12 @@
                       <q-tooltip>No entregado</q-tooltip>
                     </q-btn>
                     <q-btn
+                      dense flat round size="sm" icon="assignment_return" color="deep-orange-8"
+                      @click="abrirRetorno(props.row)"
+                    >
+                      <q-tooltip>Retorno parcial</q-tooltip>
+                    </q-btn>
+                    <q-btn
                       dense unelevated round size="sm" icon="check" color="positive"
                       class="q-ml-xs" :loading="guardando === props.row.factura_id"
                       :disable="!cobroValido(props.row)" @click="cobrar(props.row)"
@@ -542,6 +562,97 @@
             unelevated no-caps color="negative" label="No entregado" icon="cancel"
             :loading="guardando === cobro.factura_id" :disable="!motivo"
             @click="noEntregar"
+          />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
+
+    <!-- Retorno parcial: el comprobante no se toca. Se anota cuanto se quedo
+         el cliente de cada producto y se cobra eso; caja edita despues. -->
+    <q-dialog v-model="dialogoRetorno" :maximized="esMovil">
+      <q-card :class="esMovil ? 'column no-wrap full-height' : ''" :style="esMovil ? '' : 'width: 560px; max-width: 96vw'">
+        <q-card-section class="bg-deep-orange-7 text-white q-py-sm">
+          <div class="text-subtitle1 text-weight-bold">Retorno parcial</div>
+          <div class="text-caption">
+            {{ retornoEntrega.cliente || retornoEntrega.nombre }} · Pedido #{{ retornoEntrega.nro_pedido }} ·
+            Bs {{ money(retornoEntrega.total) }}
+          </div>
+        </q-card-section>
+
+        <q-card-section class="q-pa-none" :class="esMovil ? 'col scroll' : ''">
+          <table class="tabla-retorno">
+            <thead>
+              <tr>
+                <th class="text-left">Producto</th>
+                <th class="text-right">Salió</th>
+                <th class="text-right">Se quedó</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="fila in retornoItems" :key="fila.cod_prod" :class="fila.entregado < fila.original ? 'bg-deep-orange-1' : ''">
+                <td>
+                  <div class="text-weight-medium">{{ fila.nombre }}</div>
+                  <div class="text-caption text-grey-7">Bs {{ money(fila.precio) }} / {{ fila.unidadTexto }}</div>
+                </td>
+                <td class="text-right text-no-wrap">{{ cantidad(fila.original) }} {{ fila.unidadTexto }}</td>
+                <td class="text-right" style="width: 110px">
+                  <q-input
+                    v-model.number="fila.entregado" type="number" inputmode="decimal" dense outlined
+                    :min="0" :max="fila.original" step="0.001"
+                    :error="!(fila.entregado >= 0) || fila.entregado > fila.original" hide-bottom-space
+                  />
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </q-card-section>
+
+        <q-card-section class="q-py-sm">
+          <div class="row text-body2">
+            <div class="col">Nota original</div>
+            <div class="col-auto">Bs {{ money(retornoEntrega.total) }}</div>
+          </div>
+          <div class="row text-body2 text-weight-bold">
+            <div class="col">Se queda el cliente</div>
+            <div class="col-auto">Bs {{ money(retornoTotal) }}</div>
+          </div>
+
+          <template v-if="retornoCobro.forma !== 'CRÉDITO'">
+            <q-btn-toggle
+              v-model="retornoCobro.forma" spread no-caps unelevated dense size="sm" class="q-mt-sm"
+              toggle-color="primary" color="grey-3" text-color="grey-9" :options="formasPago"
+            />
+            <div class="row q-col-gutter-xs q-mt-xs">
+              <div v-if="retornoCobro.forma !== 'PAGO QR'" class="col">
+                <q-input
+                  v-model.number="retornoCobro.efectivo" type="number" inputmode="decimal" dense outlined
+                  :label="retornoCobro.forma === 'MIXTO' ? 'Efectivo' : 'Pagó'"
+                />
+              </div>
+              <div v-if="retornoCobro.forma !== 'CONTADO'" class="col">
+                <q-input
+                  v-model.number="retornoCobro.qr" type="number" inputmode="decimal" dense outlined label="QR"
+                />
+              </div>
+            </div>
+          </template>
+          <div v-else class="text-caption text-orange-9 q-mt-sm">
+            <q-icon name="schedule"/> A crédito: se entrega sin cobrar
+          </div>
+
+          <q-input
+            v-model.trim="retornoMotivo" dense outlined class="q-mt-sm" maxlength="90"
+            label="¿Por qué devolvió? (opcional)"
+          />
+        </q-card-section>
+
+        <q-separator/>
+        <q-card-actions align="right" class="q-pa-sm">
+          <q-btn flat no-caps color="grey-8" label="Cerrar" v-close-popup/>
+          <q-btn
+            unelevated no-caps color="deep-orange-7" icon="assignment_return" label="Registrar retorno"
+            :loading="guardando === retornoEntrega.factura_id" :disable="!retornoValido"
+            @click="registrarRetorno"
           />
         </q-card-actions>
       </q-card>
@@ -677,6 +788,13 @@ export default {
       qrCliente: '',
       qrWhatsapp: '',
       verEntrega: {},
+      // Retorno parcial: la nota, lo que se quedo el cliente de cada producto
+      // y como pago eso.
+      dialogoRetorno: false,
+      retornoEntrega: {},
+      retornoItems: [],
+      retornoCobro: { forma: 'CONTADO', efectivo: null, qr: null },
+      retornoMotivo: '',
       // La entrega del dialogo de "no entregado" y su motivo.
       cobro: {},
       motivo: '',
@@ -804,6 +922,28 @@ export default {
       return this.pendientesPunto.reduce(
         (suma, entrega) => suma + this.pagando(entrega), 0
       )
+    },
+    /** Lo que vale lo que el cliente se quedo. */
+    retornoTotal () {
+      const suma = this.retornoItems.reduce(
+        (total, fila) => total + (Number(fila.entregado) || 0) * fila.precio, 0
+      )
+      return Math.round(suma * 100) / 100
+    },
+    /** Algo se devolvio, algo se quedo, nada de mas y el cobro cuadra. */
+    retornoValido () {
+      const filas = this.retornoItems
+      if (!filas.length) return false
+      if (filas.some(fila => !(fila.entregado >= 0) || fila.entregado - fila.original > 0.001)) return false
+      if (!filas.some(fila => fila.original - fila.entregado > 0.001)) return false
+      if (!filas.some(fila => fila.entregado > 0)) return false
+
+      const cobro = this.retornoCobro
+      if (cobro.forma === 'CRÉDITO') return true
+      const pagado = Number(cobro.efectivo || 0) + Number(cobro.qr || 0)
+      if (pagado <= 0 || pagado - this.retornoTotal > 0.01) return false
+      if (cobro.forma === 'MIXTO' && (!(cobro.efectivo > 0) || !(cobro.qr > 0))) return false
+      return true
     },
     todoValido () {
       return this.pendientesPunto.length > 0 &&
@@ -1206,6 +1346,55 @@ export default {
         this.cargar()
       }
     },
+    /**
+     * Abre el retorno parcial con todo como si se hubiera entregado: el
+     * caminero solo baja lo que el cliente devolvio.
+     */
+    abrirRetorno (entrega) {
+      this.retornoEntrega = entrega
+      this.retornoItems = (entrega.detalles || []).map(item => {
+        // Lo que va por kilo se devuelve en kilos, que es lo que se cobra.
+        const porPeso = Number(item.peso) > 0
+        const original = Number(porPeso ? item.peso : item.cantidad) || 0
+        return {
+          cod_prod: item.cod_prod,
+          nombre: item.nombre,
+          unidadTexto: porPeso ? 'kg' : (item.unidad || 'u'),
+          original,
+          entregado: original,
+          precio: Number(item.precio) || 0
+        }
+      })
+      this.retornoCobro = this.esCredito(entrega)
+        ? { forma: 'CRÉDITO', efectivo: null, qr: null }
+        : { forma: 'CONTADO', efectivo: null, qr: null }
+      this.retornoMotivo = ''
+      this.dialogoRetorno = true
+    },
+    registrarRetorno () {
+      const entrega = this.retornoEntrega
+      this.guardando = entrega.factura_id
+
+      this.$api.post('caminero/retorno-parcial', {
+        factura_id: entrega.factura_id,
+        items: this.retornoItems.map(fila => ({ cod_prod: fila.cod_prod, entregado: Number(fila.entregado) })),
+        tipago: this.retornoCobro.forma,
+        monto_efectivo: this.retornoCobro.efectivo || 0,
+        monto_qr: this.retornoCobro.qr || 0,
+        observacion: this.retornoMotivo || null,
+        lat: this.posicion?.latitude || null,
+        lng: this.posicion?.longitude || null
+      }).then(res => {
+        this.$q.notify({ type: 'positive', position: 'top', message: res.data.message })
+        this.dialogoRetorno = false
+        this.cargar()
+      }).catch(err => {
+        this.$q.notify({
+          type: 'negative', position: 'top',
+          message: err.response?.data?.message || 'No se pudo registrar el retorno parcial'
+        })
+      }).finally(() => { this.guardando = null })
+    },
     abrirNoEntrega (entrega) {
       this.cobro = entrega
       this.motivo = ''
@@ -1455,5 +1644,20 @@ export default {
    recordatorio de cuanto habria que cobrar y para los dos botones. */
 .campo-monto {
   max-width: 108px;
+}
+.tabla-retorno {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+.tabla-retorno th {
+  background: #eceff1;
+  color: #37474f;
+  font-size: 10px;
+  padding: 3px 6px;
+}
+.tabla-retorno td {
+  padding: 3px 6px;
+  border-bottom: 1px solid #eceff1;
 }
 </style>
