@@ -84,6 +84,9 @@ const routes = [
       { path: '/cobranzas/recojo', component: () => import('pages/Cobranzas/RecojoCamiones.vue'), meta: { requiresAuth: true } },
       // GET /creditos y /creditos/clientes; POST /creditos; GET/POST /creditos/{origen}/{id}/abonos.
       { path: '/cobranzas/creditos', component: () => import('pages/Cobranzas/CreditosClientes.vue'), meta: { requiresAuth: true } },
+      // Cobro simple: GET /vendedor/creditos/clientes y /{cliente}; POST /{cliente}/cobros.
+      { path: '/vendedor/creditos', component: () => import('pages/Cobranzas/CobrarCreditosVendedor.vue'), meta: { requiresAuth: true } },
+      { path: '/cobranzas/verificacion', component: () => import('pages/Cobranzas/VerificarFacturacion.vue'), meta: { requiresAuth: true } },
       { path: '/encuestasIndex', component: () => import('pages/encuesta/EncuestaIndex.vue'), meta: { requiresAuth: true } },
       { path: '/horariosenvio', component: () => import('pages/HorariosEnvio.vue'), meta: { requiresAuth: true } },
       // ClienteFotografias

@@ -3,6 +3,8 @@
     <div class="row items-center q-gutter-sm q-mb-sm">
       <div class="text-h6">Créditos de clientes</div>
       <q-space/>
+      <span class="text-caption">Total general</span>
+      <acciones-reporte-credito alcance="total general" :disable="cargando || !!error || !clientes.length || reportando" @reporte="reporteTotal($event)"/>
       <q-btn outline dense no-caps color="primary" icon="local_shipping" label="Reportes de camiones" to="/cobranzas/recojo"/>
       <q-btn unelevated dense no-caps color="red-7" icon="add" label="Agregar deuda" @click="nuevaDeuda()"/>
       <q-btn flat dense round icon="refresh" color="primary" :loading="cargando" @click="cargar">
@@ -64,6 +66,10 @@
 
     <q-banner v-if="error" class="bg-red-1 text-negative q-mb-sm">{{ error }}</q-banner>
 
+    <div class="row items-center justify-end q-gutter-sm q-mb-sm">
+      <span class="text-caption">Filtrados: {{ filtrados.length }} clientes · Saldo Bs {{ money(filtrados.reduce((total, c) => total + Number(c.saldo), 0)) }}</span>
+      <acciones-reporte-credito alcance="clientes filtrados" :disable="cargando || !!error || !filtrados.length || reportando" @reporte="reporteTotal($event, true)"/>
+    </div>
     <q-table
       flat bordered dense :rows="filtrados" :columns="columnas" row-key="id" :loading="cargando"
       :pagination="paginacion" :rows-per-page-options="[20, 50, 100, 0]" :grid="$q.screen.lt.md"
@@ -88,6 +94,9 @@
         </q-td>
       </template>
 
+      <template #body-cell-reportes="props">
+        <q-td :props="props"><acciones-reporte-credito compacto :alcance="props.row.nombre" :disable="reportando" @reporte="exportarCliente($event, props.row)"/></q-td>
+      </template>
       <!-- En el celular cada cliente es una tarjeta: nombre, deuda y datos. -->
       <template #item="props">
         <div class="col-12 q-pa-xs">
@@ -116,6 +125,7 @@
                   <div v-else class="text-caption text-green-8">Sin deuda</div>
                 </div>
               </div>
+              <div class="row justify-end q-mt-sm"><acciones-reporte-credito :alcance="props.row.nombre" :disable="reportando" @reporte="exportarCliente($event, props.row)"/></div>
             </q-card-section>
           </q-card>
         </div>
@@ -138,6 +148,7 @@
         <div v-if="cargandoDetalle" class="flex flex-center q-pa-xl"><q-spinner color="primary" size="40px"/></div>
 
         <q-card-section v-else class="q-pa-sm" :class="$q.screen.lt.md ? 'col scroll' : ''">
+          <div class="row justify-end q-mb-sm"><acciones-reporte-credito alcance="estado de cuenta completo" :disable="cargandoDetalle || reportando || !detalle.cliente.id" @reporte="exportarCliente($event)"/></div>
           <div class="row q-col-gutter-sm">
             <div class="col-12 col-md-6">
               <q-list dense bordered class="rounded-borders">
@@ -209,34 +220,27 @@
               <div v-if="!deudasVisibles.length" class="text-center text-grey-6 q-pa-md">
                 {{ soloPendientes ? 'No debe nada' : 'Sin deudas registradas' }}
               </div>
-              <q-list v-else bordered separator class="rounded-borders">
-                <q-item v-for="deuda in deudasVisibles" :key="deuda.clave">
-                  <q-item-section>
-                    <q-item-label class="text-weight-medium">
-                      {{ deuda.concepto }}
-                      <q-badge v-if="deuda.origen === 'manual'" outline color="red-7" class="q-ml-xs">Agregada a mano</q-badge>
-                    </q-item-label>
-                    <q-item-label caption>
-                      {{ deuda.fecha }} · Total Bs {{ money(deuda.monto) }} · Abonado Bs {{ money(deuda.pagado) }}
-                    </q-item-label>
-                    <q-item-label>
-                      <q-badge :color="deuda.saldo > 0 ? 'orange-8' : (deuda.estado.includes('REVISAR') ? 'red-7' : 'green-7')">
-                        {{ deuda.estado }}
-                      </q-badge>
-                    </q-item-label>
-                  </q-item-section>
-                  <q-item-section side class="text-right">
-                    <q-item-label class="text-weight-bolder" :class="deuda.saldo > 0 ? 'text-red-9' : 'text-grey-6'">
-                      Bs {{ money(deuda.saldo) }}
-                    </q-item-label>
-                    <div class="row no-wrap q-gutter-xs q-mt-xs">
-                      <q-btn dense unelevated no-caps color="positive" icon="payments" label="Abonar"
-                             :disable="deuda.saldo <= 0" @click="abrirAbono(deuda)"/>
-                      <q-btn dense flat no-caps color="primary" icon="history" label="Abonos" @click="verHistorial(deuda)"/>
-                    </div>
-                  </q-item-section>
-                </q-item>
-              </q-list>
+              <div v-for="deuda in deudasVisibles" :key="deuda.clave" class="deuda-compacta q-mb-xs">
+                <div class="row items-center q-col-gutter-xs cabecera-deuda">
+                  <div class="col-12 col-sm">
+                    <strong>{{ deuda.concepto }}</strong>
+                    <span class="text-grey-7 q-ml-xs">{{ String(deuda.fecha).slice(0, 10) }}</span>
+                    <q-badge class="q-ml-xs" :color="deuda.saldo > 0 ? 'orange-8' : (deuda.estado.includes('REVISAR') ? 'red-7' : 'green-7')">{{ deuda.estado }}</q-badge>
+                    <div class="resumen-deuda">Total: Bs {{ money(deuda.monto) }} ? Abonado: Bs {{ money(deuda.pagado) }} ? <strong class="text-red-9">Saldo: Bs {{ money(deuda.saldo) }}</strong></div>
+                  </div>
+                  <div class="col-auto row items-center q-gutter-xs acciones-deuda">
+                    <q-btn dense flat no-caps size="sm" color="positive" icon="payments" label="Abonar" :disable="deuda.saldo <= 0" @click="abrirAbono(deuda)"/>
+                    <acciones-reporte-credito :alcance="deuda.concepto" :disable="reportando" @reporte="exportarDeuda($event, deuda)"/>
+                  </div>
+                </div>
+                <q-table v-if="(abonosPorDeuda[deuda.clave] || []).length" flat dense class="tabla-abonos"
+                         :rows="abonosPorDeuda[deuda.clave]" :columns="columnasHistorial" row-key="id"
+                         :pagination="{ rowsPerPage: 0 }" hide-bottom separator="cell">
+                  <template #body-cell-referencia="props"><q-td :props="props">{{ props.row.referencia || '-' }}</q-td></template>
+                  <template #body-cell-cobrador="props"><q-td :props="props">{{ props.row.cobrador || '-' }}</q-td></template>
+                </q-table>
+                <div v-else class="sin-abonos text-grey-6">Sin abonos registrados</div>
+              </div>
             </q-tab-panel>
 
             <q-tab-panel name="ventas" class="q-pa-none q-pt-sm">
@@ -261,6 +265,7 @@
                     </q-item-section>
                   </template>
                   <div class="contenedor-productos">
+                    <div class="row justify-end q-pa-sm"><acciones-reporte-credito :alcance="'venta #' + venta.id" :disable="reportando" @reporte="exportarVenta($event, venta)"/></div>
                     <table class="tabla-productos">
                       <thead>
                         <tr><th class="text-left">Producto</th><th class="text-right">Cant.</th><th class="text-right">Precio</th><th class="text-right">Subtotal</th></tr>
@@ -339,27 +344,25 @@
         </q-form>
       </q-card>
     </q-dialog>
-    <q-dialog v-model="dialogHistorial">
-      <q-card style="width: 780px; max-width: 95vw">
-        <q-card-section class="row items-center"><div class="text-h6">Abonos · {{ seleccion.concepto }}</div><q-space/><q-btn flat round icon="close" v-close-popup/></q-card-section>
-        <q-card-section><q-table :rows="historial" :columns="columnasHistorial" row-key="id" :loading="cargandoHistorial" no-data-label="Sin abonos registrados" wrap-cells/></q-card-section>
-      </q-card>
-    </q-dialog>
   </q-page>
 </template>
 
 <script>
 import { date, uid } from 'quasar'
+import AccionesReporteCredito from 'components/AccionesReporteCredito.vue'
+import { reporteGeneral, reporteCliente, emitirReporte } from 'src/utils/reportesCreditos'
 
 function detalleVacio () {
-  return { cliente: {}, deudas: [], ventas: [], totales: { saldo: 0, deudas: 0, abonado: 0, ventas: 0, vendido: 0 } }
+  return { cliente: {}, deudas: [], abonos: [], ventas: [], totales: { saldo: 0, deudas: 0, abonado: 0, ventas: 0, vendido: 0 } }
 }
 
 export default {
   name: 'CreditosClientes',
+  components: { AccionesReporteCredito },
   data () {
     return {
       clientes: [],
+      reportando: false,
       totales: { clientes: 0, con_deuda: 0, saldo: 0, deudas: 0 },
       buscar: '',
       // Arranca en los que deben: es lo que cobranzas viene a mirar.
@@ -380,9 +383,6 @@ export default {
       formDeuda: { cliente: null, fecha: '', concepto: '', monto: '', solicitud_id: '' },
       opcionesCliente: [],
       dialogAbono: false,
-      dialogHistorial: false,
-      cargandoHistorial: false,
-      historial: [],
       seleccion: {},
       abono: {},
       columnas: [
@@ -393,18 +393,28 @@ export default {
         { name: 'vendedor', label: 'Preventista', field: 'vendedor', align: 'left', sortable: true },
         { name: 'deudas', label: 'Ventas', field: 'deudas', align: 'center', sortable: true, format: v => v || '' },
         { name: 'dias', label: 'Desde', field: 'dias', align: 'center', sortable: true },
-        { name: 'saldo', label: 'Deuda Bs', field: 'saldo', align: 'right', sortable: true }
+        { name: 'saldo', label: 'Deuda Bs', field: 'saldo', align: 'right', sortable: true },
+        { name: 'reportes', label: 'Reportes', field: 'id', align: 'right' }
       ],
       columnasHistorial: [
+        { name: 'id', label: '#', field: 'id', align: 'left', sortable: true },
         { name: 'created_at', label: 'Fecha', field: 'created_at', align: 'left' },
-        { name: 'monto', label: 'Monto Bs', field: 'monto' },
+        { name: 'monto', label: 'Monto Bs', field: 'monto', align: 'right', sortable: true, format: v => this.money(v) },
         { name: 'forma_pago', label: 'Pago', field: 'forma_pago' },
-        { name: 'referencia', label: 'Referencia', field: 'referencia' },
+        { name: 'referencia', label: 'Boleta / referencia', field: 'referencia' },
         { name: 'cobrador', label: 'Cobrador', field: 'cobrador' }
       ]
     }
   },
   computed: {
+    abonosPorDeuda () {
+      return (this.detalle.abonos || []).reduce((grupos, abono) => {
+        const clave = abono.origen + ':' + abono.deuda_id
+        if (!grupos[clave]) grupos[clave] = []
+        grupos[clave].push(abono)
+        return grupos
+      }, {})
+    },
     zonas () {
       return [...new Set(this.clientes.map(c => c.zona).filter(Boolean))].sort()
     },
@@ -428,6 +438,36 @@ export default {
   },
   mounted () { this.cargar() },
   methods: {
+    async generarReporte (formato, preparar) {
+      if (this.reportando) return
+      this.reportando = true
+      try { emitirReporte(await preparar(), formato) }
+      catch (e) { this.$q.notify({ type: 'negative', message: this.mensaje(e) }) }
+      finally { this.reportando = false }
+    },
+    reporteTotal (formato, filtrado = false) {
+      const alcance = filtrado
+        ? `Clientes filtrados · Estado: ${{ deuda: 'Con deuda', sin: 'Sin deuda', todos: 'Todos' }[this.filtro]} · Buscar: ${this.buscar || 'Todos'} · Zona: ${this.zona || 'Todas'} · Preventista: ${this.vendedor || 'Todos'}`
+        : 'Total general · Todos los clientes'
+      return this.generarReporte(formato, () => reporteGeneral(filtrado ? this.filtrados : this.clientes, alcance))
+    },
+    exportarCliente (formato, cliente) {
+      return this.generarReporte(formato, async () => {
+        const detalle = cliente ? (await this.$api.get('creditos/clientes/' + cliente.id)).data : this.detalle
+        return reporteCliente(detalle)
+      })
+    },
+    exportarDeuda (formato, deuda) {
+      const detalle = this.detalle
+      return this.generarReporte(formato, async () => {
+        const { data } = await this.$api.get(`creditos/${deuda.origen}/${deuda.id}/abonos`)
+        return reporteCliente(detalle, deuda, data)
+      })
+    },
+    exportarVenta (formato, venta) {
+      const deuda = this.detalle.deudas.find(d => d.origen === 'factura' && String(d.id) === String(venta.id))
+      return this.exportarDeuda(formato, deuda || { origen: 'factura', id: venta.id, fecha: venta.fecha, concepto: 'Venta #' + venta.id, estado: venta.estado, monto: venta.total, pagado: venta.pagado, saldo: venta.saldo })
+    },
     money (v) { return Number(v || 0).toFixed(2) },
     cantidad (v) { return Number(v || 0).toLocaleString('es-BO', { maximumFractionDigits: 3 }) },
     colorDias (dias) {
@@ -524,20 +564,28 @@ export default {
       } catch (e) { this.$q.notify({ type: 'negative', message: this.mensaje(e) }) }
       finally { this.guardando = false }
     },
-    async verHistorial (fila) {
-      this.seleccion = fila
-      this.historial = []
-      this.dialogHistorial = true
-      this.cargandoHistorial = true
-      try { this.historial = (await this.$api.get(`creditos/${fila.origen}/${fila.id}/abonos`)).data }
-      catch (e) { this.dialogHistorial = false; this.$q.notify({ type: 'negative', message: this.mensaje(e) }) }
-      finally { this.cargandoHistorial = false }
-    }
+
   }
 }
 </script>
 
 <style scoped>
+.deuda-compacta { border: 1px solid #dce2e5; border-radius: 4px; overflow: hidden; }
+.cabecera-deuda { padding: 4px 6px; background: #f1f4f6; font-size: 12px; }
+.resumen-deuda, .sin-abonos { font-size: 11px; line-height: 1.4; }
+.sin-abonos { padding: 3px 6px; }
+.acciones-deuda :deep(.q-btn) { min-height: 24px; font-size: 11px; padding: 2px 5px; }
+
+.tabla-abonos :deep(th), .tabla-abonos :deep(td) {
+  padding: 2px 5px;
+  height: 22px;
+  font-size: 11px;
+  line-height: 1.25;
+}
+.tabla-abonos :deep(th) { background: #eceff1; font-weight: 700; }
+.tabla-abonos :deep(tbody tr:nth-child(even)) { background: #f7faf8; }
+.tabla-abonos :deep(td) { white-space: normal; min-width: 75px; }
+
 .tarjeta {
   padding: 6px 10px;
 }

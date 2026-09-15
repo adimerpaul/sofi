@@ -118,7 +118,16 @@ Route::group(['middleware'=>'auth:sanctum'],function (){
     Route::get('/cobranzas/recojo',[\App\Http\Controllers\CobranzaRecojoController::class,'reporte']);
     Route::get('/cobranzas/recojo/camiones',[\App\Http\Controllers\CobranzaRecojoController::class,'camiones']);
     Route::get('/cobranzas/recojo/pdf',[\App\Http\Controllers\CobranzaRecojoController::class,'reportePdf']);
+    // Cobranzas verifica la facturacion del dia contra lo que trajo cada camion.
+    Route::get('/cobranzas/verificacion',[\App\Http\Controllers\CobranzaVerificacionController::class,'index']);
+    Route::get('/cobranzas/verificacion/clientes/{cliente}/ventas',[\App\Http\Controllers\CobranzaVerificacionController::class,'historialVentas'])->where('cliente', '[0-9]+');
+    Route::post('/cobranzas/verificacion',[\App\Http\Controllers\CobranzaVerificacionController::class,'verificar']);
+    Route::get('/cobranzas/verificacion/excel',[\App\Http\Controllers\CobranzaVerificacionController::class,'excel']);
+    Route::get('/cobranzas/verificacion/pdf',[\App\Http\Controllers\CobranzaVerificacionController::class,'pdf']);
     Route::get('/creditos/clientes',[\App\Http\Controllers\CreditoController::class,'clientes']);
+    Route::get('/vendedor/creditos/clientes',[\App\Http\Controllers\CreditoController::class,'clientesVendedor']);
+    Route::get('/vendedor/creditos/clientes/{cliente}',[\App\Http\Controllers\CreditoController::class,'deudasVendedor'])->where('cliente', '[0-9]+');
+    Route::post('/vendedor/creditos/clientes/{cliente}/cobros',[\App\Http\Controllers\CreditoController::class,'cobrarVendedor'])->where('cliente', '[0-9]+');
     // Todos los clientes con su deuda, y el detalle de uno (deudas y ventas a credito).
     Route::get('/creditos/resumen',[\App\Http\Controllers\CreditoController::class,'resumen']);
     Route::get('/creditos/clientes/{id}',[\App\Http\Controllers\CreditoController::class,'detalle'])->where('id', '[0-9]+');
@@ -288,4 +297,3 @@ Route::post('/exportar-pedidos', [MobilController::class, 'exportarPedidosFlutte
 Route::post('/reporteTotalProductos', [MobilController::class, 'reporteTotalProductos']);
 
 Route::get('/pedidos-simple', [\App\Http\Controllers\MobilController::class, 'pedidosSimple']);
-

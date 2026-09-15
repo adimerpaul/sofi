@@ -123,6 +123,7 @@ export default {
     nombrePermiso(p) {
       const nombres = {
         cobranzasrecojo: 'Cobrar — Todos los camiones, créditos y deudas',
+        cobranzasverificar: 'Cobrar — Verificar la facturación del día',
         misentregasreporte: 'Mi reporte de entregas (caminero)',
         misentregas: 'Mis entregas (caminero)',
         cargacamion: 'Verificar carga (caminero)',

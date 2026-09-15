@@ -188,8 +188,10 @@ export default {
           children: [
             { label: 'Cobrar', caption: 'Recojo y reportes de los camineros', icon: 'payments', to: 'cobranzas/recojo', show: can('cobranzasrecojo') },
             { label: 'Créditos y deudas', caption: 'Deudas y abonos de clientes', icon: 'account_balance_wallet', to: 'cobranzas/creditos', show: can('cobranzasrecojo') },
+            { label: 'Verificar facturación', caption: 'Facturación del día contra lo que trajo el camión', icon: 'fact_check', to: 'cobranzas/verificacion', show: can('cobranzasverificar') },
             { label: 'Cobros Realizados', icon: 'monetization_on', to: 'cobrosrealizados', show: can('cobrosrealizados') },
             { label: 'Cobranzas', caption: 'Cobro a cliente', icon: 'receipt', to: 'cobranza', show: can('cobranza') },
+            { label: 'Cobrar créditos y deudas', caption: 'Clientes con deuda y cobro con boleta', icon: 'payments', to: 'vendedor/creditos', show: can('cobranza') },
             { label: 'Mis Cobros', icon: 'money', to: 'miscobranzas', show: can('miscobranzas') }
           ]
         },

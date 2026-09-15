@@ -10,7 +10,58 @@ class CreditoController extends Controller
 {
     public function __construct()
     {
-        $this->middleware('permission:cobranzasrecojo');
+        $vendedor = ['clientesVendedor', 'deudasVendedor', 'cobrarVendedor'];
+        $this->middleware('permission:cobranzasrecojo')->except($vendedor);
+        $this->middleware('permission:cobranza')->only($vendedor);
+    }
+
+    public function clientesVendedor(Request $request)
+    {
+        // Se cobra a cualquier cliente con deuda, incluso inactivo o de otro preventista.
+        $clientes = DB::table('tbclientes')->orderBy('Nombres')
+            ->get(['Cod_Aut as id', 'Nombres as nombre', 'Id as nit']);
+        $deudas = $this->deudas(null)->whereIn('cliente_id', $clientes->pluck('id')->all())->groupBy('cliente_id');
+        return $clientes->map(function ($cliente) use ($deudas) {
+            $cliente->saldo = round(($deudas->get($cliente->id) ?? collect())->sum('saldo'), 2);
+            return $cliente;
+        })->where('saldo', '>', 0)->values();
+    }
+
+    public function deudasVendedor(Request $request, $cliente)
+    {
+        abort_unless(DB::table('tbclientes')->where('Cod_Aut', $cliente)->exists(), 404, 'El cliente no existe.');
+        return $this->deudas((int) $cliente)->where('saldo', '>', 0)->sortBy('fecha')->values();
+    }
+
+    /** Lote atomico: un error no deja cobros guardados a medias. */
+    public function cobrarVendedor(Request $request, $cliente)
+    {
+        $datos = $request->validate([
+            'cobros' => 'required|array|min:1|max:100',
+            'cobros.*.origen' => 'required|in:factura,manual',
+            'cobros.*.id' => 'required|integer|min:1',
+            'cobros.*.monto' => ['required', 'numeric', 'min:0.01', 'max:9999999999.99', 'regex:/^\d+(\.\d{1,2})?$/'],
+            'cobros.*.referencia' => 'nullable|string|max:100',
+            'cobros.*.solicitud_id' => 'required|uuid|distinct',
+        ]);
+        return DB::transaction(function () use ($request, $cliente, $datos) {
+            abort_unless(DB::table('tbclientes')->where('Cod_Aut', $cliente)->lockForUpdate()->first(), 404, 'El cliente no existe.');
+            $cobros = collect($datos['cobros'])->sortBy(function ($c) { return $c['origen'] . ':' . $c['id']; });
+            $claves = $cobros->map(function ($c) { return $c['origen'] . ':' . $c['id']; });
+            abort_if($claves->unique()->count() !== $claves->count(), 422, 'Hay deudas repetidas en el cobro.');
+            foreach ($cobros as $cobro) {
+                $deuda = DB::table($cobro['origen'] === 'factura' ? 'facturas' : 'creditos_manuales')
+                    ->where('id', $cobro['id'])->lockForUpdate()->first();
+                abort_unless($deuda && (int) $deuda->cliente_id === (int) $cliente, 403, 'La deuda no pertenece al cliente.');
+                $abono = Request::create('/', 'POST', [
+                    'monto' => $cobro['monto'], 'referencia' => $cobro['referencia'] ?? null,
+                    'solicitud_id' => $cobro['solicitud_id'], 'forma_pago' => 'EFECTIVO',
+                ]);
+                $abono->setUserResolver(function () use ($request) { return $request->user(); });
+                $this->abonar($abono, $cobro['origen'], $cobro['id']);
+            }
+            return response()->json(['message' => 'Cobros registrados. Cobranzas ya puede consultarlos.']);
+        });
     }
 
     public function clientes(Request $request)
@@ -149,6 +200,11 @@ class CreditoController extends Controller
                 'longitud' => $c->longitud,
             ],
             'deudas' => $deudas,
+            'abonos' => DB::table('creditos_abonos as a')
+                ->leftJoin('personal as p', 'p.CodAut', '=', 'a.user_id')
+                ->where('a.cliente_id', $id)->orderByDesc('a.created_at')->orderByDesc('a.id')
+                ->get(['a.id', 'a.origen', 'a.deuda_id', 'a.monto', 'a.forma_pago', 'a.referencia', 'a.created_at',
+                    DB::raw("TRIM(CONCAT(COALESCE(p.Nombre1, ''), ' ', COALESCE(p.App1, ''))) as cobrador")]),
             'ventas' => $ventas->values(),
             'totales' => [
                 'saldo' => round($deudas->sum('saldo'), 2),
@@ -268,7 +324,8 @@ class CreditoController extends Controller
                 abort_unless($previo->origen === $origen && (int) $previo->deuda_id === (int) $id
                     && (int) $previo->user_id === (int) $request->user()->CodAut
                     && (float) $previo->monto === (float) $datos['monto']
-                    && $previo->forma_pago === $datos['forma_pago'], 409,
+                    && $previo->forma_pago === $datos['forma_pago']
+                    && (string) $previo->referencia === (string) ($datos['referencia'] ?? ''), 409,
                     'Esta solicitud ya fue registrada con otros datos. Cierre el formulario y actualice.');
                 return response()->json(['id' => $previo->id]);
             }
