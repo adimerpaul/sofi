@@ -119,6 +119,9 @@ Route::group(['middleware'=>'auth:sanctum'],function (){
     Route::get('/cobranzas/recojo/camiones',[\App\Http\Controllers\CobranzaRecojoController::class,'camiones']);
     Route::get('/cobranzas/recojo/pdf',[\App\Http\Controllers\CobranzaRecojoController::class,'reportePdf']);
     Route::get('/creditos/clientes',[\App\Http\Controllers\CreditoController::class,'clientes']);
+    // Todos los clientes con su deuda, y el detalle de uno (deudas y ventas a credito).
+    Route::get('/creditos/resumen',[\App\Http\Controllers\CreditoController::class,'resumen']);
+    Route::get('/creditos/clientes/{id}',[\App\Http\Controllers\CreditoController::class,'detalle'])->where('id', '[0-9]+');
     Route::get('/creditos',[\App\Http\Controllers\CreditoController::class,'index']);
     Route::post('/creditos',[\App\Http\Controllers\CreditoController::class,'store']);
     Route::get('/creditos/{origen}/{id}/abonos',[\App\Http\Controllers\CreditoController::class,'historial']);

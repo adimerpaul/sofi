@@ -19,15 +19,25 @@
           padding="6px 10px" :loading="imprimiendo"
         >
           <q-list dense style="min-width: 220px">
+            <!-- Lo que se entrega en caja: la tabla sola, en una hoja. -->
+            <q-item clickable v-close-popup @click="hoja('tabla')">
+              <q-item-section avatar><q-icon name="table_view" color="primary"/></q-item-section>
+              <q-item-section>
+                <b>Tabla del día</b>
+                <q-item-label caption>Solo la tabla con efectivo, QR y crédito</q-item-label>
+              </q-item-section>
+            </q-item>
+
+            <q-separator class="q-my-xs"/>
+            <q-item-label header class="q-py-xs">Hojas individuales</q-item-label>
+
             <q-item clickable v-close-popup @click="hoja('todos')">
-              <q-item-section avatar><q-icon name="print" color="primary"/></q-item-section>
+              <q-item-section avatar><q-icon name="print" color="grey-7"/></q-item-section>
               <q-item-section>
                 Todas las hojas
                 <q-item-label caption>Una por forma de pago, sin las vacías</q-item-label>
               </q-item-section>
             </q-item>
-
-            <q-separator class="q-my-xs"/>
 
             <q-item
               v-for="seccion in secciones" :key="seccion.clave"
@@ -97,57 +107,9 @@
         </div>
       </q-card>
 
-      <div class="row q-col-gutter-xs">
-        <div v-for="seccion in secciones" :key="seccion.clave" class="col-12 col-md-6">
-          <q-card flat bordered class="rounded-borders">
-            <div class="row items-center no-wrap q-px-xs seccion-titulo" :class="seccion.fondo">
-              <div class="text-weight-bolder">{{ seccion.titulo }}</div>
-              <q-space/>
-              <div class="text-weight-bolder">
-                {{ seccion.filas.length }} · Bs {{ money(seccion.total) }}
-              </div>
-            </div>
-
-            <div v-if="!seccion.filas.length" class="text-center text-grey-6 vacio">Sin registros</div>
-
-            <table v-else class="tabla">
-              <thead>
-                <tr>
-                  <th class="col-n">N°</th>
-                  <th class="col-nota">NOTA</th>
-                  <th>NOMBRE DEL CLIENTE</th>
-                  <th v-if="seccion.clave === 'anulados'" class="col-motivo">MOTIVO</th>
-                  <th class="col-monto">MONTO</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="(fila, indice) in seccion.filas" :key="fila.id">
-                  <td class="col-n">{{ indice + 1 }}</td>
-                  <td class="col-nota">{{ fila.nota }}</td>
-                  <td class="ellipsis">
-                    {{ fila.cliente || 'Sin cliente' }}
-                    <!-- El mixto sale en las dos hojas de cobro, cada una por
-                         su parte: se avisa para que no parezca pago de menos. -->
-                    <span v-if="fila.tipago === 'MIXTO' && seccion.clave !== 'anulados'" class="desglose">
-                      (mixto: Ef {{ money(fila.monto_efectivo) }} · QR {{ money(fila.monto_qr) }})
-                    </span>
-                  </td>
-                  <td v-if="seccion.clave === 'anulados'" class="col-motivo ellipsis">
-                    {{ fila.motivo || fila.estado }}
-                  </td>
-                  <td class="col-monto">{{ money(fila.monto) }}</td>
-                </tr>
-              </tbody>
-              <tfoot>
-                <tr>
-                  <td :colspan="seccion.clave === 'anulados' ? 4 : 3" class="text-right text-weight-bolder">TOTALES</td>
-                  <td class="col-monto text-weight-bolder">{{ money(seccion.total) }}</td>
-                </tr>
-              </tfoot>
-            </table>
-          </q-card>
-        </div>
-      </div>
+      <q-card flat bordered class="rounded-borders">
+        <TablaRecojo :tabla="tabla"/>
+      </q-card>
     </div>
   </q-page>
 </template>
@@ -155,9 +117,11 @@
 <script>
 import { date } from 'quasar'
 import { imprimirPdfDirecto } from 'src/utils/impresion.js'
+import TablaRecojo from 'components/TablaRecojo.vue'
 
 export default {
   name: 'ReporteEntregasCaminero',
+  components: { TablaRecojo },
   data () {
     return {
       fecha: this.$route.query.fecha || date.formatDate(new Date(), 'YYYY-MM-DD'),
@@ -166,6 +130,7 @@ export default {
       placa: '',
       despachador: '',
       grupos: { contados: [], qr: [], creditos: [], anulados: [] },
+      tabla: { filas: [], totales: { notas: 0, monto: 0, efectivo: 0, qr: 0, credito: 0, falta: 0 } },
       totales: { contados: 0, qr: 0, creditos: 0, anulados: 0, efectivo: 0, qr_cobrado: 0 },
       avance: { pedidos: 0, cerradas: 0, cobradas: 0, pendientes: 0, porcentaje: 0 }
     }
@@ -224,6 +189,7 @@ export default {
           this.placa = res.data.placa
           this.despachador = res.data.despachador
           this.grupos = res.data.grupos
+          this.tabla = res.data.tabla
           this.totales = res.data.totales
           this.avance = res.data.avance
         })
@@ -274,71 +240,9 @@ export default {
   font-weight: 700;
   line-height: 1.1;
 }
-.seccion-titulo {
-  height: 20px;
-  font-size: 11px;
-}
-.vacio {
-  font-size: 11px;
-  padding: 6px 0;
-}
-
-/* Tabla propia y no q-table: son listas de leer y sumar, y asi cada fila
-   ocupa 18px en el celular y sale igual al papel al imprimir. */
-.tabla {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 11px;
-}
-.tabla th {
-  background: #eceff1;
-  font-size: 9px;
-  letter-spacing: 0.5px;
-  text-align: left;
-  padding: 1px 3px;
-}
-.tabla td {
-  padding: 1px 3px;
-  border-top: 1px solid #eee;
-  height: 18px;
-  max-width: 0;
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}
-.tabla tfoot td {
-  border-top: 1px solid #bdbdbd;
-  background: #fafafa;
-}
-.col-n {
-  width: 22px;
-  text-align: right;
-  color: #9e9e9e;
-}
-.col-nota {
-  width: 54px;
-  font-weight: 600;
-}
-.col-monto {
-  width: 62px;
-  text-align: right;
-  font-weight: 600;
-}
-.col-motivo {
-  width: 34%;
-  color: #b71c1c;
-}
-.desglose {
-  color: #00695c;
-  font-size: 10px;
-}
-
 @media print {
   .no-print {
     display: none;
-  }
-  .tabla {
-    font-size: 10px;
   }
 }
 </style>

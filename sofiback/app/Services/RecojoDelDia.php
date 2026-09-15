@@ -113,6 +113,169 @@ class RecojoDelDia
         ];
     }
 
+    /**
+     * El recojo en una sola tabla: una fila por nota, con lo que entro por
+     * cada via en su propia columna. Lo que no se cobro (credito o lo que
+     * falto) tambien tiene columna, asi la suma de las columnas cuadra
+     * siempre con el total de las notas entregadas.
+     *
+     * Las no entregadas van al final, sin plata, para que se vea el motivo.
+     */
+    public function tabla($filas): array
+    {
+        $cobradas = $filas->whereIn('estado', self::ESTADOS_COBRADOS);
+        $sinCobrar = $filas->whereNotIn('estado', self::ESTADOS_COBRADOS);
+
+        $lineas = $cobradas->map(function ($fila) {
+            $credito = $fila->tipago === 'CRÉDITO' ? $fila->monto : 0.0;
+            $falta = $credito > 0 ? 0.0 : max(round($fila->monto - $fila->monto_efectivo - $fila->monto_qr, 2), 0.0);
+
+            return [
+                'id' => $fila->id,
+                'nota' => $fila->nota,
+                'cliente' => $fila->cliente,
+                'estado' => $fila->estado,
+                'tipago' => $fila->tipago,
+                'entregada' => true,
+                'monto' => round($fila->monto, 2),
+                'efectivo' => round($fila->monto_efectivo, 2),
+                'qr' => round($fila->monto_qr, 2),
+                'credito' => round($credito, 2),
+                'falta' => $falta,
+                'motivo' => $fila->estado === 'RETORNO PARCIAL' ? $fila->motivo : '',
+            ];
+        })->values();
+
+        $noEntregadas = $sinCobrar->map(function ($fila) {
+            return [
+                'id' => $fila->id,
+                'nota' => $fila->nota,
+                'cliente' => $fila->cliente,
+                'estado' => $fila->estado,
+                'tipago' => $fila->tipago,
+                'entregada' => false,
+                'monto' => round($fila->monto, 2),
+                'efectivo' => 0.0, 'qr' => 0.0, 'credito' => 0.0, 'falta' => 0.0,
+                'motivo' => $fila->motivo,
+            ];
+        })->values();
+
+        return [
+            'filas' => $lineas->concat($noEntregadas)->values(),
+            'totales' => [
+                'notas' => $lineas->count(),
+                'monto' => round($lineas->sum('monto'), 2),
+                'efectivo' => round($lineas->sum('efectivo'), 2),
+                'qr' => round($lineas->sum('qr'), 2),
+                'credito' => round($lineas->sum('credito'), 2),
+                'falta' => round($lineas->sum('falta'), 2),
+                'no_entregadas' => $noEntregadas->count(),
+                'monto_no_entregado' => round($noEntregadas->sum('monto'), 2),
+            ],
+        ];
+    }
+
+    /** La tabla del recojo en una hoja, con la firma del caminero al pie. */
+    public function tablaHtml($fecha, $caminero, $placa, $filas)
+    {
+        $tabla = $this->tabla($filas);
+        $t = $tabla['totales'];
+        $monto = function ($valor) {
+            return $valor > 0 ? number_format($valor, 2) : '';
+        };
+        $cuerpo = '';
+
+        foreach ($tabla['filas'] as $i => $fila) {
+            $clase = $fila['entregada'] ? ($i % 2 ? " class='par'" : '') : " class='sin'";
+            $nombre = e($fila['cliente'] ?: 'Sin cliente');
+            if ($fila['motivo'] !== '') {
+                $nombre .= "<br><span class='motivo'>" . e($fila['motivo']) . '</span>';
+            }
+
+            $cuerpo .= "<tr$clase>"
+                . "<td class='c'>" . ($i + 1) . '</td>'
+                . "<td class='c nota'>" . e($fila['nota']) . '</td>'
+                . "<td>$nombre</td>";
+
+            if ($fila['entregada']) {
+                $cuerpo .= "<td class='r b'>" . number_format($fila['monto'], 2) . '</td>'
+                    . "<td class='r'>" . $monto($fila['efectivo']) . '</td>'
+                    . "<td class='r'>" . $monto($fila['qr']) . '</td>'
+                    . "<td class='r'>" . $monto($fila['credito']) . '</td>'
+                    . "<td class='r falta'>" . $monto($fila['falta']) . '</td>';
+            } else {
+                $cuerpo .= "<td class='r gris'>" . number_format($fila['monto'], 2) . '</td>'
+                    . "<td colspan='4' class='c gris'>" . e($fila['estado']) . '</td>';
+            }
+
+            $cuerpo .= '</tr>';
+        }
+
+        if ($cuerpo === '') {
+            $cuerpo = "<tr><td colspan='8' class='c gris' style='padding:16px'>Sin notas este día</td></tr>";
+        }
+
+        $caja = "<table class='caja-doc'>
+            <tr><td colspan='2' class='tit'>RECOJO DEL DÍA</td></tr>
+            <tr><td class='et'>Fecha</td><td class='r'>" . date('d/m/Y', strtotime($fecha)) . "</td></tr>
+            <tr><td class='et'>Camión</td><td class='r'><b>" . e($placa) . "</b></td></tr>
+            <tr><td class='et'>Notas</td><td class='r nro'>" . $t['notas'] . "</td></tr>
+        </table>";
+
+        return '<style>' . $this->estilosImpresion() . "
+            .firma { margin-top: 52px; text-align: center; font-size: 9px; color: #666 }
+            .firma-linea { border-top: 1px solid #999; width: 62mm; margin: 0 auto 3px }
+            .firma b { color: #222; font-size: 10px }
+            .nota { color: #1a5fb4; font-weight: bold; font-size: 9px }
+            .b { font-weight: bold }
+            .falta { color: #c62828 }
+            .motivo { color: #bf360c; font-size: 7.5px }
+            .detalle tr.sin td { color: #999; background: #f4f4f4 }
+            .detalle tfoot td { background: #37474f; color: #fff; font-weight: bold; padding: 5px 4px }
+        </style>"
+        . $this->cabeceraEmisor($caja)
+        . "<table class='datos'>
+            <tr>
+                <td style='width:55%'><span class='et'>Caminero</span><br><b>" . e($caminero) . "</b></td>
+                <td><span class='et'>Día del recojo</span><br>" . $this->fechaLarga($fecha) . "</td>
+            </tr>
+        </table>
+        <table class='detalle'>
+            <thead><tr>
+                <th style='width:22px'>N°</th>
+                <th style='width:52px'>Nota</th>
+                <th style='text-align:left'>Cliente</th>
+                <th style='width:62px' class='r'>Total</th>
+                <th style='width:62px' class='r'>Efectivo</th>
+                <th style='width:62px' class='r'>QR</th>
+                <th style='width:62px' class='r'>Crédito</th>
+                <th style='width:52px' class='r'>Falta</th>
+            </tr></thead>
+            <tbody>$cuerpo</tbody>
+            <tfoot><tr>
+                <td colspan='3' class='r'>TOTALES</td>
+                <td class='r'>" . number_format($t['monto'], 2) . "</td>
+                <td class='r'>" . number_format($t['efectivo'], 2) . "</td>
+                <td class='r'>" . number_format($t['qr'], 2) . "</td>
+                <td class='r'>" . number_format($t['credito'], 2) . "</td>
+                <td class='r'>" . number_format($t['falta'], 2) . "</td>
+            </tr></tfoot>
+        </table>
+        <table class='totales' style='margin-top:9px'>
+            <tr><td>Efectivo + QR + Crédito + Falta</td><td class='r' style='width:120px'>Bs. "
+                . number_format($t['efectivo'] + $t['qr'] + $t['credito'] + $t['falta'], 2) . "</td></tr>
+            <tr class='final'><td>A RENDIR EN CAJA (EFECTIVO + QR)</td><td class='r'>Bs. "
+                . number_format($t['efectivo'] + $t['qr'], 2) . "</td></tr>
+        </table>
+        <div class='firma'>
+            <div class='firma-linea'></div>
+            <b>" . e($caminero) . "</b><br>Firma del caminero
+        </div>
+        <div class='pie'><div class='legal'>"
+            . e(config('siat.emisor')['nombre']) . ' &middot; Recojo del ' . date('d/m/Y', strtotime($fecha))
+            . ' &middot; camión ' . e($placa) . ' &middot; generado el ' . date('d/m/Y H:i') . '</div></div>';
+    }
+
     /** Los camiones que trajeron algo ese dia, con su caminero. */
     public function camiones($fecha): array
     {

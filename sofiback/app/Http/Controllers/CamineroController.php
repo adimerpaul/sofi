@@ -531,6 +531,8 @@ class CamineroController extends Controller
             'placa' => $placa,
             'despachador' => trim($usuario->Nombre1 . ' ' . $usuario->App1),
             'grupos' => $grupos,
+            // Todo en una tabla: una fila por nota y una columna por via.
+            'tabla' => $recojo->tabla($filas),
             'totales' => $recojo->totales($grupos, $entregadas),
             'avance' => $this->avance($fecha, $placa, $filas),
         ];
@@ -576,7 +578,7 @@ class CamineroController extends Controller
         $fecha = $datos['fecha'] ?? date('Y-m-d');
         $grupo = $datos['grupo'] ?? 'todos';
 
-        if ($grupo !== 'todos' && !isset(RecojoDelDia::HOJAS[$grupo])) {
+        if (!in_array($grupo, ['todos', 'tabla'], true) && !isset(RecojoDelDia::HOJAS[$grupo])) {
             return response()->json(['message' => 'Esa hoja no existe'], 422);
         }
 
@@ -589,6 +591,11 @@ class CamineroController extends Controller
         $filas = $recojo->filas($fecha, $placa);
         $grupos = $recojo->agrupar($filas);
         $caminero = $this->nombre($request);
+
+        // La tabla del dia va sola en su hoja, sin las hojas por forma de pago.
+        if ($grupo === 'tabla') {
+            return $this->pdf($recojo->tablaHtml($fecha, $caminero, $placa, $filas), 'recojo_tabla_' . $fecha);
+        }
 
         $claves = $grupo === 'todos' ? array_keys(RecojoDelDia::HOJAS) : [$grupo];
         $hojas = [];

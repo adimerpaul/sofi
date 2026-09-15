@@ -49,6 +49,7 @@ class CobranzaRecojoController extends Controller
                 'placa' => $placa,
                 'caminero' => $recojo->caminero($delCamion, $placa),
                 'grupos' => $grupos,
+                'tabla' => $recojo->tabla($delCamion),
                 'totales' => $recojo->totales($grupos, $delCamion->whereIn('estado', RecojoDelDia::ESTADOS_COBRADOS)),
                 'notas' => $delCamion->count(),
             ];
@@ -62,6 +63,7 @@ class CobranzaRecojoController extends Controller
             'camiones' => $camiones,
             // El total del dia, sumando todos los camiones que se muestran.
             'totales' => $recojo->totales($todos, $filas->whereIn('estado', RecojoDelDia::ESTADOS_COBRADOS)),
+            'tabla_totales' => $recojo->tabla($filas)['totales'],
             'notas' => $filas->count(),
         ];
     }
@@ -93,17 +95,23 @@ class CobranzaRecojoController extends Controller
         $camion = trim((string) ($datos['camion'] ?? ''));
         $grupo = $datos['grupo'] ?? 'todos';
 
-        if ($grupo !== 'todos' && !isset(RecojoDelDia::HOJAS[$grupo])) {
+        if (!in_array($grupo, ['todos', 'tabla'], true) && !isset(RecojoDelDia::HOJAS[$grupo])) {
             return response()->json(['message' => 'Esa hoja no existe'], 422);
         }
 
         $filas = $recojo->filas($fecha, $camion ?: null);
-        $claves = $grupo === 'todos' ? array_keys(RecojoDelDia::HOJAS) : [$grupo];
+        $claves = in_array($grupo, ['todos', 'tabla'], true) ? array_keys(RecojoDelDia::HOJAS) : [$grupo];
         $hojas = [];
 
         foreach ($filas->groupBy('placa') as $placa => $delCamion) {
             $grupos = $recojo->agrupar($delCamion);
             $caminero = $recojo->caminero($delCamion, $placa);
+
+            // Una tabla por camion: cada caminero firma la suya.
+            if ($grupo === 'tabla') {
+                $hojas[] = $recojo->tablaHtml($fecha, $caminero, $placa, $delCamion);
+                continue;
+            }
 
             foreach ($claves as $clave) {
                 // Las hojas que quedaron sin ninguna nota no se imprimen: en

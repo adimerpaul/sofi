@@ -25,57 +25,176 @@ class CreditoController extends Controller
     public function index(Request $request)
     {
         $datos = $request->validate(['cliente_id' => 'nullable|integer|exists:tbclientes,Cod_Aut']);
-        $cliente = $datos['cliente_id'] ?? null;
-        $abonos = DB::table('creditos_abonos')->select('origen', 'deuda_id', DB::raw('SUM(monto) as pagado'))
-            ->groupBy('origen', 'deuda_id')->get()->keyBy(function ($a) { return $a->origen.':'.$a->deuda_id; });
+        $filas = $this->deudas($datos['cliente_id'] ?? null);
+        return ['deudas' => $filas->sortByDesc('fecha')->values(), 'saldo' => round($filas->sum('saldo'), 2)];
+    }
 
+    /**
+     * Todos los clientes con lo que deben, para la lista principal de
+     * cobranzas: los datos del cliente y una columna con su deuda. Son unos
+     * pocos miles, asi que va todo de una vez y la pantalla filtra y busca.
+     */
+    public function resumen()
+    {
+        $porCliente = $this->deudas(null)->groupBy('cliente_id');
+
+        $vendedores = DB::table('personal')->whereRaw("TRIM(COALESCE(ci, '')) <> ''")
+            ->get(['ci', 'Nombre1', 'App1'])
+            ->mapWithKeys(function ($p) {
+                return [trim($p->ci) => trim(trim((string) $p->Nombre1) . ' ' . trim((string) $p->App1))];
+            });
+
+        $clientes = DB::table('tbclientes')->orderBy('Nombres')
+            ->get(['Cod_Aut', 'Id', 'Nombres', 'Telf', 'Direccion', 'zona', 'CiVend', 'Canal', 'venta'])
+            ->map(function ($c) use ($porCliente, $vendedores) {
+                $deudas = $porCliente->get($c->Cod_Aut) ?? collect();
+                $pendientes = $deudas->where('saldo', '>', 0);
+                $desde = $pendientes->min('fecha');
+
+                return [
+                    'id' => (int) $c->Cod_Aut,
+                    'nombre' => trim((string) $c->Nombres),
+                    'nit' => trim((string) $c->Id),
+                    'telefono' => trim((string) $c->Telf),
+                    'direccion' => trim((string) $c->Direccion),
+                    'zona' => trim((string) $c->zona),
+                    'canal' => trim((string) $c->Canal),
+                    'vendedor' => $vendedores->get(trim((string) $c->CiVend), ''),
+                    'activo' => strtoupper(trim((string) $c->venta)) !== 'INACTIVO',
+                    'saldo' => round($pendientes->sum('saldo'), 2),
+                    'deudas' => $pendientes->count(),
+                    // Desde cuando debe: la deuda pendiente mas vieja.
+                    'desde' => $desde ? substr((string) $desde, 0, 10) : null,
+                    'dias' => $desde ? (int) floor((time() - strtotime(substr((string) $desde, 0, 10))) / 86400) : null,
+                ];
+            });
+
+        $conDeuda = $clientes->where('saldo', '>', 0);
+
+        return [
+            'clientes' => $clientes->values(),
+            'totales' => [
+                'clientes' => $clientes->count(),
+                'con_deuda' => $conDeuda->count(),
+                'saldo' => round($conDeuda->sum('saldo'), 2),
+                'deudas' => $conDeuda->sum('deudas'),
+            ],
+        ];
+    }
+
+    /**
+     * El detalle de un cliente: sus datos, todas sus deudas (pendientes y
+     * pagadas) y las ventas que se le hicieron a credito con sus productos.
+     */
+    public function detalle($id)
+    {
+        $c = DB::table('tbclientes')->where('Cod_Aut', $id)->first();
+        abort_unless($c, 404, 'El cliente no existe');
+
+        $vendedor = DB::table('personal')->whereRaw('TRIM(ci) = ?', [trim((string) $c->CiVend)])->first(['Nombre1', 'App1']);
+        $deudas = $this->deudas((int) $id)->sortByDesc('fecha')->values();
+
+        $abonos = DB::table('creditos_abonos')->where('origen', 'factura')
+            ->select('deuda_id', DB::raw('SUM(monto) as pagado'))->groupBy('deuda_id')->pluck('pagado', 'deuda_id');
+
+        $ventas = DB::table('facturas')->where('cliente_id', $id)
+            ->whereIn('tipo_pago', ['CRÉDITO', 'CREDITO'])->whereNull('deleted_at')
+            ->orderByDesc('fecha')->orderByDesc('id')
+            ->get(['id', 'fecha', 'hora', 'tipo_comprobante', 'total', 'estado', 'pedido_nro', 'pedido_tipo', 'observacion']);
+        $detalles = DB::table('factura_detalles')->whereIn('factura_id', $ventas->pluck('id'))->whereNull('deleted_at')
+            ->orderBy('id')->get(['factura_id', 'cod_prod', 'nombre', 'unidad', 'cantidad', 'peso', 'precio', 'subtotal'])
+            ->groupBy('factura_id');
+
+        $ventas = $ventas->map(function ($v) use ($abonos, $detalles) {
+            $total = (float) $v->total;
+            $pagado = (float) ($abonos[$v->id] ?? 0);
+            $activa = $v->estado === 'ACTIVO';
+            return [
+                'id' => $v->id,
+                'fecha' => substr((string) $v->fecha, 0, 10),
+                'hora' => substr((string) $v->hora, 0, 5),
+                'comprobante' => $v->tipo_comprobante,
+                'pedido' => $v->pedido_nro,
+                'total' => $total,
+                'pagado' => $pagado,
+                'saldo' => $activa ? max(0, round($total - $pagado, 2)) : 0,
+                'estado' => !$activa ? 'ANULADA' : ($total - $pagado > 0.009 ? 'PENDIENTE' : 'PAGADA'),
+                'observacion' => $v->observacion,
+                'productos' => ($detalles->get($v->id) ?? collect())->map(function ($d) {
+                    return [
+                        'cod_prod' => trim((string) $d->cod_prod),
+                        'nombre' => trim((string) $d->nombre),
+                        'unidad' => trim((string) $d->unidad),
+                        'cantidad' => (float) $d->cantidad,
+                        'peso' => (float) $d->peso,
+                        'precio' => (float) $d->precio,
+                        'subtotal' => (float) $d->subtotal,
+                    ];
+                })->values(),
+            ];
+        });
+
+        return [
+            'cliente' => [
+                'id' => (int) $c->Cod_Aut,
+                'nombre' => trim((string) $c->Nombres),
+                'nit' => trim((string) $c->Id),
+                'telefono' => trim((string) $c->Telf),
+                'direccion' => trim((string) $c->Direccion),
+                'zona' => trim((string) $c->zona),
+                'territorio' => trim((string) ($c->territorio ?? '')),
+                'canal' => trim((string) $c->Canal),
+                'vendedor' => $vendedor ? trim(trim((string) $vendedor->Nombre1) . ' ' . trim((string) $vendedor->App1)) : '',
+                'latitud' => $c->Latitud,
+                'longitud' => $c->longitud,
+            ],
+            'deudas' => $deudas,
+            'ventas' => $ventas->values(),
+            'totales' => [
+                'saldo' => round($deudas->sum('saldo'), 2),
+                'deudas' => $deudas->where('saldo', '>', 0)->count(),
+                'abonado' => round($deudas->sum('pagado'), 2),
+                'ventas' => $ventas->count(),
+                'vendido' => round($ventas->where('estado', '<>', 'ANULADA')->sum('total'), 2),
+            ],
+        ];
+    }
+
+    /**
+     * Las deudas de un cliente, o de todos: los comprobantes de facturacion
+     * emitidos a credito, con lo abonado a cada uno.
+     */
+    private function deudas($cliente)
+    {
+        $abonos = DB::table('creditos_abonos')->where('origen', 'factura')
+            ->select('deuda_id', DB::raw('SUM(monto) as pagado'))
+            ->groupBy('deuda_id')->pluck('pagado', 'deuda_id');
+
+        // Solo lo que sale de facturacion: los comprobantes emitidos a credito
+        // y lo que se les fue abonando. Las notas de caja no entran aca.
         $facturas = DB::table('facturas as f')->leftJoin('tbclientes as c', 'c.Cod_Aut', '=', 'f.cliente_id')
             ->whereIn('f.tipo_pago', ['CRÉDITO', 'CREDITO'])
             ->when($cliente, function ($q) use ($cliente) { $q->where('f.cliente_id', $cliente); })
             ->get(['f.id', 'f.cliente_id', 'f.fecha', 'f.total as monto', 'f.estado', 'f.deleted_at',
-                DB::raw("COALESCE(c.Nombres, f.nombre) as cliente"), DB::raw("CONCAT('Venta #', f.id) as concepto")]);
-        $manuales = DB::table('creditos_manuales as d')->join('tbclientes as c', 'c.Cod_Aut', '=', 'd.cliente_id')
-            ->when($cliente, function ($q) use ($cliente) { $q->where('d.cliente_id', $cliente); })
-            ->get(['d.id', 'd.cliente_id', 'd.fecha', 'd.monto', 'd.concepto', 'c.Nombres as cliente']);
+                'f.tipo_comprobante', 'f.pedido_nro',
+                DB::raw("COALESCE(c.Nombres, f.nombre) as cliente")]);
+
         $filas = collect();
-        foreach (['factura' => $facturas, 'manual' => $manuales] as $origen => $deudas) {
-            foreach ($deudas as $deuda) {
-                $deuda->origen = $origen;
-                $deuda->clave = $origen.':'.$deuda->id;
-                $deuda->pagado = (float) ($abonos->get($deuda->clave)->pagado ?? 0);
-                $deuda->monto = (float) $deuda->monto;
-                $activa = $origen === 'manual' || ($deuda->estado === 'ACTIVO' && !$deuda->deleted_at);
-                if (!$activa && !$deuda->pagado) { continue; }
-                $deuda->saldo = $activa ? max(0, round($deuda->monto - $deuda->pagado, 2)) : 0;
-                $deuda->estado = !$activa ? 'ANULADA CON ABONOS: REVISAR' : ($deuda->saldo > 0 ? 'PENDIENTE' : 'PAGADO');
-                $filas->push($deuda);
-            }
+        foreach ($facturas as $deuda) {
+            $deuda->origen = 'factura';
+            $deuda->clave = 'factura:' . $deuda->id;
+            $deuda->concepto = ($deuda->tipo_comprobante === 'FACTURA' ? 'Factura #' : 'Venta #') . $deuda->id
+                . ($deuda->pedido_nro ? ' · Pedido #' . $deuda->pedido_nro : '');
+            $deuda->pagado = (float) ($abonos[$deuda->id] ?? 0);
+            $deuda->monto = (float) $deuda->monto;
+            $activa = $deuda->estado === 'ACTIVO' && !$deuda->deleted_at;
+            if (!$activa && !$deuda->pagado) { continue; }
+            $deuda->saldo = $activa ? max(0, round($deuda->monto - $deuda->pagado, 2)) : 0;
+            $deuda->estado = !$activa ? 'ANULADA CON ABONOS: REVISAR' : ($deuda->saldo > 0 ? 'PENDIENTE' : 'PAGADO');
+            $filas->push($deuda);
         }
 
-        // Las cuentas de caja conservan su fuente y su circuito de conciliacion.
-        $legadas = DB::table('tbctascobrar as d')->join('tbclientes as c', 'c.Id', '=', 'd.CINIT')
-            ->where('d.Nrocierre', 0)->where('d.Acuenta', 0)
-            ->when($cliente, function ($q) use ($cliente) { $q->where('c.Cod_Aut', $cliente); })
-            ->select('d.comanda as id', 'c.Cod_Aut as cliente_id', 'c.Nombres as cliente')
-            ->selectRaw('MIN(d.FechaEntreg) as fecha, SUM(d.Importe) as monto, d.CINIT')
-            ->groupBy('d.comanda', 'd.CINIT', 'c.Cod_Aut', 'c.Nombres')->get();
-        $pagosCaja = DB::table('tbctascobrar')->select('comanda', 'CINIT')->selectRaw('SUM(Acuenta) as pagado')
-            ->groupBy('comanda', 'CINIT')->get()->keyBy(function ($p) { return trim($p->CINIT).':'.$p->comanda; });
-        $pendientes = DB::table('tbctascow')->where('procesado', 0)->select('comanda', 'idCli')->selectRaw('SUM(pago) as pagado')
-            ->groupBy('comanda', 'idCli')->get()->keyBy(function ($p) { return trim($p->idCli).':'.$p->comanda; });
-        foreach ($legadas as $d) {
-            $key = trim($d->CINIT).':'.$d->id;
-            $d->origen = 'caja';
-            $d->clave = 'caja:'.$key;
-            $d->concepto = 'Nota de caja #'.$d->id;
-            $d->monto = (float) $d->monto;
-            $d->pagado = (float) ($pagosCaja->get($key)->pagado ?? 0);
-            $d->por_conciliar = (float) ($pendientes->get($key)->pagado ?? 0);
-            $d->saldo = max(0, round($d->monto - $d->pagado, 2));
-            $d->estado = 'CAJA';
-            if ($d->saldo > 0) { $filas->push($d); }
-        }
-        return ['deudas' => $filas->sortByDesc('fecha')->values(), 'saldo' => round($filas->sum('saldo'), 2)];
+        return $filas;
     }
 
     public function store(Request $request)

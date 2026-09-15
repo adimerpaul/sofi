@@ -222,6 +222,11 @@
             :href="'https://www.google.com/maps/dir/?api=1&destination=' + punto.lat + ',' + punto.lng"
             icon="navigation" color="blue-8" label="Ir"
           />
+          <!-- Cerrar arriba y como icono: a pantalla completa en el celular
+               queda a mano sin bajar hasta el pie. -->
+          <q-btn round flat dense icon="close" size="md" color="grey-8" v-close-popup>
+            <q-tooltip>Cerrar</q-tooltip>
+          </q-btn>
         </q-card-section>
 
         <q-separator/>
@@ -262,21 +267,9 @@
                         {{ props.row.detalles.length === 1 ? 'producto' : 'productos' }}
                       </div>
                     </div>
-                    <div class="text-subtitle2 text-weight-bolder q-mx-xs">
+                    <div class="text-subtitle1 text-weight-bolder q-mx-xs">
                       Bs {{ money(props.row.total) }}
                     </div>
-                    <q-btn
-                      dense flat round size="sm" icon="receipt_long" color="blue-grey-7"
-                      @click="verComprobante(props.row)"
-                    />
-                    <q-btn
-                      v-if="encuestaEnFila" dense flat round size="sm" icon="feedback"
-                      color="primary" @click="abrirEncuesta(props.row)"
-                    />
-                    <q-btn
-                      v-if="props.row.telefono" dense flat round size="sm" icon="call"
-                      color="green-8" :href="'tel:' + props.row.telefono"
-                    />
                   </div>
 
                   <table v-if="detalleAbierto[props.row.factura_id]" class="tabla-detalle">
@@ -293,9 +286,9 @@
                     <span v-if="falto(props.row) > 0.009" class="text-red-9 text-weight-bold">
                       · faltó Bs {{ money(falto(props.row)) }}
                     </span>
-                  </div>
-                  <div v-if="props.row.retorno" class="text-caption text-deep-orange-9">
-                    <q-icon name="assignment_return" size="14px"/> {{ props.row.observacion }}
+                    <div v-if="props.row.retorno" class="text-deep-orange-9">
+                      <q-icon name="assignment_return" size="14px"/> {{ props.row.observacion }}
+                    </div>
                   </div>
 
                   <div v-else-if="props.row.entrega_estado" class="text-caption text-red-9 ellipsis">
@@ -306,33 +299,15 @@
 
                   <!-- El credito ya venia decidido de caja: al caminero solo se
                        le recuerda que ahi no cobra nada. -->
-                  <div
-                    v-else-if="esCredito(props.row)"
-                    class="row items-center no-wrap q-mt-xs"
-                  >
-                    <div class="col text-caption text-orange-9 ellipsis">
-                      <q-icon name="schedule" size="14px"/>
-                      <b>A crédito</b> · se entrega sin cobrar
-                    </div>
-                    <q-btn
-                      dense flat round size="sm" icon="cancel" color="negative"
-                      @click="abrirNoEntrega(props.row)"
-                    />
-                    <q-btn
-                      dense flat round size="sm" icon="assignment_return" color="deep-orange-8"
-                      @click="abrirRetorno(props.row)"
-                    />
-                    <q-btn
-                      dense unelevated round size="sm" icon="check" color="positive"
-                      class="q-ml-xs" :loading="guardando === props.row.factura_id"
-                      @click="cobrar(props.row)"
-                    />
+                  <div v-else-if="esCredito(props.row)" class="text-body2 text-orange-9 q-mt-xs">
+                    <q-icon name="schedule" size="16px"/>
+                    <b>A crédito</b> · se entrega sin cobrar
                   </div>
 
                   <template v-else-if="cobros[props.row.factura_id]">
                     <q-btn-toggle
                       :model-value="cobros[props.row.factura_id].forma"
-                      spread no-caps unelevated dense size="sm" class="q-mt-xs"
+                      spread no-caps unelevated class="q-mt-xs"
                       toggle-color="primary" color="grey-3" text-color="grey-9"
                       :options="formasPago"
                       @update:model-value="forma => cambiarForma(props.row, forma)"
@@ -354,26 +329,38 @@
                         class="col campo-monto" label="QR"
                       />
                       <div
-                        class="col text-caption text-weight-medium ellipsis"
+                        class="col text-body2 text-weight-medium"
                         :class="claseSaldo(props.row)"
                       >
                         {{ leyendaSaldo(props.row) }}
                       </div>
+                    </div>
+                  </template>
+
+                  <!-- Solo las tres acciones de la puerta, grandes y con su
+                       nombre: se tocan con el celular en la mano. -->
+                  <div v-if="!cerrada(props.row) && (esCredito(props.row) || cobros[props.row.factura_id])" class="row q-col-gutter-xs q-mt-sm">
+                    <div class="col-4">
                       <q-btn
-                        dense flat round size="sm" icon="cancel" color="negative"
-                        @click="abrirNoEntrega(props.row)"
+                        class="full-width boton-accion" outline no-caps stack color="negative" icon="cancel"
+                        label="Anular" @click="abrirNoEntrega(props.row)"
                       />
+                    </div>
+                    <div class="col-4">
                       <q-btn
-                        dense flat round size="sm" icon="assignment_return" color="deep-orange-8"
-                        @click="abrirRetorno(props.row)"
+                        class="full-width boton-accion" outline no-caps stack color="deep-orange-8" icon="assignment_return"
+                        label="Retorno parcial" @click="abrirRetorno(props.row)"
                       />
+                    </div>
+                    <div class="col-4">
                       <q-btn
-                        dense unelevated round size="sm" icon="check" color="positive"
+                        class="full-width boton-accion" unelevated no-caps stack color="positive" icon="check_circle"
+                        :label="esCredito(props.row) ? 'Entregar' : 'Registrar cobro'"
                         :loading="guardando === props.row.factura_id"
                         :disable="!cobroValido(props.row)" @click="cobrar(props.row)"
                       />
                     </div>
-                  </template>
+                  </div>
                 </q-card>
               </div>
             </template>
@@ -421,9 +408,9 @@
                     <span v-if="falto(props.row) > 0.009" class="text-red-9 text-weight-bold">
                       · faltó Bs {{ money(falto(props.row)) }}
                     </span>
-                  </div>
-                  <div v-if="props.row.retorno" class="text-caption text-deep-orange-9">
-                    <q-icon name="assignment_return" size="14px"/> {{ props.row.observacion }}
+                    <div v-if="props.row.retorno" class="text-deep-orange-9">
+                      <q-icon name="assignment_return" size="14px"/> {{ props.row.observacion }}
+                    </div>
                   </div>
 
                   <div v-else-if="props.row.entrega_estado" class="text-caption text-red-9">
@@ -471,46 +458,23 @@
                 </q-td>
 
                 <q-td key="opcion" :props="props" class="text-no-wrap">
-                  <q-btn
-                    dense flat round size="sm" icon="receipt_long" color="blue-grey-7"
-                    @click="verComprobante(props.row)"
-                  >
-                    <q-tooltip>Ver comprobante</q-tooltip>
-                  </q-btn>
-                  <q-btn
-                    v-if="encuestaEnFila" dense flat round size="sm" icon="feedback"
-                    color="primary" @click="abrirEncuesta(props.row)"
-                  >
-                    <q-tooltip>Encuesta</q-tooltip>
-                  </q-btn>
-                  <q-btn
-                    v-if="props.row.telefono" dense flat round size="sm" icon="call"
-                    color="green-8" :href="'tel:' + props.row.telefono"
-                  />
-                  <template v-if="!props.row.cobrada">
+                  <div v-if="!cerrada(props.row)" class="row no-wrap q-gutter-xs justify-end">
                     <q-btn
-                      dense flat round size="sm" icon="cancel" color="negative"
-                      @click="abrirNoEntrega(props.row)"
-                    >
-                      <q-tooltip>No entregado</q-tooltip>
-                    </q-btn>
+                      class="boton-accion" outline no-caps stack color="negative" icon="cancel"
+                      label="Anular" @click="abrirNoEntrega(props.row)"
+                    />
                     <q-btn
-                      dense flat round size="sm" icon="assignment_return" color="deep-orange-8"
-                      @click="abrirRetorno(props.row)"
-                    >
-                      <q-tooltip>Retorno parcial</q-tooltip>
-                    </q-btn>
+                      class="boton-accion" outline no-caps stack color="deep-orange-8" icon="assignment_return"
+                      label="Retorno parcial" @click="abrirRetorno(props.row)"
+                    />
                     <q-btn
-                      dense unelevated round size="sm" icon="check" color="positive"
-                      class="q-ml-xs" :loading="guardando === props.row.factura_id"
+                      class="boton-accion" unelevated no-caps stack color="positive" icon="check_circle"
+                      :label="esCredito(props.row) ? 'Entregar' : 'Registrar cobro'"
+                      :loading="guardando === props.row.factura_id"
                       :disable="!cobroValido(props.row)" @click="cobrar(props.row)"
-                    >
-                      <q-tooltip>
-                        {{ esCredito(props.row) ? 'Entregar a crédito' : 'Registrar el cobro' }}
-                      </q-tooltip>
-                    </q-btn>
-                  </template>
-                  <q-icon v-else name="task_alt" color="positive" size="20px" class="q-ml-xs"/>
+                    />
+                  </div>
+                  <q-icon v-else-if="props.row.cobrada" name="task_alt" color="positive" size="24px"/>
                 </q-td>
               </q-tr>
             </template>
@@ -527,7 +491,6 @@
             </span>
           </div>
           <q-space/>
-          <q-btn flat dense no-caps color="grey-8" label="Cerrar" v-close-popup/>
           <!-- En una puerta con varias notas se cuenta la plata una sola vez:
                este boton cierra todas las pendientes de un toque. -->
           <q-btn
@@ -571,12 +534,15 @@
          el cliente de cada producto y se cobra eso; caja edita despues. -->
     <q-dialog v-model="dialogoRetorno" :maximized="esMovil">
       <q-card :class="esMovil ? 'column no-wrap full-height' : ''" :style="esMovil ? '' : 'width: 560px; max-width: 96vw'">
-        <q-card-section class="bg-deep-orange-7 text-white q-py-sm">
-          <div class="text-subtitle1 text-weight-bold">Retorno parcial</div>
-          <div class="text-caption">
-            {{ retornoEntrega.cliente || retornoEntrega.nombre }} · Pedido #{{ retornoEntrega.nro_pedido }} ·
-            Bs {{ money(retornoEntrega.total) }}
+        <q-card-section class="bg-deep-orange-7 text-white q-py-sm row items-center no-wrap">
+          <div class="col">
+            <div class="text-subtitle1 text-weight-bold">Retorno parcial</div>
+            <div class="text-caption">
+              {{ retornoEntrega.cliente || retornoEntrega.nombre }} · Pedido #{{ retornoEntrega.nro_pedido }} ·
+              Bs {{ money(retornoEntrega.total) }}
+            </div>
           </div>
+          <q-btn round flat dense icon="close" color="white" v-close-popup/>
         </q-card-section>
 
         <q-card-section class="q-pa-none" :class="esMovil ? 'col scroll' : ''">
@@ -619,8 +585,9 @@
 
           <template v-if="retornoCobro.forma !== 'CRÉDITO'">
             <q-btn-toggle
-              v-model="retornoCobro.forma" spread no-caps unelevated dense size="sm" class="q-mt-sm"
+              :model-value="retornoCobro.forma" spread no-caps unelevated class="q-mt-sm"
               toggle-color="primary" color="grey-3" text-color="grey-9" :options="formasPago"
+              @update:model-value="cambiarFormaRetorno"
             />
             <div class="row q-col-gutter-xs q-mt-xs">
               <div v-if="retornoCobro.forma !== 'PAGO QR'" class="col">
@@ -648,7 +615,6 @@
 
         <q-separator/>
         <q-card-actions align="right" class="q-pa-sm">
-          <q-btn flat no-caps color="grey-8" label="Cerrar" v-close-popup/>
           <q-btn
             unelevated no-caps color="deep-orange-7" icon="assignment_return" label="Registrar retorno"
             :loading="guardando === retornoEntrega.factura_id" :disable="!retornoValido"
@@ -906,10 +872,6 @@ export default {
     // completa y sus pedidos van como tarjetas en vez de filas.
     esMovil () {
       return this.$q.screen.lt.md
-    },
-    /** Con varios clientes en la esquina, la encuesta vuelve a cada fila. */
-    encuestaEnFila () {
-      return !this.punto.cliente
     },
     /** Las notas del punto que todavia no se cerraron. */
     pendientesPunto () {
@@ -1227,7 +1189,22 @@ export default {
       cobro.forma = forma
 
       if (forma === 'PAGO QR') {
-        cobro.qr = monto
+        // Por QR se transfiere justo lo de la nota: el monto entra completo y
+        // el caminero lo corrige solo si le mandaron otra cosa.
+        cobro.qr = Number(entrega.total) || null
+        cobro.efectivo = null
+      } else {
+        cobro.efectivo = monto
+        cobro.qr = null
+      }
+    },
+    // Lo mismo en el retorno parcial, contra lo que se quedo el cliente.
+    cambiarFormaRetorno (forma) {
+      const cobro = this.retornoCobro
+      const monto = Number(cobro.efectivo || 0) + Number(cobro.qr || 0) || null
+      cobro.forma = forma
+      if (forma === 'PAGO QR') {
+        cobro.qr = this.retornoTotal || null
         cobro.efectivo = null
       } else {
         cobro.efectivo = monto
@@ -1387,6 +1364,7 @@ export default {
       }).then(res => {
         this.$q.notify({ type: 'positive', position: 'top', message: res.data.message })
         this.dialogoRetorno = false
+        this.dialogoPunto = false
         this.cargar()
       }).catch(err => {
         this.$q.notify({
@@ -1422,6 +1400,8 @@ export default {
         lng: this.posicion?.longitude || null
       }, cuerpo)).then(() => {
         this.$q.notify({ type: 'positive', position: 'top', message: 'Entrega registrada' })
+        // Cobrada o anulada, la nota ya esta cerrada: se vuelve a la lista.
+        this.dialogoPunto = false
         if (alTerminar) alTerminar()
         this.cargar()
       }).catch(err => {
@@ -1644,6 +1624,13 @@ export default {
    recordatorio de cuanto habria que cobrar y para los dos botones. */
 .campo-monto {
   max-width: 108px;
+}
+/* Las acciones de la puerta: se tocan con el pulgar, asi que etiqueta grande. */
+.boton-accion {
+  min-height: 52px;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.1;
 }
 .tabla-retorno {
   width: 100%;

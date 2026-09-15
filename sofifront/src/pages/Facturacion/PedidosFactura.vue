@@ -112,6 +112,14 @@
                 {{ esFactura(pedido) ? 'F' : 'R' }}
                 <q-tooltip>{{ esFactura(pedido) ? 'Factura' : 'Recibo' }}</q-tooltip>
               </q-chip>
+              <!-- Contado o credito, bien a la vista: el credito no se cobra en
+                   la puerta y caja tiene que saberlo antes de entrar. -->
+              <q-chip
+                dense square size="sm" text-color="white" class="text-weight-bold"
+                :color="formaPago(pedido).color" :icon="formaPago(pedido).icono"
+              >
+                {{ formaPago(pedido).texto }}
+              </q-chip>
               <q-chip v-if="pedido.placa" dense square size="sm" icon="local_shipping" :style="estiloCamion(pedido)">
                 {{ pedido.placa }}
               </q-chip>
@@ -302,6 +310,14 @@ export default {
     esFactura (pedido) {
       if (pedido.factura_id) return pedido.comprobante_emitido === 'FACTURA'
       return String(pedido.fact || '').toUpperCase() === 'SI'
+    },
+    // Igual que F/R: antes de cobrar manda el pedido (CONTADO, CREDITO, PAGO QR);
+    // ya emitido, lo que quedo en el comprobante (EFECTIVO, CRÉDITO).
+    formaPago (pedido) {
+      const valor = String((pedido.factura_id ? pedido.pago_emitido : pedido.pago) || '').toUpperCase()
+      if (valor.includes('CR')) return { texto: 'CRÉDITO', color: 'deep-orange-8', icono: 'schedule' }
+      if (valor.includes('QR')) return { texto: 'QR', color: 'indigo-7', icono: 'qr_code_2' }
+      return { texto: 'CONTADO', color: 'green-8', icono: 'payments' }
     },
     money (valor) {
       return Number(valor || 0).toFixed(2)

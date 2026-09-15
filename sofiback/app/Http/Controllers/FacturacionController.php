@@ -727,7 +727,7 @@ class FacturacionController extends Controller
             // la cabecera se resume con MIN y solo se agrupa por el pedido.
             ->groupBy([
                 'p.NroPed', DB::raw('UPPER(TRIM(p.tipo))'), 'f.id', 'f.tipo_comprobante',
-                'f.fecha', 'f.nit',
+                'f.fecha', 'f.nit', 'f.tipo_pago',
             ])
             ->orderByRaw('CASE WHEN f.id IS NULL THEN 0 ELSE 1 END ASC')
             ->orderByDesc('p.NroPed')
@@ -749,7 +749,7 @@ class FacturacionController extends Controller
                 DB::raw("TRIM(CONCAT_WS(' ', NULLIF(TRIM(MIN(v.Nombre1)), ''), NULLIF(TRIM(MIN(v.Nombre2)), ''), NULLIF(TRIM(MIN(v.App1)), ''), NULLIF(TRIM(MIN(v.Apm)), ''))) as vendedor"),
                 DB::raw('COUNT(*) as productos'),
                 DB::raw('ROUND(SUM(COALESCE(p.Cant, 0) * COALESCE(p.precio, 0)), 2) as total_pedido'),
-                'f.id as factura_id', 'f.tipo_comprobante as comprobante_emitido',
+                'f.id as factura_id', 'f.tipo_comprobante as comprobante_emitido', 'f.tipo_pago as pago_emitido',
                 // El comprobante se emite el dia que se cobra, no el del pedido:
                 // con su fecha y su carnet la pantalla de facturacion lo
                 // encuentra sin buscarlo a mano.
