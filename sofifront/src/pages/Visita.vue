@@ -341,7 +341,7 @@
                       </q-avatar>
                     </q-item-section>
                     <q-item-section>
-                      <q-item-label lines="1" class="text-weight-medium">{{ scope.opt.Producto }}</q-item-label>
+                      <q-item-label class="text-weight-medium nombre-producto">{{ scope.opt.Producto }}</q-item-label>
                       <q-item-label caption class="row items-center no-wrap">
                         <span class="cod-producto">{{ scope.opt.cod_prod }}</span>
                         <q-badge outline color="blue-grey-6" class="q-ml-xs" :label="scope.opt.codUnid"/>
@@ -1618,6 +1618,12 @@ export default {
 .foto-producto
   border: 1px solid rgba(0, 0, 0, 0.12)
   background: #fafafa
+
+.nombre-producto
+  /* Nombre completo sin "...": baja a otra linea con interlineado corto */
+  white-space: normal
+  word-break: break-word
+  line-height: 0.9
 
 .cod-producto
   font-family: monospace
