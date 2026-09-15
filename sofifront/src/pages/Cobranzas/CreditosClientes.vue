@@ -4,6 +4,7 @@
       <div class="text-h6">Créditos de clientes</div>
       <q-space/>
       <q-btn outline dense no-caps color="primary" icon="local_shipping" label="Reportes de camiones" to="/cobranzas/recojo"/>
+      <q-btn unelevated dense no-caps color="red-7" icon="add" label="Agregar deuda" @click="nuevaDeuda()"/>
       <q-btn flat dense round icon="refresh" color="primary" :loading="cargando" @click="cargar">
         <q-tooltip>Actualizar</q-tooltip>
       </q-btn>
@@ -25,7 +26,7 @@
       </div>
       <div class="col-6 col-md-3">
         <q-card flat bordered class="tarjeta bg-blue-grey-1">
-          <div class="tarjeta-rotulo text-blue-grey-8">VENTAS A CRÉDITO PENDIENTES</div>
+          <div class="tarjeta-rotulo text-blue-grey-8">DEUDAS PENDIENTES</div>
           <div class="tarjeta-valor text-blue-grey-10">{{ totales.deudas }}</div>
         </q-card>
       </div>
@@ -130,6 +131,7 @@
             <div class="text-subtitle1 text-weight-bold ellipsis">{{ detalle.cliente.nombre || 'Cliente' }}</div>
             <div class="text-caption">NIT {{ detalle.cliente.nit || '—' }}</div>
           </div>
+          <q-btn flat dense no-caps icon="add" label="Agregar deuda" class="q-mr-xs" @click="nuevaDeuda(detalle.cliente)"/>
           <q-btn round flat dense icon="close" v-close-popup/>
         </q-card-section>
 
@@ -210,7 +212,10 @@
               <q-list v-else bordered separator class="rounded-borders">
                 <q-item v-for="deuda in deudasVisibles" :key="deuda.clave">
                   <q-item-section>
-                    <q-item-label class="text-weight-medium">{{ deuda.concepto }}</q-item-label>
+                    <q-item-label class="text-weight-medium">
+                      {{ deuda.concepto }}
+                      <q-badge v-if="deuda.origen === 'manual'" outline color="red-7" class="q-ml-xs">Agregada a mano</q-badge>
+                    </q-item-label>
                     <q-item-label caption>
                       {{ deuda.fecha }} · Total Bs {{ money(deuda.monto) }} · Abonado Bs {{ money(deuda.pagado) }}
                     </q-item-label>
@@ -284,6 +289,43 @@
       </q-card>
     </q-dialog>
 
+    <!-- Deuda agregada a mano: algo que el cliente debe y no salio de una venta a credito. -->
+    <q-dialog v-model="dialogDeuda" persistent>
+      <q-card style="width: 480px; max-width: 95vw">
+        <q-form @submit="guardarDeuda">
+          <q-card-section class="row items-center no-wrap q-py-sm bg-red-7 text-white">
+            <q-icon name="add_card" size="24px" class="q-mr-sm"/>
+            <div class="col text-subtitle1 text-weight-bold">Agregar deuda</div>
+            <q-btn round flat dense icon="close" :disable="guardando" v-close-popup/>
+          </q-card-section>
+          <q-card-section class="q-gutter-sm">
+            <q-select
+              v-model="formDeuda.cliente" :options="opcionesCliente" option-label="nombre" use-input input-debounce="200"
+              outlined label="Cliente" :rules="[v => !!v || 'Elegí el cliente']" @filter="filtrarClientes"
+            >
+              <template #option="scope">
+                <q-item v-bind="scope.itemProps">
+                  <q-item-section>
+                    <q-item-label>{{ scope.opt.nombre }}</q-item-label>
+                    <q-item-label caption>NIT {{ scope.opt.nit || '—' }} · {{ scope.opt.zona || 'Sin zona' }}</q-item-label>
+                  </q-item-section>
+                  <q-item-section v-if="scope.opt.saldo > 0" side class="text-red-8">Debe Bs {{ money(scope.opt.saldo) }}</q-item-section>
+                </q-item>
+              </template>
+              <template #no-option><q-item><q-item-section class="text-grey">Escribí al menos 2 letras del nombre o NIT</q-item-section></q-item></template>
+            </q-select>
+            <q-input v-model="formDeuda.fecha" type="date" outlined label="Fecha" :rules="[v => !!v || 'Indicá la fecha']"/>
+            <q-input v-model="formDeuda.concepto" outlined label="Concepto (por qué debe)" maxlength="255" :rules="[v => !!(v || '').trim() || 'Indicá el concepto']"/>
+            <q-input v-model="formDeuda.monto" type="number" step="0.01" min="0.01" outlined label="Monto Bs" :rules="[montoValido]"/>
+          </q-card-section>
+          <q-card-actions align="right">
+            <q-btn flat no-caps label="Cancelar" :disable="guardando" v-close-popup/>
+            <q-btn type="submit" unelevated no-caps color="red-7" icon="save" label="Guardar deuda" :loading="guardando"/>
+          </q-card-actions>
+        </q-form>
+      </q-card>
+    </q-dialog>
+
     <q-dialog v-model="dialogAbono" persistent>
       <q-card style="width: 480px; max-width: 95vw">
         <q-form @submit="guardarAbono">
@@ -307,7 +349,7 @@
 </template>
 
 <script>
-import { uid } from 'quasar'
+import { date, uid } from 'quasar'
 
 function detalleVacio () {
   return { cliente: {}, deudas: [], ventas: [], totales: { saldo: 0, deudas: 0, abonado: 0, ventas: 0, vendido: 0 } }
@@ -334,6 +376,9 @@ export default {
       pestana: 'deudas',
       soloPendientes: true,
       guardando: false,
+      dialogDeuda: false,
+      formDeuda: { cliente: null, fecha: '', concepto: '', monto: '', solicitud_id: '' },
+      opcionesCliente: [],
       dialogAbono: false,
       dialogHistorial: false,
       cargandoHistorial: false,
@@ -424,6 +469,43 @@ export default {
       } finally {
         this.cargandoDetalle = false
       }
+    },
+    /** Abre el formulario; desde el detalle llega con el cliente ya elegido. */
+    nuevaDeuda (cliente) {
+      const elegido = cliente && cliente.id ? (this.clientes.find(c => c.id === cliente.id) || cliente) : null
+      this.formDeuda = {
+        cliente: elegido,
+        fecha: date.formatDate(Date.now(), 'YYYY-MM-DD'),
+        concepto: '',
+        monto: '',
+        // Evita que un doble toque registre la deuda dos veces.
+        solicitud_id: uid()
+      }
+      this.opcionesCliente = elegido ? [elegido] : []
+      this.dialogDeuda = true
+    },
+    // Se busca sobre la lista ya cargada: son pocos miles y responde al instante.
+    filtrarClientes (texto, update) {
+      const buscado = (texto || '').trim().toLowerCase()
+      update(() => {
+        this.opcionesCliente = buscado.length < 2
+          ? []
+          : this.clientes.filter(c => c.nombre.toLowerCase().includes(buscado) || c.nit.includes(buscado)).slice(0, 40)
+      })
+    },
+    async guardarDeuda () {
+      if (this.guardando) return
+      this.guardando = true
+      try {
+        const { cliente, ...resto } = this.formDeuda
+        await this.$api.post('creditos', { ...resto, concepto: resto.concepto.trim(), cliente_id: cliente.id })
+        this.dialogDeuda = false
+        this.$q.notify({ type: 'positive', message: 'Deuda agregada a ' + cliente.nombre })
+        const tareas = [this.cargar()]
+        if (this.dialogCliente && this.clienteId === cliente.id) tareas.push(this.cargarDetalle())
+        await Promise.all(tareas)
+      } catch (e) { this.$q.notify({ type: 'negative', message: this.mensaje(e) }) }
+      finally { this.guardando = false }
     },
     abrirAbono (fila) {
       this.seleccion = fila

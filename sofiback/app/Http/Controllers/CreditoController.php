@@ -162,7 +162,7 @@ class CreditoController extends Controller
 
     /**
      * Las deudas de un cliente, o de todos: los comprobantes de facturacion
-     * emitidos a credito, con lo abonado a cada uno.
+     * emitidos a credito y las deudas agregadas a mano, con lo abonado a cada una.
      */
     private function deudas($cliente)
     {
@@ -191,6 +191,25 @@ class CreditoController extends Controller
             if (!$activa && !$deuda->pagado) { continue; }
             $deuda->saldo = $activa ? max(0, round($deuda->monto - $deuda->pagado, 2)) : 0;
             $deuda->estado = !$activa ? 'ANULADA CON ABONOS: REVISAR' : ($deuda->saldo > 0 ? 'PENDIENTE' : 'PAGADO');
+            $filas->push($deuda);
+        }
+
+        // Las deudas que cobranzas agrega a mano a un cliente.
+        $abonosManuales = DB::table('creditos_abonos')->where('origen', 'manual')
+            ->select('deuda_id', DB::raw('SUM(monto) as pagado'))
+            ->groupBy('deuda_id')->pluck('pagado', 'deuda_id');
+
+        $manuales = DB::table('creditos_manuales as d')->leftJoin('tbclientes as c', 'c.Cod_Aut', '=', 'd.cliente_id')
+            ->when($cliente, function ($q) use ($cliente) { $q->where('d.cliente_id', $cliente); })
+            ->get(['d.id', 'd.cliente_id', 'd.fecha', 'd.monto', 'd.concepto', 'c.Nombres as cliente']);
+
+        foreach ($manuales as $deuda) {
+            $deuda->origen = 'manual';
+            $deuda->clave = 'manual:' . $deuda->id;
+            $deuda->pagado = (float) ($abonosManuales[$deuda->id] ?? 0);
+            $deuda->monto = (float) $deuda->monto;
+            $deuda->saldo = max(0, round($deuda->monto - $deuda->pagado, 2));
+            $deuda->estado = $deuda->saldo > 0 ? 'PENDIENTE' : 'PAGADO';
             $filas->push($deuda);
         }
 
