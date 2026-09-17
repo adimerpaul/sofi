@@ -400,6 +400,14 @@
                                icon="add_circle"/>
                         <input type="number" min="0" step="0.001" @keyup="tecleado(props.row)"
                                v-model="props.row.cantidad" class="entrada-pedido entrada-cantidad">
+                        <!-- Lo que se vende por caja se puede pedir en unidades,
+                             cajas o kilos; se guarda en tbpedidos.caja. -->
+                        <select v-if="props.row.codUnid == 'CAJA'" v-model="props.row.caja"
+                                class="entrada-pedido entrada-caja q-ml-xs">
+                          <option value="U">U</option>
+                          <option value="CAJA">CAJA</option>
+                          <option value="KG">KG</option>
+                        </select>
                       </template>
                        <q-btn flat dense @click="quitar(props.row,props.rowIndex)" class="q-ma-none q-pa-none"
                              color="negative" icon="remove_circle"/>
@@ -785,7 +793,7 @@ export default {
     LMarker,
     LPolygon,
     // LControlLayers,
-    // LTooltip,
+    LTooltip,
     // LPopup,
     // LPolyline,
     // LPolygon,
@@ -977,7 +985,7 @@ export default {
         // this.$q.loading.hide()
         this.loading = false
         this.$q.notify({
-          message: err.response.data.message,
+          message: err.response?.data?.message || 'No se pudo guardar',
           color: 'red',
           icon: 'error'
         })
@@ -1072,41 +1080,26 @@ export default {
       }).onOk(data => {
         // this.$q.loading.show()
         this.loading = true
-        var lat = 0, lng = 0
-        if (navigator.geolocation) {
-          // get  geolocation
-          navigator.geolocation.getCurrentPosition(pos => {
-            // set user location
-            // this.center = [
-            //   pos.coords.latitude,
-            //   pos.coords.longitude
-            // ]
-            lat = pos.coords.latitude
-            lng = pos.coords.longitude
-            this.insertarpedido(lat, lng)
-          });
-        } else {
-          lat = 0
-          lng = 0
-          this.insertarpedido(lat, lng)
-        }
-
+        this.obtenerUbicacion((lat, lng) => this.insertarpedido(lat, lng))
       })
+    },
+    // Sin callback de error, si el navegador niega o no responde la ubicacion
+    // el pedido nunca se enviaba y el boton quedaba cargando. Ahora sigue con
+    // 0,0 igual que cuando no hay geolocalizacion.
+    obtenerUbicacion(seguir) {
+      if (!navigator.geolocation) {
+        seguir(0, 0)
+        return
+      }
+      navigator.geolocation.getCurrentPosition(
+        pos => seguir(pos.coords.latitude, pos.coords.longitude),
+        () => seguir(0, 0),
+        {timeout: 10000, maximumAge: 60000}
+      )
     },
     clickretornar() {
       this.loading = true
-      var lat = 0, lng = 0
-      if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(pos => {
-          lat = pos.coords.latitude
-          lng = pos.coords.longitude
-          this.insertarpedidoestado(lat, lng, 'PARADO', '')
-        });
-      } else {
-        lat = 0
-        lng = 0
-        this.insertarpedidoestado(lat, lng, 'PARADO', '')
-      }
+      this.obtenerUbicacion((lat, lng) => this.insertarpedidoestado(lat, lng, 'PARADO', ''))
     },
     clicknopedido() {
 
@@ -1120,25 +1113,7 @@ export default {
         cancel: true,
         persistent: false
       }).onOk(data => {
-        console.log(data)
-        var lat = 0, lng = 0
-        if (navigator.geolocation) {
-          // get  geolocation
-          navigator.geolocation.getCurrentPosition(pos => {
-            // set user location
-            // this.center = [
-            //   pos.coords.latitude,
-            //   pos.coords.longitude
-            // ]
-            lat = pos.coords.latitude
-            lng = pos.coords.longitude
-            this.insertarpedidoestado(lat, lng, 'NO PEDIDO', data)
-
-          })
-        } else {
-
-          this.insertarpedidoestado(lat, lng, 'NO PEDIDO', data)
-        }
+        this.obtenerUbicacion((lat, lng) => this.insertarpedidoestado(lat, lng, 'NO PEDIDO', data))
       }).onCancel(() => {
         // console.log('>>>> Cancel')
       }).onDismiss(() => {
@@ -1157,11 +1132,13 @@ export default {
       }).then(res => {
         // console.log(res.data)
         // return false
+        this.loading = false
         this.modalopciones = false
         this.listhoy()
         //this.misclientes()
       }).catch(err => {
         // console.log(err.response)
+        this.loading = false
         this.$q.loading.hide()
         this.$q.notify({
           message: err.response.data.message,
@@ -1178,6 +1155,7 @@ export default {
           icon: 'error',
           position: 'top'
         })
+        this.loading = false
         return false
       }
       if (this.fact != 'SI' && this.fact != 'NO') {
@@ -1187,6 +1165,7 @@ export default {
           icon: 'error',
           position: 'top'
         })
+        this.loading = false
         return false
       }
       if (this.pago == '' || this.pago == undefined) {
@@ -1196,6 +1175,7 @@ export default {
           icon: 'error',
           position: 'top'
         })
+        this.loading = false
         return false
       }
       this.$api.post('pedido', {
@@ -1226,7 +1206,7 @@ export default {
         // this.$q.loading.hide()
         this.loading = false
         this.$q.notify({
-          message: err.response.data.message,
+          message: err.response?.data?.message || 'No se pudo guardar',
           color: 'red',
           icon: 'error'
         })
@@ -1428,6 +1408,9 @@ export default {
         tipo: this.producto.tipo,
         nombre: this.producto.Producto,
         cod_prod: this.producto.cod_prod,
+        codUnid: this.producto.codUnid,
+        // Solo los productos por caja eligen unidad; por defecto se piden en cajas.
+        caja: this.producto.codUnid == 'CAJA' ? 'CAJA' : null,
         precio: parseFloat(this.producto.Precio).toFixed(2),
         precios: this.listaPrecios(this.producto),
         // Si el producto lo trae, el subtotal sale de este monto y no del
@@ -1599,6 +1582,10 @@ export default {
 
 .entrada-cantidad
   width: 3em
+
+.entrada-caja
+  text-align: left
+  background: white
 
 .lista-productos
   max-height: 60vh

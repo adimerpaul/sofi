@@ -877,6 +877,9 @@ class FacturacionController extends Controller
                 DB::raw("COALESCE(NULLIF(TRIM(pr.Producto), ''), CONCAT('Producto ', TRIM(p.cod_prod))) as nombre"),
                 DB::raw("COALESCE(NULLIF(TRIM(pr.codUnid), ''), 'UNIDAD') as unidad"),
                 'pr.imagen', DB::raw('COALESCE(p.Cant, 0) as cantidad'),
+                // Unidad que eligio el preventista para lo que se vende por
+                // caja (U, CAJA o KG); null en el resto.
+                DB::raw("NULLIF(TRIM(p.caja), '') as caja"),
                 DB::raw('COALESCE(p.precio, 0) as precio'),
             ])
             ->map(function ($item) {

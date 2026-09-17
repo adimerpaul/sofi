@@ -438,8 +438,9 @@ class ExcelController extends Controller
         INNER JOIN personal e ON p.CIfunc = e.CodAut
         WHERE p.tipo = 'NORMAL'
           AND DATE(p.fecha) >= '$request->ini'
-          AND DATE(p.fecha) <= '$request->fin'  ");
-    }// and p.estado='ENVIADO'
+          AND DATE(p.fecha) <= '$request->fin'
+          AND p.estado = 'ENVIADO'");
+    }
 
     public function reportePollo(Request $request)
     {

@@ -93,6 +93,8 @@
               <q-item-label caption>
                 {{ item.cod_prod }}
                 <span v-if="esPeso(item)" class="text-orange-9">· se cobra por peso</span>
+                <!-- Lo que se vende por caja: en que unidad lo pidio el preventista. -->
+                <q-badge v-if="item.caja" color="indigo-6" class="q-ml-xs" :label="'Pedido en ' + item.caja"/>
               </q-item-label>
 
               <!-- Aviso de que lo que se entrega ya no es lo que pidio el

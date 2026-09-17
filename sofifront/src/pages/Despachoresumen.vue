@@ -6,7 +6,8 @@
           <q-input dense outlined v-model="fecha1" label="Fecha Ini" type="date" class="input-fecha"
                    @update:model-value="mispendiente"/>
           <q-btn :loading="loading" dense unelevated size="sm" color="green" label="Buscar" @click="mispendiente" no-caps icon="search"/>
-          <q-btn-dropdown color="info" icon="print" label="Reportes" no-caps dense unelevated size="sm">
+          <q-btn-dropdown color="info" icon="print" label="Reportes" no-caps dense unelevated size="sm"
+                          @before-show="getCamiones">
             <q-list dense>
               <q-item clickable @click="generarPdf" v-close-popup>
                 <q-item-section avatar>
@@ -31,6 +32,16 @@
                   <q-icon name="print"/>
                 </q-item-section>
                 <q-item-section>Imprimir Productos Totales</q-item-section>
+              </q-item>
+              <!-- Un reporte por cada camion que tiene pedidos asignados ese
+                   dia; entre parentesis, cuantos pedidos lleva. -->
+              <q-separator v-if="camiones.length"/>
+              <q-item v-for="camion in camiones" :key="camion.placa" clickable
+                      @click="generarPdfProductosCamion(camion)" v-close-popup>
+                <q-item-section avatar>
+                  <q-icon name="local_shipping" :style="colorCamion(camion)"/>
+                </q-item-section>
+                <q-item-section>Imprimir Productos del {{ camion.placa }} ({{ camion.pedidos }})</q-item-section>
               </q-item>
             </q-list>
           </q-btn-dropdown>
@@ -113,6 +124,7 @@ export default {
       vehiculoSeleccionado: null,
       vehiculos: [],
       vehiculo: {},
+      camiones: [],
       url: process.env.API,
       filter: '',
       pago: '',
@@ -188,6 +200,24 @@ export default {
     generarPdfProductos() {
       const urlapi = `${this.url}reportePedidoProductos/${this.fecha1}`
       window.open(urlapi, '_blank')
+    },
+    // Se consulta al abrir el menu: los camiones se asignan durante el dia y
+    // la lista tiene que salir con lo ultimo.
+    getCamiones() {
+      this.$api.get('camionesPedidos/' + this.fecha1).then(res => {
+        this.camiones = res.data
+      }).catch(() => {
+        this.camiones = []
+      })
+    },
+    generarPdfProductosCamion(camion) {
+      const urlapi = `${this.url}reportePedidoProductos/${this.fecha1}?placa=${encodeURIComponent(camion.placa)}`
+      window.open(urlapi, '_blank')
+    },
+    // colorStyle viene como 'background-color: #RRGGBB'; el icono usa ese color.
+    colorCamion(camion) {
+      const hex = /#[0-9a-f]{6}/i.exec(camion.colorStyle || '')
+      return hex ? 'color: ' + hex[0] : ''
     },
     filtrarPago(pago) {
       console.log(pago)

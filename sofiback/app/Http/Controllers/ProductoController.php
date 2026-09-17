@@ -511,6 +511,19 @@ class ProductoController extends Controller{
     /** Opciones para los selects de filtro del catalogo. */
     public function filtrosProducto()
     {
+        // Las unidades salen de los productos ya cargados; las base se agregan
+        // siempre para poder usarlas aunque ningun producto las tenga todavia.
+        $unidades = DB::table('tbproductos')
+            ->select(DB::raw('TRIM(codUnid) as unidad'))
+            ->whereNotNull('codUnid')
+            ->where('codUnid', '<>', '')
+            ->groupBy(DB::raw('TRIM(codUnid)'))
+            ->pluck('unidad')
+            ->merge(['KG', 'U', 'CAJA'])
+            ->unique()
+            ->sort()
+            ->values();
+
         return response()->json([
             'grupos' => DB::table('tbproductos as p')
                 ->join('tbgrupos as g', DB::raw('TRIM(g.Cod_grup)'), '=', DB::raw('TRIM(p.cod_grup)'))
@@ -521,13 +534,7 @@ class ProductoController extends Controller{
                 ->distinct()
                 ->orderBy('label')
                 ->get(),
-            'unidades' => DB::table('tbproductos')
-                ->select(DB::raw('TRIM(codUnid) as unidad'))
-                ->whereNotNull('codUnid')
-                ->where('codUnid', '<>', '')
-                ->groupBy(DB::raw('TRIM(codUnid)'))
-                ->orderBy('unidad')
-                ->pluck('unidad'),
+            'unidades' => $unidades,
         ]);
     }
 

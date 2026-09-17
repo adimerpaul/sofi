@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\PapeleriaSofia;
 use App\Models\Cliente;
 use App\Models\Pedido;
 use App\Models\Producto;
@@ -13,36 +14,109 @@ use Illuminate\Support\Facades\DB;
 use Barryvdh\DomPDF\Facade\Pdf;
 
 class PedidoController extends Controller{
-    public function reportePedidoProductos($fecha)
+    use PapeleriaSofia;
+
+    public function reportePedidoProductos(Request $request, $fecha)
     {
-        // Agrupar productos por código y sumar cantidades
-        $productos = Pedido::whereDate('fecha', $fecha)
+        // Con ?placa= salen solo los productos cargados a ese camion.
+        $placa = trim((string) $request->query('placa', ''));
+
+        $pedidos = DB::table('tbpedidos as p')
+            ->whereDate('p.fecha', $fecha)
+            ->where('p.estado', 'ENVIADO')
+            ->where('p.tipo', 'NORMAL')
+            ->where('p.bonificacion', 0)
+            ->when($placa !== '', function ($query) use ($placa) {
+                $query->whereRaw('TRIM(p.placa) = ?', [$placa]);
+            });
+
+        // Una fila por producto y unidad: lo que se vende por caja puede venir
+        // pedido en U, CAJA o KG (tbpedidos.caja) y esas cantidades no se suman.
+        $productos = (clone $pedidos)
+            ->leftJoin('tbproductos as pr', DB::raw('TRIM(pr.cod_prod)'), '=', DB::raw('TRIM(p.cod_prod)'))
+            ->leftJoin('tbgrupos as g', DB::raw('TRIM(g.Cod_grup)'), '=', DB::raw('TRIM(pr.cod_grup)'))
+            ->groupBy(DB::raw('TRIM(p.cod_prod)'), DB::raw("COALESCE(NULLIF(TRIM(p.caja), ''), NULLIF(TRIM(pr.codUnid), ''), 'U')"))
+            ->get([
+                DB::raw('TRIM(p.cod_prod) as codigo'),
+                DB::raw("MAX(COALESCE(NULLIF(TRIM(pr.Producto), ''), CONCAT('Producto ', TRIM(p.cod_prod)))) as nombre"),
+                DB::raw("MAX(COALESCE(NULLIF(TRIM(g.Descripcion), ''), 'SIN GRUPO')) as grupo"),
+                DB::raw("COALESCE(NULLIF(TRIM(p.caja), ''), NULLIF(TRIM(pr.codUnid), ''), 'U') as unidad"),
+                DB::raw('SUM(COALESCE(p.Cant, 0)) as total'),
+                DB::raw('COUNT(DISTINCT p.NroPed) as pedidos'),
+                DB::raw('SUM(COALESCE(p.subtotal, 0)) as monto'),
+            ])
+            ->map(function ($p) {
+                $p->total = (float) $p->total;
+                $p->monto = (float) $p->monto;
+                return $p;
+            })
+            ->sortBy(function ($p) { return $p->grupo . '|' . $p->nombre . '|' . $p->unidad; })
+            ->values();
+
+        $resumen = (clone $pedidos)->first([
+            DB::raw('COUNT(DISTINCT p.NroPed) as pedidos'),
+            DB::raw('COUNT(DISTINCT p.idCli) as clientes'),
+        ]);
+
+        $vehiculo = $placa !== ''
+            ? DB::table('vehiculo')->whereRaw('TRIM(placa) = ?', [$placa])->first(['placa', 'colorStyle'])
+            : null;
+        preg_match('/#[0-9a-f]{6}/i', (string) optional($vehiculo)->colorStyle, $color);
+
+        $documento = "<table class='caja-doc'>
+            <tr><td colspan='2' class='tit'>" . ($placa !== '' ? 'CARGA DE CAMIÓN' : 'PRODUCTOS TOTALES') . "</td></tr>
+            <tr><td class='et'>Fecha</td><td class='r'><b>" . date('d/m/Y', strtotime($fecha)) . "</b></td></tr>
+            <tr><td class='et'>Camión</td><td class='r nro'>" . e($placa !== '' ? $placa : 'Todos') . "</td></tr>
+        </table>";
+
+        $pdf = PDF::loadView('pdf.reporteProductosTotales', [
+            'estilos'   => $this->estilosImpresion(),
+            'cabecera'  => $this->cabeceraEmisor($documento),
+            'empresa'   => config('siat.emisor')['nombre'],
+            'productos' => $productos,
+            'grupos'    => $productos->groupBy('grupo'),
+            'porUnidad' => $productos->groupBy('unidad')->map->sum('total')->sortKeys(),
+            'monto'     => $productos->sum('monto'),
+            'pedidos'   => (int) optional($resumen)->pedidos,
+            'clientes'  => (int) optional($resumen)->clientes,
+            'fecha'     => $fecha,
+            'placa'     => $placa,
+            'color'     => $color[0] ?? '#37474f',
+        ]);
+        $pdf->getDomPDF()->getOptions()->setIsFontSubsettingEnabled(true);
+        $pdf->setPaper('letter');
+
+        return $pdf->stream('productos-' . ($placa !== '' ? preg_replace('/\W+/', '-', $placa) . '-' : '') . $fecha . '.pdf');
+    }
+
+    /**
+     * Camiones a los que se asignaron pedidos de embutidos en el dia, con
+     * cuantos pedidos lleva cada uno. Mismo filtro que el reporte de
+     * productos totales, para que el numero coincida con lo que se imprime.
+     */
+    public function camionesPedidos($fecha)
+    {
+        // El color sale de la tabla vehiculo: el que quedo copiado en cada
+        // pedido no siempre es el actual del camion.
+        $colores = DB::table('vehiculo')->get(['placa', 'colorStyle'])
+            ->keyBy(function ($v) { return trim((string) $v->placa); });
+
+        return DB::table('tbpedidos')
+            ->whereDate('fecha', $fecha)
             ->where('estado', 'ENVIADO')
             ->where('tipo', 'NORMAL')
             ->where('bonificacion', 0)
-            ->select(
-                'cod_prod',
-                DB::raw('SUM(Cant) as total'),
-                DB::raw('MAX(canttxt) as Canttxt') // opcional
-            )
-            ->groupBy('cod_prod')
-            ->with(['producto:cod_prod,Producto']) // relación para obtener nombre
-            ->get()
-            ->map(function ($p) {
-                return [
-                    'codigo' => $p->cod_prod,
-                    'nombre' => optional($p->producto)->Producto ?? '',
-                    'total' => $p->total,
-                ];
-            })
-            ->sortByDesc('total')
-            ->values(); // ordenar de mayor a menor
-
-        $pdf = PDF::loadView('pdf.reporteProductosTotales', [
-            'productos' => $productos,
-            'fecha' => $fecha
-        ]);
-        return $pdf->stream('productos-totales.pdf');
+            ->whereRaw("TRIM(COALESCE(placa, '')) <> ''")
+            ->groupBy(DB::raw('TRIM(placa)'))
+            ->orderByRaw('TRIM(placa)')
+            ->get([
+                DB::raw('TRIM(placa) as placa'),
+                DB::raw('COUNT(DISTINCT NroPed) as pedidos'),
+            ])
+            ->map(function ($camion) use ($colores) {
+                $camion->colorStyle = optional($colores->get($camion->placa))->colorStyle ?? '';
+                return $camion;
+            });
     }
     function habilitarpedido(Request $request)
     {
@@ -1067,6 +1141,7 @@ $resPedido = $rows->groupBy('NroPed')->map(function ($g) use ($bonis) {
                 'CIfunc' => $request->user()->CodAut,
                 'idCli' => $idCli,
                 'Cant' => $p['cantidad'],
+                'caja' => $this->unidadCaja($p),
                 'precio' => $p['precio'],
 //                'fecha'=>date('Y-m-d H:i:s'),
                 'fecha' => $request->fecha . ' ' . date('H:i:s'),
@@ -1425,6 +1500,17 @@ $resPedido = $rows->groupBy('NroPed')->map(function ($g) use ($bonis) {
         DB::select("UPDATE tbpedidos p set p.estado='ENVIADO', p.envio = NOW()  where p.NroPed='" . $request->NroPed . "'");
     }
 
+    /**
+     * Unidad elegida para un producto que se vende por caja (U, CAJA o KG).
+     * Las pantallas que no mandan el dato dejan la columna en null.
+     */
+    private function unidadCaja($p)
+    {
+        $caja = strtoupper(trim((string) ($p['caja'] ?? '')));
+
+        return in_array($caja, ['U', 'CAJA', 'KG']) ? $caja : null;
+    }
+
     public function updatecomanda(Request $request)
     {
 //        return $request;
@@ -1444,6 +1530,7 @@ $resPedido = $rows->groupBy('NroPed')->map(function ($g) use ($bonis) {
                 'bonificacionAprovacion' => $request->bonificacionAprovacion ?? null,
                 'bonificacionId' => $request->bonificacionId ?? null,
                 'Cant' => $p['cantidad'],
+                'caja' => $this->unidadCaja($p),
                 'precio' => $p['precio'],
                 'fecha' => $request->fecha . ' ' . date('H:i:s'),
                 'subtotal' => $p['subtotal'],
@@ -1691,6 +1778,7 @@ $resPedido = $rows->groupBy('NroPed')->map(function ($g) use ($bonis) {
                             'NroPed'      => $p->NroPed,
                             'cod_prod'    => $p->cod_prod,
                             'cantidad'    => $p->Cant,
+                            'caja'        => $p->caja,
                             'precio'      => $p->precio,
                             'subtotal'    => $p->subtotal,
                             'observacion' => $p->Observaciones,
