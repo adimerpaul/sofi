@@ -172,6 +172,7 @@ export default {
         fact: '',
         horario: '',
         comentario: '',
+        estado: '',
       })
 
       return content
@@ -207,6 +208,7 @@ export default {
               {label: "horario", value: "horario"},
               // {label: "comentario", value: "comentario"},
               {label: "comentario", value: row => row.bonificacionId == null? row.comentario : row.Nombres+ ' '+ row.comentario},
+              {label: "sincronizado", value: row => row.estado == 'ENVIADO' ? 'si' : 'no'},
             ],
             content: res.data
           },
@@ -259,6 +261,7 @@ export default {
               {label: "horario", value: "horario"},
               // {label: "comentario", value: "comentario"},
               {label: "comentario", value: row => row.bonificacionId == null? row.comentario : row.Nombres+ ' '+ row.comentario},
+              {label: "sincronizado", value: row => row.estado == 'ENVIADO' ? 'si' : 'no'},
             ],
             content: res.data
           },
@@ -313,6 +316,7 @@ export default {
               {label: "fact", value: "fact"},
               {label: "horario", value: "horario"},
               {label: "comentario", value: "comentario"},
+              {label: "sincronizado", value: row => row.estado == 'ENVIADO' ? 'si' : 'no'},
             ],
             content
           },
@@ -372,6 +376,7 @@ export default {
             {label: "horario", value: "horario"},
             // {label: "comentario", value: "comentario"},
             {label: "comentario", value: row => row.bonificacionId == null? row.comentario : row.Nombres+ ' '+ row.comentario},
+            {label: "sincronizado", value: row => row.estado == 'ENVIADO' ? 'si' : 'no'},
           ],
           content: this.pedCerdo
         },
@@ -397,7 +402,7 @@ export default {
             {label: "horario", value: "horario"},
             // {label: "comentario", value: "comentario"},
             {label: "comentario", value: row => row.bonificacionId == null? row.comentario : row.Nombres+ ' '+ row.comentario},
-
+            {label: "sincronizado", value: row => row.estado == 'ENVIADO' ? 'si' : 'no'},
           ],
           content: embutidoContent
         },
@@ -443,6 +448,7 @@ export default {
             {label: "horario", value: "horario"},
             // {label: "comentario", value: "comentario"},
             {label: "comentario", value: row => row.bonificacionId == null? row.comentario : row.Nombres+ ' '+ row.comentario},
+            {label: "sincronizado", value: row => row.estado == 'ENVIADO' ? 'si' : 'no'},
           ],
           content: this.pedPollo
         },

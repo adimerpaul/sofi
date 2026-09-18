@@ -40,7 +40,8 @@ class PedidoController extends Controller{
                 DB::raw('TRIM(p.cod_prod) as codigo'),
                 DB::raw("MAX(COALESCE(NULLIF(TRIM(pr.Producto), ''), CONCAT('Producto ', TRIM(p.cod_prod)))) as nombre"),
                 DB::raw("MAX(COALESCE(NULLIF(TRIM(g.Descripcion), ''), 'SIN GRUPO')) as grupo"),
-                DB::raw("COALESCE(NULLIF(TRIM(p.caja), ''), NULLIF(TRIM(pr.codUnid), ''), 'U') as unidad"),
+                // MAX(): MariaDB no reconoce la expresion del GROUP BY con ONLY_FULL_GROUP_BY.
+                DB::raw("MAX(COALESCE(NULLIF(TRIM(p.caja), ''), NULLIF(TRIM(pr.codUnid), ''), 'U')) as unidad"),
                 DB::raw('SUM(COALESCE(p.Cant, 0)) as total'),
                 DB::raw('COUNT(DISTINCT p.NroPed) as pedidos'),
                 DB::raw('SUM(COALESCE(p.subtotal, 0)) as monto'),
