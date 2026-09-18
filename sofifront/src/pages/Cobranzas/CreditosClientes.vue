@@ -236,8 +236,29 @@
                 <q-table v-if="(abonosPorDeuda[deuda.clave] || []).length" flat dense class="tabla-abonos"
                          :rows="abonosPorDeuda[deuda.clave]" :columns="columnasHistorial" row-key="id"
                          :pagination="{ rowsPerPage: 0 }" hide-bottom separator="cell">
+                  <template #body-cell-monto="props">
+                    <q-td :props="props" :class="props.row.anulado_at ? 'text-strike text-grey-6' : ''">{{ props.value }}</q-td>
+                  </template>
                   <template #body-cell-referencia="props"><q-td :props="props">{{ props.row.referencia || '-' }}</q-td></template>
                   <template #body-cell-cobrador="props"><q-td :props="props">{{ props.row.cobrador || '-' }}</q-td></template>
+                  <!-- Un abono cobrado por equivocacion no se borra: se anula con
+                       su motivo y esa plata vuelve a quedar como deuda. -->
+                  <template #body-cell-anular="props">
+                    <q-td :props="props">
+                      <q-badge v-if="props.row.anulado_at" color="red-7" class="cursor-pointer">
+                        ANULADO
+                        <q-tooltip>
+                          {{ props.row.motivo_anulacion || 'Sin motivo' }}
+                          <span v-if="props.row.anulado_por"> · {{ props.row.anulado_por }}</span>
+                          · {{ String(props.row.anulado_at).slice(0, 16).replace('T', ' ') }}
+                        </q-tooltip>
+                      </q-badge>
+                      <q-btn
+                        v-else dense flat no-caps size="sm" color="negative" icon="undo" label="Anular"
+                        @click="abrirAnulacion(props.row, deuda)"
+                      />
+                    </q-td>
+                  </template>
                 </q-table>
                 <div v-else class="sin-abonos text-grey-6">Sin abonos registrados</div>
               </div>
@@ -344,6 +365,39 @@
         </q-form>
       </q-card>
     </q-dialog>
+
+    <!-- El cobro mal anotado se da de baja con su motivo: el abono queda en el
+         historial tachado y la deuda vuelve a deber esa plata. -->
+    <q-dialog v-model="dialogAnular" persistent>
+      <q-card style="width: 440px; max-width: 95vw">
+        <q-form @submit="anularAbono">
+          <q-card-section class="row items-center no-wrap q-py-sm bg-red-7 text-white">
+            <q-icon name="undo" size="24px" class="q-mr-sm"/>
+            <div class="col text-subtitle1 text-weight-bold">Anular abono</div>
+            <q-btn round flat dense icon="close" :disable="guardando" v-close-popup/>
+          </q-card-section>
+          <q-card-section class="q-pb-none">
+            <div class="text-body2">
+              Abono #{{ anulacion.id }} · <b>Bs {{ money(anulacion.monto) }}</b> · {{ anulacion.forma_pago }}
+            </div>
+            <div class="text-caption text-grey-7">
+              {{ anulacion.concepto }} · cobrado por {{ anulacion.cobrador || 'sin registrar' }}
+            </div>
+            <div class="text-caption text-red-9">Esos Bs {{ money(anulacion.monto) }} vuelven a quedar como deuda.</div>
+          </q-card-section>
+          <q-card-section>
+            <q-input
+              v-model="anulacion.motivo" outlined autofocus maxlength="150" label="¿Por qué se anula?"
+              :rules="[v => !!(v || '').trim() || 'Indicá el motivo']"
+            />
+          </q-card-section>
+          <q-card-actions align="right">
+            <q-btn flat no-caps label="Cancelar" :disable="guardando" v-close-popup/>
+            <q-btn type="submit" unelevated no-caps color="negative" icon="undo" label="Anular abono" :loading="guardando"/>
+          </q-card-actions>
+        </q-form>
+      </q-card>
+    </q-dialog>
   </q-page>
 </template>
 
@@ -385,6 +439,8 @@ export default {
       dialogAbono: false,
       seleccion: {},
       abono: {},
+      dialogAnular: false,
+      anulacion: {},
       columnas: [
         { name: 'nombre', label: 'Cliente', field: 'nombre', align: 'left', sortable: true },
         { name: 'telefono', label: 'Teléfono', field: 'telefono', align: 'left' },
@@ -402,7 +458,8 @@ export default {
         { name: 'monto', label: 'Monto Bs', field: 'monto', align: 'right', sortable: true, format: v => this.money(v) },
         { name: 'forma_pago', label: 'Pago', field: 'forma_pago' },
         { name: 'referencia', label: 'Boleta / referencia', field: 'referencia' },
-        { name: 'cobrador', label: 'Cobrador', field: 'cobrador' }
+        { name: 'cobrador', label: 'Cobrador', field: 'cobrador' },
+        { name: 'anular', label: '', field: 'id', align: 'right' }
       ]
     }
   },
@@ -564,7 +621,24 @@ export default {
       } catch (e) { this.$q.notify({ type: 'negative', message: this.mensaje(e) }) }
       finally { this.guardando = false }
     },
-
+    /** Un abono que se cobro por equivocacion: se anula con motivo, no se borra. */
+    abrirAnulacion (abono, deuda) {
+      this.anulacion = { ...abono, concepto: deuda.concepto, motivo: '' }
+      this.dialogAnular = true
+    },
+    async anularAbono () {
+      if (this.guardando) return
+      this.guardando = true
+      try {
+        const { data } = await this.$api.put(`creditos/abonos/${this.anulacion.id}/anular`, {
+          motivo: this.anulacion.motivo.trim()
+        })
+        this.dialogAnular = false
+        this.$q.notify({ type: 'positive', message: data.message })
+        await Promise.all([this.cargarDetalle(), this.cargar()])
+      } catch (e) { this.$q.notify({ type: 'negative', message: this.mensaje(e) }) }
+      finally { this.guardando = false }
+    }
   }
 }
 </script>

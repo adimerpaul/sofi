@@ -1473,10 +1473,16 @@ class FacturacionController extends Controller
         ], 201);
     }
 
-    /** Los productos por kilo se cobran por peso, no por cantidad. */
+    /**
+     * Los productos a granel se cobran por peso, no por cantidad.
+     *
+     * CAJA no es un bulto cerrado: son los granel que el preventista puede
+     * pedir en unidades, cajas o kilos (tbpedidos.caja), pero que en el
+     * mostrador se pesan igual que los de KG.
+     */
     private function esGranel($producto)
     {
-        return strtoupper(trim((string) $producto->codUnid)) === 'KG';
+        return in_array(strtoupper(trim((string) $producto->codUnid)), ['KG', 'CAJA'], true);
     }
 
     /** Que decirle al cajero segun como haya salido la emision. */
@@ -2111,17 +2117,40 @@ class FacturacionController extends Controller
     {
         $placa = $this->camionDeFactura($factura);
 
+        // En la factura la cantidad declarada son los kilos que se cobran, asi
+        // que de como se llego a ese peso no queda rastro: cuando algo se peso
+        // en canastillos se agrega el bruto con los canastillos que se le
+        // descontaron. Son columnas informativas y lo fiscal no cambia, por eso
+        // no van las piezas entregadas, que no tienen nada que declarar.
+        $conCanastillos = $factura->detalles->contains(function ($d) {
+            return (float) $d->peso_bruto > 0;
+        });
+
         $filas = '';
         foreach ($factura->detalles as $i => $d) {
             $par = $i % 2 ? " class='par'" : '';
+            $peso = (float) $d->peso;
+
+            $columnasPeso = '';
+            if ($conCanastillos) {
+                // Lo pesado sin canastillos tiene el bruto igual al neto.
+                $bruto = (float) $d->peso_bruto > 0 ? (float) $d->peso_bruto : $peso;
+                $canastillos = (float) $d->peso_bruto > 0 ? (int) $d->canastillos : 0;
+                $columnasPeso = "<td class='r'>" . ($bruto > 0 ? number_format($bruto, 2) : '—') . '</td>'
+                    . "<td class='c'>" . ($canastillos > 0 ? $canastillos : '—') . '</td>'
+                    . "<td class='r'>" . ($canastillos > 0
+                        ? number_format($canastillos * FacturaDetalle::KG_CANASTILLO, 2) : '—') . '</td>';
+            }
 
             $filas .= "<tr$par>"
                 . "<td class='cod'>" . e($d->cod_prod) . '</td>'
                 // Lo declarado a Impuestos es lo que se cobra: en lo que va por
                 // kilo, el peso. Tiene que coincidir con lo que manda el SIAT.
                 . "<td class='r'>" . number_format($d->cantidad_facturada, 2) . '</td>'
-                . "<td class='c'>" . e($d->unidad === 'KG' ? 'KILOGRAMO' : 'UNIDAD (SERVICIOS)') . '</td>'
+                . "<td class='c'>" . e($peso > 0 || $d->unidad === 'KG'
+                    ? 'KILOGRAMO' : 'UNIDAD (SERVICIOS)') . '</td>'
                 . '<td>' . e($d->nombre) . '</td>'
+                . $columnasPeso
                 . "<td class='r'>" . number_format($d->precio, 2) . '</td>'
                 . "<td class='r'>0.00</td>"
                 . "<td class='r'><b>" . number_format($d->subtotal, 2) . '</b></td>'
@@ -2189,10 +2218,14 @@ class FacturacionController extends Controller
 
         <table class='detalle'>
             <tr>
-                <th style='width:9%'>Código</th>
+                <th style='width:8%'>Código</th>
                 <th style='width:8%'>Cantidad</th>
-                <th style='width:12%'>Unidad</th>
+                <th style='width:" . ($conCanastillos ? '10' : '12') . "%'>Unidad</th>
                 <th>Descripción</th>
+                " . ($conCanastillos
+                    ? "<th style='width:7%'>P. Bruto</th><th style='width:5%'>Canast.</th>"
+                        . "<th style='width:7%'>Kg Canast.</th>"
+                    : '') . "
                 <th style='width:10%'>P. Unitario</th>
                 <th style='width:8%'>Descuento</th>
                 <th style='width:11%'>Importe</th>

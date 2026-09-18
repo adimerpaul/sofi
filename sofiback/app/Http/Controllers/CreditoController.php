@@ -145,7 +145,7 @@ class CreditoController extends Controller
         $vendedor = DB::table('personal')->whereRaw('TRIM(ci) = ?', [trim((string) $c->CiVend)])->first(['Nombre1', 'App1']);
         $deudas = $this->deudas((int) $id)->sortByDesc('fecha')->values();
 
-        $abonos = DB::table('creditos_abonos')->where('origen', 'factura')
+        $abonos = DB::table('creditos_abonos')->where('origen', 'factura')->whereNull('anulado_at')
             ->select('deuda_id', DB::raw('SUM(monto) as pagado'))->groupBy('deuda_id')->pluck('pagado', 'deuda_id');
 
         $ventas = DB::table('facturas')->where('cliente_id', $id)
@@ -200,11 +200,16 @@ class CreditoController extends Controller
                 'longitud' => $c->longitud,
             ],
             'deudas' => $deudas,
+            // Los anulados siguen a la vista, con quien los dio de baja y por
+            // que: es la unica forma de explicar despues una plata mal anotada.
             'abonos' => DB::table('creditos_abonos as a')
                 ->leftJoin('personal as p', 'p.CodAut', '=', 'a.user_id')
+                ->leftJoin('personal as anu', 'anu.CodAut', '=', 'a.anulado_por')
                 ->where('a.cliente_id', $id)->orderByDesc('a.created_at')->orderByDesc('a.id')
                 ->get(['a.id', 'a.origen', 'a.deuda_id', 'a.monto', 'a.forma_pago', 'a.referencia', 'a.created_at',
-                    DB::raw("TRIM(CONCAT(COALESCE(p.Nombre1, ''), ' ', COALESCE(p.App1, ''))) as cobrador")]),
+                    'a.anulado_at', 'a.motivo_anulacion',
+                    DB::raw("TRIM(CONCAT(COALESCE(p.Nombre1, ''), ' ', COALESCE(p.App1, ''))) as cobrador"),
+                    DB::raw("TRIM(CONCAT(COALESCE(anu.Nombre1, ''), ' ', COALESCE(anu.App1, ''))) as anulado_por")]),
             'ventas' => $ventas->values(),
             'totales' => [
                 'saldo' => round($deudas->sum('saldo'), 2),
@@ -222,7 +227,10 @@ class CreditoController extends Controller
      */
     private function deudas($cliente)
     {
+        // Lo anulado no cuenta: el abono queda anotado pero la deuda vuelve a
+        // deber lo que se le habia cobrado por equivocacion.
         $abonos = DB::table('creditos_abonos')->where('origen', 'factura')
+            ->whereNull('anulado_at')
             ->select('deuda_id', DB::raw('SUM(monto) as pagado'))
             ->groupBy('deuda_id')->pluck('pagado', 'deuda_id');
 
@@ -252,6 +260,7 @@ class CreditoController extends Controller
 
         // Las deudas que cobranzas agrega a mano a un cliente.
         $abonosManuales = DB::table('creditos_abonos')->where('origen', 'manual')
+            ->whereNull('anulado_at')
             ->select('deuda_id', DB::raw('SUM(monto) as pagado'))
             ->groupBy('deuda_id')->pluck('pagado', 'deuda_id');
 
@@ -299,11 +308,12 @@ class CreditoController extends Controller
         });
     }
 
+    /** Los abonos que valen de una deuda: lo anulado no entra, suma mal el total. */
     public function historial($origen, $id)
     {
         abort_unless(in_array($origen, ['factura', 'manual'], true), 404);
         return DB::table('creditos_abonos as a')->leftJoin('personal as p', 'p.CodAut', '=', 'a.user_id')
-            ->where('a.origen', $origen)->where('a.deuda_id', $id)->orderByDesc('a.id')
+            ->where('a.origen', $origen)->where('a.deuda_id', $id)->whereNull('a.anulado_at')->orderByDesc('a.id')
             ->get(['a.id', 'a.monto', 'a.forma_pago', 'a.referencia', 'a.created_at',
                 DB::raw("TRIM(CONCAT(COALESCE(p.Nombre1, ''), ' ', COALESCE(p.App1, ''))) as cobrador")]);
     }
@@ -333,7 +343,8 @@ class CreditoController extends Controller
                 throw ValidationException::withMessages(['deuda' => 'Esta venta no tiene un crédito activo.']);
             }
             $monto = $origen === 'factura' ? $deuda->total : $deuda->monto;
-            $pagado = DB::table('creditos_abonos')->where('origen', $origen)->where('deuda_id', $id)->sum('monto');
+            $pagado = DB::table('creditos_abonos')->where('origen', $origen)->where('deuda_id', $id)
+                ->whereNull('anulado_at')->sum('monto');
             if ((int) round($datos['monto'] * 100) > (int) round($monto * 100) - (int) round($pagado * 100)) {
                 throw ValidationException::withMessages(['monto' => 'El abono supera el saldo pendiente. Actualice la cuenta.']);
             }
@@ -342,6 +353,43 @@ class CreditoController extends Controller
                 'user_id' => $request->user()->CodAut, 'created_at' => now(), 'updated_at' => now(),
             ]);
             return response()->json(['id' => $abono, 'saldo' => round($monto - $pagado - $datos['monto'], 2)], 201);
+        });
+    }
+
+    /**
+     * Da de baja un abono cobrado por equivocacion.
+     *
+     * No se borra ni se corrige el monto: el cobro quedo anotado y con el
+     * motivo se puede explicar despues. Al no contar mas para el saldo, la
+     * deuda vuelve a deber lo que se le habia descontado.
+     */
+    public function anularAbono(Request $request, $abono)
+    {
+        $datos = $request->validate(['motivo' => 'required|string|max:150']);
+
+        return DB::transaction(function () use ($datos, $request, $abono) {
+            $fila = DB::table('creditos_abonos')->where('id', $abono)->lockForUpdate()->first();
+            abort_unless($fila, 404, 'El abono no existe.');
+            if ($fila->anulado_at) {
+                throw ValidationException::withMessages(['abono' => 'Este abono ya estaba anulado.']);
+            }
+
+            DB::table('creditos_abonos')->where('id', $abono)->update([
+                'anulado_at' => now(), 'anulado_por' => $request->user()->CodAut,
+                'motivo_anulacion' => trim($datos['motivo']), 'updated_at' => now(),
+            ]);
+
+            // El saldo que queda, para avisarle al cobrador cuanto vuelve a deber.
+            $deuda = DB::table($fila->origen === 'factura' ? 'facturas' : 'creditos_manuales')
+                ->where('id', $fila->deuda_id)->first();
+            $monto = $deuda ? (float) ($fila->origen === 'factura' ? $deuda->total : $deuda->monto) : 0;
+            $pagado = DB::table('creditos_abonos')->where('origen', $fila->origen)
+                ->where('deuda_id', $fila->deuda_id)->whereNull('anulado_at')->sum('monto');
+
+            return response()->json([
+                'message' => 'Abono anulado: la deuda vuelve a deber Bs ' . number_format($monto - $pagado, 2),
+                'saldo' => round($monto - $pagado, 2),
+            ]);
         });
     }
 }

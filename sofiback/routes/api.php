@@ -135,6 +135,8 @@ Route::group(['middleware'=>'auth:sanctum'],function (){
     Route::post('/creditos',[\App\Http\Controllers\CreditoController::class,'store']);
     Route::get('/creditos/{origen}/{id}/abonos',[\App\Http\Controllers\CreditoController::class,'historial']);
     Route::post('/creditos/{origen}/{id}/abonos',[\App\Http\Controllers\CreditoController::class,'abonar']);
+    // Un abono cobrado por equivocacion no se borra: se anula con su motivo.
+    Route::put('/creditos/abonos/{abono}/anular',[\App\Http\Controllers\CreditoController::class,'anularAbono'])->where('abono', '[0-9]+');
 
     Route::get('/caminero/carga',[\App\Http\Controllers\CamineroController::class,'carga']);
     Route::get('/caminero/carga/reporte',[\App\Http\Controllers\CamineroController::class,'cargaReporte']);

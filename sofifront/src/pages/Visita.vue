@@ -392,23 +392,27 @@
                   <q-td :props="props" auto-width>
                     <div class="row items-center no-wrap">
                       <!-- Pollo, cerdo y res se cargan por piezas en el dialogo
-                           del icono de al lado, por eso no llevan cantidad. La
-                           excepcion es el que tiene precio aproximado: ese se
-                           pide por bulto y el subtotal sale de cantidad x monto. -->
-                      <template v-if="props.row.tipo=='NORMAL' || props.row.precioAprox > 0">
+                           del icono de al lado, por eso no llevan cantidad. Las
+                           excepciones son el que tiene precio aproximado y el
+                           que se vende por caja: esos se piden por bulto y el
+                           subtotal sale de cantidad x monto. -->
+                      <template v-if="props.row.tipo=='NORMAL' || props.row.precioAprox > 0 || props.row.codUnid == 'CAJA'">
                         <q-btn flat dense @click="agregar(props.row)" class="q-ma-none q-pa-none" color="positive"
                                icon="add_circle"/>
                         <input type="number" min="0" step="0.001" @keyup="tecleado(props.row)"
                                v-model="props.row.cantidad" class="entrada-pedido entrada-cantidad">
-                        <!-- Lo que se vende por caja se puede pedir en unidades,
-                             cajas o kilos; se guarda en tbpedidos.caja. -->
-                        <select v-if="props.row.codUnid == 'CAJA'" v-model="props.row.caja"
-                                class="entrada-pedido entrada-caja q-ml-xs">
-                          <option value="U">U</option>
-                          <option value="CAJA">CAJA</option>
-                          <option value="KG">KG</option>
-                        </select>
                       </template>
+                      <!-- Lo que se vende por caja se puede pedir en unidades,
+                           cajas o kilos; se guarda en tbpedidos.caja. Va fuera
+                           del bloque de arriba porque el pollo, el cerdo y la
+                           res tambien se venden por caja aunque la cantidad la
+                           carguen por piezas. -->
+                      <select v-if="props.row.codUnid == 'CAJA'" v-model="props.row.caja"
+                              class="entrada-pedido entrada-caja q-ml-xs">
+                        <option value="U">U</option>
+                        <option value="CAJA">CAJA</option>
+                        <option value="KG">KG</option>
+                      </select>
                        <q-btn flat dense @click="quitar(props.row,props.rowIndex)" class="q-ma-none q-pa-none"
                              color="negative" icon="remove_circle"/>
                     </div>

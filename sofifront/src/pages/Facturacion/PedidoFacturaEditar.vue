@@ -188,11 +188,11 @@
 
       <q-card flat bordered class="rounded-borders q-mb-lg">
         <q-card-section class="q-pa-sm">
-          <!-- Comprobante, NIT/CI y forma de pago salen del pedido tal como lo
-               tomo el preventista: el cajero los ve pero no los cambia, para
-               que lo cobrado coincida con lo pactado con el cliente. -->
+          <!-- Comprobante, NIT/CI y forma de pago vienen del pedido, pero en
+               caja se pueden corregir: el cliente muchas veces pide la factura
+               -o cambia de forma de pago- recien al momento de pagar. -->
           <q-btn-toggle
-            v-model="tipoComprobante" spread no-caps unelevated disable
+            v-model="tipoComprobante" spread no-caps unelevated
             toggle-color="primary" color="grey-3" text-color="grey-8"
             :options="[
               { label: 'Voucher', value: 'VENTA', icon: 'receipt' },
@@ -202,14 +202,16 @@
 
           <div class="row q-col-gutter-xs q-mt-xs">
             <div class="col-7">
-              <q-input v-model.trim="nit" dense outlined disable label="NIT o CI"/>
+              <q-input v-model.trim="nit" dense outlined label="NIT o CI"
+                       :rules="[ v => tipoComprobante !== 'FACTURA' || !!v || 'Requerido para factura' ]"
+                       hide-bottom-space/>
             </div>
             <div class="col-5">
-              <q-select v-model="tipoPago" dense outlined disable label="Pago" :options="tiposPago"/>
+              <q-select v-model="tipoPago" dense outlined label="Pago" :options="tiposPago"/>
             </div>
           </div>
           <div class="text-caption text-grey-7">
-            <q-icon name="lock"/> Comprobante, NIT/CI y pago vienen del pedido
+            <q-icon name="edit"/> Vienen del pedido; corregirlos aqui solo cambia este comprobante
           </div>
           <q-input v-model.trim="observacion" dense outlined class="q-mt-xs" label="Observación"/>
 
@@ -342,9 +344,11 @@ export default {
   methods: {
     money (valor) { return Number(valor || 0).toFixed(2) },
     cantidad (valor) { return Number(valor || 0).toLocaleString('es-BO', { maximumFractionDigits: 3 }) },
-    // Los productos por kilo se cobran por el peso de la balanza; el resto,
-    // por la cantidad de unidades.
-    esPeso (item) { return String(item.unidad || '').toUpperCase() === 'KG' },
+    // Los productos a granel se cobran por el peso de la balanza; el resto,
+    // por la cantidad de unidades. CAJA no es un bulto cerrado: es el granel
+    // que el preventista pide en unidades, cajas o kilos, y que en el
+    // mostrador se pesa igual que el de KG.
+    esPeso (item) { return ['KG', 'CAJA'].includes(String(item.unidad || '').toUpperCase()) },
     // Los productos que el cajero suma del catalogo no vienen del pedido, asi
     // que no hay cantidad pedida con la cual compararlos.
     esNuevo (item) { return item.cantidad_pedida === null || item.cantidad_pedida === undefined },
@@ -438,7 +442,7 @@ export default {
           peso_bruto: null,
           canastillos: null,
           precio: Number(producto.precio || 0),
-          total: producto.unidad === 'KG' ? 0 : Number(producto.precio || 0)
+          total: this.esPeso(producto) ? 0 : Number(producto.precio || 0)
         })
       }
       this.dialogCatalogo = false
@@ -448,7 +452,7 @@ export default {
         this.$q.notify({
           type: 'warning',
           position: 'top',
-          message: 'El pedido pide factura pero el cliente no tiene NIT o CI: corregirlo en la ficha del cliente'
+          message: 'Para facturar hace falta el NIT o CI: escribirlo aqui o corregirlo en la ficha del cliente'
         })
         return
       }

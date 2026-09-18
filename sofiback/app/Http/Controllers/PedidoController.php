@@ -1010,10 +1010,10 @@ $resPedido = $rows->groupBy('NroPed')->map(function ($g) use ($bonis) {
                 $rango = isset($p['rango']) ? $p['rango'] : 0;
 
                 $sumTotal = $cbrasa5 + $ubrasa5 + $cbrasa6 + $cubrasa6 + $c104 + $u104 + $c105 + $u105 + $c106 + $u106 + $c107 + $u107 + $c108 + $u108 + $c109 + $u109 + $ala + $cadera + $pecho + $pie + $filete + $cuello + $hueso + $menu + $rango;
-                if ($sumTotal == 0) {
-                    return response()->json(['message' => 'Debes ingresar al menos un producto frial pollo'], 500);
-                    exit();
-                }
+//                if ($sumTotal == 0) {
+//                    return response()->json(['message' => 'Debes ingresar al menos un producto frial pollo'], 500);
+//                    exit();
+//                }
                 $sum1 = $cbrasa5 + $ubrasa5 + $cbrasa6 + $cubrasa6 + $c104 + $u104 + $c105 + $u105 + $c106 + $u106 + $c107 + $u107 + $c108 + $u108 + $c109 + $u109;
                 error_log('sum1: ' . $sum1);
                 $bs = isset($p['bs']) ? $p['bs'] : 0;
@@ -1783,6 +1783,7 @@ $resPedido = $rows->groupBy('NroPed')->map(function ($g) use ($bonis) {
                             'subtotal'    => $p->subtotal,
                             'observacion' => $p->Observaciones,
                             'nombre'      => optional($p->producto)->Producto,
+                            'codUnid'     => optional($p->producto)->codUnid,
                             'tipo'        => $p->tipo,
                             'total'       => $p->total,
                             'entero'      => $p->entero,

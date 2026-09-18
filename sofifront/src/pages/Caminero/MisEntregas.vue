@@ -937,19 +937,18 @@ export default {
     /**
      * La cantidad como la cuenta el caminero en la puerta.
      *
-     * En lo que va por peso la nota lleva dos numeros distintos: las piezas
-     * que se cargan (2 barras de jamon) y los kilos que se cobran (8.8). El
-     * caminero cuenta las piezas y el cliente reclama por los kilos, asi que
-     * cuando no coinciden van los dos.
+     * Lo que va a granel (KG o CAJA) se cobra por los kilos de la balanza, no
+     * por las piezas que se cargan, asi que la linea se lee como la cuenta que
+     * da el importe: el precio por los kilos. Poner ahi las piezas hacia leer
+     * una multiplicacion que no existe (20 cajas x 3 kg no son 60).
      */
     cantidadTexto (item) {
       const peso = Number(item.peso) || 0
       const cant = Number(item.cantidad) || 0
 
-      if (peso > 0 && Math.abs(peso - cant) > 0.001) {
-        return this.cantidad(cant) + ' × ' + this.cantidad(peso) + ' kg'
+      if (peso > 0) {
+        return 'Bs ' + this.money(item.precio) + ' × ' + this.cantidad(peso) + ' kg'
       }
-      if (peso > 0) return this.cantidad(peso) + ' kg'
 
       return this.cantidad(cant) + (item.unidad ? ' ' + item.unidad : '')
     },
@@ -1589,7 +1588,7 @@ export default {
   color: #37474f;
 }
 .det-cant {
-  width: 62px;
+  width: 96px;
   text-align: right;
   font-weight: 700;
   white-space: nowrap;
