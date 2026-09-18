@@ -5,6 +5,9 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
+use PhpOffice\PhpSpreadsheet\Cell\DataType;
+use PhpOffice\PhpSpreadsheet\Style\Border;
+use PhpOffice\PhpSpreadsheet\Worksheet\PageSetup;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
@@ -440,6 +443,313 @@ class ExcelController extends Controller
         WHERE p.tipo = 'NORMAL'
           AND DATE(p.fecha) >= '$request->ini'
           AND DATE(p.fecha) <= '$request->fin'");
+    }
+
+    /**
+     * Reporte de embutidos en Excel, listo para la oficina.
+     *
+     * Son dos miradas de los mismos dias: todo lo que cargaron los
+     * preventistas —incluido lo que todavia no enviaron, que puede seguir
+     * cambiando— y solo lo enviado, que es lo que de verdad se despacha. Por
+     * eso el alcance viaja como parametro y queda escrito en el encabezado del
+     * archivo: abierto suelto, el Excel dice cual de los dos es.
+     *
+     * Ademas del detalle van dos resumenes, por producto y por preventista,
+     * que es lo que se mira antes de entrar linea por linea.
+     */
+    public function reporteEmbutidoExcel(Request $request)
+    {
+        $datos = $request->validate([
+            'ini' => 'required|date_format:Y-m-d',
+            'fin' => 'required|date_format:Y-m-d|after_or_equal:ini',
+            'enviados' => 'nullable|boolean',
+        ]);
+        $soloEnviados = (bool) ($datos['enviados'] ?? false);
+
+        $filas = $this->filasEmbutido($datos['ini'], $datos['fin'], $soloEnviados);
+
+        if (!count($filas)) {
+            return response()->json([
+                'message' => $soloEnviados
+                    ? 'No hay pedidos de embutidos enviados en esas fechas'
+                    : 'No hay pedidos de embutidos en esas fechas',
+            ], 422);
+        }
+
+        $rango = $datos['ini'] === $datos['fin']
+            ? date('d/m/Y', strtotime($datos['ini']))
+            : 'del ' . date('d/m/Y', strtotime($datos['ini'])) . ' al ' . date('d/m/Y', strtotime($datos['fin']));
+        $alcance = $soloEnviados ? 'Solo pedidos enviados' : 'Todos los pedidos (enviados y sin enviar)';
+        $subtitulo = $alcance . ' · ' . $rango . ' · ' . count($filas) . ' líneas · generado el ' . date('d/m/Y H:i');
+
+        $libro = new Spreadsheet();
+
+        $this->hojaReporte(
+            $libro->getActiveSheet()->setTitle('Detalle'),
+            'EMBUTIDOS · DETALLE', $subtitulo, $this->columnasEmbutido(), $filas
+        );
+        $this->hojaReporte(
+            $libro->createSheet()->setTitle('Por producto'),
+            'EMBUTIDOS · RESUMEN POR PRODUCTO', $subtitulo,
+            [
+                ['Código', 'cod_prod', 12, 'texto'],
+                ['Producto', 'producto', 38, 'texto'],
+                ['Pedidos', 'pedidos', 10, 'entero'],
+                ['Cantidad', 'cantidad', 12, 'cantidad'],
+                ['Importe Bs', 'importe', 14, 'importe'],
+            ],
+            $this->resumenEmbutido($filas, ['cod_prod', 'producto'], true)
+        );
+        $this->hojaReporte(
+            $libro->createSheet()->setTitle('Por preventista'),
+            'EMBUTIDOS · RESUMEN POR PREVENTISTA', $subtitulo,
+            [
+                ['Preventista', 'preventista', 30, 'texto'],
+                ['Clientes', 'clientes', 10, 'entero'],
+                ['Pedidos', 'pedidos', 10, 'entero'],
+                ['Importe Bs', 'importe', 14, 'importe'],
+            ],
+            $this->resumenEmbutido($filas, ['preventista'], false)
+        );
+
+        $libro->setActiveSheetIndex(0);
+
+        $writer = new Xlsx($libro);
+        $nombre = 'embutidos_' . ($soloEnviados ? 'enviados' : 'todos') . '_' . $datos['ini']
+            . ($datos['ini'] === $datos['fin'] ? '' : '_a_' . $datos['fin']) . '.xlsx';
+
+        return response()->streamDownload(function () use ($writer) {
+            $writer->save('php://output');
+        }, $nombre, [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        ]);
+    }
+
+    /**
+     * Las lineas de embutidos del rango, ya armadas como salen en el Excel.
+     *
+     * Es la misma consulta de reporteEmbutidoTodo —incluido el calculo de si
+     * el cliente estaba en la ruta del dia— con el filtro de lo enviado.
+     */
+    private function filasEmbutido($ini, $fin, $soloEnviados)
+    {
+        $sql = "
+        SELECT
+            p.fecha, p.NroPed, p.cod_prod, p.Cant, p.precio, p.Observaciones,
+            p.pago, p.fact, p.horario, p.comentario, p.estado, p.idCli,
+            c.Id, c.Nombres, c.zona,
+            u.Producto,
+            TRIM(CONCAT_WS(' ', NULLIF(TRIM(e.Nombre1), ''), NULLIF(TRIM(e.App1), ''), NULLIF(TRIM(e.Apm), ''))) AS preventista,
+            CASE
+                WHEN TRIM(COALESCE(c.CiVend, '')) <> '' AND TRIM(COALESCE(c.CiVend, '')) <> TRIM(COALESCE(e.ci, '')) THEN 'FUERA DE RUTA'
+                WHEN DAYOFWEEK(p.fecha) = 1 AND IFNULL(c.do, 0) = 1 THEN 'EN RUTA'
+                WHEN DAYOFWEEK(p.fecha) = 2 AND IFNULL(c.lu, 0) = 1 THEN 'EN RUTA'
+                WHEN DAYOFWEEK(p.fecha) = 3 AND IFNULL(c.Ma, 0) = 1 THEN 'EN RUTA'
+                WHEN DAYOFWEEK(p.fecha) = 4 AND IFNULL(c.Mi, 0) = 1 THEN 'EN RUTA'
+                WHEN DAYOFWEEK(p.fecha) = 5 AND IFNULL(c.Ju, 0) = 1 THEN 'EN RUTA'
+                WHEN DAYOFWEEK(p.fecha) = 6 AND IFNULL(c.Vi, 0) = 1 THEN 'EN RUTA'
+                WHEN DAYOFWEEK(p.fecha) = 7 AND IFNULL(c.Sa, 0) = 1 THEN 'EN RUTA'
+                ELSE 'FUERA DE RUTA'
+            END AS estado_ruta
+        FROM tbpedidos p
+        INNER JOIN tbclientes c ON p.idCli = c.Cod_Aut
+        INNER JOIN tbproductos u ON u.cod_prod = p.cod_prod
+        INNER JOIN personal e ON p.CIfunc = e.CodAut
+        WHERE p.tipo = 'NORMAL'
+          AND DATE(p.fecha) >= ?
+          AND DATE(p.fecha) <= ?
+          " . ($soloEnviados ? "AND UPPER(TRIM(p.estado)) = 'ENVIADO'" : '') . "
+        ORDER BY p.fecha, preventista, p.NroPed, u.Producto";
+
+        return array_map(function ($r) {
+            $cantidad = (float) $r->Cant;
+            $precio = (float) $r->precio;
+
+            return [
+                'fecha' => date('d/m/Y', strtotime($r->fecha)),
+                'pedido' => (string) $r->NroPed,
+                'preventista' => $r->preventista ?: 'Sin preventista',
+                'nit' => trim((string) $r->Id),
+                'cliente' => trim((string) $r->Nombres),
+                'zona' => trim((string) $r->zona),
+                'ruta' => $r->estado_ruta,
+                'cod_prod' => trim((string) $r->cod_prod),
+                'producto' => trim((string) $r->Producto),
+                'cantidad' => $cantidad,
+                'precio' => $precio,
+                'importe' => round($cantidad * $precio, 2),
+                'pago' => trim((string) $r->pago),
+                'fact' => trim((string) $r->fact),
+                'horario' => trim((string) $r->horario),
+                'estado' => trim((string) $r->estado),
+                'observaciones' => trim((string) $r->Observaciones),
+                'comentario' => trim((string) $r->comentario),
+                // No se imprimen: son para contar clientes y pedidos distintos.
+                'cliente_id' => (int) $r->idCli,
+                'nro_pedido' => (string) $r->NroPed,
+            ];
+        }, DB::select($sql, [$ini, $fin]));
+    }
+
+    /**
+     * Agrupa las lineas del detalle para las hojas de resumen.
+     *
+     * Los pedidos y los clientes se cuentan distintos (un pedido con diez
+     * productos es un pedido), y la cantidad solo se suma cuando el grupo es
+     * un mismo producto: sumar kilos con unidades no dice nada.
+     */
+    private function resumenEmbutido(array $filas, array $claves, $sumarCantidad)
+    {
+        $grupos = [];
+
+        foreach ($filas as $fila) {
+            $partes = [];
+            foreach ($claves as $k) {
+                $partes[$k] = $fila[$k];
+            }
+            $clave = implode('|', $partes);
+
+            if (!isset($grupos[$clave])) {
+                $grupos[$clave] = $partes + [
+                    'pedidos' => [], 'clientes' => [], 'cantidad' => 0, 'importe' => 0,
+                ];
+            }
+
+            $grupos[$clave]['pedidos'][$fila['nro_pedido']] = true;
+            $grupos[$clave]['clientes'][$fila['cliente_id']] = true;
+            $grupos[$clave]['cantidad'] += $fila['cantidad'];
+            $grupos[$clave]['importe'] = round($grupos[$clave]['importe'] + $fila['importe'], 2);
+        }
+
+        $resumen = array_map(function ($grupo) use ($sumarCantidad) {
+            $grupo['pedidos'] = count($grupo['pedidos']);
+            $grupo['clientes'] = count($grupo['clientes']);
+            if (!$sumarCantidad) {
+                $grupo['cantidad'] = null;
+            }
+            return $grupo;
+        }, array_values($grupos));
+
+        // Lo que mas plata movio primero: es el orden en que se lee un resumen.
+        usort($resumen, function ($a, $b) {
+            return $b['importe'] == $a['importe'] ? 0 : ($b['importe'] < $a['importe'] ? -1 : 1);
+        });
+
+        return $resumen;
+    }
+
+    /** Columnas del detalle de embutidos: etiqueta, clave, ancho y formato. */
+    private function columnasEmbutido()
+    {
+        return [
+            ['Fecha', 'fecha', 11, 'texto'],
+            ['Nº pedido', 'pedido', 11, 'texto'],
+            ['Preventista', 'preventista', 26, 'texto'],
+            ['CI / NIT', 'nit', 13, 'texto'],
+            ['Cliente', 'cliente', 32, 'texto'],
+            ['Zona', 'zona', 16, 'texto'],
+            ['Ruta', 'ruta', 14, 'texto'],
+            ['Código', 'cod_prod', 10, 'texto'],
+            ['Producto', 'producto', 36, 'texto'],
+            ['Cantidad', 'cantidad', 10, 'cantidad'],
+            ['Precio Bs', 'precio', 11, 'importe'],
+            ['Importe Bs', 'importe', 13, 'importe'],
+            ['Pago', 'pago', 12, 'texto'],
+            ['Factura', 'fact', 9, 'texto'],
+            ['Horario', 'horario', 11, 'texto'],
+            ['Estado', 'estado', 11, 'texto'],
+            ['Observaciones', 'observaciones', 26, 'texto'],
+            ['Comentario', 'comentario', 26, 'texto'],
+        ];
+    }
+
+    /**
+     * Arma una hoja con el formato del reporte.
+     *
+     * Titulo y alcance arriba, encabezado oscuro, importes con separador de
+     * miles, fila de totales al pie y los encabezados fijos al desplazarse,
+     * con filtro y con la cabecera repetida en cada hoja impresa.
+     */
+    private function hojaReporte($hoja, $titulo, $subtitulo, array $columnas, array $filas)
+    {
+        $ultima = Coordinate::stringFromColumnIndex(count($columnas));
+
+        $hoja->mergeCells('A1:' . $ultima . '1')->setCellValue('A1', $titulo);
+        $hoja->mergeCells('A2:' . $ultima . '2')->setCellValue('A2', $subtitulo);
+        $hoja->getStyle('A1')->getFont()->setBold(true)->setSize(14);
+        $hoja->getStyle('A2')->getFont()->setSize(9)->getColor()->setRGB('616161');
+        $hoja->getStyle('A1:' . $ultima . '2')->getAlignment()
+            ->setHorizontal(Alignment::HORIZONTAL_CENTER);
+
+        foreach ($columnas as $i => $columna) {
+            list($etiqueta, $clave, $ancho, $formato) = $columna;
+            $letra = Coordinate::stringFromColumnIndex($i + 1);
+            $hoja->setCellValue($letra . '4', $etiqueta);
+            $hoja->getColumnDimension($letra)->setWidth($ancho);
+        }
+
+        $fila = 5;
+        foreach ($filas as $registro) {
+            foreach ($columnas as $i => $columna) {
+                list($etiqueta, $clave, $ancho, $formato) = $columna;
+                $letra = Coordinate::stringFromColumnIndex($i + 1);
+                // Los codigos y los numeros de pedido son etiquetas, no numeros:
+                // sin esto Excel se come los ceros de adelante.
+                if ($formato === 'texto') {
+                    $hoja->setCellValueExplicit($letra . $fila, (string) $registro[$clave], DataType::TYPE_STRING);
+                } else {
+                    $hoja->setCellValue($letra . $fila, $registro[$clave]);
+                }
+            }
+            $fila++;
+        }
+
+        $hoja->setCellValue('A' . $fila, 'TOTAL (' . count($filas) . ')');
+        foreach ($columnas as $i => $columna) {
+            list($etiqueta, $clave, $ancho, $formato) = $columna;
+            // El precio no se suma: sumar precios unitarios no es ningun total.
+            if ($formato !== 'importe' || $clave === 'precio') {
+                continue;
+            }
+            $letra = Coordinate::stringFromColumnIndex($i + 1);
+            $hoja->setCellValue($letra . $fila, '=SUM(' . $letra . '5:' . $letra . ($fila - 1) . ')');
+        }
+
+        $hoja->getStyle('A4:' . $ultima . '4')->applyFromArray([
+            'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
+            'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => '37474F']],
+            'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER, 'vertical' => Alignment::VERTICAL_CENTER],
+        ]);
+        $hoja->getRowDimension(4)->setRowHeight(22);
+        $hoja->getStyle('A' . $fila . ':' . $ultima . $fila)->applyFromArray([
+            'font' => ['bold' => true],
+            'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'ECEFF1']],
+        ]);
+        $hoja->getStyle('A4:' . $ultima . $fila)->getBorders()->getAllBorders()
+            ->setBorderStyle(Border::BORDER_THIN)->getColor()->setRGB('B0BEC5');
+
+        foreach ($columnas as $i => $columna) {
+            list($etiqueta, $clave, $ancho, $formato) = $columna;
+            if ($formato === 'texto') {
+                continue;
+            }
+            $letra = Coordinate::stringFromColumnIndex($i + 1);
+            $hoja->getStyle($letra . '5:' . $letra . $fila)->getNumberFormat()->setFormatCode(
+                $formato === 'entero' ? '#,##0' : '#,##0.00'
+            );
+        }
+
+        $hoja->freezePane('A5');
+        $hoja->setAutoFilter('A4:' . $ultima . ($fila - 1));
+
+        $impresion = $hoja->getPageSetup();
+        $impresion->setOrientation(PageSetup::ORIENTATION_LANDSCAPE);
+        $impresion->setFitToWidth(1);
+        $impresion->setFitToHeight(0);
+        $impresion->setRowsToRepeatAtTopByStartAndEnd(1, 4);
+        $hoja->getHeaderFooter()->setOddFooter('&L' . $titulo . '&RPágina &P de &N');
+
+        return $hoja;
     }
 
     public function reportePollo(Request $request)

@@ -224,6 +224,9 @@ Route::group(['middleware'=>'auth:sanctum'],function (){
 
     Route::post('/reporteEmbutido',[\App\Http\Controllers\ExcelController::class,'reporteEmbutido']);
     Route::post('/reporteEmbutidoTodo',[\App\Http\Controllers\ExcelController::class,'reporteEmbutidoTodo']);
+    // El Excel de embutidos ya armado y con formato; enviados=1 deja solo lo
+    // que los preventistas mandaron, que es lo que se va a despachar.
+    Route::get('/reporteEmbutidoExcel',[\App\Http\Controllers\ExcelController::class,'reporteEmbutidoExcel']);
     Route::post('/reporteCerdo',[\App\Http\Controllers\ExcelController::class,'reporteCerdo']);
     Route::post('/reporteCerdoTodo',[\App\Http\Controllers\ExcelController::class,'reporteCerdoTodo']);
     Route::post('/reportePollo',[\App\Http\Controllers\ExcelController::class,'reportePollo']);
