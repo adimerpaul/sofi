@@ -225,12 +225,46 @@
       </q-banner>
     </q-card>
 
+    <!-- Lo marcado con los checks: caja elige a mano que revisar o imprimir,
+         sin tener que armar un filtro que coincida justo con eso. -->
+    <q-banner v-if="seleccionadas.length" dense rounded class="bg-blue-1 text-blue-10 q-mb-sm">
+      <template v-slot:avatar><q-icon name="check_box" color="primary"/></template>
+      <span class="text-weight-bold">{{ seleccionadas.length }}</span>
+      {{ seleccionadas.length === 1 ? 'comprobante seleccionado' : 'comprobantes seleccionados' }}
+      <span v-if="seleccionadasPorRevisar.length" class="text-caption">
+        · {{ seleccionadasPorRevisar.length }} sin revisar
+      </span>
+      <template v-slot:action>
+        <q-btn
+          v-if="can('facturacionAprobarCarga')"
+          unelevated no-caps dense color="green-8" icon="done_all" class="q-px-sm"
+          :label="'Marcar revisados (' + seleccionadasPorRevisar.length + ')'"
+          :disable="!seleccionadasPorRevisar.length"
+          :loading="marcandoVarias" @click="marcarSeleccionadas"
+        />
+        <q-btn
+          unelevated no-caps dense color="primary" icon="print" class="q-px-sm"
+          :label="'Imprimir (' + seleccionadasImprimibles.length + ')'"
+          :disable="!seleccionadasImprimibles.length"
+          :loading="exportando" @click="loteSeleccionadas(true)"
+        />
+        <q-btn
+          outline no-caps dense color="red-7" icon="picture_as_pdf" class="q-px-sm" label="PDF"
+          :disable="!seleccionadasImprimibles.length"
+          :loading="exportando" @click="loteSeleccionadas(false)"
+        />
+        <q-btn flat no-caps dense color="grey-8" icon="clear" label="Quitar selección" @click="seleccionadas = []"/>
+      </template>
+    </q-banner>
+
     <q-table
       flat bordered dense
       class="tabla-compacta"
       :rows="facturas"
       :columns="columns"
       row-key="id"
+      selection="multiple"
+      v-model:selected="seleccionadas"
       v-model:pagination="pagination"
       :loading="loading"
       :rows-per-page-options="[10, 20, 50, 100, 0]"
@@ -721,6 +755,9 @@ export default {
       aprobandoCarga: false,
       // Id del comprobante cuya canasta se esta marcando desde la grilla.
       marcandoCarga: null,
+      // Filas marcadas con los checks de la grilla.
+      seleccionadas: [],
+      marcandoVarias: false,
       loading: false,
       // En el mostrador 'VENTA' es el voucher: la venta que no se entrego
       // como factura.
@@ -769,6 +806,13 @@ export default {
     },
     facturadosTotal () {
       return this.camiones.reduce((suma, fila) => suma + fila.facturados, 0)
+    },
+    seleccionadasPorRevisar () {
+      return this.seleccionadas.filter(row => row.estado !== 'ANULADO' && this.puedeRevisar(row))
+    },
+    // Lo anulado no se imprime: el boton cuenta solo lo que va a salir.
+    seleccionadasImprimibles () {
+      return this.seleccionadas.filter(row => row.estado !== 'ANULADO')
     },
     porcentajeTotal () {
       return this.pedidosTotal ? Math.round((this.facturadosTotal / this.pedidosTotal) * 100) : 0
@@ -924,6 +968,8 @@ export default {
       this.recargar()
     },
     recargar () {
+      // Con otros filtros lo marcado antes ya no esta a la vista.
+      this.seleccionadas = []
       this.pagination.page = 1
       this.onRequest({ pagination: this.pagination })
     },
@@ -941,6 +987,11 @@ export default {
         })
       }).then(res => {
         this.facturas = res.data.data
+        // Lo marcado apunta a la fila recien traida, para que los botones
+        // cuenten con el estado de carga actualizado.
+        const nuevas = {}
+        this.facturas.forEach(row => { nuevas[row.id] = row })
+        this.seleccionadas = this.seleccionadas.map(row => nuevas[row.id] || row)
         this.conteos = res.data.conteos || { TODOS: 0, FACTURA: 0, VENTA: 0 }
         this.pagination.page = res.data.current_page
         this.pagination.rowsPerPage = rowsPerPage
@@ -1016,6 +1067,42 @@ export default {
         })
         .catch(err => { this.avisar(err, 'No se pudo cambiar la carga') })
         .finally(() => { this.marcandoCarga = null })
+    },
+
+    /** Da por revisadas las canastas de los comprobantes marcados. */
+    marcarSeleccionadas () {
+      const ids = this.seleccionadasPorRevisar.map(row => row.id)
+      this.$q.dialog({
+        title: 'Marcar como revisadas',
+        message: 'Se darán por revisadas ' + ids.length +
+          (ids.length === 1 ? ' canasta' : ' canastas') + ' y ya se podrán imprimir.',
+        cancel: { flat: true, label: 'Cancelar', noCaps: true },
+        ok: { color: 'green-8', label: 'Marcar', noCaps: true, unelevated: true },
+        persistent: true
+      }).onOk(() => {
+        this.marcandoVarias = true
+        this.$api.post('facturacion/carga/marcar', { ids, verificado: true })
+          .then(res => {
+            this.$q.notify({
+              type: res.data.saltadas ? 'warning' : 'positive', position: 'top', timeout: 6000,
+              message: res.data.message
+            })
+            this.onRequest({ pagination: this.pagination })
+          })
+          .catch(err => { this.avisar(err, 'No se pudieron marcar las canastas') })
+          .finally(() => { this.marcandoVarias = false })
+      })
+    },
+
+    /** Los comprobantes marcados en un solo PDF, cada uno en su papel. */
+    loteSeleccionadas (imprimir) {
+      const ids = this.seleccionadasImprimibles.map(row => row.id).sort((a, b) => a - b)
+      return this.bajarArchivo(
+        'facturacion/lote/todos',
+        { ids: ids.join(',') },
+        'comprobantes_seleccionados_' + (this.filtros.desde || 'todo') + '.pdf',
+        imprimir
+      )
     },
 
     aprobarCarga () {

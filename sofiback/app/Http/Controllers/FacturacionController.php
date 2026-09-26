@@ -236,6 +236,13 @@ class FacturacionController extends Controller
             }, 'placa')
             ->orderByDesc('id');
 
+        // Los comprobantes marcados a mano en la grilla: van solos, sin los
+        // demas filtros, que ya se aplicaron al elegirlos.
+        $ids = $this->idsSeleccionados($request);
+        if (!empty($ids)) {
+            return $query->whereIn('id', $ids);
+        }
+
         if ($desde = $request->input('desde')) {
             $query->whereDate('fecha', '>=', $desde);
         }
@@ -287,6 +294,17 @@ class FacturacionController extends Controller
         }
 
         return $query;
+    }
+
+    /** 'ids' llega como arreglo o como '1,2,3' (en un GET); solo numeros. */
+    private function idsSeleccionados(Request $request)
+    {
+        $ids = $request->input('ids', []);
+        if (!is_array($ids)) {
+            $ids = explode(',', (string) $ids);
+        }
+
+        return array_values(array_unique(array_filter(array_map('intval', $ids))));
     }
 
     /**
@@ -407,19 +425,84 @@ class FacturacionController extends Controller
             return response()->json(['message' => 'No tiene permiso para aprobar la carga'], 403);
         }
 
-        $datos = $request->validate(['verificado' => 'required|boolean']);
+        $request->validate(['verificado' => 'required|boolean']);
 
         $factura = Factura::find($id);
         if (!$factura) {
             return response()->json(['message' => 'La factura no existe'], 404);
         }
+
+        $verificado = $request->boolean('verificado');
+        $error = $this->aplicarMarcaCarga($factura, $verificado, $request->user());
+        if ($error) {
+            return response()->json(['message' => $error], 422);
+        }
+
+        return [
+            'message' => $verificado
+                ? 'Canasta #' . $factura->id . ' marcada como revisada'
+                : 'Canasta #' . $factura->id . ' vuelve a sin revisar',
+        ];
+    }
+
+    /**
+     * Lo mismo que marcarCarga pero sobre los comprobantes marcados en la
+     * grilla. Lo que no se puede marcar (anulado, sin camion, observado) se
+     * salta y se informa, sin frenar al resto.
+     */
+    public function marcarCargaVarias(Request $request)
+    {
+        if (!$request->user()->can('facturacionAprobarCarga')) {
+            return response()->json(['message' => 'No tiene permiso para aprobar la carga'], 403);
+        }
+
+        $request->validate(['verificado' => 'required|boolean']);
+        $ids = $this->idsSeleccionados($request);
+        if (empty($ids)) {
+            return response()->json(['message' => 'No hay comprobantes seleccionados'], 422);
+        }
+        if (count($ids) > self::MAX_LOTE) {
+            return response()->json(['message' => 'Se pueden marcar hasta ' . self::MAX_LOTE . ' comprobantes a la vez'], 422);
+        }
+
+        $verificado = $request->boolean('verificado');
+        $usuario = $request->user();
+        $marcadas = 0;
+        $saltadas = [];
+
+        foreach (Factura::whereIn('id', $ids)->orderBy('id')->get() as $factura) {
+            $error = $this->aplicarMarcaCarga($factura, $verificado, $usuario, true);
+            if ($error) {
+                $saltadas[] = '#' . $factura->id;
+            } else {
+                $marcadas++;
+            }
+        }
+
+        $mensaje = $marcadas . ($marcadas === 1 ? ' canasta ' : ' canastas ')
+            . ($verificado ? 'marcadas como revisadas' : 'vuelven a sin revisar');
+        if (!empty($saltadas)) {
+            $mensaje .= ' · no se tocaron ' . count($saltadas) . ' (anuladas, sin camión u observadas): '
+                . implode(', ', array_slice($saltadas, 0, 10)) . (count($saltadas) > 10 ? '…' : '');
+        }
+
+        return ['message' => $mensaje, 'marcadas' => $marcadas, 'saltadas' => count($saltadas)];
+    }
+
+    /**
+     * Graba la revision de la canasta de un comprobante. Devuelve el motivo si
+     * no se pudo, o null. Con $respetarObservadas no se pisa lo que el caminero
+     * dejo observado: en la marca masiva se perderia su nota sin que nadie la lea.
+     */
+    private function aplicarMarcaCarga(Factura $factura, $verificado, $usuario, $respetarObservadas = false)
+    {
         if ($factura->estado === 'ANULADO') {
-            return response()->json(['message' => 'El comprobante está anulado'], 422);
+            return 'El comprobante está anulado';
         }
 
         $placa = $this->camionDeFactura($factura);
         if ($placa === '') {
-            return response()->json(['message' => 'El comprobante no sale en ningún camión'], 422);
+            return 'El comprobante no sale en ningún camión';
         }
 
         $fecha = $factura->fecha instanceof \DateTimeInterface
@@ -429,11 +512,19 @@ class FacturacionController extends Controller
         $servicio = new CargaCamion();
         $comprobante = $servicio->comprobante($fecha, $placa, $factura->id);
         if (!$comprobante) {
-            return response()->json(['message' => 'El comprobante no aparece en la carga del camión ' . $placa], 404);
+            return 'El comprobante no aparece en la carga del camión ' . $placa;
         }
 
-        $verificado = $request->boolean('verificado');
-        $usuario = $request->user();
+        if ($respetarObservadas) {
+            $observada = DB::table('carga_verificaciones')
+                ->where('factura_id', $factura->id)
+                ->where('observado', 1)
+                ->exists();
+            if ($observada) {
+                return 'La canasta está observada por el caminero';
+            }
+        }
+
         DB::table('carga_verificaciones')->updateOrInsert(
             ['factura_id' => $factura->id],
             $servicio->fila(
@@ -442,11 +533,7 @@ class FacturacionController extends Controller
             )
         );
 
-        return [
-            'message' => $verificado
-                ? 'Canasta #' . $factura->id . ' marcada como revisada'
-                : 'Canasta #' . $factura->id . ' vuelve a sin revisar',
-        ];
+        return null;
     }
 
     /**
