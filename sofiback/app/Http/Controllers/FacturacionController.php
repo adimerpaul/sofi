@@ -229,6 +229,7 @@ class FacturacionController extends Controller
             // por eso se trae de tbpedidos en vez de guardarse repetido.
             ->selectSub(function ($sub) {
                 $sub->from('tbpedidos as pc')
+                    ->whereNull('pc.deleted_at')
                     ->whereColumn('pc.NroPed', 'facturas.pedido_nro')
                     ->whereRaw('UPPER(TRIM(pc.tipo)) = UPPER(TRIM(facturas.pedido_tipo))')
                     ->limit(1)
@@ -256,13 +257,13 @@ class FacturacionController extends Controller
             if ($camion === 'SIN') {
                 $query->where(function ($w) {
                     $w->whereNull('pedido_nro')->orWhereNotIn('pedido_nro', function ($sub) {
-                        $sub->from('tbpedidos')->select('NroPed')
+                        $sub->from('tbpedidos')->whereNull('tbpedidos.deleted_at')->select('NroPed')
                             ->whereRaw("TRIM(COALESCE(placa, '')) <> ''");
                     });
                 });
             } else {
                 $query->whereIn('pedido_nro', function ($sub) use ($camion) {
-                    $sub->from('tbpedidos')->select('NroPed')
+                    $sub->from('tbpedidos')->whereNull('tbpedidos.deleted_at')->select('NroPed')
                         ->whereRaw('TRIM(placa) = ?', [$camion]);
                 });
             }
@@ -309,11 +310,13 @@ class FacturacionController extends Controller
         $cobrados = Factura::whereDate('fecha', '>=', $desde)->whereDate('fecha', '<=', $hasta)
             ->whereNotNull('pedido_nro')->distinct()->pluck('pedido_nro');
         $dias = $cobrados->isEmpty() ? collect() : DB::table('tbpedidos')
+            ->whereNull('tbpedidos.deleted_at')
             ->whereIn('NroPed', $cobrados)
             ->distinct()->pluck(DB::raw('DATE(fecha) as dia'));
 
         // Una fila por pedido (numero y tipo), marcada si ya se cobro.
         $pedidos = DB::table('tbpedidos as p')
+            ->whereNull('p.deleted_at')
             ->leftJoin('facturas as f', function ($join) {
                 $join->on('f.pedido_nro', '=', 'p.NroPed')
                     ->on(DB::raw('UPPER(TRIM(f.pedido_tipo))'), '=', DB::raw('UPPER(TRIM(p.tipo))'))
@@ -519,6 +522,7 @@ class FacturacionController extends Controller
         }
 
         $pedido = DB::table('tbpedidos')
+            ->whereNull('tbpedidos.deleted_at')
             ->where('NroPed', $factura->pedido_nro)
             ->whereRaw('UPPER(TRIM(tipo)) = ?', [strtoupper(trim((string) $factura->pedido_tipo))])
             ->where('bonificacion', 0)
@@ -690,6 +694,7 @@ class FacturacionController extends Controller
         ]);
 
         $query = DB::table('tbpedidos as p')
+            ->whereNull('p.deleted_at')
             ->leftJoin('tbclientes as c', 'c.Cod_Aut', '=', 'p.idCli')
             ->leftJoin('personal as v', 'v.CodAut', '=', 'p.CIfunc')
             // Una venta anulada no cuenta como emitida: el pedido vuelve a la
@@ -764,6 +769,7 @@ class FacturacionController extends Controller
         // Se cargan todos los detalles en una sola consulta para que en el
         // celular se vea que el pedido ya viene armado por el preventista.
         $items = DB::table('tbpedidos as p')
+            ->whereNull('p.deleted_at')
             ->leftJoin('tbproductos as pr', function ($join) {
                 $join->on(DB::raw('TRIM(pr.cod_prod)'), '=', DB::raw('TRIM(p.cod_prod)'));
             })
@@ -781,7 +787,7 @@ class FacturacionController extends Controller
             ])
             ->groupBy('nro_pedido');
 
-        $filasPedido = DB::table('tbpedidos')->whereIn('NroPed', $numeros)
+        $filasPedido = DB::table('tbpedidos')->whereNull('tbpedidos.deleted_at')->whereIn('NroPed', $numeros)
             ->whereRaw('UPPER(TRIM(tipo)) = ?', [$datos['tipo']])
             ->whereRaw("UPPER(TRIM(estado)) = 'ENVIADO'")
             ->where('bonificacion', 0)
@@ -822,6 +828,7 @@ class FacturacionController extends Controller
         ]);
 
         $cabecera = DB::table('tbpedidos as p')
+            ->whereNull('p.deleted_at')
             ->leftJoin('tbclientes as c', 'c.Cod_Aut', '=', 'p.idCli')
             ->leftJoin('personal as v', 'v.CodAut', '=', 'p.CIfunc')
             ->where('p.NroPed', $nroPedido)
@@ -865,6 +872,7 @@ class FacturacionController extends Controller
         }
 
         $items = DB::table('tbpedidos as p')
+            ->whereNull('p.deleted_at')
             ->leftJoin('tbproductos as pr', function ($join) {
                 $join->on(DB::raw('TRIM(pr.cod_prod)'), '=', DB::raw('TRIM(p.cod_prod)'));
             })
@@ -903,7 +911,7 @@ class FacturacionController extends Controller
         $cabecera->con_canastillos = in_array($datos['tipo'], FacturaDetalle::TIPOS_CON_CANASTILLOS, true);
         $cabecera->kg_canastillo = FacturaDetalle::KG_CANASTILLO;
 
-        $filasPedido = DB::table('tbpedidos')->where('NroPed', $nroPedido)
+        $filasPedido = DB::table('tbpedidos')->whereNull('tbpedidos.deleted_at')->where('NroPed', $nroPedido)
             ->whereRaw('UPPER(TRIM(tipo)) = ?', [$datos['tipo']])->where('bonificacion', 0)
             ->orderBy('codAut')->get();
         $cabecera->detalle_pollo = $this->detallePollo($filasPedido);
@@ -1306,6 +1314,7 @@ class FacturacionController extends Controller
 
         if (!empty($datos['pedido_nro'])) {
             $existePedido = DB::table('tbpedidos')
+                ->whereNull('tbpedidos.deleted_at')
                 ->where('NroPed', $datos['pedido_nro'])
                 ->whereRaw('UPPER(TRIM(tipo)) = ?', [$datos['pedido_tipo']])
                 ->whereRaw("UPPER(TRIM(estado)) = 'ENVIADO'")
@@ -1326,6 +1335,7 @@ class FacturacionController extends Controller
             // que se agrega al cobrar, el del catalogo.
             if (!$usuario->can('facturacionPrecio')) {
                 $delPedido = DB::table('tbpedidos')
+                    ->whereNull('tbpedidos.deleted_at')
                     ->where('NroPed', $datos['pedido_nro'])
                     ->whereRaw('UPPER(TRIM(tipo)) = ?', [$datos['pedido_tipo']])
                     ->where('bonificacion', 0)

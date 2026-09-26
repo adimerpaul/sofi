@@ -26,7 +26,7 @@ class CerdoController extends Controller
     public function store(Request $request)
     {
         return DB::SELECT("SELECT * from tbpedidos p, tbclientes c
-        where c.Cod_Aut=p.idCli and date(fecha)>='$request->fecha1' and date(fecha)<='$request->fecha2'
+        where c.Cod_Aut=p.idCli and p.deleted_at IS NULL and date(fecha)>='$request->fecha1' and date(fecha)<='$request->fecha2'
         and tipo='CERDO' AND trim(CIfunc)='".$request->user()->CodAut."' and estado='ENVIADO' ");
     }
 

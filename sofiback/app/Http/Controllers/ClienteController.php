@@ -362,12 +362,13 @@ class ClienteController extends Controller{
             c.*,
             (SELECT MAX(p2.fecha)
              FROM tbpedidos p2
-             WHERE p2.idCli = c.Cod_Aut AND p2.CIfunc = ?) as ultima_compra
+             WHERE p2.idCli = c.Cod_Aut AND p2.CIfunc = ? AND p2.deleted_at IS NULL) as ultima_compra
         FROM tbclientes c
         LEFT JOIN tbpedidos p
             ON p.idCli = c.Cod_Aut
             AND p.CIfunc = ?
             AND p.fecha BETWEEN ? AND ?
+            AND p.deleted_at IS NULL
         WHERE c.CiVend = ?
           AND p.codAut IS NULL
     ", [$codAut, $codAut, $ini, $fin, $ci]);
@@ -384,12 +385,13 @@ class ClienteController extends Controller{
             c.*,
             (SELECT MAX(p2.fecha)
              FROM tbpedidos p2
-             WHERE p2.idCli = c.Cod_Aut AND p2.CIfunc = ?) as ultima_compra
+             WHERE p2.idCli = c.Cod_Aut AND p2.CIfunc = ? AND p2.deleted_at IS NULL) as ultima_compra
         FROM tbclientes c
         LEFT JOIN tbpedidos p
             ON p.idCli = c.Cod_Aut
             AND p.CIfunc = ?
             AND p.fecha BETWEEN ? AND ?
+            AND p.deleted_at IS NULL
         WHERE c.CiVend = ?
           AND p.codAut IS NULL
     ", [$codAut, $codAut, $ini, $fin, $ci]);

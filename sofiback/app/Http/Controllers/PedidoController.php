@@ -22,6 +22,7 @@ class PedidoController extends Controller{
         $placa = trim((string) $request->query('placa', ''));
 
         $pedidos = DB::table('tbpedidos as p')
+            ->whereNull('p.deleted_at')
             ->whereDate('p.fecha', $fecha)
             ->where('p.estado', 'ENVIADO')
             ->where('p.tipo', 'NORMAL')
@@ -103,6 +104,7 @@ class PedidoController extends Controller{
             ->keyBy(function ($v) { return trim((string) $v->placa); });
 
         return DB::table('tbpedidos')
+            ->whereNull('tbpedidos.deleted_at')
             ->whereDate('fecha', $fecha)
             ->where('estado', 'ENVIADO')
             ->where('tipo', 'NORMAL')
@@ -153,9 +155,7 @@ class PedidoController extends Controller{
         if (count($pedidos) == 0) {
             return response()->json(['success' => false, 'message' => 'No se encontraron pedidos para clonar.']);
         }
-        $cmdnum = DB::select("SELECT *  FROM comandas limit 1")[0];
-        $numpedido = $cmdnum->comanda + 1;
-        DB::select("UPDATE `comandas` SET `comanda`='$numpedido' WHERE id=$cmdnum->id");
+        $numpedido = $this->siguienteComanda();
         $data = [];
         foreach ($pedidos as $p) {
             $imp = 0;
@@ -277,7 +277,7 @@ class PedidoController extends Controller{
         ]);
 
 
-        DB::table('tbpedidos')->insert($data);
+        $this->insertarPedidos($data);
         return response()->json(['success' => true]);
 
     }
@@ -632,6 +632,7 @@ class PedidoController extends Controller{
 
         // 3) ÚNICA consulta: pedidos + cliente + user + producto
         $rows = \DB::table("$pTable as p")
+            ->whereNull('p.deleted_at')
             ->leftJoin("$cTable as c", 'c.Cod_Aut', '=', 'p.idCli')
             ->leftJoin("$uTable as u", 'u.CodAut', '=', 'p.CIfunc')
             ->leftJoin("$prTable as pr", 'pr.cod_prod', '=', 'p.cod_prod')
@@ -921,37 +922,37 @@ $resPedido = $rows->groupBy('NroPed')->map(function ($g) use ($bonis) {
 
     public function rpollo(Request $request)
     {
-        return DB::SELECT("SELECT * from tbpedidos p, tbclientes c where c.Cod_Aut=p.idCli and date(fecha)>='$request->fecha1' and date(fecha)<='$request->fecha2'  and tipo='POLLO' AND
+        return DB::SELECT("SELECT * from tbpedidos p, tbclientes c where c.Cod_Aut=p.idCli and p.deleted_at IS NULL and date(fecha)>='$request->fecha1' and date(fecha)<='$request->fecha2'  and tipo='POLLO' AND
         trim(CIfunc)='" . $request->user()->CodAut . "' and estado='ENVIADO' ");
     }
 
     public function rres(Request $request)
     {
-        return DB::SELECT("SELECT * from tbpedidos p, tbclientes c where c.Cod_Aut=p.idCli and date(fecha)>='$request->fecha1' and date(fecha)<='$request->fecha2'  and tipo='RES' AND
+        return DB::SELECT("SELECT * from tbpedidos p, tbclientes c where c.Cod_Aut=p.idCli and p.deleted_at IS NULL and date(fecha)>='$request->fecha1' and date(fecha)<='$request->fecha2'  and tipo='RES' AND
         trim(CIfunc)='" . $request->user()->CodAut . "' and estado='ENVIADO' ");
     }
 
     public function rcerdo(Request $request)
     {
-        return DB::SELECT("SELECT * from tbpedidos p, tbclientes c where c.Cod_Aut=p.idCli and date(fecha)>='$request->fecha1' and date(fecha)<='$request->fecha2'  and tipo='CERDO' AND
+        return DB::SELECT("SELECT * from tbpedidos p, tbclientes c where c.Cod_Aut=p.idCli and p.deleted_at IS NULL and date(fecha)>='$request->fecha1' and date(fecha)<='$request->fecha2'  and tipo='CERDO' AND
         trim(CIfunc)='" . $request->user()->CodAut . "' and estado='ENVIADO' ");
     }
 
     public function rnormal(Request $request)
     {
-        return DB::SELECT(" SELECT tbpedidos.*,tbproductos.Producto from tbpedidos,tbproductos where tbpedidos.cod_prod=tbproductos.cod_prod  and tbpedidos.tipo='NORMAL' and NroPed=$request->comanda");
+        return DB::SELECT(" SELECT tbpedidos.*,tbproductos.Producto from tbpedidos,tbproductos where tbpedidos.cod_prod=tbproductos.cod_prod and tbpedidos.deleted_at IS NULL and tbpedidos.tipo='NORMAL' and NroPed=$request->comanda");
     }
 
     public function lispreventista()
     {
-        return DB::SELECT("SELECT DISTINCT(l.CodAut),l.ci,l.Nombre1,l.App1 FROM tbpedidos p inner JOIN personal l on p.CIfunc=l.CodAut WHERE p.tipo='NORMAL'");
+        return DB::SELECT("SELECT DISTINCT(l.CodAut),l.ci,l.Nombre1,l.App1 FROM tbpedidos p inner JOIN personal l on p.CIfunc=l.CodAut WHERE p.deleted_at IS NULL and p.tipo='NORMAL'");
     }
 
     public function informeProducto(Request $request)
     {
         return DB::SELECT("SELECT o.cod_prod,o.Producto,count(*) as cantidad
         FROM tbpedidos p inner join tbproductos o on p.cod_prod=o.cod_prod
-        WHERE p.tipo='NORMAL' and date(p.fecha)>='$request->ini' and date(p.fecha)<='$request->fin'
+        WHERE p.deleted_at IS NULL and p.tipo='NORMAL' and date(p.fecha)>='$request->ini' and date(p.fecha)<='$request->fin'
         and p.CIfunc=$request->cod
         group by o.cod_prod,o.Producto;");
     }
@@ -959,9 +960,7 @@ $resPedido = $rows->groupBy('NroPed')->map(function ($g) use ($bonis) {
 
     public function store(Request $request)
     {
-        $cmdnum = DB::select("SELECT *  FROM comandas limit 1")[0];
-        $numpedido = $cmdnum->comanda + 1;
-        DB::select("UPDATE `comandas` SET `comanda`='$numpedido' WHERE id=$cmdnum->id");
+        $numpedido = $this->siguienteComanda();
 
         /*
                 $primerTipo = null;
@@ -1243,7 +1242,7 @@ $resPedido = $rows->groupBy('NroPed')->map(function ($g) use ($bonis) {
             ];
             array_push($data, $d);
         }
-        DB::table('tbpedidos')->insert($data);
+        $this->insertarPedidos($data);
 //        return ($data);
     }
 
@@ -1316,13 +1315,13 @@ $resPedido = $rows->groupBy('NroPed')->map(function ($g) use ($bonis) {
         }
         return DB::SELECT("
         select p.CIfunc,l.ci,l.CodAut, l.Nombre1,l.App1,
-        (SELECT count(DISTINCT(p2.idCli)) from tbpedidos p2 where date(p2.fecha)='$request->fecha' and p.CIfunc=p2.CIfunc) as totclient,
-        (SELECT count(DISTINCT(p2.idCli)) from tbpedidos p2 inner join tbclientes c on p2.idCli=c.Cod_Aut where  date(p2.fecha)='$request->fecha' and p.CIfunc=p2.CIfunc " . $filtro . ") as totvisita,
+        (SELECT count(DISTINCT(p2.idCli)) from tbpedidos p2 where p2.deleted_at IS NULL and date(p2.fecha)='$request->fecha' and p.CIfunc=p2.CIfunc) as totclient,
+        (SELECT count(DISTINCT(p2.idCli)) from tbpedidos p2 inner join tbclientes c on p2.idCli=c.Cod_Aut where p2.deleted_at IS NULL and date(p2.fecha)='$request->fecha' and p.CIfunc=p2.CIfunc " . $filtro . ") as totvisita,
         (SELECT count(*) from tbclientes tc where tc.CiVend=l.ci " . $filtro . ") as numcli ,
         (SELECT count(*) from misvisitas v WHERE v  .fecha='$request->fecha' and v.personal_id=l.CodAut and v.estado='PEDIDO') as npedido,
         (SELECT count(*) from misvisitas v WHERE v.fecha='$request->fecha' and v.personal_id=l.CodAut and v.estado='NO PEDIDO') as nopedido,
         (SELECT count(*) from misvisitas v WHERE v.fecha='$request->fecha' and v.personal_id=l.CodAut and v.estado='PARADO') as nparado
-        from tbpedidos p inner join personal l on p.CIfunc= l.CodAut where date(p.fecha)='$request->fecha' GROUP by p.CIfunc,l.ci, l.Nombre1,l.App1,l.CodAut
+        from tbpedidos p inner join personal l on p.CIfunc= l.CodAut where p.deleted_at IS NULL and date(p.fecha)='$request->fecha' GROUP by p.CIfunc,l.ci, l.Nombre1,l.App1,l.CodAut
         ");
     }
 
@@ -1340,7 +1339,7 @@ $resPedido = $rows->groupBy('NroPed')->map(function ($g) use ($bonis) {
     public function listcomanda(Request $request)
     {
         return DB::SELECT("SELECT * from tbproductos t, tbpedidos p, tbclientes c
-        where c.Cod_Aut=p.idCli and p.cod_prod=t.cod_prod and date(fecha)>='$request->fecha1' and date(fecha)<='$request->fecha2'
+        where c.Cod_Aut=p.idCli and p.cod_prod=t.cod_prod and p.deleted_at IS NULL and date(fecha)>='$request->fecha1' and date(fecha)<='$request->fecha2'
         and p.tipo='NORMAL' AND estado='ENVIADO' ");
     }
 
@@ -1354,7 +1353,7 @@ $resPedido = $rows->groupBy('NroPed')->map(function ($g) use ($bonis) {
             FROM tbpedidos p
             inner join tbclientes c on c.Cod_Aut=p.idCli
             inner join personal pe on p.CIfunc=pe.CodAut
-            where date(p.fecha)='$fecha'
+            where p.deleted_at IS NULL and date(p.fecha)='$fecha'
             GROUP by  p.bonificacionId,p.NroPed,p.pago,p.fecha,p.fact,cod_Aut,Id,Cod_ciudad,Cod_Nacio,c.cod_car,Nombres,Telf,c.Direccion,EstCiv,edad,Empresa,Categoria,Imp_pieza,CiVend,ListBlanck,MotivoListBlack,ListBlack,TipoPaciente,SupraCanal,Canal,subcanal,zona,Latitud,longitud,transporte,territorio,codcli,clinew,p.estado,pe.Nombre1,pe.App1");
         } else {
             $pedidos = DB::SELECT("
@@ -1362,7 +1361,7 @@ $resPedido = $rows->groupBy('NroPed')->map(function ($g) use ($bonis) {
             FROM tbpedidos p
             inner join tbclientes c on c.Cod_Aut=p.idCli
             inner join personal pe on p.CIfunc=pe.CodAut
-            where date(p.fecha)='$fecha' and p.CIfunc=$listapersonal
+            where p.deleted_at IS NULL and date(p.fecha)='$fecha' and p.CIfunc=$listapersonal
             GROUP by  p.bonificacionId,p.NroPed,p.pago,p.fecha,p.fact,cod_Aut,Id,Cod_ciudad,Cod_Nacio,c.cod_car,Nombres,Telf,c.Direccion,EstCiv,edad,Empresa,Categoria,Imp_pieza,CiVend,ListBlanck,MotivoListBlack,ListBlack,TipoPaciente,SupraCanal,Canal,subcanal,zona,Latitud,longitud,transporte,territorio,codcli,clinew,p.estado,pe.Nombre1,pe.App1");
         }
 //        colocar si tieneBonificaionId colcoar el clinete
@@ -1386,9 +1385,9 @@ $resPedido = $rows->groupBy('NroPed')->map(function ($g) use ($bonis) {
     {
         //$cl=DB::SELECT("SELECT * from tbclientes where ci='".$request->user()->CodAut."'")[0];
         if ($request->user()->CodAut == 1)
-            return DB::SELECT("SELECT p.NroPed,p.pago,p.fecha,p.fact,Cod_Aut,Id,Cod_ciudad,Cod_Nacio,cod_car,Nombres,Telf,Direccion,EstCiv,edad,Empresa,Categoria,Imp_pieza,CiVend,ListBlanck,MotivoListBlack,ListBlack,TipoPaciente,SupraCanal,Canal,subcanal,zona,Latitud,longitud,transporte,territorio,codcli,clinew,p.estado FROM tbpedidos p inner join tbclientes c on c.Cod_Aut=p.idCli  where date(p.fecha)='$request->fecha1' GROUP by  p.NroPed,p.pago,p.fecha,p.fact,cod_Aut,Id,Cod_ciudad,Cod_Nacio,cod_car,Nombres,Telf,Direccion,EstCiv,edad,Empresa,Categoria,Imp_pieza,CiVend,ListBlanck,MotivoListBlack,ListBlack,TipoPaciente,SupraCanal,Canal,subcanal,zona,Latitud,longitud,transporte,territorio,codcli,clinew,p.estado");
+            return DB::SELECT("SELECT p.NroPed,p.pago,p.fecha,p.fact,Cod_Aut,Id,Cod_ciudad,Cod_Nacio,cod_car,Nombres,Telf,Direccion,EstCiv,edad,Empresa,Categoria,Imp_pieza,CiVend,ListBlanck,MotivoListBlack,ListBlack,TipoPaciente,SupraCanal,Canal,subcanal,zona,Latitud,longitud,transporte,territorio,codcli,clinew,p.estado FROM tbpedidos p inner join tbclientes c on c.Cod_Aut=p.idCli  where p.deleted_at IS NULL and date(p.fecha)='$request->fecha1' GROUP by  p.NroPed,p.pago,p.fecha,p.fact,cod_Aut,Id,Cod_ciudad,Cod_Nacio,cod_car,Nombres,Telf,Direccion,EstCiv,edad,Empresa,Categoria,Imp_pieza,CiVend,ListBlanck,MotivoListBlack,ListBlack,TipoPaciente,SupraCanal,Canal,subcanal,zona,Latitud,longitud,transporte,territorio,codcli,clinew,p.estado");
         else
-            $sql = "SELECT p.NroPed,p.pago,p.fecha,p.fact,Cod_Aut,Id,Cod_ciudad,Cod_Nacio,cod_car,Nombres,Telf,Direccion,EstCiv,edad,Empresa,Categoria,Imp_pieza,CiVend,ListBlanck,MotivoListBlack,ListBlack,TipoPaciente,SupraCanal,Canal,subcanal,zona,Latitud,longitud,transporte,territorio,codcli,clinew,p.estado FROM tbpedidos p inner join tbclientes c on c.Cod_Aut=p.idCli  where date(p.fecha)='$request->fecha1' and c.CiVend='" . $request->user()->ci . "' GROUP by p.NroPed,p.pago,p.fecha,p.fact,Cod_Aut,Id,Cod_ciudad,Cod_Nacio,cod_car,Nombres,Telf,Direccion,EstCiv,edad,Empresa,Categoria,Imp_pieza,CiVend,ListBlanck,MotivoListBlack,ListBlack,TipoPaciente,SupraCanal,Canal,subcanal,zona,Latitud,longitud,transporte,territorio,codcli,clinew,p.estado";
+            $sql = "SELECT p.NroPed,p.pago,p.fecha,p.fact,Cod_Aut,Id,Cod_ciudad,Cod_Nacio,cod_car,Nombres,Telf,Direccion,EstCiv,edad,Empresa,Categoria,Imp_pieza,CiVend,ListBlanck,MotivoListBlack,ListBlack,TipoPaciente,SupraCanal,Canal,subcanal,zona,Latitud,longitud,transporte,territorio,codcli,clinew,p.estado FROM tbpedidos p inner join tbclientes c on c.Cod_Aut=p.idCli  where p.deleted_at IS NULL and date(p.fecha)='$request->fecha1' and c.CiVend='" . $request->user()->ci . "' GROUP by p.NroPed,p.pago,p.fecha,p.fact,Cod_Aut,Id,Cod_ciudad,Cod_Nacio,cod_car,Nombres,Telf,Direccion,EstCiv,edad,Empresa,Categoria,Imp_pieza,CiVend,ListBlanck,MotivoListBlack,ListBlack,TipoPaciente,SupraCanal,Canal,subcanal,zona,Latitud,longitud,transporte,territorio,codcli,clinew,p.estado";
             error_log($sql);
             return DB::SELECT($sql);
     }
@@ -1435,7 +1434,7 @@ $resPedido = $rows->groupBy('NroPed')->map(function ($g) use ($bonis) {
                 FROM tbctascobrar co WHERE co.CINIT=c.Id and co.Nrocierre=0 and co.Acuenta=0) as totdeuda ,
         (SELECT MIN(co.FechaEntreg) FROM tbctascobrar co WHERE co.CINIT=c.Id and co.Nrocierre=0 and co.Acuenta=0) as fechaminima
         FROM tbpedidos p inner join tbclientes c on c.Cod_Aut=p.idCli
-        where c.venta='INACTIVO' and p.estado='CREADO' and date(p.fecha)='$request->fecha'
+        where p.deleted_at IS NULL and c.venta='INACTIVO' and p.estado='CREADO' and date(p.fecha)='$request->fecha'
         GROUP by p.NroPed,Cod_Aut,Id,Cod_ciudad,Cod_Nacio,cod_car,Nombres,Telf,Direccion,EstCiv,edad,Empresa,Categoria,Imp_pieza,CiVend,ListBlanck,MotivoListBlack,ListBlack,TipoPaciente,SupraCanal,Canal,subcanal,zona,Latitud,longitud,transporte,territorio,codcli,clinew,p.estado");
 
     }
@@ -1448,21 +1447,17 @@ $resPedido = $rows->groupBy('NroPed')->map(function ($g) use ($bonis) {
             return response()->json(['message' => 'No hay pedidos para actualizar.'], 400);
         }
 
-        // Hacer un solo update masivo
-        $updated = DB::table('tbpedidos as p')
-            ->whereIn('p.NroPed', $nrosPedidos)
-            ->where('p.bonificacion', 0)
-            ->where('p.estado', '<>', 'ENVIADO') // evita re-actualizar los ya enviados
+        $pedidos = Pedido::whereIn('NroPed', $nrosPedidos)
+            ->where('bonificacion', 0)
+            ->where('estado', '<>', 'ENVIADO') // evita re-actualizar los ya enviados
             ->whereExists(function ($query) {
                 $query->select(DB::raw(1))
                     ->from('tbclientes as c')
-                    ->whereColumn('c.Cod_Aut', 'p.idCli')
+                    ->whereColumn('c.Cod_Aut', 'tbpedidos.idCli')
                     ->where('c.venta', 'ACTIVO');
             })
-            ->update([
-                'p.estado' => 'ENVIADO',
-                'p.envio'  => now(),
-            ]);
+            ->get();
+        $updated = $this->marcarEnviados($pedidos);
 
         return response()->json([
             'message' => "Se actualizaron $updated pedidos correctamente.",
@@ -1474,7 +1469,11 @@ $resPedido = $rows->groupBy('NroPed')->map(function ($g) use ($bonis) {
     public function enviarpedidos2(Request $request)
     {
         foreach ($request->clientes as $p) {
-            DB::select("UPDATE tbpedidos p set p.estado='ENVIADO' , p.envio = NOW()  where p.bonificacion=0 and p.NroPed='" . $p['NroPed'] . "' and (SELECT c.venta from tbclientes c where c.Cod_Aut=p.idCli)='ACTIVO'");
+            $pedidos = Pedido::where('NroPed', $p['NroPed'])
+                ->where('bonificacion', 0)
+                ->whereRaw("(SELECT c.venta from tbclientes c where c.Cod_Aut=tbpedidos.idCli)='ACTIVO'")
+                ->get();
+            $this->marcarEnviados($pedidos);
         }
     }
 
@@ -1492,13 +1491,16 @@ $resPedido = $rows->groupBy('NroPed')->map(function ($g) use ($bonis) {
             return response()->json(['message' => 'No se puede enviar un pedido de bonificacion'], 500);
             exit();
         }
-        DB::select("UPDATE tbpedidos p set p.estado='ENVIADO', p.envio = NOW()  where p.NroPed='" . $request->NroPed . "' and (SELECT c.venta from tbclientes c where c.Cod_Aut=p.idCli)='ACTIVO'");
+        $pedidos = Pedido::where('NroPed', $request->NroPed)
+            ->whereRaw("(SELECT c.venta from tbclientes c where c.Cod_Aut=tbpedidos.idCli)='ACTIVO'")
+            ->get();
+        $this->marcarEnviados($pedidos);
     }
 
     public function envped(Request $request)
     {
         //DB::select("UPDATE tbpedidos SET  estado='ENVIADO' WHERE NroPed='".$request->NroPed."'");
-        DB::select("UPDATE tbpedidos p set p.estado='ENVIADO', p.envio = NOW()  where p.NroPed='" . $request->NroPed . "'");
+        $this->marcarEnviados(Pedido::where('NroPed', $request->NroPed)->get());
     }
 
     /**
@@ -1516,13 +1518,13 @@ $resPedido = $rows->groupBy('NroPed')->map(function ($g) use ($bonis) {
     {
 //        return $request;
         $numpedido = $request->comanda;
-        DB::select("DELETE FROM tbpedidos where NroPed='$numpedido'");
+        $data = [];
         foreach ($request->productos as $p) {
             if ($p['tipo'] == 'POLLO' || $p['tipo'] == 'RES' || $p['tipo'] == 'CERDO')
                 $imp = 1;
             else
                 $imp = 0;
-            DB::table('tbpedidos')->insert([
+            $data[] = [
                 'NroPed' => $numpedido,
                 'cod_prod' => $p['cod_prod'],
                 'CIfunc' => $request->user()->CodAut,
@@ -1624,21 +1626,78 @@ $resPedido = $rows->groupBy('NroPed')->map(function ($g) use ($bonis) {
                 "rango" => $p['rango'],
                 "horario" => $request->horario,
                 "comentario" => $request->comentario,
-            ]);
+            ];
 //            var_dump($p);
         }
+        // Todo o nada: si falla una fila no debe quedar la comanda borrada
+        // sin sus productos nuevos.
+        DB::transaction(function () use ($numpedido, $data) {
+            $this->borrarComanda($numpedido);
+            $this->insertarPedidos($data);
+        });
     }
 
     public function deletecomanda(Request $request)
     {
         //        return $request;
         $numpedido = $request->comanda;
-        DB::select("DELETE FROM tbpedidos where NroPed='$numpedido'");
+        $this->borrarComanda($numpedido);
+    }
+
+    /**
+     * Reserva el siguiente numero de comanda. El bloqueo evita que dos
+     * vendedores guardando a la vez reciban el mismo NroPed.
+     */
+    private function siguienteComanda()
+    {
+        return DB::transaction(function () {
+            $cmdnum = DB::table('comandas')->lockForUpdate()->first();
+            $numpedido = $cmdnum->comanda + 1;
+            DB::table('comandas')->where('id', $cmdnum->id)->update(['comanda' => $numpedido]);
+            return $numpedido;
+        });
+    }
+
+    /**
+     * Inserta las filas por el modelo para que cada una quede en audits.
+     */
+    private function insertarPedidos(array $filas)
+    {
+        DB::transaction(function () use ($filas) {
+            foreach ($filas as $fila) {
+                Pedido::forceCreate($fila);
+            }
+        });
+    }
+
+    /**
+     * Borrado logico de todas las filas de una comanda; queda en audits.
+     */
+    private function borrarComanda($numpedido)
+    {
+        DB::transaction(function () use ($numpedido) {
+            Pedido::where('NroPed', $numpedido)->get()->each->delete();
+        });
+    }
+
+    /**
+     * Marca como ENVIADO fila por fila para que el cambio de estado quede en audits.
+     */
+    private function marcarEnviados($pedidos)
+    {
+        DB::transaction(function () use ($pedidos) {
+            foreach ($pedidos as $p) {
+                $p->estado = 'ENVIADO';
+                $p->envio = now();
+                $p->save();
+            }
+        });
+        return $pedidos->count();
     }
 
     public function listpedido2(Request $request)
     {
-        $pedido = DB::SELECT("SELECT NroPed,CIfunc,idCli,fecha,estado,pago,fact,horario,comentario from tbpedidos where NroPed='$request->NroPed'  group by NroPed,CIfunc,idCli,fecha,estado,pago,fact,horario,comentario ");
+        $pedido = DB::SELECT("SELECT NroPed,CIfunc,idCli,fecha,estado,pago,fact,horario,comentario from tbpedidos where deleted_at IS NULL and NroPed='$request->NroPed'  group by NroPed,CIfunc,idCli,fecha,estado,pago,fact,horario,comentario ");
 //        return $pedido;
         foreach ($pedido as $row) {
             $lisrped = DB::SELECT("SELECT
@@ -1742,7 +1801,7 @@ $resPedido = $rows->groupBy('NroPed')->map(function ($g) use ($bonis) {
             horario,
             comentario,
             tbproductos.Producto as nombre
-            from tbpedidos,tbproductos where tbpedidos.cod_prod=tbproductos.cod_prod and  NroPed = '$row->NroPed'");
+            from tbpedidos,tbproductos where tbpedidos.cod_prod=tbproductos.cod_prod and tbpedidos.deleted_at IS NULL and  NroPed = '$row->NroPed'");
 
             $row->pedidos = $lisrped;
         }
@@ -1879,7 +1938,7 @@ $resPedido = $rows->groupBy('NroPed')->map(function ($g) use ($bonis) {
 
     public function export(Request $request)
     {
-        $pedidos = DB::SELECT("SELECT * from tbpedidos where tipo='NORMAL' AND  date(fecha)>='$request->fecha1' and date(fecha)<='$request->fecha2' and estado='ENVIADO' ");
+        $pedidos = DB::SELECT("SELECT * from tbpedidos where deleted_at IS NULL and tipo='NORMAL' AND  date(fecha)>='$request->fecha1' and date(fecha)<='$request->fecha2' and estado='ENVIADO' ");
 //        return $pedidos;
         foreach ($pedidos as $p) {
 //            return  $p->NroPed;
@@ -2107,7 +2166,7 @@ $resPedido = $rows->groupBy('NroPed')->map(function ($g) use ($bonis) {
 
         $sql = "SELECT c.Id,c.Nombres,p.NroPed,p.pago,p.fact,CONCAT(e.Nombre1,' ',e.App1)  personal,p.fecha,p.envio,impreso
         from tbpedidos p inner join personal e on p.CIfunc=e.CodAut inner join tbclientes c on p.idCli=c.Cod_Aut
-        where date(p.fecha)='$fecha' and p.tipo='NORMAL' and estado='ENVIADO'
+        where p.deleted_at IS NULL and date(p.fecha)='$fecha' and p.tipo='NORMAL' and estado='ENVIADO'
         GROUP by c.Id,c.Nombres,p.NroPed,p.pago,p.fact,personal,p.fecha,impreso,p.envio
         order by c.Id, p.NroPed";
 //        error_log($sql);
@@ -2119,11 +2178,11 @@ $resPedido = $rows->groupBy('NroPed')->map(function ($g) use ($bonis) {
         if ($request->id == 0)
             return DB::select("SELECT p.idCli,c.Id,c.Nombres,c.Latitud,c.longitud,concat(trim(e.Nombre1),' ',trim(e.App1)) as vendedor
             from tbpedidos p inner join tbclientes c on p.idCli=c.Cod_Aut inner join personal e on p.CIfunc=e.CodAut
-            where date(p.fecha)='$request->fecha' group by p.idCli,c.Id,c.Nombres,c.Latitud,c.longitud,e.Nombre1,e.App1 ");
+            where p.deleted_at IS NULL and date(p.fecha)='$request->fecha' group by p.idCli,c.Id,c.Nombres,c.Latitud,c.longitud,e.Nombre1,e.App1 ");
         else
             return DB::select("SELECT p.idCli,c.Id,c.Nombres,c.Latitud,c.longitud,concat(trim(e.Nombre1),' ',trim(e.App1)) as vendedor
             from tbpedidos p inner join tbclientes c on p.idCli=c.Cod_Aut inner join personal e on p.CIfunc=e.CodAut
-            where date(p.fecha)='$request->fecha' and  trim(p.CIfunc)=$request->id group by p.idCli,c.Id,c.Nombres,c.Latitud,c.longitud,e.Nombre1,e.App1");
+            where p.deleted_at IS NULL and date(p.fecha)='$request->fecha' and  trim(p.CIfunc)=$request->id group by p.idCli,c.Id,c.Nombres,c.Latitud,c.longitud,e.Nombre1,e.App1");
     }
 
     public function mapClientes(Request $request){
@@ -2175,7 +2234,7 @@ $resPedido = $rows->groupBy('NroPed')->map(function ($g) use ($bonis) {
                 SELECT p.NroPed, p.Cant, tpr.cod_prod, tpr.Producto
                 FROM tbpedidos p
                 INNER JOIN tbproductos tpr ON p.cod_prod = tpr.cod_prod
-                WHERE DATE(p.fecha) = ? AND p.tipo = 'NORMAL' AND p.idCli = ?
+                WHERE p.deleted_at IS NULL AND DATE(p.fecha) = ? AND p.tipo = 'NORMAL' AND p.idCli = ?
             ", [$request->fecha, $request->idCli]);
         return response()->json($resultado);
     }
@@ -2205,6 +2264,7 @@ $resPedido = $rows->groupBy('NroPed')->map(function ($g) use ($bonis) {
             p.color = ?,
             p.colorStyle = ?
         WHERE DATE(p.fecha) = ?
+        AND p.deleted_at IS NULL
         AND TRIM(p.idCli) IN ('$idsString')
     ", [$placa, $color['color'], $color['colorStyle'], $fecha]);
     }
@@ -2221,7 +2281,7 @@ $resPedido = $rows->groupBy('NroPed')->map(function ($g) use ($bonis) {
         FROM tbpedidos p
         inner join tbclientes c on c.Cod_Aut=p.idCli
         inner join personal pe on p.CIfunc=pe.CodAut
-        where date(p.fecha)='$fecha'
+        where p.deleted_at IS NULL and date(p.fecha)='$fecha'
         GROUP by  p.NroPed,p.pago,p.fecha,p.fact,cod_Aut,Id,Cod_ciudad,Cod_Nacio,cod_car,Nombres,Telf,c.Direccion,EstCiv,edad,Empresa,Categoria,Imp_pieza,CiVend,ListBlanck,MotivoListBlack,ListBlack,TipoPaciente,SupraCanal,Canal,subcanal,zona,Latitud,longitud,transporte,territorio,codcli,clinew,p.estado,pe.Nombre1,pe.App1
         order by pe.Nombre1,pe.App1");
         }

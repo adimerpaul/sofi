@@ -4,9 +4,18 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
+use OwenIt\Auditing\Contracts\Auditable;
 
-class Pedido extends Model{
-    use HasFactory;
+/**
+ * Cada fila es un producto de un pedido; el pedido completo es el NroPed.
+ *
+ * Solo lo que se escribe por Eloquent queda en audits: crear, editar o borrar
+ * filas de tbpedidos siempre por este modelo, nunca con DB::table ni SQL crudo.
+ * Las consultas crudas que lean tbpedidos deben filtrar deleted_at IS NULL.
+ */
+class Pedido extends Model implements Auditable{
+    use HasFactory, SoftDeletes, \OwenIt\Auditing\Auditable;
     protected $table="tbpedidos";
     protected $primaryKey="codAut";
     public $timestamps = false;

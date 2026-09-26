@@ -71,6 +71,7 @@ class CamineroController extends Controller
         $pedidos = collect();
         if ($facturas->isNotEmpty()) {
             $pedidos = DB::table('tbpedidos')
+                ->whereNull('tbpedidos.deleted_at')
                 ->whereIn('NroPed', $facturas->pluck('nro_pedido')->unique()->all())
                 ->where('bonificacion', 0)
                 ->groupBy('NroPed', DB::raw('UPPER(TRIM(tipo))'))
@@ -162,6 +163,7 @@ class CamineroController extends Controller
         // Lo que todavia no paso por caja no tiene comprobante y por eso no
         // aparece arriba: se avisa para que el caminero no lo de por perdido.
         $sinComprobante = DB::table('tbpedidos as p')
+            ->whereNull('p.deleted_at')
             ->leftJoin('facturas as f', function ($join) {
                 $join->on('f.pedido_nro', '=', 'p.NroPed')
                     ->on(DB::raw('UPPER(TRIM(f.pedido_tipo))'), '=', DB::raw('UPPER(TRIM(p.tipo))'))
@@ -378,6 +380,7 @@ class CamineroController extends Controller
         }
 
         $pedido = DB::table('tbpedidos')
+            ->whereNull('tbpedidos.deleted_at')
             ->where('NroPed', $factura->pedido_nro)
             ->whereRaw('UPPER(TRIM(tipo)) = ?', [strtoupper(trim((string) $factura->pedido_tipo))])
             ->where('bonificacion', 0)
@@ -637,6 +640,7 @@ class CamineroController extends Controller
 
         if ($salieron === 0) {
             $salieron = DB::table('tbpedidos')
+                ->whereNull('tbpedidos.deleted_at')
                 ->whereDate('fecha', $fecha)
                 ->where('bonificacion', 0)
                 ->whereRaw("TRIM(COALESCE(placa, '')) = ?", [$placa])

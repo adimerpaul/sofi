@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Models\HorarioEnvio;
+use App\Models\Pedido;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 
@@ -31,21 +32,27 @@ class EnviarPedidosAutomatico extends Command
                 continue;
             }
 
-            $enviados = DB::table('tbpedidos as p')
-                ->where('p.estado', 'CREADO')
-                ->where('p.bonificacion', 0)
-                ->whereDate('p.fecha', $ahora->toDateString())
+            $pedidos = Pedido::where('estado', 'CREADO')
+                ->where('bonificacion', 0)
+                ->whereDate('fecha', $ahora->toDateString())
                 ->whereExists(function ($query) {
                     $query->select(DB::raw(1))
                         ->from('tbclientes as c')
-                        ->whereColumn('c.Cod_Aut', 'p.idCli')
+                        ->whereColumn('c.Cod_Aut', 'tbpedidos.idCli')
                         ->where('c.venta', 'ACTIVO');
                 })
-                ->update([
-                    'p.estado' => 'ENVIADO',
-                    'p.envio' => now(),
-                    'p.enviado_sistema' => 1,
-                ]);
+                ->get();
+
+            // Fila por fila para que el cambio de estado quede en audits.
+            DB::transaction(function () use ($pedidos) {
+                foreach ($pedidos as $p) {
+                    $p->estado = 'ENVIADO';
+                    $p->envio = now();
+                    $p->enviado_sistema = 1;
+                    $p->save();
+                }
+            });
+            $enviados = $pedidos->count();
 
             $horario->ultima_ejecucion = $ahora->toDateString();
             $horario->pedidos_enviados = $enviados;

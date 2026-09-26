@@ -282,6 +282,7 @@ class CobranzaVerificacionController extends Controller
 
         // El camion es el del pedido; se busca de una vez para todos.
         $pedidos = DB::table('tbpedidos')
+            ->whereNull('tbpedidos.deleted_at')
             ->whereIn('NroPed', $facturas->pluck('pedido_nro')->filter()->unique()->all())
             ->where('bonificacion', 0)
             ->groupBy('NroPed', DB::raw('UPPER(TRIM(tipo))'))

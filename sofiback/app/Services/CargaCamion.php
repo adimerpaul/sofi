@@ -233,6 +233,7 @@ class CargaCamion
     public function pedidosSinFacturar($fecha, $placa): int
     {
         $dia = DB::table('tbpedidos')
+            ->whereNull('tbpedidos.deleted_at')
             ->where('fecha', '>=', date('Y-m-d', strtotime($fecha . ' -7 days')) . ' 00:00:00')
             ->where('fecha', '<', $this->diaSiguiente($fecha))
             ->where('bonificacion', 0)
@@ -244,6 +245,7 @@ class CargaCamion
         }
 
         return (int) DB::table('tbpedidos as p')
+            ->whereNull('p.deleted_at')
             ->leftJoin('facturas as f', function ($join) {
                 $join->on('f.pedido_nro', '=', 'p.NroPed')
                     ->on(DB::raw('UPPER(TRIM(f.pedido_tipo))'), '=', DB::raw('UPPER(TRIM(p.tipo))'))
@@ -271,6 +273,7 @@ class CargaCamion
             ->join('tbpedidos as p', function ($join) {
                 $join->on('p.NroPed', '=', 'f.pedido_nro')
                     ->on(DB::raw('UPPER(TRIM(p.tipo))'), '=', DB::raw('UPPER(TRIM(f.pedido_tipo))'))
+                    ->whereNull('p.deleted_at')
                     ->where('p.bonificacion', 0);
             })
             ->leftJoin('tbclientes as c', 'c.Cod_Aut', '=', 'f.cliente_id')
