@@ -167,6 +167,30 @@ class ProductoController extends Controller{
     }
 
     /**
+     * Pollo fresco y trozado a granel de la planilla de inventario diario.
+     * Se venden por caja y se cobran por peso, asi que el pedido tiene que
+     * tratarlos como tipo POLLO con unidad CAJA.
+     */
+    private const CODIGOS_POLLO = [
+        '501600', '501601', '501604', '501606',
+        '501704', '502102', '502108', '502106',
+    ];
+
+    /** Pasa de una vez los productos de CODIGOS_POLLO a tipo POLLO y unidad CAJA. */
+    public function actualizarPollos()
+    {
+        $actualizados = DB::table('tbproductos')
+            ->whereIn(DB::raw('TRIM(cod_prod)'), self::CODIGOS_POLLO)
+            ->update(['tipo' => 'POLLO', 'codUnid' => 'CAJA']);
+
+        return response()->json([
+            'message'      => count(self::CODIGOS_POLLO) . ' pollos quedaron como POLLO / CAJA',
+            'actualizados' => $actualizados,
+            'codigos'      => self::CODIGOS_POLLO,
+        ]);
+    }
+
+    /**
      * Valores de las columnas legadas de tbproductos que la pantalla no pide.
      *
      * tbproductos viene del sistema viejo: casi todas sus columnas son NOT NULL

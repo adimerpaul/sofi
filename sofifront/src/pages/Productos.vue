@@ -12,6 +12,13 @@
       </div>
       <div class="col-auto">
         <q-btn
+          dense unelevated no-caps color="orange-8" icon="sync"
+          label="Actualizar pollos" :loading="actualizandoPollos"
+          @click="actualizarPollos"
+        />
+      </div>
+      <div class="col-auto">
+        <q-btn
           dense unelevated no-caps color="primary" icon="add"
           label="Nuevo producto" @click="abrirCreacion"
         />
@@ -308,6 +315,7 @@ export default {
       // Fila de la tabla que se está editando, para refrescarla al guardar.
       filaEditada: null,
       exportando: null,
+      actualizandoPollos: false,
       gruposFiltrados: [],
       columns: [
         { name: 'acciones', label: 'Opciones', field: 'acciones', align: 'left' },
@@ -434,6 +442,27 @@ export default {
         conStock: this.filtros.conStock ? 1 : 0,
         incluirInactivos: this.filtros.incluirInactivos ? 1 : 0
       }
+    },
+
+    actualizarPollos () {
+      this.$q.dialog({
+        title: 'Actualizar pollos',
+        message: 'Los productos 501600, 501601, 501604, 501606, 501704, 502102, 502108 y 502106 ' +
+          'pasarán a tipo POLLO y unidad CAJA. ¿Continuar?',
+        cancel: true,
+        persistent: true
+      }).onOk(() => {
+        this.actualizandoPollos = true
+        this.$api.post('productos/actualizarPollos').then(res => {
+          this.$q.notify({ message: res.data.message, color: 'positive', icon: 'check', position: 'top' })
+          this.cargarFiltros()
+          this.recargar()
+        }).catch(err => {
+          this.avisarError(err, 'No se pudieron actualizar los pollos')
+        }).finally(() => {
+          this.actualizandoPollos = false
+        })
+      })
     },
 
     exportar (formato) {

@@ -66,6 +66,7 @@ Route::group(['middleware'=>'auth:sanctum'],function (){
     Route::get('/filtrosProducto',[\App\Http\Controllers\ProductoController::class,'filtrosProducto']);
     Route::get('/productos/excel',[\App\Http\Controllers\ProductoController::class,'exportarExcel']);
     Route::get('/productos/pdf',[\App\Http\Controllers\ProductoController::class,'exportarPdf']);
+    Route::post('/productos/actualizarPollos',[\App\Http\Controllers\ProductoController::class,'actualizarPollos']);
     Route::post('/productos',[\App\Http\Controllers\ProductoController::class,'crear']);
     Route::put('/productos/{codProd}',[\App\Http\Controllers\ProductoController::class,'actualizar']);
     Route::delete('/productos/{codProd}',[\App\Http\Controllers\ProductoController::class,'eliminar']);
@@ -90,6 +91,8 @@ Route::group(['middleware'=>'auth:sanctum'],function (){
     Route::get('/facturacion/carga',[\App\Http\Controllers\FacturacionController::class,'carga']);
     // Caja aprueba la carga de todo un camion de una vez.
     Route::post('/facturacion/carga/aprobar',[\App\Http\Controllers\FacturacionController::class,'aprobarCarga']);
+    // Caja marca como revisadas las canastas elegidas en la grilla.
+    Route::post('/facturacion/carga/marcar',[\App\Http\Controllers\FacturacionController::class,'marcarCargaVarias']);
     Route::get('/facturacion/camiones',[\App\Http\Controllers\FacturacionController::class,'camiones']);
     Route::get('/facturacion/{factura}/voucher',[\App\Http\Controllers\FacturacionController::class,'voucher']);
     Route::get('/facturacion/{factura}/factura',[\App\Http\Controllers\FacturacionController::class,'factura']);
