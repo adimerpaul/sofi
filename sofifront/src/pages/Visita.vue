@@ -1413,8 +1413,8 @@ export default {
         nombre: this.producto.Producto,
         cod_prod: this.producto.cod_prod,
         codUnid: this.producto.codUnid,
-        // Solo los productos por caja eligen unidad; por defecto se piden en cajas.
-        caja: this.producto.codUnid == 'CAJA' ? 'CAJA' : null,
+        // Solo los productos por caja eligen unidad; por defecto se piden en kilos.
+        caja: this.producto.codUnid == 'CAJA' ? 'KG' : null,
         precio: parseFloat(this.producto.Precio).toFixed(2),
         precios: this.listaPrecios(this.producto),
         // Si el producto lo trae, el subtotal sale de este monto y no del
