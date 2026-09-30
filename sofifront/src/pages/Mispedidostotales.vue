@@ -1,67 +1,216 @@
 <template>
   <q-page class="q-pa-xs">
     <div class="row">
-      <div class="col-12 col-md-2">
-        <q-input dense outlined v-model="fecha1" label="Fecha Ini" type="date"/>
+      <div class="col-12 row items-center q-gutter-xs barra-pedidos">
+        <q-input dense outlined v-model="fecha1" type="date" class="barra-fecha" @update:model-value="misclientes"/>
+        <q-btn :loading="loading" dense unelevated color="info" icon="search" @click="misclientes">
+          <q-tooltip>Consultar</q-tooltip>
+        </q-btn>
+        <q-btn dense unelevated no-caps color="red-7" icon="delete_sweep" label="Eliminados" @click="verEliminados">
+          <q-tooltip>Pedidos eliminados de la fecha</q-tooltip>
+        </q-btn>
+        <q-btn-group unelevated>
+          <q-btn dense no-caps label="Ayer" :color="fecha1 == diaRelativo(-1) ? 'primary' : 'grey-4'"
+                 :text-color="fecha1 == diaRelativo(-1) ? 'white' : 'black'" @click="irADia(-1)"/>
+          <q-btn dense no-caps label="Hoy" :color="fecha1 == diaRelativo(0) ? 'primary' : 'grey-4'"
+                 :text-color="fecha1 == diaRelativo(0) ? 'white' : 'black'" @click="irADia(0)"/>
+        </q-btn-group>
+        <q-input outlined dense debounce="300" v-model="filter" placeholder="Buscar" class="col barra-buscar">
+          <template v-slot:append>
+            <q-icon name="search" size="xs"/>
+          </template>
+        </q-input>
       </div>
-      <div class="col-12 col-md-2">
-        <q-select v-model="listapersonal" outlined dense
-                  :options="listapersonales" label="Personal" emit-value map-options
-                  :option-value="row => row.CodAut"
-        />
-<!--        <pre>{{listapersonales}}</pre>-->
+      <!-- Filtro por vendedor: solo los que hicieron pedidos en la fecha; varios a la vez, ninguno = todos -->
+      <div class="col-12 q-py-xs">
+        <q-chip dense clickable :outline="vendedoresSel.length > 0" color="primary" text-color="white"
+                class="q-ml-none" @click="vendedoresSel = []">
+          Todos ({{ clientes.length }})
+        </q-chip>
+        <q-chip v-for="v in vendedoresDia" :key="v.CIfunc" dense clickable
+                :outline="!vendedoresSel.includes(v.CIfunc)" color="teal" text-color="white"
+                @click="toggleVendedor(v.CIfunc)">
+          {{ v.vendedor }} ({{ v.pedidos }})
+        </q-chip>
       </div>
-      <div class="col-12 col-md-2 flex flex-center">
-        <q-btn :loading="loading" color="info" icon="search" label="consulta" @click="misclientes" no-caps/>
+      <!-- Tarjetas de totales (segun el filtro de vendedor) -->
+      <div class="col-12 row q-col-gutter-xs q-mt-none q-mb-xs">
+        <div class="col-3">
+          <q-card flat bordered class="tarjeta-total">
+            <div class="tarjeta-titulo">Pedidos</div>
+            <div class="tarjeta-valor">{{ resumen.pedidos }}</div>
+            <div class="tarjeta-sub">{{ resumen.creados }} creados · {{ resumen.enviados }} env.</div>
+          </q-card>
+        </div>
+        <div class="col-3">
+          <q-card flat bordered class="tarjeta-total">
+            <div class="tarjeta-titulo">Total Bs</div>
+            <div class="tarjeta-valor text-positive">{{ resumen.total }}</div>
+            <div class="tarjeta-sub">prom. {{ resumen.promedio }}</div>
+          </q-card>
+        </div>
+        <div class="col-3">
+          <q-card flat bordered class="tarjeta-total">
+            <div class="tarjeta-titulo">Productos</div>
+            <div class="tarjeta-valor text-primary">{{ resumen.productos }}</div>
+            <div class="tarjeta-sub">{{ resumen.lineas }} líneas</div>
+          </q-card>
+        </div>
+        <div class="col-3">
+          <q-card flat bordered class="tarjeta-total cursor-pointer" @click="verResumen = !verResumen">
+            <div class="tarjeta-titulo">Cantidad</div>
+            <div class="tarjeta-valor text-orange-9">{{ resumen.cantidad }}</div>
+            <div class="tarjeta-sub">
+              {{ verResumen ? 'ocultar' : 'ver detalle' }}
+              <q-icon :name="verResumen ? 'expand_less' : 'expand_more'"/>
+            </div>
+          </q-card>
+        </div>
+        <!-- Por tipo: NORMAL son los embutidos -->
+        <div v-for="t in resumenTipos" :key="t.tipo" :class="resumenTipos.length > 2 ? 'col-3' : 'col-6'">
+          <q-card flat bordered class="tarjeta-total" :class="'tarjeta-' + t.tipo.toLowerCase()">
+            <div class="tarjeta-titulo">{{ t.etiqueta }}</div>
+            <div class="tarjeta-valor">{{ t.pedidos }} <span class="tarjeta-sub">ped.</span></div>
+            <div class="tarjeta-sub">{{ t.lineas }} lín. · {{ t.subtotal }} Bs</div>
+          </q-card>
+        </div>
+        <div class="col-12" v-if="verResumen">
+          <q-markup-table dense flat bordered separator="cell" class="tabla-compacta">
+            <thead>
+            <tr>
+              <th class="text-left">Producto</th>
+              <th class="text-right">Cant.</th>
+              <th class="text-right">Pedidos</th>
+              <th class="text-right">Bs</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr v-for="p in resumenProductos" :key="p.nombre">
+              <td class="text-left">{{ p.nombre }}</td>
+              <td class="text-right text-weight-bold">{{ p.cantidad }}</td>
+              <td class="text-right">{{ p.pedidos }}</td>
+              <td class="text-right">{{ p.subtotal }}</td>
+            </tr>
+            </tbody>
+          </q-markup-table>
+        </div>
       </div>
-<!--      <div class="col-4 col-sm-4 flex flex-center">-->
-<!--        <q-btn :loading="loading" class="full-width" color="green" type="a"-->
-<!--               :href="url+'excel/p/'+fecha1+'/'+fecha2+'/'+$store.state.login.user.CodAut" target="_blank" icon="list"-->
-<!--               label="Reporte Pollo" @click1="generarpollo"/>-->
-<!--      </div>-->
-<!--      <div class="col-4 col-sm-4 flex flex-center">-->
-<!--        <q-btn :loading="loading" class="full-width" color="accent" type="a"-->
-<!--               :href="url+'excel/r/'+fecha1+'/'+fecha2+'/'+$store.state.login.user.CodAut" target="_blank" icon="list"-->
-<!--               label="Reporte Res" @click1="generarres"/>-->
-<!--      </div>-->
-<!--      <div class="col-4 col-sm-4 flex flex-center">-->
-<!--        <q-btn :loading="loading" class="full-width" color="teal" type="a"-->
-<!--               :href="url+'excel/c/'+fecha1+'/'+fecha2+'/'+$store.state.login.user.CodAut" target="_blank" icon="list"-->
-<!--               label="Reporte Cerdo" @click1="generarcerdo"/>-->
-<!--      </div>-->
-      <!--  <div class="col-6 col-sm-3 flex flex-center">-->
-      <!--    <q-btn class="full-width" color="teal" icon="list" label="Reporte Comanda" @click="generarcomanda" />-->
-      <!--  </div>-->
       <div class="col-12">
-        <q-table :rows-per-page-options="[0]" dense title="Clientes " :columns="columns" :rows="clientes"
-                 :filter="filter" wrap-cells flat bordered>
-          <template v-slot:body-cell-opciones="props">
+        <q-table :rows-per-page-options="[0]" hide-pagination dense flat bordered :columns="columns"
+                 :rows="clientesFiltrados" :filter="filter" row-key="NroPed" class="tabla-compacta" separator="cell">
+          <template v-slot:body-cell-numero_dia="props">
             <q-td :props="props">
-              <q-btn @click="listpedidos(props.row)" :color="props.row.estado=='CREADO'?'primary':'warning'"
-                     :label="props.row.estado=='CREADO'?'Modificar':'Enviado'" icon="shop" size="xs" dense no-caps/>
-              <br>
-              <q-chip v-if="props.row.clienteBonificacion" color="orange-9" text-color="white" size="xs"
-                      class="q-ml-xs">
-                <q-icon name="star" class="q-mr-xs"/>
-                {{ props.row.clienteBonificacion }}
-              </q-chip>
-<!--              <q-btn @click="imprimirboleta(props.row)" color="info" icon="print" size="xs"-->
-<!--                     v-if="props.row.estado=='ENVIADO'" class="q-ml-xs"/>-->
+              <q-badge :color="descuadre(props.row) ? 'orange-9' : 'primary'" class="text-weight-bold"
+                       :label="props.row.numero_dia || '-'"/>
+              <q-tooltip v-if="descuadre(props.row)">
+                No coincide con el conteo del vendedor ({{ props.row._nv }}): hay pedidos eliminados antes
+              </q-tooltip>
             </q-td>
           </template>
-          <template v-slot:top-right>
-            <q-input outlined dense debounce="300" v-model="filter" placeholder="Buscar">
-              <template v-slot:append>
-                <q-icon name="search"/>
-              </template>
-            </q-input>
+          <template v-slot:body-cell-opciones="props">
+            <q-td :props="props">
+              <div class="row no-wrap items-center">
+                <q-btn @click="listpedidos(props.row)" :color="props.row.estado=='CREADO'?'primary':'warning'"
+                       :icon="props.row.estado=='CREADO'?'edit':'send'" size="xs" dense unelevated>
+                  <q-tooltip>{{ props.row.estado=='CREADO'?'Modificar':'Enviado' }}</q-tooltip>
+                </q-btn>
+                <q-btn @click="verAuditoria(props.row)" color="grey-8" icon="history" size="xs" dense unelevated
+                       class="q-ml-xs">
+                  <q-tooltip>Historial de cambios</q-tooltip>
+                </q-btn>
+              </div>
+            </q-td>
+          </template>
+          <template v-slot:body-cell-Nombres="props">
+            <q-td :props="props">
+              <div class="text-weight-medium ellipsis-cliente">{{ props.row.Nombres }}</div>
+              <q-chip v-if="props.row.clienteBonificacion" color="orange-9" text-color="white" dense size="xs"
+                      class="q-ma-none" icon="star" :label="props.row.clienteBonificacion"/>
+            </q-td>
           </template>
         </q-table>
-<!--        <q-btn style="width: 100%" @click="enviarpedidos" color="warning" icon="check"-->
-<!--               label="Enviar todos los pedidos"></q-btn>-->
-        <!--    <q-btn style="width: 100%" @click="expedidos" color="red" icon="warning" label="export pedidos"> </q-btn>-->
       </div>
 
+      <!-- Historial (audits) de una comanda -->
+      <q-dialog v-model="modalAuditoria" full-width>
+        <q-card>
+          <q-card-section class="row items-center q-py-sm">
+            <div class="text-subtitle1 text-weight-bold">
+              Historial comanda {{ auditoriaPedido.NroPed }}
+              <span class="text-grey-7 text-body2">· N° {{ auditoriaPedido.numero_dia || '-' }} · {{ auditoriaPedido.Nombres }}</span>
+            </div>
+            <q-space/>
+            <q-btn flat dense round icon="close" v-close-popup/>
+          </q-card-section>
+          <q-separator/>
+          <q-card-section class="q-pa-sm" style="max-height: 75vh; overflow: auto">
+            <div v-if="!auditoriaGrupos.length" class="text-grey-7 q-pa-md text-center">Sin registros de auditoría</div>
+            <q-timeline dense color="primary" layout="dense" class="q-ml-sm">
+              <q-timeline-entry v-for="g in auditoriaGrupos" :key="g.clave" :color="g.color" :icon="g.icono">
+                <template v-slot:title>
+                  <div class="text-body2 text-weight-bold">{{ g.titulo }}
+                    <span class="text-weight-regular text-grey-8">· {{ g.usuario }}</span></div>
+                </template>
+                <template v-slot:subtitle>{{ g.fecha }} <span v-if="g.ip">· IP {{ g.ip }}</span> · {{ g.items.length }} fila(s)</template>
+                <q-markup-table dense flat bordered separator="cell" class="tabla-compacta">
+                  <tbody>
+                  <tr v-for="it in g.items" :key="it.id">
+                    <td style="width: 35%">{{ it.producto }}</td>
+                    <td>
+                      <span v-for="c in it.cambios" :key="c.campo" class="q-mr-sm">
+                        <b>{{ c.campo }}:</b>
+                        <span v-if="c.antes !== undefined" class="text-negative">{{ c.antes }}</span>
+                        <span v-if="c.antes !== undefined && c.despues !== undefined"> → </span>
+                        <span v-if="c.despues !== undefined" class="text-positive">{{ c.despues }}</span>
+                      </span>
+                    </td>
+                  </tr>
+                  </tbody>
+                </q-markup-table>
+              </q-timeline-entry>
+            </q-timeline>
+          </q-card-section>
+        </q-card>
+      </q-dialog>
+      <!-- Comandas eliminadas (soft delete) de la fecha -->
+      <q-dialog v-model="modalEliminados" full-width>
+        <q-card>
+          <q-card-section class="row items-center q-py-sm">
+            <div class="text-subtitle1 text-weight-bold">Pedidos eliminados {{ fecha1 }}
+              <span class="text-grey-7 text-body2">· {{ eliminadosFiltrados.length }} pedido(s) ·
+                {{ eliminadosFiltrados.reduce((s, e) => s + parseFloat(e.total || 0), 0).toFixed(2) }} Bs</span>
+            </div>
+            <q-space/>
+            <q-btn flat dense round icon="close" v-close-popup/>
+          </q-card-section>
+          <q-separator/>
+          <q-card-section class="q-pa-sm" style="max-height: 75vh; overflow: auto">
+            <q-table :rows="eliminadosFiltrados" :columns="columnsEliminados" row-key="NroPed" dense flat bordered
+                     separator="cell" class="tabla-compacta" :rows-per-page-options="[0]" hide-pagination
+                     no-data-label="No hay pedidos eliminados en esta fecha">
+              <template v-slot:body-cell-numero_dia="props">
+                <q-td :props="props">
+                  <q-badge color="red-7" class="text-weight-bold" :label="props.row.numero_dia || '-'"/>
+                </q-td>
+              </template>
+              <template v-slot:body-cell-opciones="props">
+                <q-td :props="props">
+                  <q-btn dense unelevated size="xs" color="grey-8" icon="history" @click="verAuditoria(props.row)">
+                    <q-tooltip>Ver historial</q-tooltip>
+                  </q-btn>
+                </q-td>
+              </template>
+              <template v-slot:body-cell-productos="props">
+                <q-td :props="props">
+                  <div v-for="(p, i) in props.row.productos" :key="i" class="text-caption">
+                    {{ p.cantidad }} × {{ p.nombre }} <span class="text-grey-7">({{ p.subtotal }})</span>
+                  </div>
+                </q-td>
+              </template>
+            </q-table>
+          </q-card-section>
+        </q-card>
+      </q-dialog>
       <q-dialog full-width full-height v-model="modalpedido">
         <q-card>
           <q-card-section>
@@ -742,15 +891,38 @@ export default {
       misproductos: [],
       filteproducto: '',
       producto: {label: ''},
+      verResumen: false,
+      vendedoresSel: [],
+      modalAuditoria: false,
+      auditoriaPedido: {},
+      auditoria: [],
+      modalEliminados: false,
+      eliminados: [],
+      columnsEliminados: [
+        {label: 'N° vend.', name: 'numero_dia', field: 'numero_dia', align: 'center', sortable: true},
+        {label: '', name: 'opciones', field: 'opciones', align: 'left'},
+        {label: 'Com.', name: 'NroPed', field: 'NroPed', align: 'right'},
+        {label: 'Vendedor', name: 'vendedor', field: 'vendedor', align: 'left', sortable: true},
+        {label: 'Cliente', name: 'Nombres', field: 'Nombres', align: 'left'},
+        {label: 'Creado', name: 'fecha', field: row => (row.fecha || '').substring(11, 16), align: 'center'},
+        {label: 'Eliminado', name: 'deleted_at', field: row => (row.deleted_at || '').substring(0, 16), align: 'left', sortable: true},
+        {label: 'Por', name: 'borrado_por', field: 'borrado_por', align: 'left'},
+        {label: 'Estado', name: 'estado', field: 'estado', align: 'left'},
+        {label: 'Bs', name: 'total', field: 'total', align: 'right'},
+        {label: 'Productos', name: 'productos', field: 'productos', align: 'left'},
+      ],
       columns: [
-        {label: 'opciones', name: 'opciones', field: 'opciones'},
-        {label: 'Comanda', name: 'NroPed', field: 'NroPed'},
-        {label: 'Nombre', name: 'Nombres', field: 'Nombres', align: 'left'},
+        {label: '#', name: '_n', field: '_n', align: 'right', sortable: true},
+        {label: 'N° vend.', name: 'numero_dia', field: 'numero_dia', align: 'center', sortable: true},
+        {label: '', name: 'opciones', field: 'opciones', align: 'left'},
+        {label: 'Cliente', name: 'Nombres', field: 'Nombres', align: 'left'},
+        {label: 'Vendedor', name: 'vendedor', field: 'vendedor', align: 'left', sortable: true},
+        {label: 'Bs', name: 'total', field: 'total', align: 'right', sortable: true},
+        {label: 'Hora', name: 'fecha', field: row => (row.fecha || '').substring(11, 16), align: 'center'},
+        {label: 'Pago', name: 'pago', field: 'pago', align: 'left'},
+        {label: 'Fac', name: 'fact', field: 'fact', align: 'center'},
+        {label: 'Com.', name: 'NroPed', field: 'NroPed', align: 'right'},
         {label: 'CI', name: 'Id', field: 'Id', align: 'left'},
-        {label: 'Fec/Hora', name: 'fecha', field: 'fecha', align: 'left'},
-        {label: 'PAGO', name: 'pago', field: 'pago', align: 'left'},
-        {label: 'FACTURA', name: 'fact', field: 'fact', align: 'left'},
-        {label: 'Vendedor', name: 'vendedor', field: 'vendedor', align: 'left'},
       ],
       columnsproducto: [
         {label: 'subtotal', name: 'subtotal', field: 'subtotal'},
@@ -767,7 +939,6 @@ export default {
     }
   },
   created() {
-    this.getListapersonal()
     this.misclientes()
     this.$api.get('producto').then(res => {
       // console.log(res.data)
@@ -1897,15 +2068,189 @@ export default {
       }
     },
 
+    diaRelativo(dias) {
+      return date.formatDate(addToDate(new Date(), {days: dias}), 'YYYY-MM-DD')
+    },
+    // Accesos rapidos Ayer / Hoy
+    irADia(dias) {
+      this.fecha1 = this.diaRelativo(dias)
+      this.misclientes()
+    },
+    // El N° del vendedor no coincide con su conteo: elimino pedidos antes
+    descuadre(row) {
+      return row.numero_dia && row.numero_dia != row._nv
+    },
+    verAuditoria(pedido) {
+      this.auditoriaPedido = pedido
+      this.auditoria = []
+      this.$q.loading.show()
+      this.$api.post('pedidoauditoria', {NroPed: pedido.NroPed}).then(res => {
+        this.auditoria = res.data
+        this.modalAuditoria = true
+      }).finally(() => {
+        this.$q.loading.hide()
+      })
+    },
+    verEliminados() {
+      this.$q.loading.show()
+      this.$api.post('pedidoseliminados', {fecha: this.fecha1}).then(res => {
+        this.eliminados = res.data
+        this.modalEliminados = true
+      }).finally(() => {
+        this.$q.loading.hide()
+      })
+    },
+    toggleVendedor(codAut) {
+      const i = this.vendedoresSel.indexOf(codAut)
+      if (i >= 0) this.vendedoresSel.splice(i, 1)
+      else this.vendedoresSel.push(codAut)
+    },
     misclientes() {
       this.$q.loading.show()
-      this.$api.post('clientepedidototales', {fecha: this.fecha1, listapersonal: this.listapersonal}).then(res => {
+      // Se traen todos los vendedores; el filtro por vendedor se hace con los chips
+      this.$api.post('clientepedidototales', {fecha: this.fecha1, listapersonal: 0}).then(res => {
         this.clientes = res.data
+        const presentes = new Set(this.clientes.map(c => c.CIfunc))
+        this.vendedoresSel = this.vendedoresSel.filter(v => presentes.has(v))
+      }).finally(() => {
         this.$q.loading.hide()
       })
     },
   },
   computed: {
+    // Vendedores que hicieron pedidos en la fecha, con su cantidad de pedidos
+    vendedoresDia() {
+      const mapa = {}
+      this.clientes.forEach(c => {
+        const v = mapa[c.CIfunc] || (mapa[c.CIfunc] = {CIfunc: c.CIfunc, vendedor: c.vendedor, pedidos: 0})
+        v.pedidos++
+      })
+      return Object.values(mapa).sort((a, b) => b.pedidos - a.pedidos)
+    },
+    clientesFiltrados() {
+      const lista = this.vendedoresSel.length
+        ? this.clientes.filter(c => this.vendedoresSel.includes(c.CIfunc))
+        : this.clientes
+      const ordenada = [...lista].sort((a, b) => String(a.vendedor).localeCompare(String(b.vendedor)) ||
+        (a.numero_dia || 9999) - (b.numero_dia || 9999) || a.NroPed - b.NroPed)
+      // _n: conteo en la lista; _nv: conteo dentro del vendedor. Si _nv no
+      // coincide con numero_dia es que el vendedor elimino pedidos antes.
+      const porVendedor = {}
+      return ordenada.map((c, i) => ({
+        ...c,
+        _n: i + 1,
+        _nv: (porVendedor[c.CIfunc] = (porVendedor[c.CIfunc] || 0) + 1)
+      }))
+    },
+    eliminadosFiltrados() {
+      return this.vendedoresSel.length
+        ? this.eliminados.filter(e => this.vendedoresSel.includes(e.CIfunc))
+        : this.eliminados
+    },
+    // Audits agrupados por operacion (misma hora, usuario y accion)
+    auditoriaGrupos() {
+      const acciones = {
+        pedido: ['Creó el pedido', 'add_circle', 'positive'],
+        updatecomanda: ['Modificó el pedido', 'edit', 'orange-8'],
+        envpedido: ['Envió el pedido', 'send', 'teal'],
+        enviarpedidos: ['Envió todos los pedidos', 'send', 'teal'],
+        deletecomanda: ['Eliminó el pedido', 'delete', 'negative'],
+        clonarpedido: ['Clonó el pedido', 'content_copy', 'purple'],
+        habilitarpedido: ['Habilitó el pedido', 'lock_open', 'blue'],
+      }
+      const eventos = {created: 'Filas creadas', updated: 'Filas actualizadas', deleted: 'Filas eliminadas', restored: 'Filas restauradas'}
+      const ocultos = ['NroPed', 'cod_prod', 'fecha', 'codAut']
+      const grupos = []
+      const indice = {}
+      this.auditoria.forEach(a => {
+        const clave = a.fecha + '|' + a.usuario + '|' + a.accion + '|' + a.event
+        let g = indice[clave]
+        if (!g) {
+          const acc = acciones[a.accion]
+          let titulo = acc ? acc[0] : (eventos[a.event] || a.event) + (a.accion ? ' (' + a.accion + ')' : '')
+          // Al modificar se borran y recrean las filas: se aclara cual version es
+          if (a.accion == 'updatecomanda' && a.event != 'updated') {
+            titulo += a.event == 'deleted' ? ' · versión anterior' : ' · versión nueva'
+          }
+          g = indice[clave] = {
+            clave, titulo, usuario: a.usuario, fecha: a.fecha, ip: a.ip, items: [],
+            icono: acc ? acc[1] : 'info', color: acc ? acc[2] : 'grey',
+          }
+          grupos.push(g)
+        }
+        const campos = new Set([...Object.keys(a.old_values || {}), ...Object.keys(a.new_values || {})])
+        const cambios = [...campos].filter(k => !ocultos.includes(k)).map(k => ({
+          campo: k,
+          antes: a.event == 'created' ? undefined : (a.old_values || {})[k],
+          despues: a.event == 'deleted' ? undefined : (a.new_values || {})[k],
+        }))
+        g.items.push({id: a.id, producto: a.producto, cambios})
+      })
+      return grupos
+    },
+    resumen() {
+      let total = 0
+      let lineas = 0
+      let cantidad = 0
+      let creados = 0
+      const codigos = new Set()
+      this.clientesFiltrados.forEach(c => {
+        total += parseFloat(c.total || 0)
+        if (c.estado == 'CREADO') creados++
+        ;(c.productos || []).forEach(p => {
+          lineas++
+          cantidad += parseFloat(p.cantidad || 0)
+          codigos.add(p.cod_prod)
+        })
+      })
+      const pedidos = this.clientesFiltrados.length
+      return {
+        pedidos,
+        creados,
+        enviados: pedidos - creados,
+        total: total.toFixed(2),
+        promedio: pedidos ? (total / pedidos).toFixed(2) : '0.00',
+        productos: codigos.size,
+        lineas,
+        cantidad: +cantidad.toFixed(3)
+      }
+    },
+    // Pedidos, lineas y Bs por tipo de producto (NORMAL = embutidos)
+    resumenTipos() {
+      const etiquetas = {NORMAL: 'Embutidos', POLLO: 'Pollo', RES: 'Res', CERDO: 'Cerdo'}
+      const mapa = {}
+      this.clientesFiltrados.forEach(c => {
+        const vistos = new Set()
+        ;(c.productos || []).forEach(p => {
+          const tipo = p.tipo || 'NORMAL'
+          const r = mapa[tipo] || (mapa[tipo] = {tipo, etiqueta: etiquetas[tipo] || tipo, pedidos: 0, lineas: 0, subtotal: 0})
+          r.lineas++
+          r.subtotal += parseFloat(p.subtotal || 0)
+          if (!vistos.has(tipo)) {
+            vistos.add(tipo)
+            r.pedidos++
+          }
+        })
+      })
+      const orden = ['NORMAL', 'POLLO', 'RES', 'CERDO']
+      return Object.values(mapa)
+        .map(r => ({...r, subtotal: r.subtotal.toFixed(2)}))
+        .sort((a, b) => (orden.indexOf(a.tipo) + 1 || 99) - (orden.indexOf(b.tipo) + 1 || 99))
+    },
+    resumenProductos() {
+      const mapa = {}
+      this.clientesFiltrados.forEach(c => {
+        (c.productos || []).forEach(p => {
+          const r = mapa[p.nombre] || (mapa[p.nombre] = {nombre: p.nombre, cantidad: 0, subtotal: 0, pedidos: 0})
+          r.cantidad += parseFloat(p.cantidad || 0)
+          r.subtotal += parseFloat(p.subtotal || 0)
+          r.pedidos++
+        })
+      })
+      return Object.values(mapa)
+        .map(r => ({...r, cantidad: +r.cantidad.toFixed(3), subtotal: r.subtotal.toFixed(2)}))
+        .sort((a, b) => b.cantidad - a.cantidad)
+    },
     total() {
       let total = 0
       this.misproductos.forEach(r => {
@@ -1917,6 +2262,62 @@ export default {
 }
 </script>
 
-<style scoped>
+<style lang="sass" scoped>
+.barra-fecha
+  width: 140px
 
+.barra-buscar
+  min-width: 110px
+
+.tarjeta-total
+  padding: 2px 6px
+  line-height: 1.15
+  text-align: center
+
+.tarjeta-normal
+  border-left: 3px solid $primary
+
+.tarjeta-pollo
+  border-left: 3px solid $orange-8
+
+.tarjeta-res
+  border-left: 3px solid $red-7
+
+.tarjeta-cerdo
+  border-left: 3px solid $pink-4
+
+.tarjeta-titulo
+  font-size: 10px
+  text-transform: uppercase
+  color: rgba(0, 0, 0, 0.55)
+
+.tarjeta-valor
+  font-size: 16px
+  font-weight: 700
+
+.tarjeta-sub
+  font-size: 10px
+  color: rgba(0, 0, 0, 0.55)
+  white-space: nowrap
+  overflow: hidden
+  text-overflow: ellipsis
+
+// Tabla apretada para ver todos los pedidos del dia sin paginar
+.tabla-compacta :deep(th),
+.tabla-compacta :deep(td)
+  padding: 1px 4px !important
+  height: auto !important
+  font-size: 12px
+
+.tabla-compacta :deep(thead tr)
+  height: 24px !important
+
+.tabla-compacta :deep(tbody tr)
+  height: 24px !important
+
+.ellipsis-cliente
+  max-width: 190px
+  white-space: nowrap
+  overflow: hidden
+  text-overflow: ellipsis
 </style>

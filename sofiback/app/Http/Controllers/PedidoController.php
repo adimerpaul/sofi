@@ -156,11 +156,13 @@ class PedidoController extends Controller{
             return response()->json(['success' => false, 'message' => 'No se encontraron pedidos para clonar.']);
         }
         $numpedido = $this->siguienteComanda();
+        $numeroDia = $this->siguienteNumeroDia($pedidos[0]->CIfunc, $request->fecha);
         $data = [];
         foreach ($pedidos as $p) {
             $imp = 0;
             $d = [
                 'NroPed' => $numpedido,
+                'numero_dia' => $numeroDia,
                 'cod_prod' => $p['cod_prod'],
                 'CIfunc' => $p['CIfunc'],
                 'idCli' => $p['idCli'],
@@ -1086,6 +1088,7 @@ $resPedido = $rows->groupBy('NroPed')->map(function ($g) use ($bonis) {
             'personal_id' => $request->user()->CodAut
         ]);
         $data = [];
+        $numeroDia = $this->siguienteNumeroDia($request->user()->CodAut, $request->fecha);
 //        Verificacion si esta en ruta
         $clientesUsuario = Cliente::whereRaw('TRIM(CiVend) = ?', [trim($request->user()->ci)])->get();
         $diaHoy = date('N');
@@ -1137,6 +1140,7 @@ $resPedido = $rows->groupBy('NroPed')->map(function ($g) use ($bonis) {
 
             $d = [
                 'NroPed' => $numpedido,
+                'numero_dia' => $numeroDia,
                 'cod_prod' => $p['cod_prod'],
                 'CIfunc' => $request->user()->CodAut,
                 'idCli' => $idCli,
@@ -1243,6 +1247,7 @@ $resPedido = $rows->groupBy('NroPed')->map(function ($g) use ($bonis) {
             array_push($data, $d);
         }
         $this->insertarPedidos($data);
+        return response()->json(['NroPed' => $numpedido, 'numero_dia' => $numeroDia]);
 //        return ($data);
     }
 
@@ -1349,20 +1354,20 @@ $resPedido = $rows->groupBy('NroPed')->map(function ($g) use ($bonis) {
         $fecha = $request->fecha;
         if ($listapersonal == 0) {
             $pedidos = DB::SELECT("
-            SELECT p.bonificacionId,p.NroPed,p.pago,p.fecha,p.fact,Cod_Aut,Id,Cod_ciudad,Cod_Nacio,c.cod_car,Nombres,Telf,c.Direccion,EstCiv,edad,Empresa,Categoria,Imp_pieza,CiVend,ListBlanck,MotivoListBlack,ListBlack,TipoPaciente,SupraCanal,Canal,subcanal,zona,Latitud,longitud,transporte,territorio,codcli,clinew,p.estado,CONCAT(pe.Nombre1,' ',pe.App1) as vendedor
+            SELECT p.bonificacionId,p.NroPed,p.numero_dia,p.CIfunc,p.pago,p.fecha,p.fact,Cod_Aut,Id,Cod_ciudad,Cod_Nacio,c.cod_car,Nombres,Telf,c.Direccion,EstCiv,edad,Empresa,Categoria,Imp_pieza,CiVend,ListBlanck,MotivoListBlack,ListBlack,TipoPaciente,SupraCanal,Canal,subcanal,zona,Latitud,longitud,transporte,territorio,codcli,clinew,p.estado,CONCAT(pe.Nombre1,' ',pe.App1) as vendedor
             FROM tbpedidos p
             inner join tbclientes c on c.Cod_Aut=p.idCli
             inner join personal pe on p.CIfunc=pe.CodAut
             where p.deleted_at IS NULL and date(p.fecha)='$fecha'
-            GROUP by  p.bonificacionId,p.NroPed,p.pago,p.fecha,p.fact,cod_Aut,Id,Cod_ciudad,Cod_Nacio,c.cod_car,Nombres,Telf,c.Direccion,EstCiv,edad,Empresa,Categoria,Imp_pieza,CiVend,ListBlanck,MotivoListBlack,ListBlack,TipoPaciente,SupraCanal,Canal,subcanal,zona,Latitud,longitud,transporte,territorio,codcli,clinew,p.estado,pe.Nombre1,pe.App1");
+            GROUP by  p.bonificacionId,p.NroPed,p.numero_dia,p.CIfunc,p.pago,p.fecha,p.fact,cod_Aut,Id,Cod_ciudad,Cod_Nacio,c.cod_car,Nombres,Telf,c.Direccion,EstCiv,edad,Empresa,Categoria,Imp_pieza,CiVend,ListBlanck,MotivoListBlack,ListBlack,TipoPaciente,SupraCanal,Canal,subcanal,zona,Latitud,longitud,transporte,territorio,codcli,clinew,p.estado,pe.Nombre1,pe.App1");
         } else {
             $pedidos = DB::SELECT("
-            SELECT p.bonificacionId,p.NroPed,p.pago,p.fecha,p.fact,Cod_Aut,Id,Cod_ciudad,Cod_Nacio,c.cod_car,Nombres,Telf,c.Direccion,EstCiv,edad,Empresa,Categoria,Imp_pieza,CiVend,ListBlanck,MotivoListBlack,ListBlack,TipoPaciente,SupraCanal,Canal,subcanal,zona,Latitud,longitud,transporte,territorio,codcli,clinew,p.estado,CONCAT(pe.Nombre1,' ',pe.App1) as vendedor
+            SELECT p.bonificacionId,p.NroPed,p.numero_dia,p.CIfunc,p.pago,p.fecha,p.fact,Cod_Aut,Id,Cod_ciudad,Cod_Nacio,c.cod_car,Nombres,Telf,c.Direccion,EstCiv,edad,Empresa,Categoria,Imp_pieza,CiVend,ListBlanck,MotivoListBlack,ListBlack,TipoPaciente,SupraCanal,Canal,subcanal,zona,Latitud,longitud,transporte,territorio,codcli,clinew,p.estado,CONCAT(pe.Nombre1,' ',pe.App1) as vendedor
             FROM tbpedidos p
             inner join tbclientes c on c.Cod_Aut=p.idCli
             inner join personal pe on p.CIfunc=pe.CodAut
             where p.deleted_at IS NULL and date(p.fecha)='$fecha' and p.CIfunc=$listapersonal
-            GROUP by  p.bonificacionId,p.NroPed,p.pago,p.fecha,p.fact,cod_Aut,Id,Cod_ciudad,Cod_Nacio,c.cod_car,Nombres,Telf,c.Direccion,EstCiv,edad,Empresa,Categoria,Imp_pieza,CiVend,ListBlanck,MotivoListBlack,ListBlack,TipoPaciente,SupraCanal,Canal,subcanal,zona,Latitud,longitud,transporte,territorio,codcli,clinew,p.estado,pe.Nombre1,pe.App1");
+            GROUP by  p.bonificacionId,p.NroPed,p.numero_dia,p.CIfunc,p.pago,p.fecha,p.fact,cod_Aut,Id,Cod_ciudad,Cod_Nacio,c.cod_car,Nombres,Telf,c.Direccion,EstCiv,edad,Empresa,Categoria,Imp_pieza,CiVend,ListBlanck,MotivoListBlack,ListBlack,TipoPaciente,SupraCanal,Canal,subcanal,zona,Latitud,longitud,transporte,territorio,codcli,clinew,p.estado,pe.Nombre1,pe.App1");
         }
 //        colocar si tieneBonificaionId colcoar el clinete
         foreach ($pedidos as $key => $p) {
@@ -1377,8 +1382,155 @@ $resPedido = $rows->groupBy('NroPed')->map(function ($g) use ($bonis) {
                 $pedidos[$key]->clienteBonificacion = null;
             }
         }
+
+        // Total y resumen de lineas por comanda para las tarjetas de totales
+        $lineas = DB::table('tbpedidos as p')
+            ->leftJoin('tbproductos as pr', DB::raw('TRIM(pr.cod_prod)'), '=', DB::raw('TRIM(p.cod_prod)'))
+            ->whereNull('p.deleted_at')
+            ->whereIn('p.NroPed', array_map(function ($p) { return $p->NroPed; }, $pedidos))
+            ->select('p.NroPed', 'p.cod_prod', 'p.tipo', 'p.Cant', 'p.subtotal', 'pr.Producto')
+            ->get()
+            ->groupBy('NroPed');
+        foreach ($pedidos as $p) {
+            $filas = $lineas->get($p->NroPed, collect());
+            $p->total = round($filas->sum(function ($l) { return floatval($l->subtotal); }), 2);
+            $p->productos = $filas->map(function ($l) {
+                return [
+                    'cod_prod' => trim($l->cod_prod),
+                    'nombre'   => $l->Producto ? trim($l->Producto) : trim($l->cod_prod),
+                    'tipo'     => $l->tipo,
+                    'cantidad' => floatval($l->Cant),
+                    'subtotal' => floatval($l->subtotal),
+                ];
+            })->values();
+        }
         return $pedidos;
 
+    }
+
+    /**
+     * Nombres de producto por codigo recortado. tbproductos.cod_prod viene con
+     * espacios a la derecha, por eso no sirve el eager load de la relacion.
+     */
+    private function nombresProductos($codigos)
+    {
+        $codigos = collect($codigos)->map(function ($c) { return trim($c); })->unique()->values();
+        if ($codigos->isEmpty()) {
+            return collect();
+        }
+        return DB::table('tbproductos')->whereIn('cod_prod', $codigos)->get(['cod_prod', 'Producto'])
+            ->mapWithKeys(function ($p) { return [trim($p->cod_prod) => trim($p->Producto)]; });
+    }
+
+    /**
+     * Resume los valores de un audit: sin nulos ni vacios y, en altas/bajas,
+     * solo los campos que sirven para entender el pedido.
+     */
+    private function resumirValores($valores, $soloClave)
+    {
+        $clave = ['NroPed', 'numero_dia', 'cod_prod', 'Cant', 'caja', 'precio', 'subtotal', 'fecha', 'estado', 'pago',
+            'fact', 'horario', 'comentario', 'Observaciones', 'tipo', 'bs', 'bs2', 'pfrial', 'envio'];
+        return collect($valores ?: [])->filter(function ($v, $k) use ($soloClave, $clave) {
+            return $v !== null && $v !== '' && (!$soloClave || in_array($k, $clave));
+        })->all();
+    }
+
+    /**
+     * Historial de audits de una comanda (todas sus filas, incluso borradas):
+     * creacion, modificaciones, envio y borrado, con usuario y producto.
+     */
+    public function pedidoauditoria(Request $request)
+    {
+        $filas = Pedido::withTrashed()->where('NroPed', $request->NroPed)
+            ->get(['codAut', 'cod_prod', 'deleted_at'])
+            ->keyBy('codAut');
+        if ($filas->isEmpty()) {
+            return [];
+        }
+        $nombres = $this->nombresProductos($filas->pluck('cod_prod'));
+        $audits = DB::table('audits as a')
+            ->leftJoin('personal as pe', 'pe.CodAut', '=', 'a.user_id')
+            ->where('a.auditable_type', Pedido::class)
+            ->whereIn('a.auditable_id', $filas->keys())
+            ->orderBy('a.created_at')
+            ->orderBy('a.id')
+            ->select('a.id', 'a.event', 'a.auditable_id', 'a.old_values', 'a.new_values', 'a.url', 'a.ip_address',
+                'a.created_at', 'a.user_id', DB::raw("TRIM(CONCAT(IFNULL(pe.Nombre1,''),' ',IFNULL(pe.App1,''))) as usuario"))
+            ->get();
+
+        return $audits->map(function ($a) use ($filas, $nombres) {
+            $fila = $filas->get($a->auditable_id);
+            return [
+                'id' => $a->id,
+                'event' => $a->event,
+                'accion' => $a->url ? basename(parse_url($a->url, PHP_URL_PATH)) : '',
+                'fecha' => $a->created_at,
+                'usuario' => $a->usuario ?: ($a->user_id ? 'Usuario ' . $a->user_id : 'Sistema'),
+                'ip' => $a->ip_address,
+                'cod_prod' => $fila ? trim($fila->cod_prod) : '',
+                'producto' => $fila ? $nombres->get(trim($fila->cod_prod), trim($fila->cod_prod)) : '',
+                'old_values' => $this->resumirValores(json_decode($a->old_values, true), $a->event != 'updated'),
+                'new_values' => $this->resumirValores(json_decode($a->new_values, true), $a->event != 'updated'),
+            ];
+        })->values();
+    }
+
+    /**
+     * Comandas eliminadas (soft delete) de una fecha: las que no tienen
+     * ninguna fila viva. Las filas borradas por una modificacion no cuentan,
+     * porque la comanda sigue existiendo con sus filas nuevas.
+     */
+    public function pedidoseliminados(Request $request)
+    {
+        $fecha = $request->input('fecha', date('Y-m-d'));
+        $vivas = Pedido::whereDate('fecha', $fecha)->distinct()->pluck('NroPed');
+        $filas = Pedido::onlyTrashed()
+            ->whereDate('fecha', $fecha)
+            ->whereNotIn('NroPed', $vivas)
+            ->with(['cliente:Cod_Aut,Nombres,Id', 'user:CodAut,Nombre1,App1'])
+            ->get();
+        if ($filas->isEmpty()) {
+            return [];
+        }
+        $nombres = $this->nombresProductos($filas->pluck('cod_prod'));
+        // Quien borro: el usuario del audit "deleted" mas reciente de cada comanda
+        $borradoPor = DB::table('audits as a')
+            ->leftJoin('personal as pe', 'pe.CodAut', '=', 'a.user_id')
+            ->where('a.auditable_type', Pedido::class)
+            ->where('a.event', 'deleted')
+            ->whereIn('a.auditable_id', $filas->pluck('codAut'))
+            ->orderBy('a.id')
+            ->get(['a.auditable_id', DB::raw("TRIM(CONCAT(IFNULL(pe.Nombre1,''),' ',IFNULL(pe.App1,''))) as usuario")])
+            ->pluck('usuario', 'auditable_id');
+
+        return $filas->groupBy('NroPed')->map(function ($g) use ($borradoPor, $nombres) {
+            $p = $g->sortByDesc('deleted_at')->first();
+            // Una comanda modificada varias veces deja filas de cada version;
+            // el detalle es el de la ultima version borrada.
+            $ultima = $g->filter(function ($f) use ($p) { return (string)$f->deleted_at == (string)$p->deleted_at; });
+            return [
+                'NroPed' => $p->NroPed,
+                'numero_dia' => $p->numero_dia,
+                'CIfunc' => $p->CIfunc,
+                'vendedor' => $p->user ? trim($p->user->Nombre1 . ' ' . $p->user->App1) : '',
+                'Nombres' => $p->cliente ? $p->cliente->Nombres : '',
+                'Id' => $p->cliente ? $p->cliente->Id : '',
+                'fecha' => (string)$p->fecha,
+                'estado' => $p->estado,
+                'pago' => $p->pago,
+                'deleted_at' => (string)$p->deleted_at,
+                'borrado_por' => $borradoPor->get($p->codAut) ?: '',
+                'total' => round($ultima->sum(function ($f) { return floatval($f->subtotal); }), 2),
+                'productos' => $ultima->map(function ($f) use ($nombres) {
+                    return [
+                        'nombre' => $nombres->get(trim($f->cod_prod), trim($f->cod_prod)),
+                        'tipo' => $f->tipo,
+                        'cantidad' => floatval($f->Cant),
+                        'subtotal' => floatval($f->subtotal),
+                    ];
+                })->values(),
+            ];
+        })->sortBy('deleted_at')->values();
     }
 
     public function clientepedido2(Request $request)
@@ -1405,13 +1557,27 @@ $resPedido = $rows->groupBy('NroPed')->map(function ($g) use ($bonis) {
             $query->where('CIfunc', $request->user()->CodAut);
         }
 
-        $resultados = $query
-            ->get()
+        $filas = $query->get();
+        $nombres = $this->nombresProductos($filas->pluck('cod_prod'));
+        $resultados = $filas
             ->groupBy('NroPed')
-            ->map(function ($pedidos) {
+            ->map(function ($pedidos) use ($nombres) {
                 $pedido = $pedidos->first();
                 return [
                     'NroPed'      => $pedido->NroPed,
+                    'numero_dia'  => $pedido->numero_dia,
+                    'CIfunc'      => $pedido->CIfunc,
+                    'total'       => round($pedidos->sum(function ($p) { return floatval($p->subtotal); }), 2),
+                    // Resumen de lineas para las tarjetas de totales de Mis pedidos
+                    'productos'   => $pedidos->map(function ($p) use ($nombres) {
+                        return [
+                            'cod_prod' => trim($p->cod_prod),
+                            'nombre'   => $nombres->get(trim($p->cod_prod), trim($p->cod_prod)),
+                            'tipo'     => $p->tipo,
+                            'cantidad' => floatval($p->Cant),
+                            'subtotal' => floatval($p->subtotal),
+                        ];
+                    })->values(),
                     'pago'        => $pedido->pago,
                     'fecha'       => $pedido->fecha,
                     'bonificacion' => $pedido->bonificacion,
@@ -1518,6 +1684,17 @@ $resPedido = $rows->groupBy('NroPed')->map(function ($g) use ($bonis) {
     {
 //        return $request;
         $numpedido = $request->comanda;
+        // Al modificar se conserva el numero del dia; solo se renumera si la
+        // comanda cambia de fecha o de vendedor (o si es anterior a la columna).
+        $anterior = Pedido::where('NroPed', $numpedido)->first();
+        $codAut = $request->user()->CodAut;
+        if ($anterior && $anterior->numero_dia
+            && $anterior->CIfunc == $codAut
+            && substr($anterior->fecha, 0, 10) == substr($request->fecha, 0, 10)) {
+            $numeroDia = $anterior->numero_dia;
+        } else {
+            $numeroDia = $this->siguienteNumeroDia($codAut, $request->fecha);
+        }
         $data = [];
         foreach ($request->productos as $p) {
             if ($p['tipo'] == 'POLLO' || $p['tipo'] == 'RES' || $p['tipo'] == 'CERDO')
@@ -1526,6 +1703,7 @@ $resPedido = $rows->groupBy('NroPed')->map(function ($g) use ($bonis) {
                 $imp = 0;
             $data[] = [
                 'NroPed' => $numpedido,
+                'numero_dia' => $numeroDia,
                 'cod_prod' => $p['cod_prod'],
                 'CIfunc' => $request->user()->CodAut,
                 'idCli' => $request->idCli,
@@ -1655,6 +1833,23 @@ $resPedido = $rows->groupBy('NroPed')->map(function ($g) use ($bonis) {
             $numpedido = $cmdnum->comanda + 1;
             DB::table('comandas')->where('id', $cmdnum->id)->update(['comanda' => $numpedido]);
             return $numpedido;
+        });
+    }
+
+    /**
+     * Siguiente numero de pedido del dia para un vendedor: arranca en 1 por
+     * cada fecha de pedido. Cuenta tambien los borrados para no repetir un
+     * numero que el vendedor ya anoto.
+     */
+    private function siguienteNumeroDia($codAut, $fecha)
+    {
+        return DB::transaction(function () use ($codAut, $fecha) {
+            $max = DB::table('tbpedidos')
+                ->where('CIfunc', $codAut)
+                ->whereDate('fecha', substr($fecha, 0, 10))
+                ->lockForUpdate()
+                ->max('numero_dia');
+            return intval($max) + 1;
         });
     }
 

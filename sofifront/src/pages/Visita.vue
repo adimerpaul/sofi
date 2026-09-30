@@ -1194,8 +1194,14 @@ export default {
         comentario: this.coment,
         clienteBonificacion: this.clienteBonificacion
       }).then(res => {
-        // console.log(res.data)
-        // return false
+        if (res.data && res.data.numero_dia) {
+          this.$q.notify({
+            message: 'Pedido N° ' + res.data.numero_dia + ' del día guardado',
+            color: 'green',
+            icon: 'check',
+            position: 'top'
+          })
+        }
         //this.pago=''
         this.fact = ''
         this.horario = ''

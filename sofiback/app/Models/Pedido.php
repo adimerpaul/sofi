@@ -22,6 +22,7 @@ class Pedido extends Model implements Auditable{
     protected $fillable = [
         'codAut',
         'NroPed',
+        'numero_dia',
         'cod_prod',
         'CIfunc',
         'idCli',
