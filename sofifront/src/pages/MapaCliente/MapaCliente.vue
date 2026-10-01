@@ -2,36 +2,60 @@
   <q-page class="bg-grey-3 q-pa-none">
     <q-card flat bordered>
       <q-card-section class="q-pa-none">
-        <div class="row">
-          <div class="col-xs-12 col-md-2 q-pa-xs">
-            <q-input v-model="fecha" label="Fecha" type="date" dense outlined @update:model-value="buscar"/>
-          </div>
-          <div class="col-xs-12 col-md-2 q-pa-xs">
-            <q-btn color="info" icon="search" label="Consultar" @click="buscar" :loading="loading" no-caps size="md"/>
-          </div>
-          <div class="col-xs-2 col-md-2 q-pa-xs">
-            <q-btn color="purple" label="5" @click="loadGeoJson(5)" :loading="loading"/>
-          </div>
-          <div class="col-xs-2 col-md-2 q-pa-xs">
-            <q-btn color="green" label="4" @click="loadGeoJson(4)" :loading="loading"/>
-          </div>
-          <div class="col-xs-2 col-md-2 q-pa-xs">
-            <q-btn color="orange" label="3" @click="loadGeoJson(3)" :loading="loading"/>
-          </div>
+        <!-- Todo en una fila baja: fecha, consultar, capas de zonas y las
+             herramientas de seleccion sobre el mapa. -->
+        <div class="row items-center no-wrap q-gutter-xs q-pa-xs barra-compacta">
+          <q-input v-model="fecha" type="date" dense outlined class="campo-fecha" @update:model-value="buscar"/>
+          <q-btn color="info" icon="search" dense no-caps padding="4px 10px" label="Consultar"
+                 @click="buscar" :loading="loading"/>
+          <q-btn-group unelevated>
+            <q-btn dense color="purple" label="5" padding="4px 10px" @click="loadGeoJson(5)">
+              <q-tooltip>Zonas nivel 5</q-tooltip>
+            </q-btn>
+            <q-btn dense color="green" label="4" padding="4px 10px" @click="loadGeoJson(4)">
+              <q-tooltip>Zonas nivel 4</q-tooltip>
+            </q-btn>
+            <q-btn dense color="orange" label="3" padding="4px 10px" @click="loadGeoJson(3)">
+              <q-tooltip>Zonas nivel 3</q-tooltip>
+            </q-btn>
+          </q-btn-group>
+          <q-space/>
+          <!-- Marcar en cuadro: se arrastra un rectangulo en el mapa y quedan
+               marcados todos los clientes que caen adentro. -->
+          <q-btn
+            dense no-caps padding="4px 10px" icon="highlight_alt"
+            :color="modoCuadro ? 'deep-orange' : 'white'" :text-color="modoCuadro ? 'white' : 'deep-orange'"
+            :outline="!modoCuadro" :unelevated="modoCuadro"
+            :label="modoCuadro ? 'Dibujá el cuadro…' : 'Marcar en cuadro'"
+            @click="alternarModoCuadro"
+          />
+          <q-btn
+            v-if="seleccionados.length" dense no-caps outline color="grey-8" padding="4px 10px"
+            icon="deselect" :label="seleccionados.length + ' marcados · quitar'"
+            @click="desmarcarTodo"
+          />
         </div>
-        <div class="row">
-          <div class="q-pa-xs col-md-2 col-xs-4 " v-for="vih in vehiculos" :key="vih"
-               style="font-size: 12px;"><b>{{ vih.placa == '' ? 'SIN ASIGNAR' : vih.placa }} :
-            {{ calculo(vih.placa) }}</b></div>
-          <br>
+        <!-- Cuantos pedidos lleva cada camion, en chips chicos que corren en
+             una o dos lineas; los que no tienen nada quedan apagados. -->
+        <div class="row q-px-xs q-pb-xs chips-camion">
+          <q-chip
+            v-for="vih in vehiculos" :key="vih.placa"
+            dense square
+            :color="calculo(vih.placa) ? 'blue-grey-8' : 'grey-3'"
+            :text-color="calculo(vih.placa) ? 'white' : 'grey-7'"
+          >
+            {{ vih.placa == '' ? 'SIN ASIGNAR' : vih.placa }}
+            <b class="q-ml-xs">{{ calculo(vih.placa) }}</b>
+          </q-chip>
         </div>
         <div class="row">
           <div class="col-xs-12 col-md-12">
-            <div style="height: 450px; width: 100%;">
+            <div style="height: 450px; width: 100%;" :class="{ 'mapa-cuadro': modoCuadro }">
               <l-map
                 v-model="zoom"
                 :zoom="zoom"
                 :center="center"
+                @ready="mapaListo"
               >
                 <LTileLayer
                   url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -286,7 +310,11 @@
 
 <script>
 import moment from "moment";
+import {markRaw} from "vue";
 import {LIcon, LMap, LMarker, LTileLayer, LTooltip, LGeoJson} from "@vue-leaflet/vue-leaflet";
+// La misma copia de Leaflet que usa vue-leaflet, para que el rectangulo sea
+// una capa que el mapa reconoce.
+import {latLngBounds, rectangle} from "leaflet/dist/leaflet-src.esm";
 
 
 export default {
@@ -403,6 +431,9 @@ export default {
       loading: false,
       clientes: [],
       seleccionados: [], // Lista de clientes seleccionados
+      // Marcar en cuadro: mientras esta activo, arrastrar en el mapa dibuja
+      // un rectangulo en vez de mover el mapa.
+      modoCuadro: false,
       column: [
         {label: 'OP', name: 'op', field: 'op', sortable: true},
         {label: 'N', name: 'id', field: 'num', sortable: true, align: 'center'},
@@ -705,7 +736,104 @@ export default {
     this.getVehiculo();
   },
 
+  beforeUnmount() {
+    this.quitarEventosCuadro();
+  },
   methods: {
+    mapaListo(mapa) {
+      this.mapa = markRaw(mapa);
+    },
+    alternarModoCuadro() {
+      if (!this.mapa) return;
+      this.modoCuadro = !this.modoCuadro;
+      if (this.modoCuadro) {
+        // Arrastrar ya no mueve el mapa: dibuja. Se escucha con pointer
+        // events para que ande igual con mouse y con el dedo.
+        this.mapa.dragging.disable();
+        this.mapa.boxZoom.disable();
+        if (this.mapa.touchZoom) this.mapa.touchZoom.disable();
+        const contenedor = this.mapa.getContainer();
+        this.eventosCuadro = {
+          down: e => this.empezarCuadro(e),
+          move: e => this.moverCuadro(e),
+          up: e => this.terminarCuadro(e)
+        };
+        contenedor.addEventListener('pointerdown', this.eventosCuadro.down);
+        window.addEventListener('pointermove', this.eventosCuadro.move);
+        window.addEventListener('pointerup', this.eventosCuadro.up);
+        this.$q.notify({
+          type: 'info', position: 'top', timeout: 2500,
+          message: 'Arrastrá sobre el mapa para marcar todos los clientes del cuadro'
+        });
+      } else {
+        this.salirModoCuadro();
+      }
+    },
+    salirModoCuadro() {
+      this.modoCuadro = false;
+      this.quitarEventosCuadro();
+      if (this.mapa) {
+        this.mapa.dragging.enable();
+        this.mapa.boxZoom.enable();
+        if (this.mapa.touchZoom) this.mapa.touchZoom.enable();
+      }
+    },
+    quitarEventosCuadro() {
+      if (this.cuadro && this.mapa) this.mapa.removeLayer(this.cuadro);
+      this.cuadro = null;
+      this.inicioCuadro = null;
+      if (!this.eventosCuadro) return;
+      if (this.mapa) this.mapa.getContainer().removeEventListener('pointerdown', this.eventosCuadro.down);
+      window.removeEventListener('pointermove', this.eventosCuadro.move);
+      window.removeEventListener('pointerup', this.eventosCuadro.up);
+      this.eventosCuadro = null;
+    },
+    empezarCuadro(e) {
+      // Los botones de zoom de Leaflet siguen andando.
+      if (e.target.closest && e.target.closest('.leaflet-control')) return;
+      e.preventDefault();
+      this.inicioCuadro = this.mapa.mouseEventToLatLng(e);
+      const limites = latLngBounds(this.inicioCuadro, this.inicioCuadro);
+      this.cuadro = rectangle(limites, {color: '#FF5722', weight: 2, dashArray: '6 4', fillOpacity: 0.12});
+      this.cuadro.addTo(this.mapa);
+    },
+    moverCuadro(e) {
+      if (!this.inicioCuadro || !this.cuadro) return;
+      this.cuadro.setBounds(latLngBounds(this.inicioCuadro, this.mapa.mouseEventToLatLng(e)));
+    },
+    terminarCuadro(e) {
+      if (!this.inicioCuadro || !this.cuadro) return;
+      const limites = latLngBounds(this.inicioCuadro, this.mapa.mouseEventToLatLng(e));
+      const marcados = this.marcarEnLimites(limites);
+      this.$q.notify({
+        type: marcados ? 'positive' : 'warning', position: 'top',
+        message: marcados
+          ? 'Se marcaron ' + marcados + ' clientes (' + this.seleccionados.length + ' en total)'
+          : 'No había clientes sin marcar dentro del cuadro'
+      });
+      // Un cuadro por vez: el mapa vuelve a moverse normal.
+      this.salirModoCuadro();
+    },
+    // Marca los clientes visibles (respeta el filtro de vendedor) que caen
+    // dentro del cuadro; los ya marcados se quedan como estan.
+    marcarEnLimites(limites) {
+      let marcados = 0;
+      this.clientes.forEach(cliente => {
+        const lat = parseFloat(cliente.Latitud);
+        const lng = parseFloat(cliente.longitud);
+        if (isNaN(lat) || isNaN(lng) || cliente.selected) return;
+        if (!limites.contains([lat, lng])) return;
+        cliente.selected = true;
+        this.seleccionados.push(cliente);
+        marcados++;
+      });
+      return marcados;
+    },
+    desmarcarTodo() {
+      this.clientes.forEach(cliente => { cliente.selected = false; });
+      if (this.filtercliente) this.filtercliente.forEach(cliente => { cliente.selected = false; });
+      this.seleccionados = [];
+    },
     tooltipOptions(p) {
       return {
         permanent: false,
@@ -921,6 +1049,36 @@ export default {
 };
 </script>
 <style scoped>
+/* Fila de filtros baja: inputs y botones de 32px. */
+.barra-compacta {
+  overflow-x: auto;
+}
+.barra-compacta > * {
+  flex: 0 0 auto;
+}
+.campo-fecha {
+  width: 140px;
+}
+.barra-compacta :deep(.q-field--dense .q-field__control),
+.barra-compacta :deep(.q-field--dense .q-field__marginal) {
+  height: 32px;
+  min-height: 32px;
+}
+.barra-compacta :deep(.q-field__native) {
+  font-size: 12px;
+  padding: 0;
+}
+.chips-camion .q-chip {
+  font-size: 11px;
+  margin: 2px;
+  height: 22px;
+}
+/* Con "Marcar en cuadro" el cursor dice que se dibuja, y el dedo no hace
+   scroll de la pagina mientras se arrastra. */
+.mapa-cuadro :deep(.leaflet-container) {
+  cursor: crosshair !important;
+  touch-action: none;
+}
 .overlay-menu {
   position: absolute;
   top: 10px; /* más separación del borde superior */

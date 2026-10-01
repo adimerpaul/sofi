@@ -15,6 +15,16 @@
           :options="opcionesCamion" label="Camión" @update:model-value="cargar"
         />
       </div>
+      <div class="col-12 col-md-3">
+        <q-input v-model.trim="buscar" dense outlined clearable placeholder="Buscar cliente o nota">
+          <template v-slot:prepend><q-icon name="search" size="16px"/></template>
+        </q-input>
+      </div>
+      <!-- De entrada solo lo recogido (lo que trae plata). Prendiendolo se ve
+           tambien lo dado a credito y lo que no se entrego. -->
+      <div class="col-auto">
+        <q-toggle v-model="mostrarTodo" dense size="sm" color="primary" label="Mostrar todo" class="text-caption"/>
+      </div>
       <q-space/>
       <div class="col-auto">
         <q-btn color="primary" unelevated dense padding="6px 10px" icon="refresh" :loading="cargando" @click="cargar">
@@ -103,11 +113,11 @@
             <div class="caja-rotulo">QR</div>
             <div class="caja-monto text-indigo-9">{{ money(totales.qr_cobrado) }}</div>
           </div>
-          <div class="col">
+          <div v-if="mostrarTodo" class="col">
             <div class="caja-rotulo">CRÉDITO</div>
             <div class="caja-monto text-blue-grey-8">{{ money(totales.creditos) }}</div>
           </div>
-          <div class="col">
+          <div v-if="mostrarTodo" class="col">
             <div class="caja-rotulo">ANULADOS</div>
             <div class="caja-monto text-red-9">{{ money(totales.anulados) }}</div>
           </div>
@@ -116,10 +126,14 @@
 
       <!-- Un bloque por camión: es como se cuenta la plata, un caminero a la
            vez. Arrancan cerrados porque son hasta diez camiones. -->
+      <div v-if="buscar && !camionesVisibles.length" class="text-center text-grey-6 q-pa-md">
+        Ninguna nota de "{{ buscar }}" {{ mostrarTodo ? '' : 'recogida ' }}el {{ fechaLarga }}
+      </div>
+      <!-- Buscando, el camion que tiene la nota se abre solo. -->
       <q-expansion-item
-        v-for="uno in camiones" :key="uno.placa"
+        v-for="uno in camionesVisibles" :key="uno.placa + (buscar ? '-b' : '')"
         class="q-mb-xs camion" header-class="bg-grey-2 camion-titulo"
-        :default-opened="camiones.length === 1"
+        :default-opened="camionesVisibles.length === 1 || !!buscar"
         expand-icon-class="text-grey-8"
       >
         <template v-slot:header>
@@ -128,7 +142,11 @@
           </q-item-section>
           <q-item-section>
             <div class="text-weight-bolder text-grey-9">{{ uno.placa }}</div>
-            <div class="text-caption text-grey-7">{{ uno.caminero }} · {{ uno.notas }} notas</div>
+            <div class="text-caption text-grey-7">
+              {{ uno.caminero }} ·
+              <template v-if="mostrarTodo">{{ uno.notas }} notas</template>
+              <template v-else>{{ recogidas(uno) }} recogidas de {{ uno.notas }}</template>
+            </div>
           </q-item-section>
           <q-item-section side>
             <div class="row items-center no-wrap q-gutter-x-sm">
@@ -151,7 +169,7 @@
           </q-item-section>
         </template>
 
-        <TablaRecojo :tabla="uno.tabla"/>
+        <TablaRecojo :tabla="uno.tabla" :solo-recogido="!mostrarTodo" :buscar="buscar || ''"/>
       </q-expansion-item>
     </div>
   </q-page>
@@ -179,6 +197,9 @@ export default {
       SECCIONES,
       fecha: this.$route.query.fecha || date.formatDate(new Date(), 'YYYY-MM-DD'),
       camion: null,
+      // Por defecto solo lo recogido; el toggle muestra credito y anulados.
+      mostrarTodo: false,
+      buscar: '',
       cargando: false,
       // Placa que se está imprimiendo, o 'todos' para el botón de arriba.
       imprimiendo: null,
@@ -198,6 +219,14 @@ export default {
         this.listaCamiones.map(c => ({ label: c.placa + ' · ' + c.caminero, value: c.placa }))
       )
     },
+    // Buscando, solo los camiones que tienen alguna nota que coincide.
+    camionesVisibles () {
+      const texto = String(this.buscar || '').trim().toLowerCase()
+      if (!texto) return this.camiones
+      return this.camiones.filter(uno => uno.tabla.filas.some(fila =>
+        (this.mostrarTodo || this.esRecogida(fila)) &&
+        (String(fila.cliente || '').toLowerCase().includes(texto) || String(fila.nota).includes(texto))))
+    },
     fechaLarga () {
       return date.formatDate(this.fecha + 'T00:00:00', 'dddd, D [DE] MMMM [DE] YYYY').toUpperCase()
     }
@@ -205,6 +234,12 @@ export default {
   methods: {
     money (valor) {
       return Number(valor || 0).toFixed(2)
+    },
+    esRecogida (fila) {
+      return fila.entregada && (Number(fila.efectivo) > 0 || Number(fila.qr) > 0)
+    },
+    recogidas (uno) {
+      return uno.tabla.filas.filter(this.esRecogida).length
     },
     /** Cuántas notas hay en una hoja, sumando todos los camiones mostrados. */
     conteo (clave) {

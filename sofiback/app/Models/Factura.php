@@ -68,6 +68,8 @@ class Factura extends Model
         'total'      => 'decimal:2',
         'online'     => 'boolean',
         'anulado_at' => 'datetime',
+        // Lo que cambio al editar: ver App\Services\ModificacionFactura.
+        'modificacion_campos' => 'array',
     ];
 
     public function detalles()

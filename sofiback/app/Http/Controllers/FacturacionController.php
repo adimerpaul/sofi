@@ -6,6 +6,7 @@ use App\Http\Controllers\Concerns\PapeleriaSofia;
 use App\Models\Factura;
 use App\Models\FacturaDetalle;
 use App\Services\CargaCamion;
+use App\Services\ModificacionFactura;
 use App\Services\SiatService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\App;
@@ -1650,6 +1651,9 @@ class FacturacionController extends Controller
 
             if ($factura->pedido_nro) {
                 $this->heredarRetorno($factura, $usuario);
+                // Si viene de editar otro comprobante del pedido: padre, numero
+                // de modificacion y que campos cambiaron.
+                (new ModificacionFactura())->registrar($factura);
                 // Ya es venta: lo guardado a medias deja de servir.
                 DB::table('pedido_borradores')
                     ->where('pedido_nro', $factura->pedido_nro)

@@ -53,6 +53,17 @@ class RecojoDelDia
             $consulta->where('e.placa', trim($placa));
         }
 
+        // Un NO ENTREGADO se puede corregir despues entregando: de cada
+        // comprobante vale solo su ultima entrega, si no la nota saldria a la
+        // vez en anulados y en lo cobrado. Las de la ruta de siempre no tienen
+        // comprobante y quedan todas.
+        $consulta->whereNotExists(function ($sub) {
+            $sub->from('entregas as e2')
+                ->whereNotNull('e.factura_id')
+                ->whereColumn('e2.factura_id', 'e.factura_id')
+                ->whereColumn('e2.id', '>', 'e.id');
+        });
+
         return $consulta
             ->orderBy('e.placa')
             ->orderBy('e.comanda')

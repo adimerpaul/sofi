@@ -4,7 +4,12 @@
        bloques nacen aplastados. -->
   <q-page class="pantalla">
     <div class="mitad-mapa">
-      <l-map v-model="zoom" :zoom="zoom" :center="centro" @ready="mapaListo">
+      <!-- Con dos dedos se gira el mapa como en Google Maps (leaflet-rotate,
+           que vive en el L global: por eso use-global-leaflet). -->
+      <l-map
+        v-model="zoom" :zoom="zoom" :center="centro" :use-global-leaflet="true"
+        :options="opcionesMapa" @ready="mapaListo"
+      >
         <!-- Tiles de Google: en Oruro tienen las calles y los nombres que el
              caminero conoce. El key fuerza a rehacer la capa al cambiar de
              tipo, que si no se queda con la anterior. -->
@@ -109,6 +114,27 @@
             </span>
           </div>
         </q-linear-progress>
+        <!-- Flotan justo encima de la barra: la brujula aparece solo con el
+             mapa girado y lo vuelve a poner con el norte arriba; el otro lleva
+             directo a donde esta el caminero. -->
+        <div class="botones-mapa column items-end q-gutter-sm">
+          <q-btn
+            v-if="Math.abs(rumbo) > 0.5" round unelevated color="white" class="shadow-3"
+            @click="norteArriba"
+          >
+            <q-icon name="navigation" color="red-7" size="26px" :style="{ transform: 'rotate(' + (-rumbo) + 'deg)' }"/>
+            <q-tooltip>Norte arriba</q-tooltip>
+          </q-btn>
+          <q-btn
+            unelevated no-caps class="shadow-3 boton-volver"
+            :round="!lejosDeMi" :rounded="lejosDeMi"
+            :color="miUbicacion ? 'blue-7' : 'white'" :text-color="miUbicacion ? 'white' : 'blue-7'"
+            icon="my_location" :label="lejosDeMi ? 'Volver a mi ubicación' : undefined"
+            :loading="buscandoUbicacion" @click="mostrarMiUbicacion"
+          >
+            <q-tooltip>Volver a mi ubicación</q-tooltip>
+          </q-btn>
+        </div>
         <div class="row no-wrap caja">
           <div class="col caja-dato">
             <q-icon name="payments" color="green-8" size="15px"/>
@@ -333,6 +359,13 @@
                     </tr>
                   </table>
 
+                  <!-- No entregado no es final: se puede volver y entregar. -->
+                  <div v-if="esNoEntregado(props.row)" class="text-caption text-red-9 text-weight-medium">
+                    <q-icon name="cancel" size="14px"/>
+                    No entregado<span v-if="props.row.observacion"> · {{ props.row.observacion }}</span>
+                    · se puede volver a entregar
+                  </div>
+
                   <div v-if="props.row.cobrada" class="text-caption text-green-9">
                     <q-icon name="task_alt" size="14px"/>
                     {{ props.row.tipago }} · cobrado Bs {{ money(cobrado(props.row)) }}
@@ -344,7 +377,7 @@
                     </div>
                   </div>
 
-                  <div v-else-if="props.row.entrega_estado" class="text-caption text-red-9 ellipsis">
+                  <div v-else-if="cerrada(props.row)" class="text-caption text-red-9 ellipsis">
                     <q-icon name="cancel" size="14px"/>
                     {{ props.row.entrega_estado }}
                     <span v-if="props.row.observacion">· {{ props.row.observacion }}</span>
@@ -390,27 +423,35 @@
                     </div>
                   </template>
 
-                  <!-- Solo las tres acciones de la puerta, grandes y con su
-                       nombre: se tocan con el celular en la mano. -->
+                  <!-- Las cuatro acciones de la puerta, grandes y con su
+                       nombre (de a dos por fila): se tocan con el celular en
+                       la mano. -->
                   <div v-if="!cerrada(props.row) && (esCredito(props.row) || cobros[props.row.factura_id])" class="row q-col-gutter-xs q-mt-sm">
-                    <div class="col-4">
-                      <q-btn
-                        class="full-width boton-accion" outline no-caps stack color="negative" icon="cancel"
-                        label="Anular" @click="abrirNoEntrega(props.row)"
-                      />
-                    </div>
-                    <div class="col-4">
-                      <q-btn
-                        class="full-width boton-accion" outline no-caps stack color="deep-orange-8" icon="assignment_return"
-                        label="Retorno parcial" @click="abrirRetorno(props.row)"
-                      />
-                    </div>
-                    <div class="col-4">
+                    <div class="col-6">
                       <q-btn
                         class="full-width boton-accion" unelevated no-caps stack color="positive" icon="check_circle"
-                        :label="esCredito(props.row) ? 'Entregar' : 'Registrar cobro'"
+                        :label="esCredito(props.row) ? 'Entregar' : 'Entregar y cobrar'"
                         :loading="guardando === props.row.factura_id"
                         :disable="!cobroValido(props.row)" @click="cobrar(props.row)"
+                      />
+                    </div>
+                    <div class="col-6">
+                      <q-btn
+                        class="full-width boton-accion" outline no-caps stack color="amber-9" icon="schedule"
+                        :label="esMasTarde(props.row) ? 'Quitar más tarde' : 'Volver más tarde'"
+                        @click="alternarMasTarde(props.row)"
+                      />
+                    </div>
+                    <div class="col-6">
+                      <q-btn
+                        class="full-width boton-accion" outline no-caps stack color="deep-orange-8" icon="assignment_return"
+                        label="Retornar" @click="abrirRetorno(props.row)"
+                      />
+                    </div>
+                    <div v-if="!esNoEntregado(props.row)" class="col-6">
+                      <q-btn
+                        class="full-width boton-accion" outline no-caps stack color="negative" icon="cancel"
+                        label="No entregado" @click="abrirNoEntrega(props.row)"
                       />
                     </div>
                   </div>
@@ -456,6 +497,11 @@
                 <q-td key="cobro" :props="props">
                   <div class="text-weight-bolder">Bs {{ money(props.row.total) }}</div>
 
+                  <div v-if="esNoEntregado(props.row)" class="text-caption text-red-9 text-weight-medium">
+                    No entregado<span v-if="props.row.observacion"> · {{ props.row.observacion }}</span>
+                    · se puede volver a entregar
+                  </div>
+
                   <div v-if="props.row.cobrada" class="text-caption text-green-9">
                     {{ props.row.tipago }} · cobrado Bs {{ money(cobrado(props.row)) }}
                     <span v-if="falto(props.row) > 0.009" class="text-red-9 text-weight-bold">
@@ -466,7 +512,7 @@
                     </div>
                   </div>
 
-                  <div v-else-if="props.row.entrega_estado" class="text-caption text-red-9">
+                  <div v-else-if="cerrada(props.row)" class="text-caption text-red-9">
                     {{ props.row.entrega_estado }}
                   </div>
 
@@ -512,17 +558,22 @@
 
                 <q-td key="opcion" :props="props" class="text-no-wrap">
                   <div v-if="!cerrada(props.row)" class="row no-wrap q-gutter-xs justify-end">
-                    <q-btn
+                    <q-btn v-if="!esNoEntregado(props.row)"
                       class="boton-accion" outline no-caps stack color="negative" icon="cancel"
-                      label="Anular" @click="abrirNoEntrega(props.row)"
+                      label="No entregado" @click="abrirNoEntrega(props.row)"
                     />
                     <q-btn
                       class="boton-accion" outline no-caps stack color="deep-orange-8" icon="assignment_return"
-                      label="Retorno parcial" @click="abrirRetorno(props.row)"
+                      label="Retornar" @click="abrirRetorno(props.row)"
+                    />
+                    <q-btn
+                      class="boton-accion" outline no-caps stack color="amber-9" icon="schedule"
+                      :label="esMasTarde(props.row) ? 'Quitar más tarde' : 'Volver más tarde'"
+                      @click="alternarMasTarde(props.row)"
                     />
                     <q-btn
                       class="boton-accion" unelevated no-caps stack color="positive" icon="check_circle"
-                      :label="esCredito(props.row) ? 'Entregar' : 'Registrar cobro'"
+                      :label="esCredito(props.row) ? 'Entregar' : 'Entregar y cobrar'"
                       :loading="guardando === props.row.factura_id"
                       :disable="!cobroValido(props.row)" @click="cobrar(props.row)"
                     />
@@ -759,6 +810,10 @@
 <script>
 import { markRaw } from 'vue'
 import { date } from 'quasar'
+// Primero Leaflet (deja L en window) y despues el plugin que lo extiende
+// para girar el mapa; el orden de estos dos imports importa.
+import 'leaflet'
+import 'leaflet-rotate'
 import { LMap, LIcon, LTileLayer, LMarker, LCircle } from '@vue-leaflet/vue-leaflet'
 import 'leaflet/dist/leaflet.css'
 
@@ -831,6 +886,23 @@ export default {
       // Lo que se dibuja en el mapa al pedir "Mi ubicación": { lat, lng, precision }.
       miUbicacion: null,
       buscandoUbicacion: false,
+      // Giro del mapa en grados (0 = norte arriba) y si el centro quedo lejos
+      // del caminero, para ofrecerle volver.
+      rumbo: 0,
+      lejosDeMi: false,
+      // Despues de "volver a mi ubicación" el mapa sigue al caminero hasta
+      // que lo arrastre con el dedo.
+      siguiendo: false,
+      opcionesMapa: {
+        rotate: true,
+        touchRotate: true,
+        // La brujula la pone la pantalla, mas grande y junto a "volver".
+        rotateControl: false,
+        bearing: 0
+      },
+      // Notas que el caminero dejo para despues ("Volver más tarde"):
+      // { factura_id: true }. Siguen pendientes, solo bajan en la lista.
+      masTarde: {},
       mapa: null
     }
   },
@@ -868,9 +940,10 @@ export default {
       // final: el caminero trabaja de arriba hacia abajo y lo pendiente le
       // queda siempre a mano, sin buscarlo entre lo que ya despachó. sort es
       // estable, asi que dentro de cada grupo se respeta el orden que vino.
-      return visibles.slice().sort(
-        (a, b) => Number(this.cerrada(a)) - Number(this.cerrada(b))
-      )
+      // Pendientes; despues lo dejado para mas tarde y lo no entregado (se
+      // puede volver a entregar); al final lo cerrado.
+      const orden = entrega => this.cerrada(entrega) ? 2 : (this.esMasTarde(entrega) || this.esNoEntregado(entrega) ? 1 : 0)
+      return visibles.slice().sort((a, b) => orden(a) - orden(b))
     },
     /**
      * Las marcas del mapa: una por puerta, no una por pedido.
@@ -938,7 +1011,7 @@ export default {
     /** Las notas del punto que todavia no se cerraron. */
     pendientesPunto () {
       return this.punto.entregas.filter(
-        entrega => !entrega.cobrada && !entrega.entrega_estado
+        entrega => !this.cerrada(entrega)
       )
     },
     /** Lo que va a entrar si se registra el punto tal como esta escrito. */
@@ -1015,24 +1088,61 @@ export default {
       return this.cantidad(cant) + (item.unidad ? ' ' + item.unidad : '')
     },
     /** Una nota cerrada: ya se cobró o quedó como no entregada. */
+    // No entregado no cierra: el caminero puede volver mas tarde y entregar.
     cerrada (entrega) {
-      return !!(entrega.cobrada || entrega.entrega_estado)
+      return !!(entrega.cobrada || (entrega.entrega_estado && !this.esNoEntregado(entrega)))
+    },
+    esNoEntregado (entrega) {
+      return !entrega.cobrada && entrega.entrega_estado === 'NO ENTREGADO'
     },
     claseFila (entrega) {
       if (entrega.cobrada) return 'fila-cobrada'
-      return entrega.entrega_estado ? 'fila-rechazada' : ''
+      if (entrega.entrega_estado) return 'fila-rechazada'
+      return this.esMasTarde(entrega) ? 'fila-mas-tarde' : ''
     },
     claseEstado (entrega) {
       if (entrega.cobrada) return 'marca-verde'
-      return entrega.entrega_estado ? 'marca-roja' : 'marca-naranja'
+      if (entrega.entrega_estado) return 'marca-roja'
+      return this.esMasTarde(entrega) ? 'marca-amarilla' : 'marca-naranja'
+    },
+    esMasTarde (entrega) {
+      return !this.cerrada(entrega) && !!this.masTarde[entrega.factura_id]
+    },
+    // Lo dejado para despues se recuerda en el celular, por dia: no es un
+    // estado de la entrega, solo el orden en que el caminero hace su ruta.
+    claveMasTarde () {
+      return 'caminero-mas-tarde-' + this.fecha
+    },
+    leerMasTarde () {
+      try {
+        this.masTarde = JSON.parse(localStorage.getItem(this.claveMasTarde()) || '{}') || {}
+      } catch (e) {
+        this.masTarde = {}
+      }
+    },
+    alternarMasTarde (entrega) {
+      const marcas = Object.assign({}, this.masTarde)
+      if (marcas[entrega.factura_id]) {
+        delete marcas[entrega.factura_id]
+      } else {
+        marcas[entrega.factura_id] = true
+        this.$q.notify({
+          type: 'warning', position: 'top', icon: 'schedule',
+          message: 'Queda para más tarde: ' + this.clienteDe(entrega)
+        })
+        this.dialogoPunto = false
+      }
+      this.masTarde = marcas
+      try { localStorage.setItem(this.claveMasTarde(), JSON.stringify(marcas)) } catch (e) {}
     },
     // La marca de un punto con varios pedidos: verde solo cuando ya no queda
     // nada por cobrar ahi, para que el caminero no se vaya de la puerta antes.
     clasePunto (entregas) {
       if (entregas.every(entrega => entrega.cobrada)) return 'marca-verde'
-      if (entregas.some(entrega => !entrega.cobrada && !entrega.entrega_estado)) {
+      if (entregas.some(entrega => !this.cerrada(entrega) && !this.esMasTarde(entrega) && !this.esNoEntregado(entrega))) {
         return 'marca-naranja'
       }
+      if (entregas.some(this.esMasTarde)) return 'marca-amarilla'
       return 'marca-roja'
     },
     clienteDe (entrega) {
@@ -1076,7 +1186,7 @@ export default {
       // pasa casi siempre; el caminero solo corrige cuando le dan de menos.
       this.cobros = {}
       punto.entregas.forEach(entrega => {
-        if (entrega.cobrada || entrega.entrega_estado) return
+        if (this.cerrada(entrega)) return
         // El monto arranca vacio a proposito: primero se cuenta la plata que
         // el cliente pone en la mano y recien ahi se escribe. Debajo del campo
         // queda el recordatorio de cuanto tendria que entrar.
@@ -1166,6 +1276,12 @@ export default {
     },
     mapaListo (mapa) {
       this.mapa = markRaw(mapa)
+      if (mapa.getBearing) {
+        mapa.on('rotate', () => { this.rumbo = mapa.getBearing() })
+      }
+      mapa.on('moveend', this.revisarDistancia)
+      // Arrastrar el mapa a mano corta el seguimiento, como en Google Maps.
+      mapa.on('dragstart', () => { this.siguiendo = false })
       // El mapa se dibuja antes de que el navegador reparta las dos mitades,
       // asi que sin esto queda calculado a un alto que ya no es el suyo.
       setTimeout(() => {
@@ -1208,6 +1324,11 @@ export default {
           if (primera) {
             primera = false
             this.centrarEnMi()
+          } else if (this.siguiendo && this.mapa) {
+            // Siguiendo: el mapa acompaña al caminero sin cambiarle el zoom.
+            this.mapa.panTo([this.miUbicacion.lat, this.miUbicacion.lng], { animate: true })
+          } else {
+            this.revisarDistancia()
           }
         },
         error => {
@@ -1226,6 +1347,22 @@ export default {
     centrarEnMi () {
       if (!this.mapa || !this.miUbicacion) return
       this.mapa.setView([this.miUbicacion.lat, this.miUbicacion.lng], Math.max(this.mapa.getZoom(), 16))
+      this.lejosDeMi = false
+      this.siguiendo = true
+    },
+    // Si el caminero arrastro el mapa a mas de ~150 m de donde esta, el boton
+    // se agranda con el texto "Volver a mi ubicación".
+    revisarDistancia () {
+      if (!this.mapa || !this.miUbicacion) {
+        this.lejosDeMi = false
+        return
+      }
+      const centro = this.mapa.getCenter()
+      this.lejosDeMi = this.metros({ lat: centro.lat, lng: centro.lng }, this.miUbicacion) > 150
+    },
+    norteArriba () {
+      if (this.mapa && this.mapa.setBearing) this.mapa.setBearing(0)
+      this.rumbo = 0
     },
     dejarDeSeguir () {
       if (this.vigia !== null && this.vigia !== undefined && navigator.geolocation) {
@@ -1243,6 +1380,7 @@ export default {
     },
     cargar () {
       this.cargando = true
+      this.leerMasTarde()
       this.$api.get('caminero/entregas', { params: { fecha: this.fecha } })
         .then(res => {
           this.placa = res.data.placa
@@ -1568,6 +1706,17 @@ export default {
   top: 6px;
   right: 6px;
 }
+/* Encima de la barra de abajo, a la derecha, como en Google Maps. */
+.botones-mapa {
+  position: absolute;
+  right: 10px;
+  bottom: calc(100% + 10px);
+}
+.boton-volver {
+  min-height: 44px;
+  min-width: 44px;
+  font-weight: 600;
+}
 .panel-bajo {
   left: 0;
   right: 0;
@@ -1707,6 +1856,9 @@ export default {
 .marca-roja {
   background: #c62828;
 }
+.marca-amarilla {
+  background: #f9a825;
+}
 
 .tabla {
   width: 100%;
@@ -1739,6 +1891,9 @@ export default {
 }
 .fila-rechazada {
   background: #ffebee;
+}
+.fila-mas-tarde {
+  background: #fff8e1;
 }
 .linea-cliente {
   font-size: 13px;

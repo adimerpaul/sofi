@@ -393,6 +393,50 @@
           <q-badge :color="props.value === 'ANULADO' ? 'negative' : 'positive'" text-color="white">
             {{ props.value }}
           </q-badge>
+          <!-- Salio de editar otro comprobante: que numero de modificacion es,
+               contando desde el original (padre), y que se cambio. -->
+          <div v-if="props.row.modificacion_nro">
+            <q-chip
+              dense clickable color="amber-8" text-color="white" icon="history_edu" class="q-mt-xs"
+              :label="'Modif. ' + props.row.modificacion_nro + ' · de #' + props.row.modificacion_padre_id"
+            >
+              <q-popup-proxy>
+                <q-card style="min-width: 300px; max-width: 420px">
+                  <q-card-section class="q-pb-xs">
+                    <div class="text-subtitle2 text-weight-bold">
+                      Modificación {{ props.row.modificacion_nro }} de la venta #{{ props.row.modificacion_padre_id }}
+                    </div>
+                    <div class="text-caption text-grey-7">
+                      Cambios respecto de la #{{ (props.row.modificacion_campos || {}).anterior_id }} (anulada)
+                    </div>
+                  </q-card-section>
+                  <q-card-section class="q-pt-xs">
+                    <div v-if="!cambiosDe(props.row).length" class="text-grey-7 text-caption">
+                      Se reemitió sin cambios
+                    </div>
+                    <q-list dense separator>
+                      <q-item v-for="(cambio, i) in cambiosDe(props.row)" :key="i" class="q-px-none">
+                        <q-item-section>
+                          <q-item-label class="text-weight-medium">
+                            {{ cambio.titulo }}
+                            <q-badge v-if="cambio.tipo" :color="colorCambio(cambio.tipo)" class="q-ml-xs">
+                              {{ cambio.tipo }}
+                            </q-badge>
+                          </q-item-label>
+                          <q-item-label v-for="(campo, j) in cambio.campos" :key="j" caption>
+                            {{ campo.etiqueta }}:
+                            <span class="text-red-8 text-strike">{{ campo.antes ?? '—' }}</span>
+                            → <b class="text-green-9">{{ campo.despues ?? '—' }}</b>
+                          </q-item-label>
+                        </q-item-section>
+                      </q-item>
+                    </q-list>
+                  </q-card-section>
+                </q-card>
+              </q-popup-proxy>
+              <q-tooltip>{{ ((props.row.modificacion_campos || {}).resumen || []).join(' · ') || 'Sin cambios' }}</q-tooltip>
+            </q-chip>
+          </div>
         </q-td>
       </template>
 
@@ -1402,6 +1446,23 @@ export default {
       this.$api.get('facturacion/' + row.id)
         .then(res => { this.sel = res.data })
         .catch(() => {})
+    },
+
+    // Lo que cambio al editar, armado para la lista: primero la cabecera
+    // (total, pago, NIT...) y despues cada producto.
+    cambiosDe (row) {
+      const campos = row.modificacion_campos || {}
+      const lista = []
+      if ((campos.cabecera || []).length) {
+        lista.push({ titulo: 'Comprobante', tipo: '', campos: campos.cabecera })
+      }
+      (campos.productos || []).forEach(producto => {
+        lista.push({ titulo: producto.nombre, tipo: producto.cambio, campos: producto.campos || [] })
+      })
+      return lista
+    },
+    colorCambio (tipo) {
+      return { AGREGADO: 'green-7', QUITADO: 'red-7', MODIFICADO: 'amber-9' }[tipo] || 'grey-7'
     },
 
     /** 'factura' o 'voucher', segun como se emitio el comprobante. */
