@@ -771,6 +771,46 @@ class CamineroController extends Controller
     }
 
     /**
+     * Tilde producto por producto dentro de una canasta.
+     *
+     * Llega la lista completa de lo tildado (no un producto suelto), asi que
+     * si dos toques se cruzan en el camino gana el ultimo y no se mezclan.
+     * Con todos tildados la canasta queda verificada sola.
+     */
+    public function verificarProductos(Request $request)
+    {
+        $datos = $request->validate([
+            'fecha' => 'nullable|date',
+            'factura_id' => 'required|integer',
+            'revisados' => 'present|array',
+            'revisados.*' => 'integer',
+        ]);
+
+        $fecha = $datos['fecha'] ?? date('Y-m-d');
+        $placa = $this->placa($request);
+        if ($placa === '') {
+            return response()->json(['message' => 'Tu usuario no tiene un camión asignado'], 422);
+        }
+
+        $servicio = new CargaCamion();
+        $comprobante = $servicio->comprobante($fecha, $placa, $datos['factura_id']);
+        if (!$comprobante) {
+            return response()->json(['message' => 'Ese comprobante no sale en tu camión'], 404);
+        }
+
+        $comprobante = $servicio->marcarProductos(
+            $fecha, $placa, $comprobante, $datos['revisados'],
+            $request->user()->CodAut, $this->nombre($request)
+        );
+
+        return [
+            'message' => $comprobante['verificado'] ? 'Canasta verificada' : 'Producto guardado',
+            'resumen' => $servicio->estado($fecha, $placa),
+            'comprobante' => $comprobante,
+        ];
+    }
+
+    /**
      * Da por buenas de golpe todas las canastas que todavia no se tocaron.
      *
      * Lo que ya tiene una observacion escrita no se pisa, para no borrar sin
@@ -819,6 +859,13 @@ class CamineroController extends Controller
         $comprobante['observacion'] = $fila['observacion'];
         $comprobante['verificado_por'] = $fila['verificado_por'];
         $comprobante['verificado_en'] = $fila['verificado_en'];
+        // La canasta entera manda sobre los productos: verificada, todos
+        // tildados; desmarcada, ninguno.
+        $comprobante['items'] = array_map(function ($item) use ($verificado) {
+            $item['revisado'] = (bool) $verificado;
+            return $item;
+        }, $comprobante['items']);
+        $comprobante['revisados'] = $verificado ? count($comprobante['items']) : 0;
 
         return $comprobante;
     }

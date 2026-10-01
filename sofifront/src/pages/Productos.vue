@@ -447,7 +447,7 @@ export default {
     actualizarPollos () {
       this.$q.dialog({
         title: 'Actualizar pollos',
-        message: 'Los productos 501600, 501601, 501604, 501606, 501704, 502102, 502108 y 502106 ' +
+        message: 'Los productos 501600, 501601, 501604, 501606, 501704, 502102, 502108, 502106 y 502109 ' +
           'pasarán a tipo POLLO y unidad CAJA. ¿Continuar?',
         cancel: true,
         persistent: true

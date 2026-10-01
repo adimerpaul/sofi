@@ -174,6 +174,7 @@ class ProductoController extends Controller{
     private const CODIGOS_POLLO = [
         '501600', '501601', '501604', '501606',
         '501704', '502102', '502108', '502106',
+        '502109',
     ];
 
     /** Pasa de una vez los productos de CODIGOS_POLLO a tipo POLLO y unidad CAJA. */

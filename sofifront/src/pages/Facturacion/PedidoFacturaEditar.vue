@@ -45,6 +45,16 @@
         <div class="text-caption">Las cantidades ya vienen corregidas; revisalas y emití el nuevo.</div>
       </q-banner>
 
+      <q-banner v-if="pedido.borrador" dense rounded class="bg-amber-1 text-amber-10 q-mb-sm">
+        <template v-slot:avatar><q-icon name="save" color="amber-9"/></template>
+        <div class="text-weight-medium">
+          Guardado sin finalizar
+          <span v-if="pedido.borrador.usuario">por {{ pedido.borrador.usuario }}</span>
+          · {{ pedido.borrador.guardado }}
+        </div>
+        <div class="text-caption">Todavía no es venta ni se descontó stock: se hace al finalizar.</div>
+      </q-banner>
+
       <q-banner v-if="pedido.anulada" dense rounded class="bg-blue-1 text-blue-10 q-mb-sm">
         <template v-slot:avatar><q-icon name="history" color="blue-8"/></template>
         <div class="text-weight-medium">
@@ -89,7 +99,17 @@
         <q-list separator>
           <q-item v-for="(item, indice) in items" :key="item.cod_prod + '-' + indice" class="q-pa-sm">
             <q-item-section>
-              <q-item-label class="text-weight-bold" lines="2">{{ item.nombre }}</q-item-label>
+              <q-item-label class="text-weight-bold" lines="2">
+                {{ item.nombre }}
+                <!-- Una parte del mismo producto puede ir con otro precio:
+                     se copia la linea y cada una lleva su cantidad y precio. -->
+                <q-btn
+                  flat round dense size="sm" color="primary" icon="content_copy"
+                  class="q-ml-xs" @click="copiar(indice)"
+                >
+                  <q-tooltip>Copiar el producto (para otro precio o cantidad)</q-tooltip>
+                </q-btn>
+              </q-item-label>
               <q-item-label caption>
                 {{ item.cod_prod }}
                 <span v-if="esPeso(item)" class="text-orange-9">· se cobra por peso</span>
@@ -115,8 +135,8 @@
                 ({{ diferencia(item) }})
               </q-item-label>
 
-              <div class="row q-col-gutter-xs q-mt-xs">
-                <div :class="esPeso(item) ? 'col-3' : 'col-5'">
+              <div class="row q-col-gutter-xs q-mt-xs campos-compactos">
+                <div :class="esPeso(item) && conCanastillos ? 'col-2' : esPeso(item) ? 'col-3' : 'col-5'">
                   <q-input
                     v-model.number="item.cantidad" type="number" min="0.001" step="0.001"
                     dense outlined label="Cantidad" @update:model-value="actualizar(item)"
@@ -133,6 +153,13 @@
                     @update:model-value="actualizar(item)"
                   />
                 </div>
+                <!-- Canastillos va antes del precio: se cargan seguido del bruto. -->
+                <div v-if="esPeso(item) && conCanastillos" class="col-2">
+                  <q-input
+                    v-model.number="item.canastillos" type="number" min="0" step="1"
+                    dense outlined label="Canast." @update:model-value="actualizar(item)"
+                  />
+                </div>
                 <div v-else-if="esPeso(item)" class="col-3">
                   <q-input
                     v-model.number="item.peso" type="number" min="0.001" step="0.001"
@@ -141,7 +168,7 @@
                     @update:model-value="actualizar(item)"
                   />
                 </div>
-                <div :class="esPeso(item) ? 'col-4' : 'col-5'">
+                <div :class="esPeso(item) && conCanastillos ? 'col-3' : esPeso(item) ? 'col-4' : 'col-5'">
                   <q-input
                     v-model.number="item.precio" type="number" min="0" step="0.01"
                     dense outlined label="Precio Bs" @update:model-value="actualizar(item)"
@@ -162,13 +189,7 @@
               <!-- Pollo, cerdo y res se pesan dentro de los canastillos: se
                    cobra el neto, el bruto menos lo que pesan los canastillos.
                    Sin canastillos el neto es el mismo bruto. -->
-              <div v-if="esPeso(item) && conCanastillos" class="row q-col-gutter-xs q-mt-xs items-center">
-                <div class="col-3">
-                  <q-input
-                    v-model.number="item.canastillos" type="number" min="0" step="1"
-                    dense outlined label="Canastillos" @update:model-value="actualizar(item)"
-                  />
-                </div>
+              <div v-if="esPeso(item) && conCanastillos" class="row q-mt-xs items-center">
                 <div class="col text-caption">
                   <span v-if="Number(item.canastillos) > 0" class="text-grey-8">
                     {{ item.canastillos }} × {{ kgCanastillo }} kg = {{ cantidad(kgCanastillos(item)) }} kg ·
@@ -226,13 +247,31 @@
         </q-card-section>
       </q-card>
 
-      <div class="fixed-bottom bg-white q-pa-sm shadow-up-3">
-        <q-btn
-          class="full-width q-py-sm text-weight-bold" color="positive" unelevated no-caps
-          icon="point_of_sale" :label="tipoComprobante === 'FACTURA' ? 'Emitir factura' : 'Generar voucher'"
-          :disable="!items.length || faltanPesos" :loading="guardando" @click="guardar"
-        />
-      </div>
+      <!-- Guardar deja el avance para seguir despues, sin venta ni stock.
+           Finalizar es lo que registra la venta y descuenta el stock. -->
+      <q-page-sticky expand position="bottom">
+        <div class="barra-acciones full-width bg-white shadow-up-3">
+          <q-btn
+            class="boton-accion boton-guardar" color="primary" outline no-caps
+            icon="save" label="Guardar"
+            :disable="guardando" :loading="guardandoBorrador" @click="guardarBorrador"
+          >
+            <q-tooltip>Guarda el avance sin hacer la venta ni descontar stock</q-tooltip>
+          </q-btn>
+          <q-btn
+            class="boton-accion boton-finalizar" color="positive" unelevated no-caps
+            icon="check_circle" :disable="!items.length || faltanPesos || guardandoBorrador"
+            :loading="guardando" @click="guardar"
+          >
+            <div class="column items-start q-ml-sm leading">
+              <span class="text-weight-bold">Finalizar</span>
+              <span class="text-caption">
+                {{ tipoComprobante === 'FACTURA' ? 'Emitir factura' : 'Generar voucher' }} · Bs {{ money(total) }}
+              </span>
+            </div>
+          </q-btn>
+        </div>
+      </q-page-sticky>
     </template>
 
     <q-dialog v-model="dialogCatalogo" maximized transition-show="slide-up" transition-hide="slide-down">
@@ -278,6 +317,7 @@ export default {
       items: [],
       cargando: true,
       guardando: false,
+      guardandoBorrador: false,
       tipoComprobante: 'VENTA',
       tipoPago: 'EFECTIVO',
       tiposPago: ['EFECTIVO', 'QR', 'TARJETA', 'CRÉDITO'],
@@ -397,6 +437,14 @@ export default {
           this.observacion = this.pedido.anulada?.observacion || this.pedido.comentario || ''
           this.tipoComprobante = String(this.pedido.fact || '').toUpperCase() === 'SI' ? 'FACTURA' : 'VENTA'
           this.tipoPago = String(this.pedido.pago || '').toUpperCase().includes('CREDIT') ? 'CRÉDITO' : 'EFECTIVO'
+          // Lo guardado sin finalizar manda sobre lo que trae el pedido.
+          const borrador = this.pedido.borrador
+          if (borrador) {
+            if (borrador.tipo_comprobante) this.tipoComprobante = borrador.tipo_comprobante
+            if (borrador.tipo_pago) this.tipoPago = borrador.tipo_pago
+            if (borrador.nit !== null) this.nit = borrador.nit || ''
+            if (borrador.observacion !== null) this.observacion = borrador.observacion || ''
+          }
         })
         .catch(this.error)
         .finally(() => { this.cargando = false })
@@ -446,6 +494,30 @@ export default {
         })
       }
       this.dialogCatalogo = false
+    },
+    /**
+     * Duplica una linea justo debajo de la original. La copia entra como
+     * agregada (sin cantidad pedida, para no contar dos veces el cambio
+     * contra el pedido) y sin pesar: el cajero le pone su cantidad, peso y
+     * precio.
+     */
+    copiar (indice) {
+      const original = this.items[indice]
+      const copia = {
+        cod_prod: original.cod_prod,
+        nombre: original.nombre,
+        unidad: original.unidad,
+        caja: original.caja || null,
+        cantidad: 1,
+        cantidad_pedida: null,
+        peso: null,
+        peso_bruto: null,
+        canastillos: null,
+        precio: Number(original.precio || 0),
+        total: 0
+      }
+      this.actualizar(copia)
+      this.items.splice(indice + 1, 0, copia)
     },
     guardar () {
       if (this.tipoComprobante === 'FACTURA' && !this.nit) {
@@ -506,6 +578,36 @@ export default {
       }).catch(this.error)
         .finally(() => { this.guardando = false })
     },
+    // Guarda lo cargado hasta ahora sin crear la venta: puede faltar pesar.
+    guardarBorrador () {
+      this.guardandoBorrador = true
+      this.$api.post('facturacion/pedidos/' + this.numeroPedido + '/borrador', {
+        pedido_tipo: this.tipoPedido,
+        tipo_comprobante: this.tipoComprobante,
+        tipo_pago: this.tipoPago,
+        nit: this.nit,
+        observacion: this.observacion,
+        items: this.items.map(item => ({
+          cod_prod: item.cod_prod,
+          nombre: item.nombre,
+          unidad: item.unidad,
+          caja: item.caja || null,
+          cantidad: Number(item.cantidad) || 0,
+          cantidad_pedida: this.esNuevo(item) ? null : Number(item.cantidad_pedida),
+          peso: Number(item.peso) > 0 ? Number(item.peso) : null,
+          peso_bruto: Number(item.peso_bruto) > 0 ? Number(item.peso_bruto) : null,
+          canastillos: item.canastillos === null || item.canastillos === undefined || item.canastillos === ''
+            ? null : Math.max(0, Math.trunc(Number(item.canastillos) || 0)),
+          precio: Number(item.precio) || 0,
+          recuperado: !!item.recuperado,
+          retorno: !!item.retorno
+        }))
+      }).then(res => {
+        this.$q.notify({ type: 'positive', position: 'top', message: res.data.message })
+        setTimeout(this.volver, 800)
+      }).catch(this.error)
+        .finally(() => { this.guardandoBorrador = false })
+    },
     error (err) {
       this.$q.notify({
         type: 'negative', position: 'top',
@@ -520,5 +622,58 @@ export default {
 /* Una linea apretada; si en el celular no entra, sigue abajo en vez de cortarse. */
 .detalle-linea {
   line-height: 1.3;
+}
+
+/* Cantidad, peso, canastillos y precio en una fila baja: con varios productos
+   entran mas en pantalla. La etiqueta queda fija arriba, chica. */
+.campos-compactos :deep(.q-field--dense .q-field__control),
+.campos-compactos :deep(.q-field--dense .q-field__marginal) {
+  height: 34px;
+  min-height: 34px;
+}
+.campos-compactos :deep(.q-field--dense .q-field__control) {
+  padding: 0 6px;
+}
+.campos-compactos :deep(.q-field__native) {
+  font-size: 13px;
+  padding-top: 12px;
+  padding-bottom: 0;
+}
+.campos-compactos :deep(.q-field--dense .q-field__label) {
+  font-size: 11px;
+  top: 9px;
+}
+.campos-compactos :deep(.q-field--dense.q-field--float .q-field__label) {
+  transform: translateY(-55%) scale(0.85);
+}
+.campos-compactos :deep(.q-field__append .q-icon) {
+  font-size: 14px;
+}
+
+/* Guardar y Finalizar lado a lado, misma altura; Finalizar ocupa mas porque
+   es la accion principal. */
+.barra-acciones {
+  display: flex;
+  gap: 8px;
+  padding: 8px 12px;
+}
+.boton-accion {
+  min-height: 52px;
+  border-radius: 10px;
+}
+/* Guardar toma el ancho de su texto (nunca se corta) y Finalizar el resto. */
+.boton-guardar {
+  flex: 0 0 auto;
+  font-weight: 600;
+  white-space: nowrap;
+  padding: 0 14px;
+}
+.boton-finalizar {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.leading {
+  line-height: 1.15;
+  text-align: left;
 }
 </style>

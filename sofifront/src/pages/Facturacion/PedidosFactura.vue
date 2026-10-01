@@ -87,7 +87,11 @@
               <q-space/>
               <!-- El que vuelve por una anulacion no arranca de cero: al
                    entrar trae cargado lo que ya se habia cobrado. -->
-              <q-badge v-if="pedido.anulada_id" color="blue-8">
+              <!-- Guardado a medias: todavia no es venta ni bajo stock. -->
+              <q-badge v-if="pedido.borrador" color="amber-9">
+                <q-icon name="save" size="14px" class="q-mr-xs"/>GUARDADO
+              </q-badge>
+              <q-badge v-else-if="pedido.anulada_id" color="blue-8">
                 <q-icon name="history" size="14px" class="q-mr-xs"/>RECUPERABLE
               </q-badge>
               <q-badge v-else-if="!pedido.factura_id" color="orange-8">PENDIENTE</q-badge>
@@ -196,10 +200,15 @@
           <template v-if="!pedido.factura_id">
             <q-btn
               class="full-width q-py-xs text-weight-bold" color="positive" unelevated no-caps
-              :icon="pedido.anulada_id ? 'history' : 'edit_note'"
-              :label="pedido.anulada_id ? 'Retomar y facturar' : 'Revisar y facturar'"
+              :icon="pedido.borrador ? 'save' : pedido.anulada_id ? 'history' : 'edit_note'"
+              :label="pedido.borrador ? 'Continuar y finalizar' : pedido.anulada_id ? 'Retomar y facturar' : 'Revisar y facturar'"
               @click="revisar(pedido)"
             />
+            <div v-if="pedido.borrador" class="text-caption text-amber-10 q-mt-xs">
+              Guardado {{ pedido.borrador.guardado }}
+              <span v-if="pedido.borrador.usuario">por {{ pedido.borrador.usuario }}</span>
+              · Bs {{ money(pedido.borrador.total) }}; falta finalizar
+            </div>
             <div v-if="pedido.anulada_id" class="text-caption text-blue-9 q-mt-xs">
               Se anuló la venta #{{ pedido.anulada_id }} (Bs {{ money(pedido.anulada_total) }});
               al entrar vuelve cargada
@@ -210,12 +219,28 @@
               class="full-width q-py-xs text-weight-bold" outline no-caps color="primary" icon="visibility" label="Ver comprobante"
               @click="verComprobante(pedido)"
             />
-            <q-btn
-              class="full-width q-py-xs text-weight-bold q-mt-xs" unelevated no-caps color="primary" icon="print"
-              :label="'Imprimir ' + (pedido.comprobante_emitido === 'FACTURA' ? 'factura' : 'voucher')"
+            <!-- Tocar el boton saca ORIGINAL y COPIA; la flecha deja elegir una sola. -->
+            <q-btn-dropdown
+              split class="full-width q-mt-xs text-weight-bold" unelevated no-caps color="primary" icon="print"
+              :label="'Imprimir ' + (pedido.comprobante_emitido === 'FACTURA' ? 'factura' : 'voucher') + ' (original y copia)'"
               :loading="imprimiendo === pedido.factura_id"
-              @click="imprimir(pedido)"
-            />
+              @click="imprimir(pedido, 'ambas')"
+            >
+              <q-list dense>
+                <q-item clickable v-close-popup @click="imprimir(pedido, 'ambas')">
+                  <q-item-section avatar><q-icon name="print" color="primary"/></q-item-section>
+                  <q-item-section>Original y copia</q-item-section>
+                </q-item>
+                <q-item clickable v-close-popup @click="imprimir(pedido, 'ORIGINAL')">
+                  <q-item-section avatar><q-icon name="description" color="primary"/></q-item-section>
+                  <q-item-section>Solo original</q-item-section>
+                </q-item>
+                <q-item clickable v-close-popup @click="imprimir(pedido, 'COPIA')">
+                  <q-item-section avatar><q-icon name="content_copy" color="grey-7"/></q-item-section>
+                  <q-item-section>Solo copia</q-item-section>
+                </q-item>
+              </q-list>
+            </q-btn-dropdown>
           </template>
           </q-card-actions>
         </q-card>
@@ -385,11 +410,13 @@ export default {
     },
     // El comprobante se manda a la impresora desde aca, cuando el cajero lo
     // pide: la venta ya no imprime sola al guardarse.
-    imprimir (pedido) {
+    // hojas: 'ambas' (ORIGINAL y COPIA), 'ORIGINAL' o 'COPIA'.
+    imprimir (pedido, hojas = 'ambas') {
       const documento = pedido.comprobante_emitido === 'FACTURA' ? 'factura' : 'voucher'
       this.imprimiendo = pedido.factura_id
+      const params = Object.assign({ imprimir: 1 }, hojas === 'ambas' ? { copias: 1 } : { marca: hojas })
 
-      this.$api.get('facturacion/' + pedido.factura_id + '/' + documento, { responseType: 'blob' })
+      this.$api.get('facturacion/' + pedido.factura_id + '/' + documento, { params, responseType: 'blob' })
         .then(res => imprimirPdfDirecto(res.data, documento + '_' + pedido.factura_id + '.pdf'))
         .catch(async err => {
           // El PDF viaja como blob, asi que el motivo del rechazo (por ejemplo

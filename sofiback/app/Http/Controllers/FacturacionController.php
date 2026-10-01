@@ -890,7 +890,20 @@ class FacturacionController extends Controller
             ->get(['id', 'pedido_nro', 'total'])
             ->keyBy('pedido_nro');
 
-        return $pedidos->map(function ($pedido) use ($items, $filasPedido, $anuladas) {
+        // Los guardados sin finalizar: todavia no son venta ni bajaron stock.
+        $borradores = DB::table('pedido_borradores')
+            ->where('pedido_tipo', $datos['tipo'])
+            ->whereIn('pedido_nro', $numeros)
+            ->get(['pedido_nro', 'total', 'usuario', 'updated_at'])
+            ->keyBy('pedido_nro');
+
+        return $pedidos->map(function ($pedido) use ($items, $filasPedido, $anuladas, $borradores) {
+            $borrador = $pedido->factura_id ? null : $borradores->get($pedido->nro_pedido);
+            $pedido->borrador = $borrador ? [
+                'total'    => (float) $borrador->total,
+                'usuario'  => $borrador->usuario,
+                'guardado' => substr((string) $borrador->updated_at, 0, 16),
+            ] : null;
             $pedido->items = ($items->get($pedido->nro_pedido) ?? collect())
                 ->map(function ($item) {
                     $item->cantidad = (float) $item->cantidad;
@@ -1041,7 +1054,119 @@ class FacturacionController extends Controller
             ];
         }
 
+        // Si el cajero ya lo habia guardado sin finalizar, se sigue desde ahi:
+        // lo guardado manda sobre lo del pedido y lo de la venta anulada.
+        $cabecera->borrador = null;
+        $borrador = DB::table('pedido_borradores')
+            ->where('pedido_nro', $nroPedido)
+            ->where('pedido_tipo', $datos['tipo'])
+            ->first();
+        if ($borrador) {
+            $guardado = json_decode($borrador->datos, true) ?: [];
+            $items = collect($guardado['items'] ?? [])->map(function ($item) {
+                return (object) $item;
+            })->values();
+            $cabecera->borrador = [
+                'tipo_comprobante' => $guardado['tipo_comprobante'] ?? null,
+                'tipo_pago'        => $guardado['tipo_pago'] ?? null,
+                'nit'              => $guardado['nit'] ?? null,
+                'observacion'      => $guardado['observacion'] ?? null,
+                'usuario'          => $borrador->usuario,
+                'guardado'         => substr((string) $borrador->updated_at, 0, 16),
+            ];
+        }
+
         return response()->json(['pedido' => $cabecera, 'items' => $items]);
+    }
+
+    /**
+     * Guarda momentaneamente lo que se lleva cargado de un pedido.
+     *
+     * No crea la venta ni mueve stock, y no exige pesos completos: es para
+     * seguir despues. La venta se hace recien con store (Finalizar), que
+     * borra el borrador.
+     */
+    public function guardarBorrador(Request $request, $nroPedido)
+    {
+        $datos = $request->validate([
+            'pedido_tipo'         => 'required|in:NORMAL,POLLO,CERDO,RES',
+            'items'               => 'present|array',
+            'items.*.cod_prod'    => 'required|string|max:25',
+            'items.*.nombre'      => 'nullable|string|max:150',
+            'items.*.unidad'      => 'nullable|string|max:20',
+            'items.*.caja'        => 'nullable|string|max:20',
+            'items.*.cantidad'    => 'nullable|numeric|min:0',
+            'items.*.cantidad_pedida' => 'nullable|numeric|min:0',
+            'items.*.peso'        => 'nullable|numeric',
+            'items.*.peso_bruto'  => 'nullable|numeric|min:0',
+            'items.*.canastillos' => 'nullable|integer|min:0',
+            'items.*.precio'      => 'nullable|numeric|min:0',
+            'items.*.recuperado'  => 'nullable|boolean',
+            'items.*.retorno'     => 'nullable|boolean',
+            'tipo_comprobante'    => 'nullable|in:VENTA,FACTURA',
+            'tipo_pago'           => 'nullable|string|max:20',
+            'nit'                 => 'nullable|string|max:20',
+            'observacion'         => 'nullable|string|max:255',
+        ]);
+
+        $tipo = $datos['pedido_tipo'];
+
+        $vigente = Factura::where('pedido_nro', $nroPedido)
+            ->where('pedido_tipo', $tipo)
+            ->where('estado', '<>', 'ANULADO')
+            ->exists();
+        if ($vigente) {
+            return response()->json(['message' => 'Este pedido ya fue facturado o convertido en voucher'], 422);
+        }
+
+        $items = collect($datos['items'])->map(function ($item) {
+            $cantidad = (float) ($item['cantidad'] ?? 0);
+            $peso = isset($item['peso']) && (float) $item['peso'] > 0 ? round((float) $item['peso'], 3) : null;
+            $precio = round((float) ($item['precio'] ?? 0), 2);
+            $esPeso = in_array(strtoupper(trim((string) ($item['unidad'] ?? ''))), ['KG', 'CAJA'], true);
+            return [
+                'cod_prod'        => trim($item['cod_prod']),
+                'nombre'          => $item['nombre'] ?? '',
+                'unidad'          => $item['unidad'] ?? 'UNIDAD',
+                'caja'            => $item['caja'] ?? null,
+                'imagen'          => null,
+                'cantidad'        => $cantidad,
+                'cantidad_pedida' => isset($item['cantidad_pedida']) ? (float) $item['cantidad_pedida'] : null,
+                'peso'            => $peso,
+                'peso_bruto'      => isset($item['peso_bruto']) ? (float) $item['peso_bruto'] : null,
+                'canastillos'     => isset($item['canastillos']) ? (int) $item['canastillos'] : null,
+                'precio'          => $precio,
+                'total'           => round(($esPeso ? (float) $peso : $cantidad) * $precio, 2),
+                'recuperado'      => !empty($item['recuperado']),
+                'retorno'         => !empty($item['retorno']),
+            ];
+        })->values();
+
+        $usuario = $request->user();
+        $ahora = date('Y-m-d H:i:s');
+        $existe = DB::table('pedido_borradores')
+            ->where('pedido_nro', $nroPedido)->where('pedido_tipo', $tipo)->exists();
+
+        DB::table('pedido_borradores')->updateOrInsert(
+            ['pedido_nro' => $nroPedido, 'pedido_tipo' => $tipo],
+            [
+                'datos'      => json_encode([
+                    'items'            => $items,
+                    'tipo_comprobante' => $datos['tipo_comprobante'] ?? null,
+                    'tipo_pago'        => $datos['tipo_pago'] ?? null,
+                    'nit'              => $datos['nit'] ?? null,
+                    'observacion'      => $datos['observacion'] ?? null,
+                ]),
+                'total'      => round($items->sum('total'), 2),
+                'user_id'    => $usuario->CodAut ?? null,
+                'usuario'    => trim(trim((string) ($usuario->Nombre1 ?? '')) . ' ' . trim((string) ($usuario->App1 ?? ''))),
+                'updated_at' => $ahora,
+            ] + ($existe ? [] : ['created_at' => $ahora])
+        );
+
+        return response()->json([
+            'message' => 'Pedido guardado. Todavía no es venta: el stock se descuenta al finalizar',
+        ]);
     }
 
     /**
@@ -1525,6 +1650,11 @@ class FacturacionController extends Controller
 
             if ($factura->pedido_nro) {
                 $this->heredarRetorno($factura, $usuario);
+                // Ya es venta: lo guardado a medias deja de servir.
+                DB::table('pedido_borradores')
+                    ->where('pedido_nro', $factura->pedido_nro)
+                    ->where('pedido_tipo', $factura->pedido_tipo)
+                    ->delete();
             }
 
             return $factura;
@@ -1967,7 +2097,7 @@ class FacturacionController extends Controller
      * Replica la boleta que se imprime en papel: cabecera con los datos del
      * cliente, la grilla de productos y el pie con literal, placa y totales.
      */
-    public function voucher($id)
+    public function voucher(Request $request, $id)
     {
         $factura = Factura::with(['detalles', 'cliente', 'vendedor'])->find($id);
         if (!$factura) {
@@ -1982,7 +2112,34 @@ class FacturacionController extends Controller
             return response()->json(['message' => $bloqueo], 422);
         }
 
-        return $this->pdf($this->voucherHtml($factura), 'voucher_' . $factura->id);
+        $pdf = $this->pdf($this->conMarcas($request, function ($marca) use ($factura) {
+            return $this->voucherHtml($factura, $marca);
+        }), 'voucher_' . $factura->id);
+        $this->marcarImpreso($request, [$factura->id]);
+
+        return $pdf;
+    }
+
+    /**
+     * Que hojas salen de un comprobante: copias=1 da ORIGINAL y COPIA
+     * seguidas; marca=ORIGINAL o marca=COPIA, solo esa. Sin nada, COPIA como
+     * siempre.
+     */
+    private function marcasPedidas(Request $request)
+    {
+        if ($request->boolean('copias')) {
+            return ['ORIGINAL', 'COPIA'];
+        }
+        $marca = strtoupper(trim((string) $request->query('marca', '')));
+        return [in_array($marca, ['ORIGINAL', 'COPIA'], true) ? $marca : 'COPIA'];
+    }
+
+    /** Arma las hojas pedidas de un comprobante, una por pagina. */
+    private function conMarcas(Request $request, callable $hoja)
+    {
+        return collect($this->marcasPedidas($request))
+            ->map($hoja)
+            ->implode("<div style='page-break-after: always'></div>");
     }
 
     /** Cache de tbproductos.trozado por codigo, para no repetir la consulta
@@ -2023,7 +2180,7 @@ class FacturacionController extends Controller
     }
 
     /** El voucher como HTML: aparte, para poder juntar varios en un PDF. */
-    private function voucherHtml(Factura $factura)
+    private function voucherHtml(Factura $factura, $marca = 'COPIA')
     {
         $cliente = $factura->cliente;
 
@@ -2166,7 +2323,7 @@ class FacturacionController extends Controller
         </table>
 
         <div class='pie'>
-            <div class='copia'>COPIA</div>
+            <div class='copia'>" . e($marca) . "</div>
             <div class='legal'>
                 Respalde su cancelación del presente con la boleta original.<br>
                 " . e(config('siat.emisor')['nombre']) . " &middot; documento generado el "
@@ -2185,7 +2342,7 @@ class FacturacionController extends Controller
      * fiscal: hacerlo pasar por una factura fiscal sin serlo dejaria al cliente
      * con un papel que no le sirve para credito fiscal.
      */
-    public function factura($id)
+    public function factura(Request $request, $id)
     {
         $factura = Factura::with(['detalles', 'cliente'])->find($id);
         if (!$factura) {
@@ -2206,11 +2363,16 @@ class FacturacionController extends Controller
             return response()->json(['message' => $bloqueo], 422);
         }
 
-        return $this->pdf($this->facturaHtml($factura), 'factura_' . $factura->id);
+        $pdf = $this->pdf($this->conMarcas($request, function ($marca) use ($factura) {
+            return $this->facturaHtml($factura, $marca);
+        }), 'factura_' . $factura->id);
+        $this->marcarImpreso($request, [$factura->id]);
+
+        return $pdf;
     }
 
     /** La factura como HTML: aparte, para poder juntar varias en un PDF. */
-    private function facturaHtml(Factura $factura)
+    private function facturaHtml(Factura $factura, $marca = 'COPIA')
     {
         $placa = $this->camionDeFactura($factura);
 
@@ -2357,7 +2519,7 @@ class FacturacionController extends Controller
             $qr
         </tr></table>
 
-        <div class='copia'>COPIA</div>";
+        <div class='copia'>" . e($marca) . "</div>";
 
         return $html;
     }
@@ -2416,20 +2578,48 @@ class FacturacionController extends Controller
             ], 422);
         }
 
-        $paginas = $facturas->map(function ($factura) use ($documento) {
+        // Con copias=1 cada comprobante sale dos veces seguidas: ORIGINAL para
+        // el cliente y COPIA para la empresa (4 ventas = 8 hojas).
+        $marcas = $this->marcasPedidas($request);
+
+        $paginas = $facturas->flatMap(function ($factura) use ($documento, $marcas) {
             // En el lote mezclado manda como se entrego cada venta; en los
             // otros dos el filtro ya dejo solo las que corresponden.
             $comoFactura = $documento === 'factura'
                 || ($documento === 'todos' && $factura->tipo_comprobante === 'FACTURA');
 
-            return $comoFactura
-                ? $this->facturaHtml($factura)
-                : $this->voucherHtml($factura);
+            return array_map(function ($marca) use ($factura, $comoFactura) {
+                return $comoFactura
+                    ? $this->facturaHtml($factura, $marca)
+                    : $this->voucherHtml($factura, $marca);
+            }, $marcas);
         })->implode("<div style='page-break-after: always'></div>");
 
         $nombre = $documento === 'todos' ? 'comprobantes' : $documento . 's';
 
-        return $this->pdf($paginas, $nombre . '_' . date('Y-m-d'));
+        $pdf = $this->pdf($paginas, $nombre . '_' . date('Y-m-d'));
+        $this->marcarImpreso($request, $facturas->pluck('id')->all());
+
+        return $pdf;
+    }
+
+    /**
+     * Deja el rastro de que el comprobante salio a la impresora. Solo cuando
+     * la pantalla lo pide con imprimir=1: el mismo PDF tambien se baja como
+     * archivo y eso no cuenta como impreso.
+     */
+    private function marcarImpreso(Request $request, array $ids)
+    {
+        if (!$request->boolean('imprimir') || empty($ids)) {
+            return;
+        }
+
+        $usuario = $request->user();
+        DB::table('facturas')->whereIn('id', $ids)->update([
+            'impreso_veces' => DB::raw('impreso_veces + 1'),
+            'impreso_at'    => now(),
+            'impreso_por'   => mb_substr(trim($usuario->Nombre1 . ' ' . $usuario->App1), 0, 100),
+        ]);
     }
 
     /**

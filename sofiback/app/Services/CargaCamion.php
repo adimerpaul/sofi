@@ -109,6 +109,20 @@ class CargaCamion
             $comprobante['verificado_por'] = $marca->verificado_por ?? null;
             $comprobante['verificado_en'] = $marca->verificado_en ?? null;
 
+            // Producto por producto: con la canasta verificada van todos
+            // tildados; si no, los que el caminero ya fue marcando. Si la venta
+            // cambio, lo tildado era de otra canasta y no vale.
+            $revisados = $marca && !$cambio ? $this->revisadosDe($marca) : [];
+            $comprobante['items'] = array_map(function ($item) use ($comprobante, $revisados) {
+                $item['revisado'] = $comprobante['verificado'] || in_array($item['id'], $revisados, true);
+                return $item;
+            }, $comprobante['items']);
+            $comprobante['revisados'] = $detalles
+                ? count(array_filter($comprobante['items'], function ($item) {
+                    return $item['revisado'];
+                }))
+                : ($comprobante['verificado'] ? $productos : count($revisados));
+
             return $comprobante;
         });
     }
@@ -191,6 +205,56 @@ class CargaCamion
         return count($filas);
     }
 
+    /** Los id de factura_detalles que ya se tildaron en esa canasta. */
+    public function revisadosDe($marca): array
+    {
+        $lista = json_decode((string) ($marca->items_revisados ?? ''), true);
+        return is_array($lista) ? array_values(array_map('intval', $lista)) : [];
+    }
+
+    /**
+     * Guarda lo tildado producto por producto en una canasta.
+     *
+     * Con todos tildados la canasta queda verificada sola; si se destilda uno
+     * de una canasta verificada, vuelve a pendiente. Una observada sigue
+     * observada: ahi solo se guarda lo tildado.
+     */
+    public function marcarProductos($fecha, $placa, array $comprobante, array $revisados, $personalId, $nombre): array
+    {
+        $ids = array_column($comprobante['items'], 'id');
+        $revisados = array_values(array_intersect($ids, array_map('intval', $revisados)));
+        $completo = count($ids) > 0 && count($revisados) === count($ids);
+
+        $marca = DB::table('carga_verificaciones')->where('factura_id', $comprobante['factura_id'])->first();
+        $observado = $comprobante['observado'];
+        $verificado = $observado ? true : $completo;
+        $observacion = $observado ? $comprobante['observacion'] : null;
+
+        $fila = $this->fila($fecha, $placa, $comprobante, $verificado, $observacion, $observado, $personalId, $nombre);
+        $fila['items_revisados'] = json_encode($revisados);
+        // No se pisa quien abrio la fila ni cuando.
+        if ($marca) {
+            unset($fila['created_at']);
+            if ($verificado && $marca->verificado && $marca->verificado_en) {
+                $fila['verificado_en'] = $marca->verificado_en;
+            }
+        }
+
+        DB::table('carga_verificaciones')->updateOrInsert(['factura_id' => $comprobante['factura_id']], $fila);
+
+        $comprobante['verificado'] = (bool) $verificado;
+        $comprobante['cambio'] = false;
+        $comprobante['verificado_por'] = $fila['verificado_por'];
+        $comprobante['verificado_en'] = $fila['verificado_en'];
+        $comprobante['items'] = array_map(function ($item) use ($revisados, $verificado) {
+            $item['revisado'] = $verificado || in_array($item['id'], $revisados, true);
+            return $item;
+        }, $comprobante['items']);
+        $comprobante['revisados'] = $verificado ? count($ids) : count($revisados);
+
+        return $comprobante;
+    }
+
     /** Lo que se graba de una canasta revisada. */
     public function fila($fecha, $placa, array $comprobante, $verificado, $observacion, $observado, $personalId, $nombre): array
     {
@@ -207,6 +271,9 @@ class CargaCamion
             // cambian, el comprobante vuelve a quedar pendiente.
             'items_esperados' => $comprobante['productos'],
             'total_esperado' => $comprobante['total'],
+            // Verificar o desmarcar la canasta entera reemplaza lo tildado de
+            // a uno: verificada vale por todos, desmarcada vuelve a cero.
+            'items_revisados' => null,
             'verificado' => $verificado,
             // Las dos cierran la revision; observado dice con cual de las dos.
             'observado' => $observado,
@@ -311,9 +378,11 @@ class CargaCamion
             ->whereIn('factura_id', $facturaIds->all())
             ->whereNull('deleted_at')
             ->orderBy('id')
-            ->get(['factura_id', 'cod_prod', 'nombre', 'unidad', 'cantidad', 'peso', 'precio', 'subtotal'])
+            ->get(['id', 'factura_id', 'cod_prod', 'nombre', 'unidad', 'cantidad', 'peso', 'precio', 'subtotal'])
             ->map(function ($detalle) {
                 return [
+                    // Con el id se tilda cada producto por separado.
+                    'id' => (int) $detalle->id,
                     'factura_id' => $detalle->factura_id,
                     'cod_prod' => $detalle->cod_prod,
                     'nombre' => $detalle->nombre,

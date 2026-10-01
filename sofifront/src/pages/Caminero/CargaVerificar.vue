@@ -27,6 +27,93 @@
       </div>
     </div>
 
+    <!-- Tipo de pedido: el pollo se carga aparte de los embutidos, asi que se
+         revisa por separado. Cada chip dice cuantos pedidos lleva. -->
+    <div v-if="!error && tiposCarga.length > 1" class="row no-wrap q-gutter-xs q-mb-xs chips-scroll">
+      <q-chip
+        v-for="opcion in [{ valor: null, nombre: 'Todos', total: comprobantes.length, revisados: verificadosDe(comprobantes) }, ...tiposCarga]"
+        :key="opcion.valor || 'todos'"
+        clickable dense square
+        :color="tipo === opcion.valor ? 'primary' : 'grey-3'"
+        :text-color="tipo === opcion.valor ? 'white' : 'grey-9'"
+        :icon="iconoTipo(opcion.valor)"
+        class="text-weight-medium"
+        @click="elegirTipo(opcion.valor)"
+      >
+        {{ opcion.nombre }}
+        <q-badge rounded class="q-ml-xs" :color="opcion.revisados === opcion.total ? 'positive' : 'orange-8'">
+          {{ opcion.revisados }}/{{ opcion.total }}
+        </q-badge>
+      </q-chip>
+    </div>
+
+    <!-- Un chip por cliente con cuantos pedidos tiene en la carga: tocandolo
+         quedan solo los suyos; tocandolo de nuevo se suelta. -->
+    <div v-if="!error && clientesCarga.length" class="row no-wrap q-gutter-xs q-mb-xs chips-scroll">
+      <q-chip
+        v-for="fila in clientesCarga" :key="fila.cliente"
+        clickable dense
+        :color="cliente === fila.cliente ? 'indigo-7' : (fila.revisados === fila.total ? 'green-1' : 'white')"
+        :text-color="cliente === fila.cliente ? 'white' : 'grey-9'"
+        :outline="cliente !== fila.cliente && fila.revisados !== fila.total"
+        :icon="fila.revisados === fila.total ? 'check_circle' : 'person'"
+        @click="cliente = cliente === fila.cliente ? null : fila.cliente"
+      >
+        <span class="chip-cliente ellipsis">{{ fila.cliente }}</span>
+        <q-badge rounded class="q-ml-xs" :color="cliente === fila.cliente ? 'white' : 'indigo-6'"
+                 :text-color="cliente === fila.cliente ? 'indigo-9' : 'white'">
+          {{ fila.total }} {{ fila.total === 1 ? 'pedido' : 'pedidos' }}
+        </q-badge>
+      </q-chip>
+    </div>
+
+    <!-- Con muchos pedidos conviene revisar por producto: se elige uno y se
+         ven solo las canastas que lo llevan, con esa linea sola para tildar. -->
+    <div v-if="!error && productosCarga.length" class="q-mb-xs filtros">
+      <q-select
+        v-model="producto" :options="opcionesProducto" dense outlined clearable
+        use-input input-debounce="0" emit-value map-options
+        option-value="cod_prod" option-label="nombre"
+        placeholder="Filtrar por producto" @filter="filtrarOpciones"
+      >
+        <template v-slot:prepend><q-icon name="inventory_2" size="18px"/></template>
+        <template v-slot:option="scope">
+          <q-item v-bind="scope.itemProps" dense>
+            <q-item-section>
+              <q-item-label>{{ scope.opt.nombre }}</q-item-label>
+              <q-item-label caption>
+                {{ scope.opt.cod_prod }} · {{ scope.opt.canastas }} canasta{{ scope.opt.canastas === 1 ? '' : 's' }}
+                · {{ cantidad(scope.opt.total) }} {{ scope.opt.unidad }}
+              </q-item-label>
+            </q-item-section>
+            <q-item-section side>
+              <q-badge :color="scope.opt.revisados === scope.opt.canastas ? 'positive' : 'orange-8'">
+                {{ scope.opt.revisados }}/{{ scope.opt.canastas }}
+              </q-badge>
+            </q-item-section>
+          </q-item>
+        </template>
+      </q-select>
+    </div>
+
+    <q-card v-if="productoElegido" flat bordered class="q-mb-xs rounded-borders bg-blue-1">
+      <div class="row items-center no-wrap q-px-sm q-py-xs">
+        <q-icon name="inventory_2" color="blue-9" size="22px" class="q-mr-sm"/>
+        <div class="col">
+          <div class="text-weight-bold ellipsis">{{ productoElegido.nombre }}</div>
+          <div class="text-caption text-blue-10">
+            {{ productoElegido.canastas }} canastas · total {{ cantidad(productoElegido.total) }} {{ productoElegido.unidad }}
+            · revisado en {{ productoElegido.revisados }}/{{ productoElegido.canastas }}
+          </div>
+        </div>
+        <q-btn
+          dense unelevated no-caps color="positive" icon="done_all" label="Tildar en todas"
+          :disable="productoElegido.revisados === productoElegido.canastas"
+          @click="tildarProductoEnTodas"
+        />
+      </div>
+    </q-card>
+
     <q-banner v-if="!esHoy && !error" dense rounded class="bg-orange-2 text-orange-10 q-mb-xs">
       <template v-slot:avatar><q-icon name="event_busy" color="orange-9"/></template>
       Estás viendo la salida del {{ fechaLarga(fecha) }}, que no es hoy.
@@ -196,25 +283,56 @@
           </q-card-section>
 
           <q-separator/>
-          <q-expansion-item
-            dense dense-toggle switch-toggle-side icon="shopping_basket"
-            label="Ver contenido de la canasta" header-class="text-weight-medium"
+          <!-- Producto por producto: cada uno se tilda al verlo subir. Con
+               todos tildados la canasta queda verificada sola. La verificada
+               se pliega para no ocupar pantalla, pero se puede volver a abrir. -->
+          <div
+            class="row items-center no-wrap q-px-sm q-py-xs cursor-pointer"
+            @click="alternarLista(comprobante)"
           >
-            <q-list dense separator :class="comprobante.verificado ? 'bg-green-1' : 'bg-grey-1'">
-              <q-item v-for="(item, indice) in comprobante.items" :key="indice" class="q-px-sm">
+            <q-icon name="shopping_basket" size="18px" class="q-mr-xs"
+                    :color="comprobante.verificado ? 'green-8' : 'grey-7'"/>
+            <div class="text-caption text-weight-medium">
+              Productos revisados
+              <span :class="comprobante.verificado ? 'text-green-9' : 'text-orange-9'" class="text-weight-bolder">
+                {{ revisadosDe(comprobante) }}/{{ comprobante.items.length }}
+              </span>
+            </div>
+            <q-space/>
+            <q-icon :name="listaAbierta(comprobante) ? 'expand_less' : 'expand_more'" size="20px" color="grey-7"/>
+          </div>
+          <q-linear-progress
+            :value="comprobante.items.length ? revisadosDe(comprobante) / comprobante.items.length : 0"
+            size="4px" :color="comprobante.verificado ? 'positive' : 'orange-7'" track-color="grey-3"
+          />
+          <q-slide-transition>
+            <q-list v-show="listaAbierta(comprobante)" separator
+                    :class="comprobante.verificado ? 'bg-green-1' : 'bg-grey-1'">
+              <q-item
+                v-for="item in itemsVisibles(comprobante)" :key="item.id"
+                clickable v-ripple class="q-px-xs producto"
+                :class="{ 'producto-revisado': item.revisado }"
+                @click="alternarProducto(comprobante, item)"
+              >
+                <q-item-section avatar class="q-pr-xs" style="min-width: 0">
+                  <q-icon
+                    :name="item.revisado ? 'check_box' : 'check_box_outline_blank'"
+                    :color="item.revisado ? 'positive' : 'grey-6'" size="28px"
+                  />
+                </q-item-section>
                 <q-item-section>
-                  <q-item-label lines="2">{{ item.nombre }}</q-item-label>
+                  <q-item-label lines="2" class="text-weight-medium">{{ item.nombre }}</q-item-label>
                   <q-item-label caption>{{ item.cod_prod }}</q-item-label>
                 </q-item-section>
                 <q-item-section side class="text-right">
-                  <q-item-label class="text-weight-bold">
+                  <q-item-label class="text-weight-bold text-blue-grey-10">
                     {{ cantidad(item.peso || item.cantidad) }} {{ item.unidad }}
                   </q-item-label>
                   <q-item-label caption>Bs {{ money(item.total) }}</q-item-label>
                 </q-item-section>
               </q-item>
             </q-list>
-          </q-expansion-item>
+          </q-slide-transition>
 
           <q-separator/>
           <q-card-actions class="q-pa-xs">
@@ -235,7 +353,7 @@
               dense no-caps size="sm" unelevated
               :color="comprobante.verificado ? 'grey-6' : 'positive'"
               :icon="comprobante.verificado ? 'undo' : 'check'"
-              :label="comprobante.verificado ? 'Desmarcar' : 'Verificar'"
+              :label="comprobante.verificado ? 'Desmarcar' : 'Verificar todo'"
               :loading="guardando === comprobante.factura_id"
               @click="alternar(comprobante)"
             />
@@ -293,6 +411,9 @@ export default {
       fecha: this.$route.query.fecha || date.formatDate(new Date(), 'YYYY-MM-DD'),
       buscar: '',
       soloPendientes: false,
+      // Filtros por chip: tipo de pedido (POLLO, NORMAL...) y cliente.
+      tipo: this.$route.query.tipo || null,
+      cliente: null,
       cargando: false,
       imprimiendo: false,
       // Id del comprobante que se esta grabando, o 'todo'.
@@ -312,10 +433,21 @@ export default {
       editando: {},
       observacion: '',
       // Recien despues de intentar guardar se marca en rojo el campo vacio.
-      intentado: false
+      intentado: false,
+      // Canastas cuya lista de productos el caminero abrio o cerro a mano;
+      // sin tocarla, abierta mientras falte revisar y plegada al verificarse.
+      listas: {},
+      // cod_prod elegido en el filtro por producto, y el texto que se escribe
+      // en ese selector para achicar la lista.
+      producto: null,
+      textoProducto: ''
     }
   },
   created () {
+    // Lo que se manda de cada canasta va en fila: los tildes de producto se
+    // graban en el orden en que se tocaron, sin pisarse entre ellos.
+    this.colas = {}
+    this.enCurso = {}
     this.cargar()
   },
   watch: {
@@ -328,14 +460,92 @@ export default {
     esHoy () {
       return this.fecha === date.formatDate(new Date(), 'YYYY-MM-DD')
     },
+    // Todos los productos de la carga del dia, sumados entre canastas, para
+    // el filtro por producto.
+    // Los tipos de pedido que trae la carga, con cuantos pedidos y cuantos
+    // ya revisados tiene cada uno.
+    tiposCarga () {
+      const porTipo = {}
+      this.comprobantes.forEach(comprobante => {
+        const valor = comprobante.pedido_tipo || 'NORMAL'
+        const fila = porTipo[valor] || (porTipo[valor] = { valor, nombre: this.nombreTipo(valor), total: 0, revisados: 0 })
+        fila.total++
+        if (comprobante.verificado) fila.revisados++
+      })
+      const orden = ['POLLO', 'NORMAL', 'CERDO', 'RES']
+      return Object.values(porTipo).sort((a, b) => orden.indexOf(a.valor) - orden.indexOf(b.valor))
+    },
+    // La carga del tipo elegido: de ahi salen los chips de cliente y la
+    // lista de productos, para que todo hable del mismo grupo.
+    comprobantesDelTipo () {
+      return this.tipo
+        ? this.comprobantes.filter(comprobante => (comprobante.pedido_tipo || 'NORMAL') === this.tipo)
+        : this.comprobantes
+    },
+    clientesCarga () {
+      const porCliente = {}
+      this.comprobantesDelTipo.forEach(comprobante => {
+        const nombre = comprobante.cliente || 'Sin cliente'
+        const fila = porCliente[nombre] || (porCliente[nombre] = { cliente: nombre, total: 0, revisados: 0 })
+        fila.total++
+        if (comprobante.verificado) fila.revisados++
+      })
+      // Los que tienen mas pedidos primero: son los que mas cuesta armar.
+      return Object.values(porCliente)
+        .sort((a, b) => b.total - a.total || a.cliente.localeCompare(b.cliente))
+    },
+    productosCarga () {
+      const porCodigo = {}
+      this.comprobantesDelTipo.forEach(comprobante => {
+        const contados = new Set()
+        comprobante.items.forEach(item => {
+          const codigo = String(item.cod_prod).trim()
+          const fila = porCodigo[codigo] || (porCodigo[codigo] = {
+            cod_prod: codigo, nombre: item.nombre, unidad: item.unidad, canastas: 0, revisados: 0, total: 0, _pendiente: {}
+          })
+          fila.total += Number(item.peso || item.cantidad || 0)
+          if (!contados.has(codigo)) {
+            contados.add(codigo)
+            fila.canastas++
+          }
+          // La canasta cuenta como revisada en ese producto si todas sus
+          // lineas de ese codigo estan tildadas.
+          if (!item.revisado) fila._pendiente[comprobante.factura_id] = true
+        })
+      })
+      return Object.values(porCodigo).map(fila => {
+        fila.revisados = fila.canastas - Object.keys(fila._pendiente).length
+        return fila
+      }).sort((a, b) => a.nombre.localeCompare(b.nombre))
+    },
+    opcionesProducto () {
+      const texto = this.textoProducto.toLowerCase()
+      if (!texto) return this.productosCarga
+      return this.productosCarga.filter(fila =>
+        fila.nombre.toLowerCase().includes(texto) || fila.cod_prod.includes(texto))
+    },
+    productoElegido () {
+      return this.producto ? this.productosCarga.find(fila => fila.cod_prod === this.producto) || null : null
+    },
     comprobantesFiltrados () {
       const texto = (this.buscar || '').toLowerCase()
       const visibles = this.comprobantes.filter(comprobante => {
-        if (this.soloPendientes && comprobante.verificado) return false
+        if (this.tipo && (comprobante.pedido_tipo || 'NORMAL') !== this.tipo) return false
+        if (this.cliente && (comprobante.cliente || 'Sin cliente') !== this.cliente) return false
+        if (this.producto && !this.lineasDelProducto(comprobante).length) return false
+        // Con producto elegido, "lo que falta" es ese producto sin tildar.
+        if (this.soloPendientes) {
+          if (this.producto) {
+            if (this.lineasDelProducto(comprobante).every(item => item.revisado)) return false
+          } else if (comprobante.verificado) return false
+        }
         if (!texto) return true
         return String(comprobante.nro_pedido || '').includes(texto) ||
           String(comprobante.nro_factura || comprobante.factura_id).includes(texto) ||
-          (comprobante.cliente || '').toLowerCase().includes(texto)
+          (comprobante.cliente || '').toLowerCase().includes(texto) ||
+          // Tambien se encuentra la canasta por lo que lleva.
+          comprobante.items.some(item => (item.nombre || '').toLowerCase().includes(texto) ||
+            String(item.cod_prod).includes(texto))
       })
 
       // Lo que falta revisar va primero: el caminero trabaja de arriba hacia
@@ -368,7 +578,7 @@ export default {
     },
     sincronizarUrl () {
       if (this.$route.query.fecha === this.fecha) return
-      this.$router.replace({ path: '/caminero/carga', query: { fecha: this.fecha } })
+      this.$router.replace({ path: '/caminero/carga', query: Object.assign({}, this.$route.query, { fecha: this.fecha }) })
     },
     cargar () {
       this.cargando = true
@@ -408,6 +618,99 @@ export default {
         observacion: ''
       })
     },
+    revisadosDe (comprobante) {
+      return comprobante.items.filter(item => item.revisado).length
+    },
+    nombreTipo (valor) {
+      return { POLLO: 'Pollo', NORMAL: 'Embutidos', CERDO: 'Cerdo', RES: 'Res' }[valor] || valor
+    },
+    iconoTipo (valor) {
+      return { POLLO: 'egg', NORMAL: 'lunch_dining', CERDO: 'savings', RES: 'kebab_dining' }[valor] || 'local_shipping'
+    },
+    verificadosDe (lista) {
+      return lista.filter(comprobante => comprobante.verificado).length
+    },
+    // Cambiar de tipo suelta el cliente y el producto, que pueden no existir
+    // en el otro grupo. Queda en la URL para volver al mismo tipo.
+    elegirTipo (valor) {
+      this.tipo = valor
+      this.cliente = null
+      this.producto = null
+      const query = Object.assign({}, this.$route.query)
+      if (valor) query.tipo = valor
+      else delete query.tipo
+      this.$router.replace({ path: '/caminero/carga', query })
+    },
+    lineasDelProducto (comprobante) {
+      return comprobante.items.filter(item => String(item.cod_prod).trim() === this.producto)
+    },
+    // Con un producto elegido, en cada canasta se ve solo esa linea.
+    itemsVisibles (comprobante) {
+      return this.producto ? this.lineasDelProducto(comprobante) : comprobante.items
+    },
+    filtrarOpciones (texto, actualizar) {
+      actualizar(() => { this.textoProducto = texto || '' })
+    },
+    // Tilda el producto elegido en todas las canastas a la vista (respeta el
+    // tipo y el cliente elegidos) donde falta.
+    tildarProductoEnTodas () {
+      this.comprobantesFiltrados.forEach(comprobante => {
+        const lineas = this.lineasDelProducto(comprobante).filter(item => !item.revisado)
+        if (!lineas.length) return
+        lineas.forEach(item => { item.revisado = true })
+        this.grabarProductos(comprobante)
+      })
+    },
+    listaAbierta (comprobante) {
+      // Filtrando por producto la linea tiene que estar a la vista.
+      if (this.producto) return true
+      const elegido = this.listas[comprobante.factura_id]
+      return elegido === undefined ? !comprobante.verificado : elegido
+    },
+    alternarLista (comprobante) {
+      this.listas[comprobante.factura_id] = !this.listaAbierta(comprobante)
+    },
+    // Se tilda en pantalla al instante y se graba detras; la respuesta dice si
+    // con eso la canasta quedo completa.
+    alternarProducto (comprobante, item) {
+      item.revisado = !item.revisado
+      this.grabarProductos(comprobante)
+    },
+    grabarProductos (comprobante) {
+      const completa = comprobante.items.every(producto => producto.revisado)
+      // Si una verificada pierde un tilde vuelve a pendiente (la observada no).
+      if (!comprobante.observado) comprobante.verificado = completa
+      this.encolar(comprobante.factura_id, () => this.$api.post('caminero/carga/productos', {
+        fecha: this.fecha,
+        factura_id: comprobante.factura_id,
+        revisados: comprobante.items.filter(producto => producto.revisado).map(producto => producto.id)
+      }))
+    },
+    // Pone el envio detras de lo que ya iba de esa canasta. Solo la ultima
+    // respuesta reemplaza la tarjeta: las intermedias traerian tildes viejos.
+    encolar (facturaId, peticion, alTerminar) {
+      this.enCurso[facturaId] = (this.enCurso[facturaId] || 0) + 1
+      const anterior = this.colas[facturaId] || Promise.resolve()
+      const actual = anterior.then(() => peticion().then(res => {
+        this.enCurso[facturaId]--
+        if (this.enCurso[facturaId] === 0) {
+          this.aplicar(res.data)
+        } else if (res.data.resumen) {
+          this.resumen = res.data.resumen
+        }
+        if (alTerminar) alTerminar()
+      }, err => {
+        this.enCurso[facturaId]--
+        this.$q.notify({
+          type: 'negative', position: 'top',
+          message: err.response?.data?.message || 'No se pudo guardar la verificación'
+        })
+        // Lo que se ve tiene que ser lo grabado: se vuelve a pedir la carga.
+        if (this.enCurso[facturaId] === 0) this.cargar()
+      }))
+      this.colas[facturaId] = actual
+      return actual
+    },
     abrirObservacion (comprobante) {
       this.editando = comprobante
       this.observacion = comprobante.observacion || ''
@@ -441,18 +744,13 @@ export default {
       // mientras se esta grabando la anterior.
       if (this.guardando !== null) return
       this.guardando = cuerpo.factura_id
-      this.$api.post('caminero/carga/verificar', Object.assign({ fecha: this.fecha }, cuerpo))
-        .then(res => {
-          this.aplicar(res.data)
-          if (alTerminar) alTerminar()
-        })
-        .catch(err => {
-          this.$q.notify({
-            type: 'negative', position: 'top',
-            message: err.response?.data?.message || 'No se pudo guardar la verificación'
-          })
-        })
-        .finally(() => { this.guardando = null })
+      // Va en la misma fila que los tildes de producto de esa canasta: si
+      // quedaba uno grabandose, este sale despues y no lo pisa al reves.
+      this.encolar(
+        cuerpo.factura_id,
+        () => this.$api.post('caminero/carga/verificar', Object.assign({ fecha: this.fecha }, cuerpo)),
+        alTerminar
+      ).finally(() => { this.guardando = null })
     },
     verificarTodo () {
       this.$q.dialog({
@@ -512,6 +810,30 @@ export default {
 }
 /* Mientras se graba, las tarjetas no aceptan toques: el caminero ve que algo
    esta pasando y no encola tildes que despues no sabe si entraron. */
+/* Los chips corren de costado con el dedo en vez de ocupar varias filas. */
+.chips-scroll {
+  overflow-x: auto;
+  scrollbar-width: none;
+  margin-left: 0;
+}
+.chips-scroll::-webkit-scrollbar {
+  display: none;
+}
+.chips-scroll > .q-chip {
+  flex: 0 0 auto;
+}
+.chip-cliente {
+  max-width: 150px;
+  display: inline-block;
+  vertical-align: middle;
+}
+/* Filas de producto altas, faciles de tocar con el pulgar. */
+.producto {
+  min-height: 52px;
+}
+.producto-revisado .q-item__label:first-child {
+  color: #2e7d32;
+}
 .canasta-ocupada {
   pointer-events: none;
   opacity: 0.7;

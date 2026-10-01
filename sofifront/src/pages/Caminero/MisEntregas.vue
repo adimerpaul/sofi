@@ -30,6 +30,26 @@
             </div>
           </l-icon>
         </l-marker>
+
+        <!-- Donde esta parado el caminero: el circulo es el margen de error
+             del GPS y el punto azul su posicion, como en Google Maps. -->
+        <template v-if="miUbicacion">
+          <l-circle
+            :lat-lng="[miUbicacion.lat, miUbicacion.lng]" :radius="miUbicacion.precision || 0"
+            color="#1E88E5" :weight="1" fill-color="#1E88E5" :fill-opacity="0.12"
+          />
+          <!-- Icono propio, distinto de los numeros de los clientes: circulo
+               azul con una persona y una onda que late. -->
+          <l-marker :lat-lng="[miUbicacion.lat, miUbicacion.lng]" :z-index-offset="1000">
+            <l-icon :icon-size="[44, 44]" :icon-anchor="[22, 22]" class-name="">
+              <div class="mi-ubicacion">
+                <span class="mi-onda"></span>
+                <span class="mi-punto"><i class="material-icons">person_pin_circle</i></span>
+                <span class="mi-etiqueta">Yo</span>
+              </div>
+            </l-icon>
+          </l-marker>
+        </template>
       </l-map>
 
       <!-- Va a la derecha para no taparse con el zoom de Leaflet. -->
@@ -42,7 +62,7 @@
                :loading="cargando" @click="cargar">
           <q-tooltip>Actualizar</q-tooltip>
         </q-btn>
-        <q-btn round dense unelevated color="white" text-color="primary" icon="my_location"
+        <q-btn round dense unelevated color="white" text-color="primary" icon="zoom_out_map"
                @click="encuadrar">
           <q-tooltip>Centrar mis clientes</q-tooltip>
         </q-btn>
@@ -62,6 +82,13 @@
               </q-item>
             </q-list>
           </q-menu>
+        </q-btn>
+        <!-- Al lado del tipo de mapa: muestra y sigue la posicion del caminero. -->
+        <q-btn round dense unelevated
+               :color="miUbicacion ? 'blue-7' : 'white'" :text-color="miUbicacion ? 'white' : 'primary'"
+               :icon="miUbicacion ? 'my_location' : 'location_searching'"
+               :loading="buscandoUbicacion" @click="mostrarMiUbicacion">
+          <q-tooltip>Mi ubicación</q-tooltip>
         </q-btn>
         <q-btn round dense unelevated color="white" text-color="primary" icon="summarize"
                to="/caminero/reporte">
@@ -197,36 +224,62 @@
       <!-- A pantalla completa el encabezado y el pie quedan fijos y solo
            scrollea la lista de pedidos. -->
       <q-card :class="esMovil ? 'column no-wrap full-height' : ''">
-        <q-card-section class="row items-center no-wrap q-gutter-sm q-pb-sm">
-          <q-icon name="place" size="md" color="blue-grey-8"/>
-          <div class="col">
-            <div class="text-subtitle1 text-weight-medium ellipsis">
-              {{ punto.cliente || punto.entregas.length + ' pedidos en este punto' }}
+        <!-- En el celular el nombre va completo (sin cortar) y Encuesta / Ir
+             bajan a su propia fila, grandes; en la compu siguen al costado. -->
+        <q-card-section class="q-pb-sm" :class="esMovil ? 'q-px-sm q-pt-sm' : ''">
+          <div class="row items-start no-wrap q-gutter-sm">
+            <q-icon name="place" size="md" color="blue-grey-8" class="q-mt-xs"/>
+            <div class="col" style="min-width: 0">
+              <div class="text-subtitle1 text-weight-bold nombre-punto" :class="esMovil ? '' : 'ellipsis'">
+                {{ punto.cliente || punto.entregas.length + ' pedidos en este punto' }}
+              </div>
+              <div class="text-caption text-grey-7" :class="esMovil ? '' : 'ellipsis-2-lines'">
+                <span v-if="punto.cliente && punto.entregas.length > 1">
+                  {{ punto.entregas.length }} pedidos ·
+                </span>
+                {{ punto.direccion || 'Sin dirección' }}
+              </div>
             </div>
-            <div class="text-caption text-grey-7 ellipsis-2-lines">
-              <span v-if="punto.cliente && punto.entregas.length > 1">
-                {{ punto.entregas.length }} pedidos ·
-              </span>
-              {{ punto.direccion || 'Sin dirección' }}
+            <template v-if="!esMovil">
+              <!-- La encuesta va arriba: es del cliente de la puerta, no de
+                   cada nota. -->
+              <q-btn
+                v-if="punto.cliente && punto.entregas.length" dense no-caps
+                icon="feedback" color="primary" label="Encuesta" class="q-mr-xs"
+                @click="abrirEncuesta(punto.entregas[0])"
+              />
+              <q-btn
+                v-if="punto.lat" type="a" target="_blank" no-caps dense
+                :href="'https://www.google.com/maps/dir/?api=1&destination=' + punto.lat + ',' + punto.lng"
+                icon="navigation" color="blue-8" label="Ir"
+              />
+            </template>
+            <!-- Cerrar arriba y como icono: a pantalla completa en el celular
+                 queda a mano sin bajar hasta el pie. -->
+            <q-btn round flat dense icon="close" size="md" color="grey-8" v-close-popup>
+              <q-tooltip>Cerrar</q-tooltip>
+            </q-btn>
+          </div>
+
+          <div
+            v-if="esMovil && ((punto.cliente && punto.entregas.length) || punto.lat)"
+            class="row q-col-gutter-sm q-mt-xs"
+          >
+            <div v-if="punto.cliente && punto.entregas.length" class="col">
+              <q-btn
+                class="full-width boton-cabecera" unelevated no-caps
+                icon="feedback" color="primary" label="Encuesta"
+                @click="abrirEncuesta(punto.entregas[0])"
+              />
+            </div>
+            <div v-if="punto.lat" class="col">
+              <q-btn
+                class="full-width boton-cabecera" unelevated no-caps type="a" target="_blank"
+                :href="'https://www.google.com/maps/dir/?api=1&destination=' + punto.lat + ',' + punto.lng"
+                icon="navigation" color="blue-8" label="Ir"
+              />
             </div>
           </div>
-          <!-- La encuesta va arriba: es del cliente de la puerta, no de cada
-               nota. Solo baja a las filas si en el punto hay varios clientes. -->
-          <q-btn
-            v-if="punto.cliente && punto.entregas.length" dense no-caps
-            icon="feedback" color="primary" label="Encuesta" class="q-mr-xs"
-            @click="abrirEncuesta(punto.entregas[0])"
-          />
-          <q-btn
-            v-if="punto.lat" type="a" target="_blank" no-caps dense
-            :href="'https://www.google.com/maps/dir/?api=1&destination=' + punto.lat + ',' + punto.lng"
-            icon="navigation" color="blue-8" label="Ir"
-          />
-          <!-- Cerrar arriba y como icono: a pantalla completa en el celular
-               queda a mano sin bajar hasta el pie. -->
-          <q-btn round flat dense icon="close" size="md" color="grey-8" v-close-popup>
-            <q-tooltip>Cerrar</q-tooltip>
-          </q-btn>
         </q-card-section>
 
         <q-separator/>
@@ -706,12 +759,12 @@
 <script>
 import { markRaw } from 'vue'
 import { date } from 'quasar'
-import { LMap, LIcon, LTileLayer, LMarker } from '@vue-leaflet/vue-leaflet'
+import { LMap, LIcon, LTileLayer, LMarker, LCircle } from '@vue-leaflet/vue-leaflet'
 import 'leaflet/dist/leaflet.css'
 
 export default {
   name: 'MisEntregas',
-  components: { LMap, LIcon, LTileLayer, LMarker },
+  components: { LMap, LIcon, LTileLayer, LMarker, LCircle },
   data () {
     return {
       fecha: this.$route.query.fecha || date.formatDate(new Date(), 'YYYY-MM-DD'),
@@ -775,10 +828,19 @@ export default {
       ],
       centro: [-17.9833, -67.15],
       posicion: null,
+      // Lo que se dibuja en el mapa al pedir "Mi ubicación": { lat, lng, precision }.
+      miUbicacion: null,
+      buscandoUbicacion: false,
       mapa: null
     }
   },
+  // Al salir de la pantalla se deja de seguir el GPS: gasta bateria.
+  beforeUnmount () {
+    this.dejarDeSeguir()
+  },
   created () {
+    // Id del seguimiento del GPS de "Mi ubicación"; null si no esta activo.
+    this.vigia = null
     // El tipo de mapa es del caminero, no del dia: se recuerda entre visitas.
     try {
       const guardado = localStorage.getItem('caminero-tipo-mapa')
@@ -1120,6 +1182,57 @@ export default {
       if (!this.mapa || !puntos.length) return
       this.mapa.fitBounds(puntos, { padding: [40, 40], maxZoom: 16 })
     },
+    // Primer toque: busca la posicion, la dibuja y la sigue mientras camina.
+    // Los siguientes: vuelve a centrar el mapa en el caminero.
+    mostrarMiUbicacion () {
+      if (!navigator.geolocation) {
+        this.$q.notify({ type: 'warning', position: 'top', message: 'Este celular no da la ubicación' })
+        return
+      }
+      if (this.miUbicacion) {
+        this.centrarEnMi()
+        return
+      }
+      if (this.vigia !== null && this.vigia !== undefined) return
+      this.buscandoUbicacion = true
+      let primera = true
+      this.vigia = navigator.geolocation.watchPosition(
+        posicion => {
+          this.posicion = posicion.coords
+          this.miUbicacion = {
+            lat: posicion.coords.latitude,
+            lng: posicion.coords.longitude,
+            precision: posicion.coords.accuracy
+          }
+          this.buscandoUbicacion = false
+          if (primera) {
+            primera = false
+            this.centrarEnMi()
+          }
+        },
+        error => {
+          this.buscandoUbicacion = false
+          this.dejarDeSeguir()
+          this.$q.notify({
+            type: 'negative', position: 'top',
+            message: error.code === 1
+              ? 'Activá el permiso de ubicación del navegador para verte en el mapa'
+              : 'No se pudo obtener tu ubicación; probá de nuevo al aire libre'
+          })
+        },
+        { enableHighAccuracy: true, timeout: 15000, maximumAge: 5000 }
+      )
+    },
+    centrarEnMi () {
+      if (!this.mapa || !this.miUbicacion) return
+      this.mapa.setView([this.miUbicacion.lat, this.miUbicacion.lng], Math.max(this.mapa.getZoom(), 16))
+    },
+    dejarDeSeguir () {
+      if (this.vigia !== null && this.vigia !== undefined && navigator.geolocation) {
+        navigator.geolocation.clearWatch(this.vigia)
+      }
+      this.vigia = null
+    },
     ubicar () {
       if (!navigator.geolocation) return
       navigator.geolocation.getCurrentPosition(
@@ -1416,6 +1529,16 @@ export default {
 </script>
 
 <style scoped>
+/* El nombre del cliente puede ser largo: en el celular se parte en varias
+   lineas en vez de cortarse con puntos suspensivos. */
+.nombre-punto {
+  line-height: 1.25;
+  word-break: break-word;
+}
+.boton-cabecera {
+  min-height: 40px;
+  border-radius: 8px;
+}
 /* 50px es el alto del toolbar de la app. */
 .pantalla {
   display: flex;
@@ -1491,6 +1614,62 @@ export default {
 }
 
 /* El numero de la fila es el mismo que el del marcador en el mapa. */
+/* Mi ubicacion: azul y redonda para no confundirse con las marcas
+   numeradas de los clientes; la onda late para encontrarla rapido. */
+.mi-ubicacion {
+  position: relative;
+  width: 44px;
+  height: 44px;
+}
+.mi-punto {
+  position: absolute;
+  left: 7px;
+  top: 7px;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: #1e88e5;
+  border: 3px solid #fff;
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  z-index: 2;
+}
+.mi-punto .material-icons {
+  font-size: 18px;
+}
+.mi-onda {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: rgba(30, 136, 229, 0.35);
+  animation: mi-latido 1.8s ease-out infinite;
+  z-index: 1;
+}
+.mi-etiqueta {
+  position: absolute;
+  left: 50%;
+  top: 40px;
+  transform: translateX(-50%);
+  background: #1e88e5;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+  padding: 2px 6px;
+  border-radius: 8px;
+  white-space: nowrap;
+  z-index: 2;
+}
+@keyframes mi-latido {
+  0% { transform: scale(0.6); opacity: 0.9; }
+  100% { transform: scale(1.6); opacity: 0; }
+}
 .marca {
   position: relative;
   width: 22px;

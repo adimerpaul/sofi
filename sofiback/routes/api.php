@@ -84,6 +84,8 @@ Route::group(['middleware'=>'auth:sanctum'],function (){
     Route::get('/facturacion/clientes',[\App\Http\Controllers\FacturacionController::class,'clientes']);
     Route::get('/facturacion/pedidos',[\App\Http\Controllers\FacturacionController::class,'pedidos']);
     Route::get('/facturacion/pedidos/{pedido}',[\App\Http\Controllers\FacturacionController::class,'pedido']);
+    // Guarda el avance del cobro sin crear la venta ni descontar stock.
+    Route::post('/facturacion/pedidos/{pedido}/borrador',[\App\Http\Controllers\FacturacionController::class,'guardarBorrador']);
     // Van antes de /facturacion/{factura}: si no, 'lote' y 'reporte' entrarian
     // como si fueran el id de una factura.
     Route::get('/facturacion/lote/{documento}',[\App\Http\Controllers\FacturacionController::class,'lote']);
@@ -144,6 +146,8 @@ Route::group(['middleware'=>'auth:sanctum'],function (){
     Route::get('/caminero/carga',[\App\Http\Controllers\CamineroController::class,'carga']);
     Route::get('/caminero/carga/reporte',[\App\Http\Controllers\CamineroController::class,'cargaReporte']);
     Route::post('/caminero/carga/verificar',[\App\Http\Controllers\CamineroController::class,'verificarCarga']);
+    // Tilde de a un producto dentro de la canasta.
+    Route::post('/caminero/carga/productos',[\App\Http\Controllers\CamineroController::class,'verificarProductos']);
     Route::post('/caminero/carga/verificar-todo',[\App\Http\Controllers\CamineroController::class,'verificarCargaTodo']);
 
     // Compras a proveedor: suben el stock de tbstock.

@@ -17,6 +17,18 @@
           <q-list dense style="min-width: 280px">
             <q-item-label header class="q-py-xs">Comprobantes del filtro (los anulados no se imprimen)</q-item-label>
 
+            <!-- No cierra el menu: se elige antes de tocar que imprimir. -->
+            <q-item tag="label" dense>
+              <q-item-section avatar><q-toggle v-model="conCopia" dense color="primary"/></q-item-section>
+              <q-item-section>
+                Original y copia
+                <q-item-label caption>
+                  {{ conCopia ? 'Cada comprobante sale 2 veces (ORIGINAL y COPIA)' : 'Una sola hoja por comprobante' }}
+                </q-item-label>
+              </q-item-section>
+            </q-item>
+            <q-separator class="q-my-xs"/>
+
             <!-- Lo mas comun al cerrar el dia: el paquete completo, cada venta
                  en el papel que le toca, en un solo tiro de impresora. -->
             <q-item clickable v-close-popup @click="lote('todos', true)">
@@ -263,6 +275,7 @@
       :rows="facturas"
       :columns="columns"
       row-key="id"
+      :table-row-class-fn="row => (row.impreso_veces > 0 ? 'fila-impresa' : '')"
       selection="multiple"
       v-model:selected="seleccionadas"
       v-model:pagination="pagination"
@@ -383,6 +396,25 @@
         </q-td>
       </template>
 
+      <template v-slot:body-cell-impreso="props">
+        <q-td :props="props" class="text-center">
+          <q-chip
+            v-if="props.value > 0"
+            dense square color="blue-8" text-color="white" icon="print"
+            :label="props.value > 1 ? 'Impreso ×' + props.value : 'Impreso'"
+          >
+            <q-tooltip>
+              Impreso {{ props.value }} {{ props.value === 1 ? 'vez' : 'veces' }}
+              <template v-if="props.row.impreso_at">
+                · última el {{ verificadoEn(props.row.impreso_at) }}
+              </template>
+              <template v-if="props.row.impreso_por"> por {{ props.row.impreso_por }}</template>
+            </q-tooltip>
+          </q-chip>
+          <q-chip v-else dense square outline color="grey-6" icon="print_disabled" label="No"/>
+        </q-td>
+      </template>
+
       <template v-slot:body-cell-siat="props">
         <q-td :props="props">
           <template v-if="props.row.tipo_comprobante === 'FACTURA'">
@@ -447,20 +479,36 @@
               <q-item
                 clickable v-close-popup
                 :disable="props.row.estado === 'ANULADO'"
-                @click="imprimir(props.row, documentoDe(props.row))"
+                @click="imprimir(props.row, documentoDe(props.row), 'ambas')"
               >
                 <q-item-section avatar>
                   <q-icon :name="documentoDe(props.row) === 'factura' ? 'verified' : 'receipt'"
                           :color="documentoDe(props.row) === 'factura' ? 'green-7' : 'blue-grey-7'"/>
                 </q-item-section>
                 <q-item-section>
-                  Imprimir
+                  Imprimir original y copia
                   <q-item-label caption>
                     {{ props.row.estado === 'ANULADO'
                       ? 'Anulado: no se imprime'
-                      : (documentoDe(props.row) === 'factura' ? 'Factura' : 'Voucher') }}
+                      : (documentoDe(props.row) === 'factura' ? 'Factura' : 'Voucher') + ' · 2 hojas' }}
                   </q-item-label>
                 </q-item-section>
+              </q-item>
+              <q-item
+                clickable v-close-popup dense
+                :disable="props.row.estado === 'ANULADO'"
+                @click="imprimir(props.row, documentoDe(props.row), 'ORIGINAL')"
+              >
+                <q-item-section avatar><q-icon name="print" color="primary" size="20px"/></q-item-section>
+                <q-item-section>Solo original</q-item-section>
+              </q-item>
+              <q-item
+                clickable v-close-popup dense
+                :disable="props.row.estado === 'ANULADO'"
+                @click="imprimir(props.row, documentoDe(props.row), 'COPIA')"
+              >
+                <q-item-section avatar><q-icon name="content_copy" color="grey-7" size="20px"/></q-item-section>
+                <q-item-section>Solo copia</q-item-section>
               </q-item>
 
               <q-separator/>
@@ -748,6 +796,8 @@ export default {
       editando: false,
       imprimiendo: null,
       exportando: false,
+      // Cada comprobante del lote sale dos veces: ORIGINAL y COPIA.
+      conCopia: true,
       camiones: [],
       // Como viene la verificacion de la carga del camion filtrado; null
       // mientras no se este mirando un camion de un solo dia.
@@ -792,6 +842,8 @@ export default {
         { name: 'entrega', label: 'Entrega', field: 'entrega_estado', align: 'center' },
         { name: 'tipo_pago', label: 'Pago', field: 'tipo_pago', align: 'center' },
         { name: 'estado', label: 'Estado', field: 'estado', align: 'center' },
+        // Si ya salio a la impresora: caja lo ve en azul y no lo vuelve a imprimir.
+        { name: 'impreso', label: 'Impreso', field: 'impreso_veces', align: 'center' },
         { name: 'siat', label: 'Estado SIAT', field: 'estado_siat', align: 'left' },
         { name: 'total', label: 'Total Bs.', field: 'total', align: 'right', format: v => Number(v || 0).toFixed(2) }
       ]
@@ -1003,12 +1055,19 @@ export default {
       })
     },
 
-    // 'voucher' o 'factura'.
-    imprimir (row, documento) {
+    // documento: 'voucher' o 'factura'; hojas: 'ambas' (ORIGINAL y COPIA),
+    // 'ORIGINAL' o 'COPIA'.
+    imprimir (row, documento, hojas = 'ambas') {
       this.imprimiendo = row.id
+      const params = Object.assign({ imprimir: 1 }, hojas === 'ambas' ? { copias: 1 } : { marca: hojas })
 
-      return this.$api.get('facturacion/' + row.id + '/' + documento, { responseType: 'blob' })
-        .then(res => imprimirPdfDirecto(res.data, documento + '_' + row.id + '.pdf'))
+      return this.$api.get('facturacion/' + row.id + '/' + documento, { params, responseType: 'blob' })
+        .then(res => {
+          // El backend ya lo marco; la fila se pinta sin recargar la grilla.
+          row.impreso_veces = Number(row.impreso_veces || 0) + 1
+          row.impreso_at = date.formatDate(new Date(), 'YYYY-MM-DD HH:mm:ss')
+          return imprimirPdfDirecto(res.data, documento + '_' + row.id + '.pdf')
+        })
         .catch(err => {
           this.avisar(err, 'No se pudo imprimir el ' + documento)
         })
@@ -1099,7 +1158,7 @@ export default {
       const ids = this.seleccionadasImprimibles.map(row => row.id).sort((a, b) => a - b)
       return this.bajarArchivo(
         'facturacion/lote/todos',
-        { ids: ids.join(',') },
+        { ids: ids.join(','), copias: this.conCopia ? 1 : 0 },
         'comprobantes_seleccionados_' + (this.filtros.desde || 'todo') + '.pdf',
         imprimir
       )
@@ -1176,9 +1235,16 @@ export default {
     bajarArchivo (url, params, nombre, imprimir) {
       this.exportando = true
 
-      return this.$api.get(url, { params, responseType: 'blob' })
+      // imprimir=1 le dice al backend que marque los comprobantes como impresos.
+      const conMarca = imprimir ? Object.assign({ imprimir: 1 }, params) : params
+
+      return this.$api.get(url, { params: conMarca, responseType: 'blob' })
         .then(res => {
-          if (imprimir) return imprimirPdfDirecto(res.data, nombre)
+          if (imprimir) {
+            // Recarga para que lo recien impreso salga pintado de azul.
+            this.onRequest({ pagination: this.pagination })
+            return imprimirPdfDirecto(res.data, nombre)
+          }
 
           const enlace = document.createElement('a')
           enlace.href = window.URL.createObjectURL(res.data)
@@ -1207,7 +1273,7 @@ export default {
 
       return this.bajarArchivo(
         'facturacion/lote/' + documento,
-        this.paramsFiltro(),
+        Object.assign({ copias: this.conCopia ? 1 : 0 }, this.paramsFiltro()),
         nombre + '_' + (this.filtros.desde || 'todo') + '.pdf',
         imprimir
       )
@@ -1475,6 +1541,11 @@ export default {
 
 .tabla-compacta {
   font-size: 12px;
+
+  /* Lo que ya salio a la impresora se distingue de un vistazo. */
+  :deep(tr.fila-impresa td) {
+    background: #e3f2fd;
+  }
 
   :deep(th),
   :deep(td) {
