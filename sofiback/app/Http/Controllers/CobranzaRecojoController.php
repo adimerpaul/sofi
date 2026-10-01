@@ -26,18 +26,22 @@ class CobranzaRecojoController extends Controller
     /**
      * El recojo del dia. Sin camion vienen todos, cada uno con sus grupos y
      * totales, mas un total general del dia.
+     *
+     * De entrada solo lo que el camion recogio con la app (entregas con
+     * comprobante); con todo=1 tambien la ruta del sistema anterior.
      */
     public function reporte(Request $request, RecojoDelDia $recojo)
     {
         $datos = $request->validate([
             'fecha' => 'nullable|date',
             'camion' => 'nullable|string|max:100',
+            'todo' => 'nullable|boolean',
         ]);
 
         $fecha = $datos['fecha'] ?? date('Y-m-d');
         $camion = trim((string) ($datos['camion'] ?? ''));
 
-        $filas = $recojo->filas($fecha, $camion ?: null);
+        $filas = $recojo->filas($fecha, $camion ?: null, !$request->boolean('todo'));
 
         // Un bloque por camion: es como se cuenta la plata, un caminero a la
         // vez, y es tambien como se imprime.
@@ -71,9 +75,9 @@ class CobranzaRecojoController extends Controller
     /** Los camiones que trajeron algo ese dia, para el filtro de la pantalla. */
     public function camiones(Request $request, RecojoDelDia $recojo)
     {
-        $datos = $request->validate(['fecha' => 'nullable|date']);
+        $datos = $request->validate(['fecha' => 'nullable|date', 'todo' => 'nullable|boolean']);
 
-        return $recojo->camiones($datos['fecha'] ?? date('Y-m-d'));
+        return $recojo->camiones($datos['fecha'] ?? date('Y-m-d'), !$request->boolean('todo'));
     }
 
     /**
@@ -89,6 +93,7 @@ class CobranzaRecojoController extends Controller
             'fecha' => 'nullable|date',
             'camion' => 'nullable|string|max:100',
             'grupo' => 'nullable|string',
+            'todo' => 'nullable|boolean',
         ]);
 
         $fecha = $datos['fecha'] ?? date('Y-m-d');
@@ -99,7 +104,7 @@ class CobranzaRecojoController extends Controller
             return response()->json(['message' => 'Esa hoja no existe'], 422);
         }
 
-        $filas = $recojo->filas($fecha, $camion ?: null);
+        $filas = $recojo->filas($fecha, $camion ?: null, !$request->boolean('todo'));
         $claves = in_array($grupo, ['todos', 'tabla'], true) ? array_keys(RecojoDelDia::HOJAS) : [$grupo];
         $hojas = [];
 

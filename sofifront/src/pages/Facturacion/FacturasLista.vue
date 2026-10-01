@@ -482,7 +482,12 @@
       <template v-slot:body-cell-nombre="props">
         <q-td :props="props">
           <template v-if="props.value">
-            {{ props.value }}
+            <!-- Nombre chico y en hasta dos lineas: es la columna que mas
+                 estiraba la tabla. El completo queda en el tooltip. -->
+            <div class="celda-cliente">
+              {{ props.value }}
+              <q-tooltip>{{ props.value }}</q-tooltip>
+            </div>
             <div class="text-caption text-grey-7">NIT {{ props.row.nit || '—' }}</div>
           </template>
           <span v-else class="text-grey-6">Sin cliente</span>
@@ -1601,40 +1606,79 @@ export default {
 }
 
 .tabla-compacta {
-  font-size: 12px;
+  font-size: 11px;
 
   /* Lo que ya salio a la impresora se distingue de un vistazo. */
   :deep(tr.fila-impresa td) {
     background: #e3f2fd;
   }
 
+  /* Casi sin aire: son muchas columnas y tienen que entrar a lo ancho. */
   :deep(th),
   :deep(td) {
-    padding: 2px 6px;
+    padding: 1px 3px;
+    height: auto;
+    line-height: 1.2;
+  }
+
+  :deep(th:first-child),
+  :deep(td:first-child) {
+    padding-left: 4px;
   }
 
   :deep(thead th) {
-    font-size: 11px;
-    font-weight: 600;
+    font-size: 10px;
+    font-weight: 700;
+    height: 22px;
+    white-space: nowrap;
   }
 
   /* Los chips de tipo, estado y carga son la mayor parte del ancho: sin esto
      cada uno se lleva el espacio de una columna de texto. */
-  :deep(.q-chip),
+  :deep(.q-chip) {
+    font-size: 9px;
+    height: 18px;
+    padding: 0 4px;
+    margin: 0;
+  }
   :deep(.q-badge) {
-    font-size: 10px;
-    padding: 2px 5px;
+    font-size: 9px;
+    padding: 1px 4px;
+    min-height: 14px;
   }
 
   :deep(.q-chip .q-icon) {
-    font-size: 13px;
+    font-size: 11px;
+    margin-right: 2px;
+  }
+
+  /* El check de seleccion y el menu de acciones, del alto de la fila. */
+  :deep(.q-checkbox__inner) {
+    font-size: 26px;
+  }
+  :deep(.q-btn--dense.q-btn--round) {
+    min-height: 22px;
+    min-width: 22px;
   }
 
   /* El caption del cliente y del pedido va como segunda linea; achicarlo evita
      que la fila crezca de alto por esa linea. */
   :deep(.text-caption) {
-    font-size: 10px;
-    line-height: 1.2;
+    font-size: 9px;
+    line-height: 1.15;
   }
+}
+
+/* Nombre del cliente chico y cortado en dos lineas como maximo. */
+.celda-cliente {
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1.15;
+  max-width: 170px;
+  white-space: normal;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
 }
 </style>

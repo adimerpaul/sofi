@@ -23,7 +23,12 @@
       <!-- De entrada solo lo recogido (lo que trae plata). Prendiendolo se ve
            tambien lo dado a credito y lo que no se entrego. -->
       <div class="col-auto">
-        <q-toggle v-model="mostrarTodo" dense size="sm" color="primary" label="Mostrar todo" class="text-caption"/>
+        <q-toggle
+          v-model="mostrarTodo" dense size="sm" color="primary" label="Mostrar todo" class="text-caption"
+          @update:model-value="cambiarFecha"
+        >
+          <q-tooltip>Suma las entregas de la ruta del sistema anterior (sin comprobante)</q-tooltip>
+        </q-toggle>
       </div>
       <q-space/>
       <div class="col-auto">
@@ -113,11 +118,11 @@
             <div class="caja-rotulo">QR</div>
             <div class="caja-monto text-indigo-9">{{ money(totales.qr_cobrado) }}</div>
           </div>
-          <div v-if="mostrarTodo" class="col">
+          <div class="col">
             <div class="caja-rotulo">CRÉDITO</div>
             <div class="caja-monto text-blue-grey-8">{{ money(totales.creditos) }}</div>
           </div>
-          <div v-if="mostrarTodo" class="col">
+          <div class="col">
             <div class="caja-rotulo">ANULADOS</div>
             <div class="caja-monto text-red-9">{{ money(totales.anulados) }}</div>
           </div>
@@ -127,7 +132,7 @@
       <!-- Un bloque por camión: es como se cuenta la plata, un caminero a la
            vez. Arrancan cerrados porque son hasta diez camiones. -->
       <div v-if="buscar && !camionesVisibles.length" class="text-center text-grey-6 q-pa-md">
-        Ninguna nota de "{{ buscar }}" {{ mostrarTodo ? '' : 'recogida ' }}el {{ fechaLarga }}
+        Ninguna nota de "{{ buscar }}" el {{ fechaLarga }}
       </div>
       <!-- Buscando, el camion que tiene la nota se abre solo. -->
       <q-expansion-item
@@ -144,8 +149,7 @@
             <div class="text-weight-bolder text-grey-9">{{ uno.placa }}</div>
             <div class="text-caption text-grey-7">
               {{ uno.caminero }} ·
-              <template v-if="mostrarTodo">{{ uno.notas }} notas</template>
-              <template v-else>{{ recogidas(uno) }} recogidas de {{ uno.notas }}</template>
+              {{ uno.notas }} nota{{ uno.notas === 1 ? '' : 's' }}
             </div>
           </q-item-section>
           <q-item-section side>
@@ -169,7 +173,7 @@
           </q-item-section>
         </template>
 
-        <TablaRecojo :tabla="uno.tabla" :solo-recogido="!mostrarTodo" :buscar="buscar || ''"/>
+        <TablaRecojo :tabla="uno.tabla" :buscar="buscar || ''"/>
       </q-expansion-item>
     </div>
   </q-page>
@@ -197,7 +201,8 @@ export default {
       SECCIONES,
       fecha: this.$route.query.fecha || date.formatDate(new Date(), 'YYYY-MM-DD'),
       camion: null,
-      // Por defecto solo lo recogido; el toggle muestra credito y anulados.
+      // Por defecto solo lo que el camion recogio con la app (entregas con
+      // comprobante); el toggle suma la ruta del sistema anterior.
       mostrarTodo: false,
       buscar: '',
       cargando: false,
@@ -224,7 +229,6 @@ export default {
       const texto = String(this.buscar || '').trim().toLowerCase()
       if (!texto) return this.camiones
       return this.camiones.filter(uno => uno.tabla.filas.some(fila =>
-        (this.mostrarTodo || this.esRecogida(fila)) &&
         (String(fila.cliente || '').toLowerCase().includes(texto) || String(fila.nota).includes(texto))))
     },
     fechaLarga () {
@@ -234,12 +238,6 @@ export default {
   methods: {
     money (valor) {
       return Number(valor || 0).toFixed(2)
-    },
-    esRecogida (fila) {
-      return fila.entregada && (Number(fila.efectivo) > 0 || Number(fila.qr) > 0)
-    },
-    recogidas (uno) {
-      return uno.tabla.filas.filter(this.esRecogida).length
     },
     /** Cuántas notas hay en una hoja, sumando todos los camiones mostrados. */
     conteo (clave) {
@@ -253,14 +251,14 @@ export default {
       this.cargar()
     },
     cargarCamiones () {
-      this.$api.get('cobranzas/recojo/camiones', { params: { fecha: this.fecha } })
+      this.$api.get('cobranzas/recojo/camiones', { params: { fecha: this.fecha, todo: this.mostrarTodo ? 1 : 0 } })
         .then(res => { this.listaCamiones = res.data })
         .catch(() => { this.listaCamiones = [] })
     },
     cargar () {
       this.cargando = true
 
-      this.$api.get('cobranzas/recojo', { params: { fecha: this.fecha, camion: this.camion } })
+      this.$api.get('cobranzas/recojo', { params: { fecha: this.fecha, camion: this.camion, todo: this.mostrarTodo ? 1 : 0 } })
         .then(res => {
           this.camiones = res.data.camiones
           this.totales = res.data.totales
@@ -286,7 +284,7 @@ export default {
       this.imprimiendo = placa || 'todos'
 
       this.$api.get('cobranzas/recojo/pdf', {
-        params: { fecha: this.fecha, camion, grupo }, responseType: 'blob'
+        params: { fecha: this.fecha, camion, grupo, todo: this.mostrarTodo ? 1 : 0 }, responseType: 'blob'
       })
         .then(res => imprimirPdfDirecto(
           res.data,

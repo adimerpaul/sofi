@@ -42,12 +42,18 @@ class RecojoDelDia
      * Las entregas de un dia. Sin placa vienen las de todos los camiones, que
      * es lo que mira cobranzas.
      */
-    public function filas($fecha, $placa = null): Collection
+    public function filas($fecha, $placa = null, $soloComprobantes = false): Collection
     {
         $consulta = DB::table('entregas as e')
             ->leftJoin('tbclientes as c', 'c.Cod_Aut', '=', 'e.cliente_id')
             ->leftJoin('personal as p', 'p.CodAut', '=', 'e.personal_id')
             ->where('e.fechaEntreg', $fecha);
+
+        // Lo que el camion recogio con la app: entregas ligadas a un
+        // comprobante. Las de la ruta del sistema anterior no tienen.
+        if ($soloComprobantes) {
+            $consulta->whereNotNull('e.factura_id');
+        }
 
         if ($placa !== null && trim((string) $placa) !== '') {
             $consulta->where('e.placa', trim($placa));
@@ -288,11 +294,14 @@ class RecojoDelDia
     }
 
     /** Los camiones que trajeron algo ese dia, con su caminero. */
-    public function camiones($fecha): array
+    public function camiones($fecha, $soloComprobantes = false): array
     {
         return DB::table('entregas as e')
             ->leftJoin('personal as p', 'p.CodAut', '=', 'e.personal_id')
             ->where('e.fechaEntreg', $fecha)
+            ->when($soloComprobantes, function ($consulta) {
+                $consulta->whereNotNull('e.factura_id');
+            })
             ->whereRaw("TRIM(COALESCE(e.placa, '')) <> ''")
             ->groupBy('e.placa', 'caminero')
             ->orderBy('e.placa')
