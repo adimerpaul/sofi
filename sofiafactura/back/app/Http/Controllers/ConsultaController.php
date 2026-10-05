@@ -27,11 +27,17 @@ order by CodAut desc
 ", [$ci]);
 
         // Facturas del sistema nuevo (factura/): CodAut = cuf para que facturaPdf las reconozca
-        $nuevas = DB::select("select v.cuf as CodAut, v.id as nrofac, v.ci as IdCli,
+        try {
+            $nuevas = DB::select("select v.cuf as CodAut, v.id as nrofac, v.ci as IdCli,
        v.fecha as FechaFac, v.hora, v.cuf as cuffac, v.total, v.nombre
 from ventas v
 where v.ci = ? and v.cuf is not null and v.cuf != '' and v.estado != 'Anulada' and v.deleted_at is null
 ", [$ci]);
+        } catch (\Throwable $e) {
+            // si las tablas del sistema nuevo no están disponibles, igual devolvemos las antiguas
+            error_log('Consulta facturas nuevas: ' . $e->getMessage());
+            $nuevas = [];
+        }
 
         $facturas = array_merge($nuevas, $facturas);
         usort($facturas, fn ($a, $b) => strcmp((string)$b->FechaFac, (string)$a->FechaFac));
