@@ -678,7 +678,8 @@ class FacturacionController extends Controller
                 'p.Precio as precio',
                 // Lo usa la pantalla de compras para proponer el costo.
                 'p.Precio_Costo as costo',
-                'p.Precio3', 'p.Precio4', 'p.Precio5', 'p.Precio6',
+                'p.Precio3', 'p.Precio4', 'p.Precio5', 'p.Precio6', 'p.Precio7', 'p.Precio8',
+                'p.Precio9', 'p.Precio10', 'p.Precio11', 'p.Precio12', 'p.Precio13',
                 // El alias no puede llamarse "stock": tbproductos ya tiene una
                 // columna asi y el ORDER BY resolveria a esa, no a esta.
                 // La existencia vive en tbproductos.stock_actual (ver moverStock).
@@ -706,17 +707,10 @@ class FacturacionController extends Controller
             ->paginate($perPage);
 
         $productos->getCollection()->transform(function ($p) {
-            $p->precios = collect([$p->precio, $p->Precio3, $p->Precio4, $p->Precio5, $p->Precio6])
-                ->map(function ($v) {
-                    return round((float) $v, 2);
-                })
-                ->filter(function ($v) {
-                    return $v > 0;
-                })
-                ->unique()
-                ->values();
-
-            unset($p->Precio3, $p->Precio4, $p->Precio5, $p->Precio6);
+            $p->precios = $this->listaPrecios($p, [$p->precio]);
+            foreach (self::PRECIOS_LISTA as $columna) {
+                unset($p->$columna);
+            }
 
             $p->precio = round((float) $p->precio, 2);
             $p->costo = round((float) $p->costo, 2);
@@ -996,8 +990,18 @@ class FacturacionController extends Controller
                 // caja (U, CAJA o KG); null en el resto.
                 DB::raw("NULLIF(TRIM(p.caja), '') as caja"),
                 DB::raw('COALESCE(p.precio, 0) as precio'),
+                // La lista de precios del producto, para el select del carrito.
+                DB::raw('pr.Precio as precio1'),
+                'pr.Precio3', 'pr.Precio4', 'pr.Precio5', 'pr.Precio6', 'pr.Precio7', 'pr.Precio8',
+                'pr.Precio9', 'pr.Precio10', 'pr.Precio11', 'pr.Precio12', 'pr.Precio13',
             ])
             ->map(function ($item) {
+                // El precio del pedido va primero aunque no este en la lista.
+                $item->precios = $this->listaPrecios($item, [$item->precio, $item->precio1]);
+                unset($item->precio1);
+                foreach (self::PRECIOS_LISTA as $columna) {
+                    unset($item->$columna);
+                }
                 $item->cantidad = (float) $item->cantidad;
                 // Lo que pidio el cliente queda aparte de lo que se entrega:
                 // sirve para avisarle al cajero que la linea cambio. No se
@@ -1586,8 +1590,8 @@ class FacturacionController extends Controller
                 return response()->json(['message' => 'Este pedido ya fue facturado o convertido en voucher'], 422);
             }
 
-            // Sin permiso el precio no se toca: vale el del pedido o, en lo
-            // que se agrega al cobrar, el del catalogo.
+            // Sin permiso no se escribe un precio libre: vale el del pedido o
+            // uno de la lista del producto (lo que ofrece el select del carrito).
             if (!$usuario->can('facturacionPrecio')) {
                 $delPedido = DB::table('tbpedidos')
                     ->whereNull('tbpedidos.deleted_at')
@@ -1600,11 +1604,10 @@ class FacturacionController extends Controller
                 $cambiados = collect($datos['items'])
                     ->filter(function ($item) use ($productos, $delPedido) {
                         $cod = trim($item['cod_prod']);
-                        $permitidos = collect($delPedido->get($cod, []))->pluck('precio')
-                            ->push($productos[$cod]->Precio)
-                            ->map(function ($v) {
-                                return round((float) $v, 2);
-                            });
+                        $permitidos = $this->listaPrecios(
+                            $productos[$cod],
+                            collect($delPedido->get($cod, []))->pluck('precio')->push($productos[$cod]->Precio)->all()
+                        );
                         return !$permitidos->contains(round((float) $item['precio'], 2));
                     })
                     ->map(function ($item) use ($productos) {
@@ -1793,6 +1796,26 @@ class FacturacionController extends Controller
             return 'KG';
         }
         return strtoupper(trim((string) $producto->codUnid));
+    }
+
+    /** Los precios de lista de tbproductos, ademas de Precio. */
+    const PRECIOS_LISTA = [
+        'Precio3', 'Precio4', 'Precio5', 'Precio6', 'Precio7', 'Precio8',
+        'Precio9', 'Precio10', 'Precio11', 'Precio12', 'Precio13',
+    ];
+
+    /** Precios para elegir en la venta: $primeros + la lista, sin ceros ni repetidos. */
+    private function listaPrecios($fila, array $primeros)
+    {
+        $valores = $primeros;
+        foreach (self::PRECIOS_LISTA as $columna) {
+            $valores[] = $fila->$columna ?? 0;
+        }
+        return collect($valores)
+            ->map(function ($v) { return round((float) $v, 2); })
+            ->filter(function ($v) { return $v > 0; })
+            ->unique()
+            ->values();
     }
 
     /** unidadVenta() en SQL; {p} es el alias de tbproductos. */

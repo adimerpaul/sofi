@@ -168,18 +168,17 @@
                       @update:model-value="sincronizarTotal(item)"
                     />
                   </template>
-                  <q-input
-                    v-model.number="item.precio"
-                    dense outlined type="number" class="col" label="Precio" step="0.01" min="0"
+                  <!-- El precio no se escribe: se elige de la lista del producto. -->
+                  <q-select
+                    v-model="item.precio"
+                    dense outlined class="col" label="Precio"
+                    :options="opcionesPrecio(item)"
                     @update:model-value="sincronizarTotal(item)"
                   />
-                  <!-- El total tambien se escribe: si se cierra el precio por
-                       el importe redondo, el unitario sale por division. -->
+                  <!-- El total sale de cantidad x precio; ya no se escribe. -->
                   <q-input
-                    v-model.number="item.total"
-                    dense outlined type="number" class="col" label="Total" step="0.01" min="0"
-                    @blur="aplicarTotal(item)"
-                    @keyup.enter="aplicarTotal(item)"
+                    :model-value="money(item.total)"
+                    dense outlined readonly class="col" label="Total"
                   />
                   <q-btn
                     dense flat round size="sm" icon="delete" color="negative" class="col-auto"
@@ -634,18 +633,13 @@ export default {
     sincronizarTotal (item) {
       item.total = Math.round(this.base(item) * Number(item.precio || 0) * 100) / 100
     },
-    // Al revés: si escriben el total, el precio unitario se deduce.
-    aplicarTotal (item) {
-      const total = Number(item.total)
-      const cant = this.base(item)
-
-      if (!(total >= 0) || !(cant > 0)) {
-        this.sincronizarTotal(item)
-        return
-      }
-
-      item.precio = Math.round((total / cant) * 100) / 100
-      this.sincronizarTotal(item)
+    // Los precios de lista del producto; el que ya tiene la linea va siempre,
+    // aunque no este en la lista (el del pedido, por ejemplo).
+    opcionesPrecio (item) {
+      const lista = [item.precio, ...(item.precios || [])]
+        .map(v => Math.round(Number(v || 0) * 100) / 100)
+        .filter(v => v > 0)
+      return [...new Set(lista)]
     },
     agregarAlCarrito () {
       const cant = Number(this.cantidadElegida)
@@ -684,6 +678,7 @@ export default {
           nombre: this.elegido.producto,
           unidad: this.elegido.unidad,
           imagen: this.elegido.imagen,
+          precios: this.elegido.precios || [],
           cantidad: cant,
           precio,
           con_canastillos: conCanastillos,
