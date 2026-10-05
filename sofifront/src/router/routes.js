@@ -87,6 +87,8 @@ const routes = [
       // Cobro simple: GET /vendedor/creditos/clientes y /{cliente}; POST /{cliente}/cobros.
       { path: '/vendedor/creditos', component: () => import('pages/Cobranzas/CobrarCreditosVendedor.vue'), meta: { requiresAuth: true } },
       { path: '/cobranzas/verificacion', component: () => import('pages/Cobranzas/VerificarFacturacion.vue'), meta: { requiresAuth: true } },
+      // GET /cobranzas/verificacion/clientes y /clientes/{cliente}/facturas; el tilde usa POST /cobranzas/verificacion.
+      { path: '/cobranzas/verificacion/clientes', component: () => import('pages/Cobranzas/VerificarCliente.vue'), meta: { requiresAuth: true } },
       { path: '/encuestasIndex', component: () => import('pages/encuesta/EncuestaIndex.vue'), meta: { requiresAuth: true } },
       { path: '/horariosenvio', component: () => import('pages/HorariosEnvio.vue'), meta: { requiresAuth: true } },
       // ClienteFotografias

@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Controllers\Concerns\PapeleriaSofia;
 use App\Models\Factura;
 use App\Models\FacturaDetalle;
+use App\Services\CambioPedido;
 use App\Services\CargaCamion;
 use App\Services\ModificacionFactura;
 use App\Services\SiatService;
@@ -669,7 +670,7 @@ class FacturacionController extends Controller
             ->select([
                 DB::raw('TRIM(p.cod_prod) as cod_prod'),
                 DB::raw('TRIM(p.Producto) as producto'),
-                DB::raw('TRIM(p.codUnid) as unidad'),
+                DB::raw(str_replace('{p}', 'p', self::UNIDAD_VENTA_SQL) . ' as unidad'),
                 DB::raw('TRIM(g.Descripcion) as grupo'),
                 'p.imagen',
                 'p.Precio as precio',
@@ -984,7 +985,7 @@ class FacturacionController extends Controller
             ->get([
                 DB::raw('TRIM(p.cod_prod) as cod_prod'),
                 DB::raw("COALESCE(NULLIF(TRIM(pr.Producto), ''), CONCAT('Producto ', TRIM(p.cod_prod))) as nombre"),
-                DB::raw("COALESCE(NULLIF(TRIM(pr.codUnid), ''), 'UNIDAD') as unidad"),
+                DB::raw("COALESCE(NULLIF(" . str_replace('{p}', 'pr', self::UNIDAD_VENTA_SQL) . ", ''), 'UNIDAD') as unidad"),
                 'pr.imagen', DB::raw('COALESCE(p.Cant, 0) as cantidad'),
                 // Unidad que eligio el preventista para lo que se vende por
                 // caja (U, CAJA o KG); null en el resto.
@@ -1348,31 +1349,54 @@ class FacturacionController extends Controller
                 $texto = trim((string) ($fila->{$campo} ?? ''));
                 if ($texto !== '') $observaciones->push($texto);
             }
+            // El preventista casi nunca llena el precio de cada producto (bs104,
+            // bsala...): pone uno solo para el pollo entero (bs) y otro para el
+            // trozado (bs2). Si la linea no trae el suyo, se usa ese.
             foreach ($productos as [$nombre, $caja, $unidad, $precio, $obs]) {
-                $conCaja = $this->agregarDetallePollo($detalles, $fila, $nombre, $caja, 'CJA', $precio, $obs);
-                $conUnidad = $this->agregarDetallePollo($detalles, $fila, $nombre, $unidad, 'UND', $precio, $obs);
+                $conCaja = $this->agregarDetallePollo($detalles, $fila, $nombre, $caja, 'CJA', $precio, $obs, 'bs');
+                $conUnidad = $this->agregarDetallePollo($detalles, $fila, $nombre, $unidad, 'UND', $precio, $obs, 'bs');
                 if (!$conCaja && !$conUnidad) {
                     $this->agregarSinCantidad($detalles, $fila, $nombre, $precio, $obs);
                 }
             }
             foreach ($cortes as [$nombre, $cantidad, $unidad, $precio, $obs]) {
-                if (!$this->agregarDetallePollo($detalles, $fila, $nombre, $cantidad, strtoupper(trim((string) ($fila->{$unidad} ?? 'KG'))), $precio, $obs)) {
+                if (!$this->agregarDetallePollo($detalles, $fila, $nombre, $cantidad, strtoupper(trim((string) ($fila->{$unidad} ?? 'KG'))), $precio, $obs, 'bs2')) {
                     $this->agregarSinCantidad($detalles, $fila, $nombre, $precio, $obs);
                 }
             }
             // Rango va en unidades y sin precio propio, como en la hoja de pesos.
             $this->agregarDetallePollo($detalles, $fila, 'Rango', 'rango', 'U', null, null);
 
+            $valor = function ($campo) use ($fila) {
+                return trim((string) ($fila->{$campo} ?? ''));
+            };
+            $tipo = strtoupper(trim((string) ($fila->tipo ?? '')));
+
             // Las mismas columnas de la hoja de pesos pollo (generarXlsPollo).
-            if (strtoupper(trim((string) ($fila->tipo ?? ''))) === 'POLLO') {
-                $valor = function ($campo) use ($fila) {
-                    return trim((string) ($fila->{$campo} ?? ''));
-                };
+            if ($tipo === 'POLLO') {
                 foreach ([
                     ['P. Trozado', $valor('bs2')],
                     ['P. Pollo', $valor('bs')],
                 ] as [$etiqueta, $texto]) {
                     $datos->push(['etiqueta' => $etiqueta, 'valor' => $texto === '' ? '—' : $texto]);
+                }
+            }
+
+            // Lo que carga el preventista para cerdo y res (PedidoController::store).
+            $extra = [];
+            if ($tipo === 'CERDO') {
+                $extra = [['Entero', 'entero'], ['Desmembre', 'desmembre'], ['Corte', 'corte'],
+                    ['Kilo', 'kilo'], ['Total', 'total'], ['P. Frial', 'pfrial']];
+            } elseif ($tipo === 'RES') {
+                $extra = [['Trozado', 'trozado'], ['Pierna', 'pierna'], ['Brazo', 'brazo'],
+                    ['Total', 'total'], ['P. Frial', 'pfrial']];
+            }
+            // Por si acaso, todo lo demas que ayude a armar la venta.
+            $extra = array_merge($extra, [['Horario', 'horario'], ['Hora pedido', 'hora'], ['Pago', 'pago'], ['Factura', 'fact']]);
+            foreach ($extra as [$etiqueta, $campo]) {
+                $texto = $valor($campo);
+                if ($texto !== '' && $texto !== '0' && $texto !== '0.00') {
+                    $datos->push(['etiqueta' => $etiqueta, 'valor' => $texto]);
                 }
             }
         }
@@ -1383,13 +1407,17 @@ class FacturacionController extends Controller
         ];
     }
 
-    private function agregarDetallePollo($detalles, $fila, $nombre, $campo, $unidad, $campoPrecio, $campoObservacion)
+    private function agregarDetallePollo($detalles, $fila, $nombre, $campo, $unidad, $campoPrecio, $campoObservacion, $campoPrecioGeneral = null)
     {
         $cantidad = $fila->{$campo} ?? null;
         if ($cantidad === null || $cantidad === '' || (float) $cantidad == 0) return false;
+        $precio = $campoPrecio ? (float) ($fila->{$campoPrecio} ?? 0) : 0;
+        if (!$precio && $campoPrecioGeneral) {
+            $precio = (float) ($fila->{$campoPrecioGeneral} ?? 0);
+        }
         $detalles->push([
             'nombre' => $nombre, 'cantidad' => (float) $cantidad, 'unidad' => $unidad ?: 'KG',
-            'precio' => $campoPrecio ? (float) ($fila->{$campoPrecio} ?? 0) : 0,
+            'precio' => $precio,
             'observacion' => $campoObservacion ? trim((string) ($fila->{$campoObservacion} ?? '')) : '',
         ]);
         return true;
@@ -1422,6 +1450,9 @@ class FacturacionController extends Controller
             // bruto y el neto que se cobra sale de restarle los canastillos.
             'items.*.peso_bruto'  => 'nullable|numeric|min:0',
             'items.*.canastillos' => 'nullable|integer|min:0',
+            // Si el preventista se confundio, en caja se puede cobrar por kilo
+            // lo que el catalogo tiene por unidad, o al reves.
+            'items.*.por_peso' => 'nullable|boolean',
             'items.*.precio'   => 'required|numeric|min:0',
             'tipo_comprobante' => 'nullable|in:VENTA,FACTURA',
             'tipo_pago'        => 'nullable|string|max:20',
@@ -1470,7 +1501,7 @@ class FacturacionController extends Controller
         $negativos = collect();
         foreach ($datos['items'] as $i => $item) {
             $prod = $productos[trim($item['cod_prod'])];
-            if (!$conCanastillos || !$this->esGranel($prod) || !isset($item['peso_bruto'])
+            if (!$conCanastillos || !$this->lineaPorPeso($prod, $item) ||!isset($item['peso_bruto'])
                 || (float) $item['peso_bruto'] <= 0) {
                 unset($datos['items'][$i]['peso_bruto'], $datos['items'][$i]['canastillos']);
                 continue;
@@ -1495,7 +1526,7 @@ class FacturacionController extends Controller
         // peso (venta directa) siguen cobrando por cantidad.
         $sinPeso = collect($datos['items'])
             ->filter(function ($item) use ($productos) {
-                return $this->esGranel($productos[trim($item['cod_prod'])])
+                return $this->lineaPorPeso($productos[trim($item['cod_prod'])], $item)
                     && array_key_exists('peso', $item)
                     && (float) $item['peso'] <= 0;
             })
@@ -1591,7 +1622,7 @@ class FacturacionController extends Controller
                 // El peso solo tiene sentido en lo que se vende por kilo: ahi
                 // es lo que se cobra, y la cantidad queda como las piezas que
                 // se entregan.
-                $peso = $this->esGranel($prod) && isset($item['peso']) && (float) $item['peso'] > 0
+                $peso = $this->lineaPorPeso($prod, $item) && isset($item['peso']) && (float) $item['peso'] > 0
                     ? round((float) $item['peso'], 3)
                     : null;
 
@@ -1601,7 +1632,7 @@ class FacturacionController extends Controller
                 $lineas[] = [
                     'cod_prod' => $cod,
                     'nombre'   => trim($prod->Producto),
-                    'unidad'   => trim((string) $prod->codUnid),
+                    'unidad'   => $this->unidadLinea($prod, $item),
                     'cantidad' => $cantidad,
                     // Queda guardado lo que pidio el cliente aunque se le haya
                     // entregado otra cosa: sin esto, los que no salieron no
@@ -1654,6 +1685,8 @@ class FacturacionController extends Controller
                 // Si viene de editar otro comprobante del pedido: padre, numero
                 // de modificacion y que campos cambiaron.
                 (new ModificacionFactura())->registrar($factura);
+                // Si se cobro distinto de lo que pidio el preventista, queda marcado.
+                (new CambioPedido())->registrar($factura);
                 // Ya es venta: lo guardado a medias deja de servir.
                 DB::table('pedido_borradores')
                     ->where('pedido_nro', $factura->pedido_nro)
@@ -1713,8 +1746,46 @@ class FacturacionController extends Controller
      */
     private function esGranel($producto)
     {
-        return in_array(strtoupper(trim((string) $producto->codUnid)), ['KG', 'CAJA'], true);
+        return in_array($this->unidadVenta($producto), ['KG', 'CAJA'], true);
     }
+
+    /**
+     * Si la linea se cobra por peso. Manda lo que eligio el cajero (por_peso)
+     * cuando el preventista cargo mal la unidad; si no, la del catalogo.
+     */
+    private function lineaPorPeso($producto, array $item)
+    {
+        if (isset($item['por_peso'])) {
+            return (bool) $item['por_peso'];
+        }
+        return $this->esGranel($producto);
+    }
+
+    /** Unidad que queda en el detalle: la del catalogo salvo que se haya cambiado. */
+    private function unidadLinea($producto, array $item)
+    {
+        $porPeso = $this->lineaPorPeso($producto, $item);
+        if ($porPeso === $this->esGranel($producto)) {
+            return $this->unidadVenta($producto);
+        }
+        return $porPeso ? 'KG' : 'UNIDAD';
+    }
+
+    /**
+     * Unidad en la que se cobra el producto. El cerdo (tbproductos.tipo = CERDO) se
+     * vende siempre por kilo aunque en el catalogo figure en unidades.
+     * La misma regla esta en SQL en catalogo() y pedido() (UNIDAD_VENTA_SQL).
+     */
+    private function unidadVenta($producto)
+    {
+        if (strtoupper(trim((string) ($producto->tipo ?? ''))) === 'CERDO') {
+            return 'KG';
+        }
+        return strtoupper(trim((string) $producto->codUnid));
+    }
+
+    /** unidadVenta() en SQL; {p} es el alias de tbproductos. */
+    const UNIDAD_VENTA_SQL = "CASE WHEN UPPER(TRIM({p}.tipo)) = 'CERDO' THEN 'KG' ELSE TRIM({p}.codUnid) END";
 
     /** Que decirle al cajero segun como haya salido la emision. */
     private function mensajeEmision(Factura $factura)

@@ -5,13 +5,24 @@ namespace App\Http\Controllers;
 use App\Models\Cliente;
 use App\Models\MisVisita;
 use App\Models\User;
+use App\Services\DeudaCliente;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class ClienteController extends Controller{
-    function personalCliente(){
+    function personalCliente(Request $request){
+        // ?todos=1: todo el personal, aunque todavia no tenga clientes (pantalla Clientes, para asignar vendedor).
+        if ($request->boolean('todos')) {
+            return User::orderBy('Nombre1')->get()->map(function ($usuario) {
+                return [
+                    'CodAut' => $usuario->CodAut,
+                    'ci' => trim($usuario->ci),
+                    'nombre' => trim($usuario->Nombre1). ' ' . trim($usuario->Nombre2) . ' ' . trim($usuario->App1) . ' ' . trim($usuario->Apm),
+                ];
+            });
+        }
         $usuariosConClientes = User::whereHas('clientes')
             ->with('clientes')
             ->get();
@@ -50,55 +61,16 @@ class ClienteController extends Controller{
             );
         }
 
-        $cuentas = [];
-        if (!empty($Ids)) {
-            $cuentas = DB::select(
-                "SELECT sum(c.Importe-(SELECT sum(c2.Acuenta) from tbctascobrar c2 where c2.comanda=c.comanda)) as totdeuda, MIN(c.FechaEntreg) as fechaminima, count(*) as cantdeuda, c.CINIT FROM tbctascobrar c WHERE c.CINIT IN (".implode(',', array_fill(0, count($Ids), '?')).") AND c.Nrocierre=0 AND c.Acuenta=0 GROUP BY c.CINIT",
-                $Ids
-            );
-        }
+        // Deuda desde cobranzas/creditos (ya no de tbctascobrar).
+        DeudaCliente::adjuntar($misClientes);
 
-        error_log(json_encode($cuentas));
-
-        $misClientes->map(function ($cliente) use ($visitas, $cuentas) {
+        $misClientes->map(function ($cliente) use ($visitas) {
             $cliente->tipo = null;
             if (isset($visitas)) {
                 foreach ($visitas as $visita) {
                     if ($cliente->Cod_Aut == $visita->cliente_id) {
                         $cliente->tipo = $visita->estado;
                         break;
-                    }
-                }
-            }
-            $cliente->totdeuda = 0;
-
-            if (isset($cuentas)) {
-                foreach ($cuentas as $cuenta) {
-                    if ($cliente->Id == $cuenta->CINIT) {
-                        $cliente->totdeuda += $cuenta->totdeuda;
-                    }
-                }
-            }
-
-            $cliente->fechaminima = null;
-
-            if (isset($cuentas)) {
-                foreach ($cuentas as $cuenta) {
-                    if ($cliente->Id == $cuenta->CINIT) {
-                        if ($cliente->fechaminima == null || $cliente->fechaminima > $cuenta->fechaminima) {
-                            $cliente->fechaminima = $cuenta->fechaminima;
-                        }
-                    }
-                }
-            }
-
-
-            $cliente->cantdeuda = 0;
-
-            if (isset($cuentas)) {
-                foreach ($cuentas as $cuenta) {
-                    if ($cliente->Id == $cuenta->CINIT) {
-                        $cliente->cantdeuda++;
                     }
                 }
             }
@@ -276,24 +248,7 @@ class ClienteController extends Controller{
                 ->whereDate('fecha', $fecha_hoy)
                 ->orderByDesc('id')
                 ->limit(1),
-            // Deuda total
-            'totdeuda' => DB::table('tbctascobrar as c')
-                ->selectRaw('SUM(Importe - IFNULL((SELECT SUM(Acuenta) FROM tbctascobrar WHERE comanda = c.comanda), 0))')
-                ->whereColumn('c.CINIT', 'tbclientes.Id')
-                ->where('Nrocierre', 0)
-                ->where('Acuenta', 0),
-            // Fecha mínima
-            'fechaminima' => DB::table('tbctascobrar as c')
-                ->selectRaw('MIN(FechaEntreg)')
-                ->whereColumn('c.CINIT', 'tbclientes.Id')
-                ->where('Nrocierre', 0)
-                ->where('Acuenta', 0),
-            // Cant deuda
-            'cantdeuda' => DB::table('tbctascobrar as c')
-                ->selectRaw('COUNT(*)')
-                ->whereColumn('c.CINIT', 'tbclientes.Id')
-                ->where('Nrocierre', 0)
-                ->where('Acuenta', 0)
+            // totdeuda / fechaminima / cantdeuda se agregan despues desde cobranzas/creditos
         ];
 
         // Primera consulta: clientes normales
@@ -320,6 +275,7 @@ class ClienteController extends Controller{
             ->union($clientesExtraQuery)
             ->orderByDesc('tipo')
             ->get();
+        DeudaCliente::adjuntar($clientes);
         $codAuts = $clientes->pluck('Cod_Aut')->filter()->values()->all();
 
         $mapFotos = [];
@@ -413,16 +369,69 @@ class ClienteController extends Controller{
     public function todosclientes(Request $request)
     {
 //        return DB::select("SELECT * FROM tbclientes WHERE TRIM(CiVend)='".$request->user()->ci."'");
+        // La deuda sale de cobranzas/creditos (DeudaCliente), ya no de tbctascobrar.
         return DB::select("
-        SELECT *,
+        SELECT tbclientes.*,
 
        '' as tipo,
-        (SELECT sum(c.Importe-(SELECT sum(c2.Acuenta) from tbctascobrar c2 where c2.comanda=c.comanda))
-        FROM tbctascobrar c WHERE c.CINIT=tbclientes.Id and c.Nrocierre=0 and Acuenta=0) as totdeuda
-        ,(SELECT count(*) FROM tbctascobrar WHERE CINIT=tbclientes.Id AND Nrocierre=0  and Acuenta=0) as cantdeuda
+        COALESCE(d.totdeuda, 0) as totdeuda
+        ,COALESCE(d.cantdeuda, 0) as cantdeuda
+        ,d.fechaminima
+        ,(SELECT TRIM(CONCAT(TRIM(p.Nombre1),' ',TRIM(p.App1))) FROM personal p WHERE TRIM(p.ci)=TRIM(tbclientes.CiVend) LIMIT 1) as vendedor
+        ,(SELECT count(*) FROM cliente_photos f WHERE f.cliente_id=tbclientes.Cod_Aut AND f.deleted_at IS NULL) as fotos_count
         FROM tbclientes
-
+        LEFT JOIN (" . DeudaCliente::sqlPorCliente() . ") d ON d.cliente_id = tbclientes.Cod_Aut
         ");
+    }
+
+    // Campos de tbclientes que se pueden editar desde la pantalla Clientes.
+    // Casi todas las columnas son NOT NULL sin default: un texto vacio se guarda como '' y un numero como 0.
+    private $camposTexto = [
+        'Id', 'Nombres', 'Telf', 'Direccion', 'complto', 'Correcli', 'Empresa', 'profecion', 'sexo',
+        'edad', 'EstCiv', 'Cod_ciudad', 'Cod_Nacio', 'clinew', 'CiVend', 'SupraCanal', 'Canal', 'subcanal',
+        'zona', 'territorio', 'transporte', 'venta', 'tarjeta', 'TipoPaciente', 'MotivoListBlack', 'Latitud', 'longitud',
+    ];
+    private $camposNumero = [
+        'Tipodocu', 'cod_car', 'Categoria', 'codcli', 'Imp_pieza', 'ctasMont', 'ctasdias',
+        'lu', 'Ma', 'Mi', 'Ju', 'Vi', 'Sa', 'do',
+        'ListBlack', 'ListBlanck', 'canmayni', 'baja', 'waths', 'ctasActivo', 'noesempre', 'excepcion_deuda',
+    ];
+
+    private function datosCliente(Request $request, $codAut = null)
+    {
+        $request->validate([
+            'Nombres' => 'required|string|max:70',
+            'Id' => 'required|string|max:15',
+            'Latitud' => 'nullable|max:15',
+            'longitud' => 'nullable|max:15',
+        ]);
+        $ci = trim($request->Id);
+        $duplicado = Cliente::whereRaw('TRIM(Id) = ?', [$ci])
+            ->when($codAut, fn ($q) => $q->where('Cod_Aut', '!=', $codAut))
+            ->exists();
+        if ($duplicado) {
+            abort(422, 'Ya existe otro cliente con el CI/NIT ' . $ci);
+        }
+
+        // En el alta se completan todas las columnas; al editar solo las que llegan.
+        $nuevo = $codAut === null;
+        $datos = [];
+        foreach ($this->camposTexto as $campo) {
+            if (!$nuevo && !$request->has($campo)) continue;
+            $datos[$campo] = trim((string) $request->input($campo, ''));
+        }
+        foreach ($this->camposNumero as $campo) {
+            if (!$nuevo && !$request->has($campo)) continue;
+            $valor = $request->input($campo);
+            if (is_bool($valor)) $valor = $valor ? 1 : 0;
+            $datos[$campo] = is_numeric($valor) ? $valor : 0;
+        }
+        $datos['Id'] = $ci;
+        // Con excepcion de deuda no se bloquea: se habilita en el momento, sin esperar al recalculo.
+        if (!empty($datos['excepcion_deuda'])) {
+            $datos['venta'] = 'ACTIVO';
+        }
+        return $datos;
     }
 
     /**
@@ -433,7 +442,10 @@ class ClienteController extends Controller{
      */
     public function store(Request $request)
     {
-        //
+        $datos = $this->datosCliente($request);
+        if (empty($datos['venta'])) $datos['venta'] = 'ACTIVO';
+        $codAut = DB::table('tbclientes')->insertGetId($datos, 'Cod_Aut');
+        return DB::table('tbclientes')->where('Cod_Aut', $codAut)->first();
     }
 
     public function comentario(Request $request){
@@ -451,21 +463,14 @@ class ClienteController extends Controller{
         return $obs;
     }
 
+    // Bloqueo por deuda de cobranzas/creditos; la regla esta en DeudaCliente::bloquear
+    // (lo mismo corre en Console/Kernel a las 9, 15 y 18 h de lunes a viernes).
     public function bloquear(){
-        DB::SELECT("UPDATE tbclientes set venta='ACTIVO'");
-
-        DB::SELECT("UPDATE tbclientes set venta='INACTIVO'
-        where Id not in ('7308976010','4041584010','5722359015','7903071014','7313393','2763010019','387115028','7279536013','6656467','2773242015','3509547','5720977','7205489','3501059017','3544875019','2762953013','4034692','8560810','3513987','168266022','341104028','5068381','4525672011','370194024','8025247') and
-          ((SELECT sum(c.Importe-(SELECT sum(c2.Acuenta) from tbctascobrar c2 where c2.comanda=c.comanda) )
-            FROM tbctascobrar c WHERE c.CINIT=tbclientes.Id and c.Nrocierre=0 and Acuenta=0 and (c.Importe-(SELECT sum(c2.Acuenta) from tbctascobrar c2 where c2.comanda=c.comanda))>5 )>12000
-        or (SELECT DATEDIFF( curdate(), (select min(c.FechaEntreg) from tbctascobrar c where c.CINIT =tbclientes.Id and c.Nrocierre=0 and Acuenta=0 and (c.Importe-(SELECT sum(c2.Acuenta) from tbctascobrar c2 where c2.comanda=c.comanda))>=5)))>9 )");
+        DeudaCliente::bloquear();
     }
 
     public function desbloq2(){
-        DB::SELECT("UPDATE tbclientes set venta='ACTIVO'
-        where (SELECT sum(c.Importe-(SELECT sum(c2.Acuenta) from tbctascobrar c2 where c2.comanda=c.comanda)) FROM tbctascobrar c WHERE c.CINIT=tbclientes.Id and c.Nrocierre=0 and Acuenta=0)<12000
-        or (SELECT sum(c.Importe-(SELECT sum(c2.Acuenta) from tbctascobrar c2 where c2.comanda=c.comanda)) FROM tbctascobrar c WHERE c.CINIT=tbclientes.Id and c.Nrocierre=0 and Acuenta=0) is null
-         ");
+        DeudaCliente::desbloquearMenores();
     }
 
     public function desbloquear(Request $request){
@@ -486,7 +491,7 @@ class ClienteController extends Controller{
      */
     public function show($id)
     {
-        //
+        return DB::table('tbclientes')->where('Cod_Aut', $id)->first();
     }
 
     /**
@@ -498,7 +503,12 @@ class ClienteController extends Controller{
      */
     public function update(Request $request, $id)
     {
-        //
+        if (!DB::table('tbclientes')->where('Cod_Aut', $id)->exists()) {
+            abort(404, 'Cliente no encontrado');
+        }
+        $datos = $this->datosCliente($request, $id);
+        DB::table('tbclientes')->where('Cod_Aut', $id)->update($datos);
+        return DB::table('tbclientes')->where('Cod_Aut', $id)->first();
     }
 
     /**

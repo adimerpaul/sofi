@@ -247,7 +247,10 @@
             v-model="edicion.codUnid" outlined dense clearable
             class="col-6 col-sm-3" :label="creando ? 'Unidad *' : 'Unidad'" :options="unidades"
           />
-          <q-input v-model.trim="edicion.tipo" outlined dense class="col-6 col-sm-3" label="Tipo"/>
+          <q-select
+            v-model="edicion.tipo" outlined dense
+            class="col-6 col-sm-3" label="Tipo" :options="['NORMAL', 'POLLO', 'RES', 'CERDO']"
+          />
 
           <!-- Lo trozado se entrega en piezas: en la boleta la columna Cant
                sale con un guion en vez del numero. -->

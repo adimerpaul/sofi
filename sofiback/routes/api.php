@@ -125,6 +125,8 @@ Route::group(['middleware'=>'auth:sanctum'],function (){
     Route::get('/cobranzas/recojo/pdf',[\App\Http\Controllers\CobranzaRecojoController::class,'reportePdf']);
     // Cobranzas verifica la facturacion del dia contra lo que trajo cada camion.
     Route::get('/cobranzas/verificacion',[\App\Http\Controllers\CobranzaVerificacionController::class,'index']);
+    Route::get('/cobranzas/verificacion/clientes',[\App\Http\Controllers\CobranzaVerificacionController::class,'buscarClientes']);
+    Route::get('/cobranzas/verificacion/clientes/{cliente}/facturas',[\App\Http\Controllers\CobranzaVerificacionController::class,'facturasCliente'])->where('cliente', '[0-9]+');
     Route::get('/cobranzas/verificacion/clientes/{cliente}/ventas',[\App\Http\Controllers\CobranzaVerificacionController::class,'historialVentas'])->where('cliente', '[0-9]+');
     Route::post('/cobranzas/verificacion',[\App\Http\Controllers\CobranzaVerificacionController::class,'verificar']);
     Route::get('/cobranzas/verificacion/excel',[\App\Http\Controllers\CobranzaVerificacionController::class,'excel']);

@@ -7,6 +7,7 @@
         <div class="text-caption text-grey-7">Cada comprobante del día contra lo que trajo el camión</div>
       </div>
       <q-space/>
+      <q-btn flat dense no-caps color="primary" icon="person_search" label="Verificar por cliente" to="/cobranzas/verificacion/clientes"/>
       <div v-if="actualizado && !error" class="text-caption text-positive" role="status">Actualizado a las {{ actualizado }}</div>
       <q-btn outline dense no-caps color="green-8" icon="grid_on" label="Excel" :loading="exportando === 'excel'" @click="exportar('excel')"/>
       <q-btn outline dense no-caps color="red-7" icon="picture_as_pdf" label="PDF" :loading="exportando === 'pdf'" @click="exportar('pdf')"/>

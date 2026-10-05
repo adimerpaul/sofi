@@ -437,6 +437,42 @@
               <q-tooltip>{{ ((props.row.modificacion_campos || {}).resumen || []).join(' · ') || 'Sin cambios' }}</q-tooltip>
             </q-chip>
           </div>
+          <!-- Se cobro distinto de lo que pidio el preventista. -->
+          <div v-if="props.row.cambio_pedido">
+            <q-chip
+              dense clickable color="deep-orange-6" text-color="white" icon="published_with_changes" class="q-mt-xs"
+              label="Cambió del pedido"
+            >
+              <q-popup-proxy>
+                <q-card style="min-width: 300px; max-width: 420px">
+                  <q-card-section class="q-pb-xs">
+                    <div class="text-subtitle2 text-weight-bold">Cambios respecto del pedido #{{ props.row.pedido_nro }}</div>
+                    <div class="text-caption text-grey-7">Lo que pidió el preventista contra lo que se cobró</div>
+                  </q-card-section>
+                  <q-card-section class="q-pt-xs">
+                    <q-list dense separator>
+                      <q-item v-for="(cambio, i) in cambiosDe(props.row, 'cambio_pedido_campos')" :key="i" class="q-px-none">
+                        <q-item-section>
+                          <q-item-label class="text-weight-medium">
+                            {{ cambio.titulo }}
+                            <q-badge v-if="cambio.tipo" :color="colorCambio(cambio.tipo)" class="q-ml-xs">
+                              {{ cambio.tipo }}
+                            </q-badge>
+                          </q-item-label>
+                          <q-item-label v-for="(campo, j) in cambio.campos" :key="j" caption>
+                            {{ campo.etiqueta }}:
+                            <span class="text-red-8 text-strike">{{ campo.antes ?? '—' }}</span>
+                            → <b class="text-green-9">{{ campo.despues ?? '—' }}</b>
+                          </q-item-label>
+                        </q-item-section>
+                      </q-item>
+                    </q-list>
+                  </q-card-section>
+                </q-card>
+              </q-popup-proxy>
+              <q-tooltip>{{ ((props.row.cambio_pedido_campos || {}).resumen || []).join(' · ') }}</q-tooltip>
+            </q-chip>
+          </div>
         </q-td>
       </template>
 
@@ -1454,9 +1490,10 @@ export default {
     },
 
     // Lo que cambio al editar, armado para la lista: primero la cabecera
-    // (total, pago, NIT...) y despues cada producto.
-    cambiosDe (row) {
-      const campos = row.modificacion_campos || {}
+    // (total, pago, NIT...) y despues cada producto. Sirve tambien para lo
+    // que cambio respecto del pedido (cambio_pedido_campos), que tiene la misma forma.
+    cambiosDe (row, columna = 'modificacion_campos') {
+      const campos = row[columna] || {}
       const lista = []
       if ((campos.cabecera || []).length) {
         lista.push({ titulo: 'Comprobante', tipo: '', campos: campos.cabecera })

@@ -109,6 +109,19 @@
                 >
                   <q-tooltip>Copiar el producto (para otro precio o cantidad)</q-tooltip>
                 </q-btn>
+                <!-- Si el preventista lo cargo con la unidad equivocada, aca se
+                     cambia a cobrar por kilo o por unidad. -->
+                <q-btn
+                  dense unelevated no-caps size="sm" class="q-ml-xs q-px-xs"
+                  :color="esPeso(item) ? 'orange-8' : 'blue-grey-6'"
+                  :icon="esPeso(item) ? 'scale' : 'tag'"
+                  :label="esPeso(item) ? 'Por kilo' : 'Por unidad'"
+                  @click="cambiarUnidad(item)"
+                >
+                  <q-tooltip>
+                    {{ esPeso(item) ? 'Cambiar a cobrar por unidad' : 'Cambiar a cobrar por kilo' }}
+                  </q-tooltip>
+                </q-btn>
               </q-item-label>
               <q-item-label caption>
                 {{ item.cod_prod }}
@@ -519,6 +532,15 @@ export default {
       this.actualizar(copia)
       this.items.splice(indice + 1, 0, copia)
     },
+    // Pasa la linea de unidad a kilo o al reves. Lo pesado se descarta: al
+    // pasar a kilo hay que pesarlo; al pasar a unidad se cobra la cantidad.
+    cambiarUnidad (item) {
+      item.unidad = this.esPeso(item) ? 'UNIDAD' : 'KG'
+      item.peso = null
+      item.peso_bruto = null
+      item.canastillos = null
+      this.actualizar(item)
+    },
     guardar () {
       if (this.tipoComprobante === 'FACTURA' && !this.nit) {
         this.$q.notify({
@@ -559,6 +581,8 @@ export default {
           // Lo pedido viaja junto con lo entregado para que quede guardado en
           // el detalle de la factura lo que se cambio.
           ...(this.esNuevo(item) ? {} : { cantidad_pedida: Number(item.cantidad_pedida) }),
+          // Puede no coincidir con el catalogo si se cambio la unidad aca.
+          por_peso: this.esPeso(item),
           // El peso solo viaja en lo que se vende por kilo.
           ...(this.esPeso(item) ? { peso: Number(item.peso) } : {}),
           // Con canastillos va el bruto: el backend recalcula el neto.
