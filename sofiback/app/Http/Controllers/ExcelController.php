@@ -1194,13 +1194,6 @@ class ExcelController extends Controller
             $preventistas[$prev][$l->NroPed][] = $l;
         }
 
-        $maxBloques = 4; // como la hoja de papel: al menos 4 productos por fila
-        foreach ($preventistas as $pedidos) {
-            foreach ($pedidos as $ls) {
-                $maxBloques = max($maxBloques, count($ls));
-            }
-        }
-
         $mapaColores = [
             'deep-orange-4' => 'FF7043', // NORTE
             'pink-4' => 'F06292', // BOLIVAR
@@ -1224,38 +1217,20 @@ class ExcelController extends Controller
         $sheet = $spreadsheet->getActiveSheet();
         $sheet->setTitle($especie === 'cerdo' ? 'Cerdo' : 'Pollo');
 
-        // Columnas fijas A-F y despues un bloque de 5 por producto. La
-        // observacion no tiene columna fija: va pegada al ultimo producto de
-        // cada pedido, como en la planilla de papel.
-        $anchoBloque = 5;
-        $colBloque = function ($b, $k) use ($anchoBloque) {
-            return Coordinate::stringFromColumnIndex(7 + $b * $anchoBloque + $k);
-        };
-        // Una columna mas que los bloques, para la observacion del pedido mas largo.
-        $colFin = Coordinate::stringFromColumnIndex(7 + $maxBloques * $anchoBloque);
+        // Los productos van hacia abajo: una fila por producto, con los datos
+        // del cliente repetidos en cada fila de su pedido. Columnas fijas:
+        // A-F pedido y cliente, G-K el producto y L la observacion.
+        $colFin = 'L';
         $celeste = 'DDEBF7';
 
         $sheet->setCellValue('F1', 'FECHA: ' . $fecha);
         $sheet->setCellValue('G1', 'HOJA DE PESOS ' . strtoupper($especie));
-        $sheet->mergeCells('G1:' . $colFin . '1');
-        $sheet->getStyle('A1:' . $colFin . '1')->getFont()->setBold(true)->setSize(12)->getColor()->setRGB('C62828');
+        $sheet->mergeCells('G1:L1');
+        $sheet->getStyle('A1:L1')->getFont()->setBold(true)->setSize(12)->getColor()->setRGB('C62828');
 
-        $encabezado = ['HORARIO', 'FACTURA', 'CONTADO', 'P. TROZADO', 'P. POLLO', 'CLIENTE'];
-        foreach ($encabezado as $i => $titulo) {
-            $sheet->setCellValue(Coordinate::stringFromColumnIndex($i + 1) . '2', $titulo);
-        }
-        for ($b = 0; $b < $maxBloques; $b++) {
-            foreach (['Prod', 'Nom', 'Nº Cja', 'Bruto', 'Neto'] as $k => $titulo) {
-                $sheet->setCellValue($colBloque($b, $k) . '2', $titulo);
-            }
-            // Bloques alternados en celeste como la planilla de papel.
-            if ($b % 2 === 1) {
-                $sheet->getStyle($colBloque($b, 0) . '2:' . $colBloque($b, $anchoBloque - 1) . '2')->getFill()
-                    ->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB($celeste);
-            }
-        }
-        $sheet->setCellValue($colFin . '2', 'Obs.');
-        $sheet->getStyle('A2:' . $colFin . '2')->applyFromArray([
+        $sheet->fromArray(['HORARIO', 'FACTURA', 'CONTADO', 'P. TROZADO', 'P. POLLO', 'CLIENTE',
+            'Prod', 'Nom', 'Nº Cja', 'Bruto', 'Neto', 'Obs.'], null, 'A2');
+        $sheet->getStyle('A2:L2')->applyFromArray([
             'font' => ['bold' => true, 'size' => 9],
             'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER, 'vertical' => Alignment::VERTICAL_CENTER],
         ]);
@@ -1271,6 +1246,8 @@ class ExcelController extends Controller
 
         $c = 3;
         $celdasObs = [];
+        $finPedido = [];
+        $nPedido = 0;
         foreach ($preventistas as $preventista => $pedidos) {
             $sheet->setCellValue('F' . $c, $preventista);
             $sheet->getStyle('F' . $c)->getFont()->setBold(true);
@@ -1278,69 +1255,67 @@ class ExcelController extends Controller
 
             foreach ($pedidos as $ls) {
                 $r = $ls[0];
-                $sheet->setCellValue('A' . $c, (string) $r->horario);
-                $sheet->setCellValue('B' . $c, $r->fact);
-                $sheet->setCellValue('C' . $c, strtoupper(trim((string) $r->pago)) === 'CONTADO' ? 'SI' : 'NO');
-                $sheet->setCellValue('D' . $c, $r->bs2);
-                $sheet->setCellValue('E' . $c, $r->bs);
-
                 // En una bonificacion la fila va a la cuenta de la baja y el
                 // cliente real pasa a la observacion.
                 $esBaja = $r->bonificacionId != null && isset($cuentasBaja[$r->bonificacionId]);
-                $sheet->setCellValue('F' . $c, $esBaja ? trim($cuentasBaja[$r->bonificacionId]) : $r->cliente);
+                $hex = !empty($r->color) && isset($mapaColores[$r->color]) ? $mapaColores[$r->color] : null;
+                $desde = $c;
 
-                if (!empty($r->color) && isset($mapaColores[$r->color])) {
-                    $hex = $mapaColores[$r->color];
-                    $sheet->getStyle('F' . $c)->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB($hex);
-                    $sheet->getStyle('F' . $c)->getFont()->getColor()->setRGB($isDark($hex) ? 'FFFFFF' : '000000');
+                foreach ($ls as $i => $l) {
+                    $sheet->setCellValue('A' . $c, (string) $r->horario);
+                    $sheet->setCellValue('B' . $c, $r->fact);
+                    $sheet->setCellValue('C' . $c, strtoupper(trim((string) $r->pago)) === 'CONTADO' ? 'SI' : 'NO');
+                    $sheet->setCellValue('D' . $c, $r->bs2);
+                    $sheet->setCellValue('E' . $c, $r->bs);
+                    $sheet->setCellValue('F' . $c, $esBaja ? trim($cuentasBaja[$r->bonificacionId]) : $r->cliente);
+
+                    $sheet->setCellValueExplicit('G' . $c, $l->cod_prod, DataType::TYPE_STRING);
+                    // Solo las 3 primeras letras: el codigo ya lo identifica.
+                    $sheet->setCellValue('H' . $c, mb_substr($l->producto, 0, 3));
+                    $sheet->setCellValue('I' . $c, $cantidad($l));
+
+                    // Cada producto con su propia observacion; la del cliente
+                    // real de una bonificacion va en la primera fila.
+                    $obs = trim((string) $l->Observaciones);
+                    if ($esBaja && $i === 0) {
+                        $obs = $obs === '' ? $r->cliente : $r->cliente . ' - ' . $obs;
+                    }
+                    if ($obs !== '') {
+                        $sheet->setCellValue('L' . $c, $obs);
+                        $celdasObs[] = 'L' . $c;
+                    }
+                    $c++;
                 }
 
-                for ($b = 1; $b < $maxBloques; $b += 2) {
-                    $sheet->getStyle($colBloque($b, 0) . $c . ':' . $colBloque($b, $anchoBloque - 1) . $c)->getFill()
+                // Pedidos alternados en celeste para ver donde empieza cada uno.
+                if ($nPedido++ % 2 === 1) {
+                    $sheet->getStyle("G{$desde}:K" . ($c - 1))->getFill()
                         ->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB($celeste);
                 }
-
-                $observaciones = [];
-                foreach ($ls as $b => $l) {
-                    $sheet->setCellValueExplicit($colBloque($b, 0) . $c, $l->cod_prod, DataType::TYPE_STRING);
-                    // Solo las 3 primeras letras: el codigo ya lo identifica.
-                    $sheet->setCellValue($colBloque($b, 1) . $c, mb_substr($l->producto, 0, 3));
-                    $sheet->setCellValue($colBloque($b, 2) . $c, $cantidad($l));
-                    $obs = trim((string) $l->Observaciones);
-                    if ($obs !== '') {
-                        $observaciones[$obs] = true;
-                    }
+                if ($hex) {
+                    $sheet->getStyle("F{$desde}:F" . ($c - 1))->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB($hex);
+                    $sheet->getStyle("F{$desde}:F" . ($c - 1))->getFont()->getColor()->setRGB($isDark($hex) ? 'FFFFFF' : '000000');
                 }
-                $observacion = implode(' / ', array_keys($observaciones));
-                if ($esBaja) {
-                    $observacion = $observacion === '' ? $r->cliente : $r->cliente . ' - ' . $observacion;
-                }
-                if ($observacion !== '') {
-                    // Justo despues del ultimo producto del pedido; el texto se
-                    // derrama sobre los bloques vacios de la derecha.
-                    $celda = Coordinate::stringFromColumnIndex(7 + count($ls) * $anchoBloque) . $c;
-                    $sheet->setCellValue($celda, $observacion);
-                    $celdasObs[] = $celda;
-                }
-                $c++;
+                $finPedido[] = $c - 1;
             }
         }
 
         // Denso: letra chica y filas bajas para ver mas pedidos por pantalla.
         $ultima = max($c - 1, 2);
-        $sheet->getStyle('A2:' . $colFin . $ultima)->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_THIN);
-        $sheet->getStyle('A3:' . $colFin . $ultima)->applyFromArray([
+        $sheet->getStyle('A2:L' . $ultima)->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_THIN);
+        foreach ($finPedido as $fila) {
+            $sheet->getStyle("A{$fila}:L{$fila}")->getBorders()->getBottom()->setBorderStyle(Border::BORDER_MEDIUM);
+        }
+        $sheet->getStyle('A3:L' . $ultima)->applyFromArray([
             'font' => ['size' => 10],
             'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER, 'vertical' => Alignment::VERTICAL_CENTER],
         ]);
         $sheet->getStyle('F3:F' . $ultima)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_LEFT);
-        for ($b = 0; $b < $maxBloques; $b++) {
-            $sheet->getStyle($colBloque($b, 1) . '3:' . $colBloque($b, 1) . $ultima)->getFont()->setBold(true);
-        }
+        $sheet->getStyle('H3:H' . $ultima)->getFont()->setBold(true);
         foreach ($celdasObs as $celda) {
             $sheet->getStyle($celda)->applyFromArray([
                 'font' => ['bold' => true, 'size' => 9, 'color' => ['rgb' => 'C62828']],
-                'alignment' => ['horizontal' => Alignment::HORIZONTAL_LEFT, 'shrinkToFit' => false],
+                'alignment' => ['horizontal' => Alignment::HORIZONTAL_LEFT],
                 'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'FCE4D6']],
             ]);
         }
@@ -1351,19 +1326,17 @@ class ExcelController extends Controller
         foreach (['A', 'B', 'C', 'D', 'E'] as $col) {
             $sheet->getColumnDimension($col)->setWidth(4.5);
         }
-        $sheet->getColumnDimension('F')->setWidth(30);
-        for ($b = 0; $b < $maxBloques; $b++) {
-            $sheet->getColumnDimension($colBloque($b, 0))->setWidth(7);
-            $sheet->getColumnDimension($colBloque($b, 1))->setWidth(5);
-            $sheet->getColumnDimension($colBloque($b, 2))->setWidth(6.5);
-            $sheet->getColumnDimension($colBloque($b, 3))->setWidth(6.5);
-            $sheet->getColumnDimension($colBloque($b, 4))->setWidth(6.5);
+        $sheet->getColumnDimension('F')->setWidth(32);
+        $sheet->getColumnDimension('G')->setWidth(8);
+        $sheet->getColumnDimension('H')->setWidth(6);
+        foreach (['I', 'J', 'K'] as $col) {
+            $sheet->getColumnDimension($col)->setWidth(9);
         }
-        $sheet->getColumnDimension($colFin)->setWidth(25);
+        $sheet->getColumnDimension('L')->setWidth(32);
         $sheet->freezePane('G3');
         $sheet->getSheetView()->setZoomScale(70);
 
-        $sheet->getPageSetup()->setOrientation(PageSetup::ORIENTATION_LANDSCAPE)
+        $sheet->getPageSetup()->setOrientation(PageSetup::ORIENTATION_PORTRAIT)
             ->setPaperSize(PageSetup::PAPERSIZE_LETTER)
             ->setFitToWidth(1)->setFitToHeight(0)
             ->setPrintArea('A1:' . $colFin . $ultima)
