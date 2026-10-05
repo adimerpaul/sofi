@@ -15,7 +15,7 @@
   "dependencies": {
     "@quasar/cli": "^5.0.6",
     "@quasar/extras": "^1.17.0",
-    "@vue-leaflet/vue-leaflet": "^0.6.1",
+    "@vue-leaflet/vue-leaflet": "^0.10.1",
     "@vueuse/firebase": "^14.0.0",
     "axios": "^0.21.4",
     "bootstrap": "^5.3.8",

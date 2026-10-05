@@ -449,6 +449,7 @@ import {
   LMarker
 } from "@vue-leaflet/vue-leaflet";
 import "leaflet/dist/leaflet.css";
+import { toRaw, markRaw } from "vue";
 
 // quasar date
 import { date } from "quasar";
@@ -712,8 +713,16 @@ export default {
         .finally(() => this.$q.loading.hide());
     },
 
+    // vue-leaflet 0.6.1 guarda el mapa dentro de un reactive(); si se mueve
+    // cambiando la prop :center, Leaflet trabaja sobre el Proxy y revienta.
+    // Por eso el mapa se mueve directo sobre la instancia cruda de Leaflet.
+    moverMapa (lat, lng) {
+      if (!this.map || !Number.isFinite(lat) || !Number.isFinite(lng)) return;
+      this.map.setView([lat, lng], this.map.getZoom() || this.zoom);
+    },
+
     async getCentro () {
-      this.center = [-17.970371, -67.112303];
+      this.moverMapa(-17.970371, -67.112303);
     },
 
     async getUserPosition () {
@@ -721,9 +730,8 @@ export default {
         this.$q.notify({ message: 'Geolocalización no disponible', color: 'warning' });
         return;
       }
-      this.center = [0, 0];
       navigator.geolocation.getCurrentPosition(
-        pos => { this.center = [pos.coords.latitude, pos.coords.longitude]; },
+        pos => { this.moverMapa(pos.coords.latitude, pos.coords.longitude); },
         () => { this.$q.notify({ message: 'No se pudo obtener tu ubicación', color: 'warning' }); }
       );
     },
@@ -731,7 +739,7 @@ export default {
     clickclientes (c) {
       const lat = Number(c.Latitud);
       const lng = Number(c.longitud);
-      if (Number.isFinite(lat) && Number.isFinite(lng)) this.center = [lat, lng];
+      this.moverMapa(lat, lng);
     },
 
     async misclientes () {
@@ -752,11 +760,12 @@ export default {
     },
 
     onReady (map) {
-      try { map.locate(); } catch (e) {}
+      this.map = markRaw(toRaw(map));
+      try { this.map.locate(); } catch (e) {}
     },
 
     onLocationFound (location) {
-      this.center = [location.latlng.lat, location.latlng.lng];
+      this.moverMapa(location.latlng.lat, location.latlng.lng);
     }
   }
 };
