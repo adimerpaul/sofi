@@ -63,7 +63,7 @@
             </div>
 
             <div class="row q-col-gutter-sm">
-              <div v-for="p in productos" :key="p.cod_prod" class="col-4 col-sm-3 col-md-2">
+              <div v-for="p in productos" :key="p.cod_prod" class="col-6 col-sm-4 col-md-3">
                 <q-card
                   flat bordered
                   class="producto full-height column"
@@ -78,7 +78,10 @@
                   <q-card-section class="col column justify-between">
                     <div>
                       <div class="text-weight-bold producto-nombre">{{ p.producto }}</div>
-                      <div class="text-grey-6 producto-codigo">{{ p.cod_prod }}</div>
+                      <div class="text-grey-6 producto-codigo">
+                        {{ p.cod_prod }}
+                        <q-badge v-if="p.con_canastillos" color="orange-8" label="canastillos" class="q-ml-xs"/>
+                      </div>
                     </div>
                     <div class="q-mt-xs">
                       <div class="text-weight-bold text-primary producto-precio">
@@ -139,16 +142,32 @@
               </q-item-section>
 
               <q-item-section>
-                <div class="carrito-nombre ellipsis">{{ item.nombre }}</div>
+                <div class="carrito-nombre">{{ item.nombre }}</div>
 
                 <div class="row q-col-gutter-xs items-center no-wrap">
                   <q-input
                     v-model.number="item.cantidad"
                     dense outlined type="number" class="col"
-                    :label="item.unidad === 'KG' ? 'Kilos' : 'Cant.'"
-                    :step="paso(item)" :min="paso(item)"
+                    :label="item.con_canastillos ? 'Piezas' : (item.unidad === 'KG' ? 'Kilos' : 'Cant.')"
+                    :step="item.con_canastillos ? 1 : paso(item)" :min="item.con_canastillos ? 1 : paso(item)"
                     @update:model-value="normalizar(item)"
                   />
+                  <!-- Pollo, cerdo y res se pesan en canastillos: se cobra el
+                       neto, el bruto menos lo que pesan los canastillos. -->
+                  <template v-if="item.con_canastillos">
+                    <q-input
+                      v-model.number="item.peso_bruto"
+                      dense outlined type="number" class="col" label="P. bruto kg"
+                      step="0.001" min="0" bg-color="orange-1"
+                      @update:model-value="sincronizarTotal(item)"
+                    />
+                    <q-input
+                      v-model.number="item.canastillos"
+                      dense outlined type="number" class="col" label="Canast."
+                      step="1" min="0" bg-color="orange-1"
+                      @update:model-value="sincronizarTotal(item)"
+                    />
+                  </template>
                   <q-input
                     v-model.number="item.precio"
                     dense outlined type="number" class="col" label="Precio" step="0.01" min="0"
@@ -166,6 +185,10 @@
                     dense flat round size="sm" icon="delete" color="negative" class="col-auto"
                     @click="carrito.splice(i, 1)"
                   />
+                </div>
+                <div v-if="item.con_canastillos" class="carrito-neto" :class="neto(item) > 0 ? 'text-grey-8' : 'text-negative'">
+                  {{ cantidad(item.peso_bruto, 'KG') }} kg − {{ canastillos(item) }} × {{ item.kg_canastillo }} kg
+                  = <b>Neto {{ cantidad(neto(item), 'KG') }} kg</b>
                 </div>
               </q-item-section>
             </q-item>
@@ -212,7 +235,7 @@
       <q-card class="dialogo-linea" style="width: 380px; max-width: 94vw">
         <q-form @submit.prevent="agregarAlCarrito">
           <q-card-section class="bg-primary text-white q-py-xs">
-            <div class="text-weight-bold dialogo-titulo ellipsis">{{ elegido.producto }}</div>
+            <div class="text-weight-bold dialogo-titulo">{{ elegido.producto }}</div>
             <div class="dialogo-sub">
               {{ elegido.cod_prod }} · Stock {{ cantidad(elegido.stock, elegido.unidad) }} {{ elegido.unidad }}
             </div>
@@ -222,8 +245,8 @@
             <q-input
               v-model.number="cantidadElegida"
               outlined dense autofocus type="number" class="col-6"
-              :label="elegido.unidad === 'KG' ? 'Kilos' : 'Cantidad'"
-              :step="paso(elegido)" :min="paso(elegido)"
+              :label="elegido.con_canastillos ? 'Piezas' : (elegido.unidad === 'KG' ? 'Kilos' : 'Cantidad')"
+              :step="elegido.con_canastillos ? 1 : paso(elegido)" :min="elegido.con_canastillos ? 1 : paso(elegido)"
               @focus="$event.target.select()"
             />
             <q-select
@@ -235,9 +258,27 @@
               :options="elegido.precios || []"
               @new-value="precioManual"
             />
+            <template v-if="elegido.con_canastillos">
+              <q-input
+                v-model.number="brutoElegido"
+                outlined dense type="number" class="col-6"
+                label="Peso bruto kg" step="0.001" min="0"
+                @focus="$event.target.select()"
+              />
+              <q-input
+                v-model.number="canastillosElegidos"
+                outlined dense type="number" class="col-6"
+                :label="'Canastillos (' + elegido.kg_canastillo + ' kg c/u)'" step="1" min="0"
+                @focus="$event.target.select()"
+              />
+              <div class="col-12 dialogo-sub" :class="netoElegido > 0 ? 'text-grey-8' : 'text-negative'">
+                Neto: {{ cantidad(brutoElegido, 'KG') }} − {{ canastillos({ canastillos: canastillosElegidos }) }} × {{ elegido.kg_canastillo }}
+                = <b>{{ cantidad(netoElegido, 'KG') }} kg</b>
+              </div>
+            </template>
             <div class="col-12 row items-center q-px-sm q-py-xs rounded-borders bg-orange-1 text-orange-10">
               <span class="dialogo-sub">Total</span><q-space/>
-              <b>Bs {{ money(cantidadElegida * precioElegido) }}</b>
+              <b>Bs {{ money((elegido.con_canastillos ? netoElegido : cantidadElegida) * precioElegido) }}</b>
             </div>
           </q-card-section>
 
@@ -333,6 +374,7 @@
             <tr class="bg-grey-2">
               <th class="text-left">Producto</th>
               <th class="text-right">Cant.</th>
+              <th class="text-right">Bruto / Canast.</th>
               <th class="text-right">Precio</th>
               <th class="text-right">Total</th>
             </tr>
@@ -340,9 +382,15 @@
             <tbody>
             <tr v-for="(item, i) in carrito" :key="i">
               <td class="text-left">{{ item.nombre }}</td>
-              <td class="text-right">{{ cantidad(item.cantidad, item.unidad) }}</td>
+              <td class="text-right">
+                {{ item.con_canastillos ? cantidad(neto(item), 'KG') + ' kg' : cantidad(item.cantidad, item.unidad) }}
+              </td>
+              <td class="text-right">
+                <span v-if="item.con_canastillos">{{ cantidad(item.peso_bruto, 'KG') }} / {{ canastillos(item) }}</span>
+                <span v-else>—</span>
+              </td>
               <td class="text-right">{{ money(item.precio) }}</td>
-              <td class="text-right text-weight-bold">{{ money(item.cantidad * item.precio) }}</td>
+              <td class="text-right text-weight-bold">{{ money(base(item) * item.precio) }}</td>
             </tr>
             </tbody>
           </q-markup-table>
@@ -379,6 +427,8 @@ export default {
       elegido: {},
       cantidadElegida: 1,
       precioElegido: 0,
+      brutoElegido: null,
+      canastillosElegidos: 0,
       // Cierre.
       dialogCobro: false,
       tipoComprobante: 'VENTA',
@@ -396,7 +446,14 @@ export default {
   },
   computed: {
     subtotal () {
-      return this.carrito.reduce((a, i) => a + Number(i.cantidad || 0) * Number(i.precio || 0), 0)
+      return this.carrito.reduce((a, i) => a + this.base(i) * Number(i.precio || 0), 0)
+    },
+    netoElegido () {
+      return this.neto({
+        peso_bruto: this.brutoElegido,
+        canastillos: this.canastillosElegidos,
+        kg_canastillo: this.elegido.kg_canastillo
+      })
     },
     total () {
       const desc = Math.min(Math.max(Number(this.descuento) || 0, 0), this.subtotal)
@@ -435,6 +492,19 @@ export default {
     },
     sinStock (p) {
       return Number(p.stock || 0) <= 0
+    },
+    canastillos (item) {
+      return Math.max(0, Math.trunc(Number(item.canastillos) || 0))
+    },
+    // Lo que se cobra en lo pesado con canastillos: bruto menos canastillos.
+    neto (item) {
+      const bruto = Number(item.peso_bruto) || 0
+      const kg = Number(item.kg_canastillo) || 2
+      return Math.round((bruto - this.canastillos(item) * kg) * 1000) / 1000
+    },
+    // Lo que multiplica al precio en cada linea.
+    base (item) {
+      return item.con_canastillos ? Math.max(this.neto(item), 0) : Number(item.cantidad || 0)
     },
 
     cargarPedido (numero, tipo) {
@@ -542,6 +612,8 @@ export default {
       this.elegido = p
       this.cantidadElegida = this.paso(p)
       this.precioElegido = p.precio
+      this.brutoElegido = null
+      this.canastillosElegidos = 0
       this.dialogProducto = true
     },
     // El select de precios acepta un importe escrito a mano.
@@ -552,7 +624,7 @@ export default {
       }
     },
     normalizar (item) {
-      const minimo = this.paso(item)
+      const minimo = item.con_canastillos ? 1 : this.paso(item)
       if (!item.cantidad || item.cantidad < minimo) {
         item.cantidad = minimo
       }
@@ -560,12 +632,12 @@ export default {
     },
     // El total mostrado sale de cantidad x precio.
     sincronizarTotal (item) {
-      item.total = Math.round(Number(item.cantidad || 0) * Number(item.precio || 0) * 100) / 100
+      item.total = Math.round(this.base(item) * Number(item.precio || 0) * 100) / 100
     },
     // Al revés: si escriben el total, el precio unitario se deduce.
     aplicarTotal (item) {
       const total = Number(item.total)
-      const cant = Number(item.cantidad)
+      const cant = this.base(item)
 
       if (!(total >= 0) || !(cant > 0)) {
         this.sincronizarTotal(item)
@@ -579,7 +651,18 @@ export default {
       const cant = Number(this.cantidadElegida)
       const precio = Number(this.precioElegido)
 
+      const conCanastillos = !!this.elegido.con_canastillos
+
       if (!cant || cant <= 0) {
+        return
+      }
+      if (conCanastillos && !(this.netoElegido > 0)) {
+        this.$q.notify({
+          message: 'El peso bruto tiene que ser mayor a lo que pesan los canastillos',
+          color: 'warning',
+          icon: 'info',
+          position: 'top'
+        })
         return
       }
 
@@ -590,17 +673,27 @@ export default {
 
       if (existente) {
         existente.cantidad = Number(existente.cantidad) + cant
+        if (conCanastillos) {
+          existente.peso_bruto = Math.round((Number(existente.peso_bruto || 0) + Number(this.brutoElegido)) * 1000) / 1000
+          existente.canastillos = this.canastillos(existente) + this.canastillos({ canastillos: this.canastillosElegidos })
+        }
         this.sincronizarTotal(existente)
       } else {
-        this.carrito.push({
+        const item = {
           cod_prod: this.elegido.cod_prod,
           nombre: this.elegido.producto,
           unidad: this.elegido.unidad,
           imagen: this.elegido.imagen,
           cantidad: cant,
           precio,
-          total: Math.round(cant * precio * 100) / 100
-        })
+          con_canastillos: conCanastillos,
+          kg_canastillo: this.elegido.kg_canastillo,
+          peso_bruto: conCanastillos ? Number(this.brutoElegido) : null,
+          canastillos: conCanastillos ? this.canastillos({ canastillos: this.canastillosElegidos }) : null,
+          total: 0
+        }
+        this.sincronizarTotal(item)
+        this.carrito.push(item)
       }
 
       this.dialogProducto = false
@@ -620,6 +713,17 @@ export default {
         return
       }
 
+      const sinNeto = this.carrito.filter(i => i.con_canastillos && !(this.neto(i) > 0))
+      if (sinNeto.length) {
+        this.$q.notify({
+          message: 'Revisa el peso bruto y los canastillos de: ' + sinNeto.map(i => i.nombre).join(', '),
+          color: 'warning',
+          icon: 'info',
+          position: 'top'
+        })
+        return
+      }
+
       this.guardando = true
 
       this.$api.post('facturacion', {
@@ -632,11 +736,17 @@ export default {
         observacion: this.observacion || '',
         pedido_nro: this.pedidoOrigen ? this.pedidoOrigen.nro_pedido : null,
         pedido_tipo: this.pedidoOrigen ? this.pedidoOrigen.tipo : null,
-        items: this.carrito.map(i => ({
+        // Con canastillos va el bruto: el backend recalcula el neto que se cobra.
+        items: this.carrito.map(i => Object.assign({
           cod_prod: i.cod_prod,
           cantidad: Number(i.cantidad),
           precio: Number(i.precio)
-        }))
+        }, i.con_canastillos ? {
+          por_peso: true,
+          peso: this.neto(i),
+          peso_bruto: Number(i.peso_bruto),
+          canastillos: this.canastillos(i)
+        } : {}))
       }).then(res => {
         // La venta se guardó igual; lo que puede haber fallado es el envío a
         // Impuestos, y eso hay que verlo, no que pase como un aviso verde.
@@ -696,8 +806,7 @@ export default {
 </script>
 
 <style scoped>
-/* Mismo formato que la pantalla de compras: 6 tarjetas por fila en media
-   pantalla, asi que todo va un punto mas chico de lo habitual. */
+/* 4 tarjetas por fila en media pantalla, para que el nombre entre completo. */
 .producto {
   min-height: 92px;
   transition: border-color .15s;
@@ -738,14 +847,12 @@ export default {
   background: rgba(211, 47, 47, .85);
   padding: 1px 0;
 }
+/* El nombre va completo: si no entra, baja a las lineas que haga falta. */
 .producto-nombre {
-  font-size: 10px;
-  line-height: 1.15;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  min-height: 2.3em;
+  font-size: 11px;
+  line-height: 1.2;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 .producto-codigo {
   font-size: 9px;
@@ -789,6 +896,13 @@ export default {
   font-size: 11px;
   font-weight: 700;
   line-height: 1.3;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  margin-bottom: 2px;
+}
+.carrito-neto {
+  font-size: 10px;
+  margin-top: 1px;
 }
 .carrito-thumb {
   min-width: 34px;

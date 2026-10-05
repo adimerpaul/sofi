@@ -33,6 +33,22 @@
           {{ v.vendedor }} ({{ v.pedidos }})
         </q-chip>
       </div>
+      <!-- Filtro por tipo (varios a la vez, ninguno = todos) y por codigo de producto.
+           Con filtro, cada pedido muestra solo las lineas que coinciden. -->
+      <div class="col-12 row items-center q-gutter-xs q-pb-xs">
+        <q-chip v-for="t in tiposDia" :key="t.tipo" dense clickable class="q-ml-none"
+                :outline="!tiposSel.includes(t.tipo)" :color="t.color" text-color="white"
+                @click="toggleTipo(t.tipo)">
+          {{ t.etiqueta }} ({{ t.pedidos }})
+        </q-chip>
+        <q-select v-model="productoSel" :options="productoOpciones" dense outlined clearable use-input
+                  input-debounce="0" emit-value map-options label="Código de producto"
+                  class="col barra-producto" @filter="filtrarOpcionesProducto">
+          <template v-slot:no-option>
+            <q-item><q-item-section class="text-grey">Sin productos</q-item-section></q-item>
+          </template>
+        </q-select>
+      </div>
       <!-- Tarjetas de totales (segun el filtro de vendedor) -->
       <div class="col-12 row q-col-gutter-xs q-mt-none q-mb-xs">
         <div class="col-3">
@@ -96,7 +112,7 @@
         </div>
       </div>
       <div class="col-12">
-        <q-table :rows-per-page-options="[0]" hide-pagination dense flat bordered :columns="columns"
+        <q-table :rows-per-page-options="[0]" hide-pagination dense flat bordered :columns="columnasPedidos"
                  :rows="clientesFiltrados" :filter="filter" row-key="NroPed" class="tabla-compacta" separator="cell">
           <template v-slot:body-cell-numero_dia="props">
             <q-td :props="props">
@@ -893,6 +909,9 @@ export default {
       producto: {label: ''},
       verResumen: false,
       vendedoresSel: [],
+      tiposSel: [],
+      productoSel: null,
+      productoOpciones: [],
       modalAuditoria: false,
       auditoriaPedido: {},
       auditoria: [],
@@ -2105,6 +2124,19 @@ export default {
       if (i >= 0) this.vendedoresSel.splice(i, 1)
       else this.vendedoresSel.push(codAut)
     },
+    toggleTipo(tipo) {
+      const i = this.tiposSel.indexOf(tipo)
+      if (i >= 0) this.tiposSel.splice(i, 1)
+      else this.tiposSel.push(tipo)
+      if (this.productoSel && !this.productosDia.some(p => p.value == this.productoSel)) this.productoSel = null
+    },
+    // Busca por codigo o por nombre
+    filtrarOpcionesProducto(val, update) {
+      update(() => {
+        const texto = val.toLowerCase()
+        this.productoOpciones = this.productosDia.filter(p => p.label.toLowerCase().includes(texto))
+      })
+    },
     misclientes() {
       this.$q.loading.show()
       // Se traen todos los vendedores; el filtro por vendedor se hace con los chips
@@ -2112,6 +2144,9 @@ export default {
         this.clientes = res.data
         const presentes = new Set(this.clientes.map(c => c.CIfunc))
         this.vendedoresSel = this.vendedoresSel.filter(v => presentes.has(v))
+        const tipos = new Set(this.tiposDia.map(t => t.tipo))
+        this.tiposSel = this.tiposSel.filter(t => tipos.has(t))
+        if (this.productoSel && !this.productosDia.some(p => p.value == this.productoSel)) this.productoSel = null
       }).finally(() => {
         this.$q.loading.hide()
       })
@@ -2127,10 +2162,57 @@ export default {
       })
       return Object.values(mapa).sort((a, b) => b.pedidos - a.pedidos)
     },
+    // Tipos de producto que hay en la fecha, con cuantos pedidos los llevan
+    tiposDia() {
+      const etiquetas = {NORMAL: 'Embutidos', POLLO: 'Pollo', RES: 'Res', CERDO: 'Cerdo'}
+      const colores = {NORMAL: 'primary', POLLO: 'orange-8', RES: 'red-7', CERDO: 'pink-4'}
+      const mapa = {}
+      this.clientes.forEach(c => {
+        new Set((c.productos || []).map(p => p.tipo || 'NORMAL')).forEach(tipo => {
+          const t = mapa[tipo] || (mapa[tipo] = {tipo, etiqueta: etiquetas[tipo] || tipo, color: colores[tipo] || 'grey-7', pedidos: 0})
+          t.pedidos++
+        })
+      })
+      const orden = ['NORMAL', 'POLLO', 'RES', 'CERDO']
+      return Object.values(mapa)
+        .sort((a, b) => (orden.indexOf(a.tipo) + 1 || 99) - (orden.indexOf(b.tipo) + 1 || 99))
+    },
+    // Productos pedidos en la fecha (de los tipos marcados) para el buscador por codigo
+    productosDia() {
+      const mapa = {}
+      this.clientes.forEach(c => {
+        (c.productos || []).forEach(p => {
+          if (this.tiposSel.length && !this.tiposSel.includes(p.tipo || 'NORMAL')) return
+          if (!mapa[p.cod_prod]) mapa[p.cod_prod] = {value: p.cod_prod, label: p.cod_prod + ' - ' + p.nombre}
+        })
+      })
+      return Object.values(mapa).sort((a, b) => String(a.value).localeCompare(String(b.value), undefined, {numeric: true}))
+    },
+    columnasPedidos() {
+      if (!this.productoSel) return this.columns
+      // Con un producto elegido se ve cuanto lleva cada pedido de ese producto
+      const columnas = [...this.columns]
+      columnas.splice(4, 0, {label: 'Cant.', name: '_cantidad', field: '_cantidad', align: 'right', sortable: true})
+      return columnas
+    },
     clientesFiltrados() {
-      const lista = this.vendedoresSel.length
+      let lista = this.vendedoresSel.length
         ? this.clientes.filter(c => this.vendedoresSel.includes(c.CIfunc))
         : this.clientes
+      if (this.tiposSel.length || this.productoSel) {
+        // Se dejan solo las lineas que coinciden y el total pasa a ser el de esas lineas
+        lista = lista.map(c => {
+          const productos = (c.productos || []).filter(p =>
+            (!this.tiposSel.length || this.tiposSel.includes(p.tipo || 'NORMAL')) &&
+            (!this.productoSel || p.cod_prod == this.productoSel))
+          return {
+            ...c,
+            productos,
+            total: productos.reduce((s, p) => s + parseFloat(p.subtotal || 0), 0).toFixed(2),
+            _cantidad: +productos.reduce((s, p) => s + parseFloat(p.cantidad || 0), 0).toFixed(3),
+          }
+        }).filter(c => c.productos.length)
+      }
       const ordenada = [...lista].sort((a, b) => String(a.vendedor).localeCompare(String(b.vendedor)) ||
         (a.numero_dia || 9999) - (b.numero_dia || 9999) || a.NroPed - b.NroPed)
       // _n: conteo en la lista; _nv: conteo dentro del vendedor. Si _nv no
@@ -2268,6 +2350,10 @@ export default {
 
 .barra-buscar
   min-width: 110px
+
+.barra-producto
+  min-width: 200px
+  max-width: 360px
 
 .tarjeta-total
   padding: 2px 6px

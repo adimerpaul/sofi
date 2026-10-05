@@ -672,6 +672,7 @@ class FacturacionController extends Controller
                 DB::raw('TRIM(p.Producto) as producto'),
                 DB::raw(str_replace('{p}', 'p', self::UNIDAD_VENTA_SQL) . ' as unidad'),
                 DB::raw('TRIM(g.Descripcion) as grupo'),
+                DB::raw('UPPER(TRIM(p.tipo)) as tipo'),
                 'p.imagen',
                 'p.Precio as precio',
                 // Lo usa la pantalla de compras para proponer el costo.
@@ -721,6 +722,10 @@ class FacturacionController extends Controller
             $p->costo = round((float) $p->costo, 2);
             $p->stock = round((float) $p->existencia, 3);
             unset($p->existencia);
+
+            // En venta directa el pollo, cerdo y res tambien se pesan en canastillos.
+            $p->con_canastillos = in_array($p->tipo, FacturaDetalle::TIPOS_CON_CANASTILLOS, true);
+            $p->kg_canastillo = FacturaDetalle::KG_CANASTILLO;
 
             return $p;
         });
@@ -1497,11 +1502,17 @@ class FacturacionController extends Controller
         // Con canastillos el neto lo calcula el servidor a partir del bruto:
         // asi lo impreso (bruto, canastillos, neto) siempre cuadra con lo
         // cobrado, aunque la pantalla mande otro peso.
-        $conCanastillos = in_array($datos['pedido_tipo'] ?? null, FacturaDetalle::TIPOS_CON_CANASTILLOS, true);
+        // Con pedido manda su tipo; en venta directa, el tipo de cada producto.
+        $pedidoTipo = $datos['pedido_tipo'] ?? null;
         $negativos = collect();
         foreach ($datos['items'] as $i => $item) {
             $prod = $productos[trim($item['cod_prod'])];
-            if (!$conCanastillos || !$this->lineaPorPeso($prod, $item) ||!isset($item['peso_bruto'])
+            $conCanastillos = in_array(
+                $pedidoTipo ?? strtoupper(trim((string) ($prod->tipo ?? ''))),
+                FacturaDetalle::TIPOS_CON_CANASTILLOS,
+                true
+            );
+            if (!$conCanastillos ||!$this->lineaPorPeso($prod, $item) ||!isset($item['peso_bruto'])
                 || (float) $item['peso_bruto'] <= 0) {
                 unset($datos['items'][$i]['peso_bruto'], $datos['items'][$i]['canastillos']);
                 continue;

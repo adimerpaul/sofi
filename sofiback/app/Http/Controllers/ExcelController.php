@@ -17,6 +17,20 @@ use PhpOffice\PhpSpreadsheet\Style\Color;
 
 class ExcelController extends Controller
 {
+    /** Codigos de pollo que van a la hoja de preparacion. */
+    const POLLO_PREPARACION = [
+        '500106', '500107', '500108', '500109', '501600', '501601',
+        '501604', '501606', '501704', '502102', '502108', '502106',
+    ];
+
+    /** Codigos de cerdo que van a la hoja de preparacion. */
+    const CERDO_PREPARACION = [
+        '503305', '503903', '100001', '100002', '100003', '100004',
+        '330001', '503624', '503303', '503304',
+        '503906', '503606', '503609', '503709', '503600', '503681',
+        '503711'
+    ];
+
     /**
      * Display a listing of the resource.
      *
@@ -1134,6 +1148,274 @@ class ExcelController extends Controller
         @unlink($filename);
     }
 
+
+    /**
+     * Hoja de pesos de preparacion con los pedidos cargados por codigo.
+     *
+     * Desde el 2026-10-05 pollo, cerdo y res ya no se piden en las columnas
+     * fijas de tbpedidos (c106, ala, pecho...) sino como una linea por
+     * producto. Se saca una hoja por especie, sea cual sea el tipo del pedido:
+     * - pollo: los codigos de POLLO_PREPARACION.
+     * - cerdo: los codigos de CERDO_PREPARACION.
+     * Van por lista y no por tbproductos.tipo porque ese tipo no coincide con
+     * lo que pasa por preparacion (la bondiola figura NORMAL, por ejemplo).
+     * Los comodines del formato viejo (501607 POLLO AGRANEL, 100005 CERDO
+     * AGRANEL) no entran.
+     *
+     * Una fila por pedido y, por cada producto, un bloque Prod | Nº Cja |
+     * Bruto | Neto: Bruto y Neto van vacios para llenarlos en la balanza.
+     */
+    public function generarXlsPreparacion($fecha, $especie = 'pollo')
+    {
+        $especie = strtolower($especie) === 'cerdo' ? 'cerdo' : 'pollo';
+        $codigos = $especie === 'cerdo' ? self::CERDO_PREPARACION : self::POLLO_PREPARACION;
+        $filtro = 'TRIM(p.cod_prod) IN (' . implode(', ', array_fill(0, count($codigos), '?')) . ')';
+        $lineas = DB::select(
+            "SELECT p.NroPed, p.CIfunc, TRIM(p.cod_prod) AS cod_prod, p.Cant, UPPER(TRIM(p.caja)) AS caja,
+                    p.Observaciones, p.fact, p.pago, p.bs, p.bs2, p.horario, p.color, p.bonificacionId,
+                    TRIM(c.Nombres) AS cliente, TRIM(pr.Producto) AS producto, UPPER(TRIM(pr.tipo)) AS tipo_prod,
+                    TRIM(pr.codUnid) AS unidad,
+                    TRIM(CONCAT_WS(' ', NULLIF(TRIM(pe.Nombre1), ''), NULLIF(TRIM(pe.App1), ''))) AS preventista
+             FROM tbpedidos p
+             INNER JOIN tbproductos pr ON pr.cod_prod = p.cod_prod
+             INNER JOIN tbclientes c ON p.idCli = c.Cod_Aut
+             LEFT JOIN personal pe ON pe.CodAut = p.CIfunc
+             WHERE p.deleted_at IS NULL AND DATE(p.fecha) = ? AND p.estado = 'ENVIADO'
+               AND " . $filtro . "
+               AND TRIM(p.cod_prod) NOT IN ('501607', '100005')
+             ORDER BY preventista, p.NroPed, p.codAut",
+            array_merge([$fecha], $codigos)
+        );
+
+        // Preventista -> pedidos -> lineas, respetando el orden de la consulta.
+        $preventistas = [];
+        foreach ($lineas as $l) {
+            $prev = $l->preventista !== '' ? $l->preventista : 'SIN PREVENTISTA';
+            $preventistas[$prev][$l->NroPed][] = $l;
+        }
+
+        $maxBloques = 4; // como la hoja de papel: al menos 4 productos por fila
+        foreach ($preventistas as $pedidos) {
+            foreach ($pedidos as $ls) {
+                $maxBloques = max($maxBloques, count($ls));
+            }
+        }
+
+        $mapaColores = [
+            'deep-orange-4' => 'FF7043', // NORTE
+            'pink-4' => 'F06292', // BOLIVAR
+            'blue-grey-4' => '37474F', // SE RECOGE
+            'yellow' => 'F5EE17', // CENTRO
+            'green-4' => '1B5E20', // APOYO
+            'deep-purple-4' => '9575CD', // PROVINCIA
+            'blue-4' => '0D47A1', // SUD
+            'grey-6' => '757575', // SIN ZONA
+        ];
+        $isDark = function (string $hex) {
+            $r = hexdec(substr($hex, 0, 2));
+            $g = hexdec(substr($hex, 2, 2));
+            $b = hexdec(substr($hex, 4, 2));
+            return 0.2126 * $r + 0.7152 * $g + 0.0722 * $b < 150;
+        };
+        $cuentasBaja = DB::table('tbclientes')->whereIn('Cod_Aut', [3070, 2728])
+            ->pluck('Nombres', 'Cod_Aut');
+
+        $spreadsheet = new Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->setTitle($especie === 'cerdo' ? 'Cerdo' : 'Pollo');
+
+        // Columnas fijas A-F y despues un bloque de 5 por producto. La
+        // observacion no tiene columna fija: va pegada al ultimo producto de
+        // cada pedido, como en la planilla de papel.
+        $anchoBloque = 5;
+        $colBloque = function ($b, $k) use ($anchoBloque) {
+            return Coordinate::stringFromColumnIndex(7 + $b * $anchoBloque + $k);
+        };
+        // Una columna mas que los bloques, para la observacion del pedido mas largo.
+        $colFin = Coordinate::stringFromColumnIndex(7 + $maxBloques * $anchoBloque);
+        $celeste = 'DDEBF7';
+
+        $sheet->setCellValue('F1', 'FECHA: ' . $fecha);
+        $sheet->setCellValue('G1', 'HOJA DE PESOS ' . strtoupper($especie));
+        $sheet->mergeCells('G1:' . $colFin . '1');
+        $sheet->getStyle('A1:' . $colFin . '1')->getFont()->setBold(true)->setSize(12)->getColor()->setRGB('C62828');
+
+        $encabezado = ['HORARIO', 'FACTURA', 'CONTADO', 'P. TROZADO', 'P. POLLO', 'CLIENTE'];
+        foreach ($encabezado as $i => $titulo) {
+            $sheet->setCellValue(Coordinate::stringFromColumnIndex($i + 1) . '2', $titulo);
+        }
+        for ($b = 0; $b < $maxBloques; $b++) {
+            foreach (['Prod', 'Producto', 'Nº Cja', 'Bruto', 'Neto'] as $k => $titulo) {
+                $sheet->setCellValue($colBloque($b, $k) . '2', $titulo);
+            }
+            // Bloques alternados en celeste como la planilla de papel.
+            if ($b % 2 === 1) {
+                $sheet->getStyle($colBloque($b, 0) . '2:' . $colBloque($b, $anchoBloque - 1) . '2')->getFill()
+                    ->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB($celeste);
+            }
+        }
+        $sheet->setCellValue($colFin . '2', 'Obs.');
+        $sheet->getStyle('A2:' . $colFin . '2')->applyFromArray([
+            'font' => ['bold' => true, 'size' => 9],
+            'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER, 'vertical' => Alignment::VERTICAL_CENTER],
+        ]);
+        $sheet->getStyle('A2:E2')->getAlignment()->setTextRotation(90);
+        $sheet->getRowDimension(2)->setRowHeight(52);
+
+        $cantidad = function ($l) {
+            $n = rtrim(rtrim(number_format((float) $l->Cant, 2, '.', ''), '0'), '.');
+            $unidad = $l->caja !== null && $l->caja !== '' ? $l->caja : strtoupper((string) $l->unidad);
+            $sufijo = ['U' => 'u', 'UNIDA' => 'u', 'UNIDAD' => 'u', 'KG' => 'kg', 'CAJA' => 'cja'][$unidad] ?? strtolower($unidad);
+            return trim($n . ' ' . $sufijo);
+        };
+
+        $c = 3;
+        $celdasObs = [];
+        foreach ($preventistas as $preventista => $pedidos) {
+            $sheet->setCellValue('F' . $c, $preventista);
+            $sheet->getStyle('F' . $c)->getFont()->setBold(true);
+            $c++;
+
+            foreach ($pedidos as $ls) {
+                $r = $ls[0];
+                $sheet->setCellValue('A' . $c, (string) $r->horario);
+                $sheet->setCellValue('B' . $c, $r->fact);
+                $sheet->setCellValue('C' . $c, strtoupper(trim((string) $r->pago)) === 'CONTADO' ? 'SI' : 'NO');
+                $sheet->setCellValue('D' . $c, $r->bs2);
+                $sheet->setCellValue('E' . $c, $r->bs);
+
+                // En una bonificacion la fila va a la cuenta de la baja y el
+                // cliente real pasa a la observacion.
+                $esBaja = $r->bonificacionId != null && isset($cuentasBaja[$r->bonificacionId]);
+                $sheet->setCellValue('F' . $c, $esBaja ? trim($cuentasBaja[$r->bonificacionId]) : $r->cliente);
+
+                if (!empty($r->color) && isset($mapaColores[$r->color])) {
+                    $hex = $mapaColores[$r->color];
+                    $sheet->getStyle('F' . $c)->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB($hex);
+                    $sheet->getStyle('F' . $c)->getFont()->getColor()->setRGB($isDark($hex) ? 'FFFFFF' : '000000');
+                }
+
+                for ($b = 1; $b < $maxBloques; $b += 2) {
+                    $sheet->getStyle($colBloque($b, 0) . $c . ':' . $colBloque($b, $anchoBloque - 1) . $c)->getFill()
+                        ->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB($celeste);
+                }
+
+                $observaciones = [];
+                foreach ($ls as $b => $l) {
+                    $sheet->setCellValueExplicit($colBloque($b, 0) . $c, $l->cod_prod, DataType::TYPE_STRING);
+                    $sheet->setCellValue($colBloque($b, 1) . $c, $l->producto);
+                    $sheet->setCellValue($colBloque($b, 2) . $c, $cantidad($l));
+                    $obs = trim((string) $l->Observaciones);
+                    if ($obs !== '') {
+                        $observaciones[$obs] = true;
+                    }
+                }
+                $observacion = implode(' / ', array_keys($observaciones));
+                if ($esBaja) {
+                    $observacion = $observacion === '' ? $r->cliente : $r->cliente . ' - ' . $observacion;
+                }
+                if ($observacion !== '') {
+                    // Justo despues del ultimo producto del pedido; el texto se
+                    // derrama sobre los bloques vacios de la derecha.
+                    $celda = Coordinate::stringFromColumnIndex(7 + count($ls) * $anchoBloque) . $c;
+                    $sheet->setCellValue($celda, $observacion);
+                    $celdasObs[] = $celda;
+                }
+                $c++;
+            }
+        }
+
+        // Denso: letra chica y filas bajas para ver mas pedidos por pantalla.
+        $ultima = max($c - 1, 2);
+        $sheet->getStyle('A2:' . $colFin . $ultima)->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_THIN);
+        $sheet->getStyle('A3:' . $colFin . $ultima)->applyFromArray([
+            'font' => ['size' => 10],
+            'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER, 'vertical' => Alignment::VERTICAL_CENTER],
+        ]);
+        $sheet->getStyle('F3:F' . $ultima)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_LEFT);
+        for ($b = 0; $b < $maxBloques; $b++) {
+            $sheet->getStyle($colBloque($b, 1) . '3:' . $colBloque($b, 1) . $ultima)->applyFromArray([
+                'font' => ['size' => 8],
+                'alignment' => ['horizontal' => Alignment::HORIZONTAL_LEFT, 'shrinkToFit' => true],
+            ]);
+        }
+        foreach ($celdasObs as $celda) {
+            $sheet->getStyle($celda)->applyFromArray([
+                'font' => ['bold' => true, 'size' => 9, 'color' => ['rgb' => 'C62828']],
+                'alignment' => ['horizontal' => Alignment::HORIZONTAL_LEFT, 'shrinkToFit' => false],
+                'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'FCE4D6']],
+            ]);
+        }
+        for ($fila = 3; $fila <= $ultima; $fila++) {
+            $sheet->getRowDimension($fila)->setRowHeight(16);
+        }
+
+        foreach (['A', 'B', 'C', 'D', 'E'] as $col) {
+            $sheet->getColumnDimension($col)->setWidth(4.5);
+        }
+        $sheet->getColumnDimension('F')->setWidth(30);
+        for ($b = 0; $b < $maxBloques; $b++) {
+            $sheet->getColumnDimension($colBloque($b, 0))->setWidth(7);
+            $sheet->getColumnDimension($colBloque($b, 1))->setWidth(20);
+            $sheet->getColumnDimension($colBloque($b, 2))->setWidth(6.5);
+            $sheet->getColumnDimension($colBloque($b, 3))->setWidth(6.5);
+            $sheet->getColumnDimension($colBloque($b, 4))->setWidth(6.5);
+        }
+        $sheet->getColumnDimension($colFin)->setWidth(25);
+        $sheet->freezePane('G3');
+        $sheet->getSheetView()->setZoomScale(70);
+
+        $sheet->getPageSetup()->setOrientation(PageSetup::ORIENTATION_LANDSCAPE)
+            ->setPaperSize(PageSetup::PAPERSIZE_LETTER)
+            ->setFitToWidth(1)->setFitToHeight(0)
+            ->setPrintArea('A1:' . $colFin . $ultima)
+            ->setRowsToRepeatAtTopByStartAndEnd(2, 2);
+        $sheet->getPageMargins()->setTop(0.3)->setBottom(0.3)->setLeft(0.2)->setRight(0.2);
+
+        // Resumen: lo que hay que preparar por codigo, para cuadrar con stock.
+        $resumen = $spreadsheet->createSheet();
+        $resumen->setTitle('Resumen');
+        $resumen->fromArray(['Código', 'Descripción', 'Unidades', 'Cajas', 'Kilos', 'Pedidos'], null, 'A1');
+        $totales = [];
+        foreach ($lineas as $l) {
+            $t = &$totales[$l->cod_prod];
+            if ($t === null) {
+                $t = ['producto' => $l->producto, 'u' => 0, 'cja' => 0, 'kg' => 0, 'pedidos' => []];
+            }
+            $suf = explode(' ', $cantidad($l));
+            $clave = in_array(end($suf), ['u', 'cja', 'kg'], true) ? end($suf) : 'u';
+            $t[$clave] += (float) $l->Cant;
+            $t['pedidos'][$l->NroPed] = true;
+            unset($t);
+        }
+        ksort($totales);
+        $fila = 2;
+        foreach ($totales as $cod => $t) {
+            $resumen->setCellValueExplicit('A' . $fila, $cod, DataType::TYPE_STRING);
+            $resumen->setCellValue('B' . $fila, $t['producto']);
+            $resumen->setCellValue('C' . $fila, $t['u'] ?: null);
+            $resumen->setCellValue('D' . $fila, $t['cja'] ?: null);
+            $resumen->setCellValue('E' . $fila, $t['kg'] ?: null);
+            $resumen->setCellValue('F' . $fila, count($t['pedidos']));
+            $fila++;
+        }
+        $resumen->getStyle('A1:F1')->getFont()->setBold(true);
+        $resumen->getStyle('A1:F' . max($fila - 1, 1))->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_THIN);
+        $resumen->getColumnDimension('A')->setWidth(10);
+        $resumen->getColumnDimension('B')->setWidth(45);
+        foreach (['C', 'D', 'E', 'F'] as $col) {
+            $resumen->getColumnDimension($col)->setWidth(11);
+        }
+
+        $spreadsheet->setActiveSheetIndex(0);
+
+        $filename = 'Preparacion_' . ucfirst($especie) . '_' . $fecha . '.xlsx';
+        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        header('Content-Disposition: attachment; filename="' . $filename . '"');
+        header('Cache-Control: max-age=0');
+        (new Xlsx($spreadsheet))->save('php://output');
+        exit;
+    }
 
     public function generarXlsBrasa($fecha)
     {

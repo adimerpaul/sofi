@@ -7,12 +7,16 @@
           <q-btn unelevated color="primary" icon="search" label="Consultar" type="submit" size="sm" no-caps
                  :loading="loading" :disable="loading"/>
           <q-separator vertical inset/>
-          <q-btn unelevated color="green-7" icon="table_view" label="Pollo Preparación" type="a" size="sm" no-caps
-                 :href="url+'generarXlsPollo/'+fecha" target="_blank" :disable="loading"/>
-          <q-btn unelevated color="deep-orange-7" icon="outdoor_grill" label="Pollo Brasa" type="a" size="sm" no-caps
-                 :href="url+'generarXlsBrasa/'+fecha" target="_blank" :disable="loading"/>
-          <q-btn unelevated color="teal-7" icon="table_view" label="Cerdo Preparación" type="a" size="sm" no-caps
-                 :href="url+'generarXlsCerdo/'+fecha" target="_blank" :disable="loading"/>
+          <!-- Los pedidos ya se cargan por codigo: los reportes viejos (Pollo
+               Preparacion, Pollo Brasa, Cerdo Preparacion) quedaron ocultos. -->
+          <q-btn unelevated color="green-7" icon="scale" label="Preparación Pollo" type="a" size="sm" no-caps
+                 :href="url+'generarXlsPreparacion/'+fecha+'/pollo'" target="_blank" :disable="loading">
+            <q-tooltip>Hoja de pesos del pollo pedido por código</q-tooltip>
+          </q-btn>
+          <q-btn unelevated color="teal-7" icon="scale" label="Preparación Cerdo" type="a" size="sm" no-caps
+                 :href="url+'generarXlsPreparacion/'+fecha+'/cerdo'" target="_blank" :disable="loading">
+            <q-tooltip>Hoja de pesos del cerdo pedido por código</q-tooltip>
+          </q-btn>
         </q-form>
       </q-card-section>
     </q-card>
