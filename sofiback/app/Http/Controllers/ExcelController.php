@@ -1245,7 +1245,7 @@ class ExcelController extends Controller
             $sheet->setCellValue(Coordinate::stringFromColumnIndex($i + 1) . '2', $titulo);
         }
         for ($b = 0; $b < $maxBloques; $b++) {
-            foreach (['Prod', 'Producto', 'Nº Cja', 'Bruto', 'Neto'] as $k => $titulo) {
+            foreach (['Prod', 'Nom', 'Nº Cja', 'Bruto', 'Neto'] as $k => $titulo) {
                 $sheet->setCellValue($colBloque($b, $k) . '2', $titulo);
             }
             // Bloques alternados en celeste como la planilla de papel.
@@ -1303,7 +1303,8 @@ class ExcelController extends Controller
                 $observaciones = [];
                 foreach ($ls as $b => $l) {
                     $sheet->setCellValueExplicit($colBloque($b, 0) . $c, $l->cod_prod, DataType::TYPE_STRING);
-                    $sheet->setCellValue($colBloque($b, 1) . $c, $l->producto);
+                    // Solo las 3 primeras letras: el codigo ya lo identifica.
+                    $sheet->setCellValue($colBloque($b, 1) . $c, mb_substr($l->producto, 0, 3));
                     $sheet->setCellValue($colBloque($b, 2) . $c, $cantidad($l));
                     $obs = trim((string) $l->Observaciones);
                     if ($obs !== '') {
@@ -1334,10 +1335,7 @@ class ExcelController extends Controller
         ]);
         $sheet->getStyle('F3:F' . $ultima)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_LEFT);
         for ($b = 0; $b < $maxBloques; $b++) {
-            $sheet->getStyle($colBloque($b, 1) . '3:' . $colBloque($b, 1) . $ultima)->applyFromArray([
-                'font' => ['size' => 8],
-                'alignment' => ['horizontal' => Alignment::HORIZONTAL_LEFT, 'shrinkToFit' => true],
-            ]);
+            $sheet->getStyle($colBloque($b, 1) . '3:' . $colBloque($b, 1) . $ultima)->getFont()->setBold(true);
         }
         foreach ($celdasObs as $celda) {
             $sheet->getStyle($celda)->applyFromArray([
@@ -1356,7 +1354,7 @@ class ExcelController extends Controller
         $sheet->getColumnDimension('F')->setWidth(30);
         for ($b = 0; $b < $maxBloques; $b++) {
             $sheet->getColumnDimension($colBloque($b, 0))->setWidth(7);
-            $sheet->getColumnDimension($colBloque($b, 1))->setWidth(20);
+            $sheet->getColumnDimension($colBloque($b, 1))->setWidth(5);
             $sheet->getColumnDimension($colBloque($b, 2))->setWidth(6.5);
             $sheet->getColumnDimension($colBloque($b, 3))->setWidth(6.5);
             $sheet->getColumnDimension($colBloque($b, 4))->setWidth(6.5);
