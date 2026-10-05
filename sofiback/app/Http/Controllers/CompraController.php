@@ -319,5 +319,15 @@ class CompraController extends Controller
         }
 
         DB::table('tbstock')->insert($filas);
+
+        // La existencia vive en tbproductos.stock_actual: la compra la sube y su
+        // anulacion la baja. tbstock queda como historial del movimiento.
+        foreach ($filas as $fila) {
+            $delta = round((float) $fila['cant'] - (float) $fila['saldo'], 3);
+            if ($delta != 0) {
+                DB::table('tbproductos')->whereRaw('TRIM(cod_prod) = ?', [trim($fila['cod_prod'])])
+                    ->update(['stock_actual' => DB::raw('stock_actual + (' . sprintf('%.3F', $delta) . ')')]);
+            }
+        }
     }
 }

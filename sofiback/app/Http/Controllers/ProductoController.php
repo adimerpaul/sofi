@@ -32,7 +32,7 @@ class ProductoController extends Controller{
             'trozado',
             // Miniatura para el buscador de productos del pedido.
             'imagen',
-            DB::raw('(SELECT SUM(s.cant - s.saldo) FROM tbstock s WHERE s.cod_prod = tbproductos.cod_prod) as cantidad')
+            DB::raw('stock_actual as cantidad')
         ])
 //            que no tena el texto inactivo
             ->where('Producto', 'not like', '%inactivo%')
@@ -338,8 +338,11 @@ class ProductoController extends Controller{
         'cantidad' => 'cantidad',
     ];
 
-    /** Stock disponible: mismo calculo que usa index(). */
-    private const SQL_STOCK = '(SELECT COALESCE(SUM(s.cant - s.saldo), 0) FROM tbstock s WHERE s.cod_prod = p.cod_prod)';
+    /**
+     * Stock disponible: tbproductos.stock_actual, que mueven las ventas, compras
+     * y anulaciones. Ya no se calcula sobre tbstock (queda como historial).
+     */
+    private const SQL_STOCK = 'COALESCE(p.stock_actual, 0)';
 
     /**
      * Catalogo con paginacion, busqueda y filtros del lado del servidor.

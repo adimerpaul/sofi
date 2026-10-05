@@ -681,9 +681,8 @@ class FacturacionController extends Controller
                 'p.Precio3', 'p.Precio4', 'p.Precio5', 'p.Precio6',
                 // El alias no puede llamarse "stock": tbproductos ya tiene una
                 // columna asi y el ORDER BY resolveria a esa, no a esta.
-                DB::raw('COALESCE((
-                    SELECT SUM(s.cant - s.saldo) FROM tbstock s WHERE s.cod_prod = p.cod_prod
-                ), 0) as existencia'),
+                // La existencia vive en tbproductos.stock_actual (ver moverStock).
+                DB::raw('COALESCE(p.stock_actual, 0) as existencia'),
             ]);
 
         if ($grupo = trim((string) $request->input('grupo', ''))) {
@@ -3076,5 +3075,15 @@ class FacturacionController extends Controller
         }
 
         DB::table('tbstock')->insert($filas);
+
+        // La existencia vive en tbproductos.stock_actual: la venta la baja y la
+        // anulacion la devuelve. tbstock queda como historial del movimiento.
+        foreach ($filas as $fila) {
+            $delta = round((float) $fila['cant'] - (float) $fila['saldo'], 3);
+            if ($delta != 0) {
+                DB::table('tbproductos')->whereRaw('TRIM(cod_prod) = ?', [trim($fila['cod_prod'])])
+                    ->update(['stock_actual' => DB::raw('stock_actual + (' . sprintf('%.3F', $delta) . ')')]);
+            }
+        }
     }
 }
