@@ -1162,8 +1162,9 @@ class ExcelController extends Controller
      * Los comodines del formato viejo (501607 POLLO AGRANEL, 100005 CERDO
      * AGRANEL) no entran.
      *
-     * Una fila por pedido y, por cada producto, un bloque Prod | Nº Cja |
-     * Bruto | Neto: Bruto y Neto van vacios para llenarlos en la balanza.
+     * Por cada pedido una fila con el cliente y debajo una fila por producto
+     * (Prod | Nº Cja | Bruto | Neto): Bruto y Neto van vacios para llenarlos
+     * en la balanza.
      */
     public function generarXlsPreparacion($fecha, $especie = 'pollo')
     {
@@ -1217,8 +1218,8 @@ class ExcelController extends Controller
         $sheet = $spreadsheet->getActiveSheet();
         $sheet->setTitle($especie === 'cerdo' ? 'Cerdo' : 'Pollo');
 
-        // Los productos van hacia abajo: una fila por producto, con los datos
-        // del cliente repetidos en cada fila de su pedido. Columnas fijas:
+        // Cada pedido es una fila con el cliente y debajo sus productos, uno
+        // por fila con el nombre completo en la columna F. Columnas fijas:
         // A-F pedido y cliente, G-K el producto y L la observacion.
         $colFin = 'L';
         $celeste = 'DDEBF7';
@@ -1247,10 +1248,16 @@ class ExcelController extends Controller
         $c = 3;
         $celdasObs = [];
         $finPedido = [];
+        $filasCliente = [];
         $nPedido = 0;
         foreach ($preventistas as $preventista => $pedidos) {
-            $sheet->setCellValue('F' . $c, $preventista);
-            $sheet->getStyle('F' . $c)->getFont()->setBold(true);
+            // Fila del preventista en gris oscuro, para no confundirla con la
+            // fila de cada cliente que va debajo.
+            $sheet->setCellValue('F' . $c, 'PREVENTISTA: ' . $preventista);
+            $sheet->getStyle("A{$c}:L{$c}")->applyFromArray([
+                'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
+                'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => '595959']],
+            ]);
             $c++;
 
             foreach ($pedidos as $ls) {
@@ -1261,25 +1268,35 @@ class ExcelController extends Controller
                 $hex = !empty($r->color) && isset($mapaColores[$r->color]) ? $mapaColores[$r->color] : null;
                 $desde = $c;
 
-                foreach ($ls as $i => $l) {
-                    $sheet->setCellValue('A' . $c, (string) $r->horario);
-                    $sheet->setCellValue('B' . $c, $r->fact);
-                    $sheet->setCellValue('C' . $c, strtoupper(trim((string) $r->pago)) === 'CONTADO' ? 'SI' : 'NO');
-                    $sheet->setCellValue('D' . $c, $r->bs2);
-                    $sheet->setCellValue('E' . $c, $r->bs);
-                    $sheet->setCellValue('F' . $c, $esBaja ? trim($cuentasBaja[$r->bonificacionId]) : $r->cliente);
+                // Primero una fila con el cliente y los datos del pedido...
+                $sheet->setCellValue('A' . $c, (string) $r->horario);
+                $sheet->setCellValue('B' . $c, $r->fact);
+                $sheet->setCellValue('C' . $c, strtoupper(trim((string) $r->pago)) === 'CONTADO' ? 'SI' : 'NO');
+                $sheet->setCellValue('D' . $c, $r->bs2);
+                $sheet->setCellValue('E' . $c, $r->bs);
+                $sheet->setCellValue('F' . $c, $esBaja ? trim($cuentasBaja[$r->bonificacionId]) : $r->cliente);
+                $sheet->getStyle('F' . $c)->getFont()->setBold(true);
+                $filasCliente[] = $c;
+                // El cliente real de una bonificacion va como observacion del pedido.
+                if ($esBaja) {
+                    $sheet->setCellValue('L' . $c, $r->cliente);
+                    $celdasObs[] = 'L' . $c;
+                }
+                if ($hex) {
+                    $sheet->getStyle('F' . $c)->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB($hex);
+                    $sheet->getStyle('F' . $c)->getFont()->getColor()->setRGB($isDark($hex) ? 'FFFFFF' : '000000');
+                }
+                $c++;
 
+                // ...y debajo una fila por cada producto que pidio.
+                foreach ($ls as $l) {
+                    $sheet->setCellValue('F' . $c, '    ' . $l->producto);
                     $sheet->setCellValueExplicit('G' . $c, $l->cod_prod, DataType::TYPE_STRING);
                     // Solo las 3 primeras letras: el codigo ya lo identifica.
                     $sheet->setCellValue('H' . $c, mb_substr($l->producto, 0, 3));
                     $sheet->setCellValue('I' . $c, $cantidad($l));
 
-                    // Cada producto con su propia observacion; la del cliente
-                    // real de una bonificacion va en la primera fila.
                     $obs = trim((string) $l->Observaciones);
-                    if ($esBaja && $i === 0) {
-                        $obs = $obs === '' ? $r->cliente : $r->cliente . ' - ' . $obs;
-                    }
                     if ($obs !== '') {
                         $sheet->setCellValue('L' . $c, $obs);
                         $celdasObs[] = 'L' . $c;
@@ -1291,10 +1308,6 @@ class ExcelController extends Controller
                 if ($nPedido++ % 2 === 1) {
                     $sheet->getStyle("G{$desde}:K" . ($c - 1))->getFill()
                         ->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB($celeste);
-                }
-                if ($hex) {
-                    $sheet->getStyle("F{$desde}:F" . ($c - 1))->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB($hex);
-                    $sheet->getStyle("F{$desde}:F" . ($c - 1))->getFont()->getColor()->setRGB($isDark($hex) ? 'FFFFFF' : '000000');
                 }
                 $finPedido[] = $c - 1;
             }
@@ -1312,6 +1325,10 @@ class ExcelController extends Controller
         ]);
         $sheet->getStyle('F3:F' . $ultima)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_LEFT);
         $sheet->getStyle('H3:H' . $ultima)->getFont()->setBold(true);
+        // La fila del cliente un poco mas grande que la de sus productos.
+        foreach ($filasCliente as $fila) {
+            $sheet->getStyle("A{$fila}:F{$fila}")->getFont()->setSize(11);
+        }
         foreach ($celdasObs as $celda) {
             $sheet->getStyle($celda)->applyFromArray([
                 'font' => ['bold' => true, 'size' => 9, 'color' => ['rgb' => 'C62828']],

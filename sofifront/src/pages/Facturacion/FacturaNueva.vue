@@ -172,7 +172,9 @@
                   <q-select
                     v-model="item.precio"
                     dense outlined class="col" label="Precio"
+                    emit-value map-options
                     :options="opcionesPrecio(item)"
+                    :option-label="etiquetaPrecio"
                     @update:model-value="sincronizarTotal(item)"
                   />
                   <!-- El total sale de cantidad x precio; ya no se escribe. -->
@@ -251,10 +253,12 @@
             <q-select
               v-model="precioElegido"
               outlined dense class="col-6"
-              label="Precio" prefix="Bs"
+              label="Precio"
               use-input fill-input hide-selected input-debounce="0"
+              emit-value map-options
               new-value-mode="add-unique"
               :options="elegido.precios || []"
+              :option-label="etiquetaPrecio"
               @new-value="precioManual"
             />
             <template v-if="elegido.con_canastillos">
@@ -636,10 +640,18 @@ export default {
     // Los precios de lista del producto; el que ya tiene la linea va siempre,
     // aunque no este en la lista (el del pedido, por ejemplo).
     opcionesPrecio (item) {
-      const lista = [item.precio, ...(item.precios || [])]
-        .map(v => Math.round(Number(v || 0) * 100) / 100)
-        .filter(v => v > 0)
-      return [...new Set(lista)]
+      const lista = (item.precios || []).map(p => ({ label: p.label, value: Number(p.value) }))
+      const actual = Math.round(Number(item.precio || 0) * 100) / 100
+      if (actual > 0 && !lista.some(p => p.value === actual)) {
+        lista.unshift({ label: 'Actual', value: actual })
+      }
+      return lista
+    },
+    // "Precio 3 · Bs 41.90"; un importe escrito a mano llega como numero suelto.
+    etiquetaPrecio (opcion) {
+      if (opcion === null || opcion === undefined || opcion === '') return ''
+      if (typeof opcion !== 'object') return 'Bs ' + this.money(opcion)
+      return opcion.label + ' · Bs ' + this.money(opcion.value)
     },
     agregarAlCarrito () {
       const cant = Number(this.cantidadElegida)

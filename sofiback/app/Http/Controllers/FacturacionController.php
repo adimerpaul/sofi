@@ -707,7 +707,7 @@ class FacturacionController extends Controller
             ->paginate($perPage);
 
         $productos->getCollection()->transform(function ($p) {
-            $p->precios = $this->listaPrecios($p, [$p->precio]);
+            $p->precios = $this->listaPrecios($p, ['Precio 1' => $p->precio]);
             foreach (self::PRECIOS_LISTA as $columna) {
                 unset($p->$columna);
             }
@@ -997,7 +997,7 @@ class FacturacionController extends Controller
             ])
             ->map(function ($item) {
                 // El precio del pedido va primero aunque no este en la lista.
-                $item->precios = $this->listaPrecios($item, [$item->precio, $item->precio1]);
+                $item->precios = $this->listaPrecios($item, ['Pedido' => $item->precio, 'Precio 1' => $item->precio1]);
                 unset($item->precio1);
                 foreach (self::PRECIOS_LISTA as $columna) {
                     unset($item->$columna);
@@ -1604,10 +1604,11 @@ class FacturacionController extends Controller
                 $cambiados = collect($datos['items'])
                     ->filter(function ($item) use ($productos, $delPedido) {
                         $cod = trim($item['cod_prod']);
-                        $permitidos = $this->listaPrecios(
-                            $productos[$cod],
-                            collect($delPedido->get($cod, []))->pluck('precio')->push($productos[$cod]->Precio)->all()
-                        );
+                        $permitidos = $this->listaPrecios($productos[$cod], ['Precio 1' => $productos[$cod]->Precio])
+                            ->pluck('value')
+                            ->merge(collect($delPedido->get($cod, []))->pluck('precio')->map(function ($v) {
+                                return round((float) $v, 2);
+                            }));
                         return !$permitidos->contains(round((float) $item['precio'], 2));
                     })
                     ->map(function ($item) use ($productos) {
@@ -1804,17 +1805,22 @@ class FacturacionController extends Controller
         'Precio9', 'Precio10', 'Precio11', 'Precio12', 'Precio13',
     ];
 
-    /** Precios para elegir en la venta: $primeros + la lista, sin ceros ni repetidos. */
+    /**
+     * Precios para elegir en la venta, con su nombre: [{label, value}].
+     * $primeros va adelante como [nombre => importe] (el del pedido, el
+     * Precio 1); despues Precio 3..13. Sin ceros ni importes repetidos: si dos
+     * coinciden queda el primer nombre.
+     */
     private function listaPrecios($fila, array $primeros)
     {
         $valores = $primeros;
         foreach (self::PRECIOS_LISTA as $columna) {
-            $valores[] = $fila->$columna ?? 0;
+            $valores['Precio ' . substr($columna, 6)] = $fila->$columna ?? 0;
         }
         return collect($valores)
-            ->map(function ($v) { return round((float) $v, 2); })
-            ->filter(function ($v) { return $v > 0; })
-            ->unique()
+            ->map(function ($v, $nombre) { return ['label' => $nombre, 'value' => round((float) $v, 2)]; })
+            ->filter(function ($p) { return $p['value'] > 0; })
+            ->unique('value')
             ->values();
     }
 
