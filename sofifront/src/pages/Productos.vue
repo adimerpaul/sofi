@@ -220,7 +220,7 @@
       <q-card style="width: 640px; max-width: 96vw">
         <q-card-section class="bg-primary text-white q-py-sm">
           <div class="text-subtitle1 text-weight-bold">{{ creando ? 'Nuevo producto' : 'Actualizar producto' }}</div>
-          <div class="text-caption">{{ creando ? 'Se da de alta sin stock' : edicion.cod_prod }}</div>
+          <div class="text-caption">{{ creando ? 'Producto nuevo' : edicion.cod_prod }}</div>
         </q-card-section>
 
         <q-card-section class="row q-col-gutter-sm">
@@ -256,13 +256,28 @@
                sale con un guion en vez del numero. -->
           <q-checkbox v-model="edicion.trozado" class="col-12" label="Trozado (en la impresión no se muestra la cantidad)"/>
 
-          <q-input v-model.number="edicion.Precio" outlined dense type="number" step="0.01" min="0" class="col-6 col-sm-4" label="Precio" prefix="Bs"/>
-          <q-input v-model.number="edicion.Precio_Costo" outlined dense type="number" step="0.01" min="0" class="col-6 col-sm-4" label="Precio costo" prefix="Bs"/>
+          <!-- Stock y compra: la existencia se corrige a mano; la venta y la
+               compra la siguen moviendo despues. -->
+          <q-input
+            v-model.number="edicion.stock_actual" outlined dense type="number" step="0.001"
+            class="col-6 col-sm-4" label="Stock" bg-color="green-1"
+            :suffix="String(edicion.codUnid || '').toLowerCase()"
+          />
+          <q-input
+            v-model.number="edicion.precio_compra" outlined dense type="number" step="0.01" min="0"
+            class="col-6 col-sm-4" label="Precio de compra" prefix="Bs" bg-color="green-1"
+            @update:model-value="v => { if (v === '') edicion.precio_compra = null }"
+          />
           <q-input v-model.number="edicion.precioAprox" outlined dense type="number" step="0.01" min="0" class="col-6 col-sm-4" label="Precio aprox." prefix="Bs"/>
-          <q-input v-model.number="edicion.Precio3" outlined dense type="number" step="0.01" min="0" class="col-6 col-sm-4" label="Precio 3" prefix="Bs"/>
-          <q-input v-model.number="edicion.Precio4" outlined dense type="number" step="0.01" min="0" class="col-6 col-sm-4" label="Precio 4" prefix="Bs"/>
-          <q-input v-model.number="edicion.Precio5" outlined dense type="number" step="0.01" min="0" class="col-6 col-sm-4" label="Precio 5" prefix="Bs"/>
-          <q-input v-model.number="edicion.Precio6" outlined dense type="number" step="0.01" min="0" class="col-6 col-sm-4" label="Precio 6" prefix="Bs"/>
+
+          <div class="col-12 text-caption text-grey-7 q-mt-xs">Precios</div>
+          <q-input v-model.number="edicion.Precio" outlined dense type="number" step="0.01" min="0" class="col-6 col-sm-3" label="Precio 1" prefix="Bs"/>
+          <q-input v-model.number="edicion.Precio_Costo" outlined dense type="number" step="0.01" min="0" class="col-6 col-sm-3" label="Precio costo" prefix="Bs"/>
+          <q-input
+            v-for="n in [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]" :key="n"
+            v-model.number="edicion['Precio' + n]" outlined dense type="number" step="0.01" min="0"
+            class="col-6 col-sm-3" :label="'Precio ' + n" prefix="Bs"
+          />
         </q-card-section>
 
         <q-separator/>
@@ -538,6 +553,15 @@ export default {
         Precio4: 0,
         Precio5: 0,
         Precio6: 0,
+        Precio7: 0,
+        Precio8: 0,
+        Precio9: 0,
+        Precio10: 0,
+        Precio11: 0,
+        Precio12: 0,
+        Precio13: 0,
+        precio_compra: null,
+        stock_actual: 0,
         trozado: false
       }
       this.filaEditada = null
@@ -564,6 +588,17 @@ export default {
         Precio4: Number(row.Precio4) || 0,
         Precio5: Number(row.Precio5) || 0,
         Precio6: Number(row.Precio6) || 0,
+        Precio7: Number(row.Precio7) || 0,
+        Precio8: Number(row.Precio8) || 0,
+        Precio9: Number(row.Precio9) || 0,
+        Precio10: Number(row.Precio10) || 0,
+        Precio11: Number(row.Precio11) || 0,
+        Precio12: Number(row.Precio12) || 0,
+        Precio13: Number(row.Precio13) || 0,
+        // Vacío = sin precio de compra cargado.
+        precio_compra: row.precio_compra === null || row.precio_compra === undefined ? null : Number(row.precio_compra),
+        // La columna "Stock" de la tabla es tbproductos.stock_actual.
+        stock_actual: Number(row.cantidad) || 0,
         // En la tabla es texto ('SI' / 'NO'); en el formulario, un check.
         trozado: this.esTrozado(row)
       }

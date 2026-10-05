@@ -48,7 +48,8 @@ class ProductoController extends Controller{
     /** Campos editables que son numericos; el resto se trata como texto. */
     private const CAMPOS_NUMERICOS = [
         'Precio', 'Precio_Costo', 'Precio3', 'Precio4', 'Precio5', 'Precio6',
-        'precioAprox',
+        'Precio7', 'Precio8', 'Precio9', 'Precio10', 'Precio11', 'Precio12', 'Precio13',
+        'precioAprox', 'stock_actual',
     ];
 
     /**
@@ -119,6 +120,17 @@ class ProductoController extends Controller{
             'Precio4'      => 'nullable|numeric|min:0',
             'Precio5'      => 'nullable|numeric|min:0',
             'Precio6'      => 'nullable|numeric|min:0',
+            'Precio7'      => 'nullable|numeric|min:0',
+            'Precio8'      => 'nullable|numeric|min:0',
+            'Precio9'      => 'nullable|numeric|min:0',
+            'Precio10'     => 'nullable|numeric|min:0',
+            'Precio11'     => 'nullable|numeric|min:0',
+            'Precio12'     => 'nullable|numeric|min:0',
+            'Precio13'     => 'nullable|numeric|min:0',
+            // Existencia (tbproductos.stock_actual): se corrige a mano desde Productos.
+            'stock_actual' => 'nullable|numeric',
+            // Vacio = sin precio de compra cargado.
+            'precio_compra' => 'nullable|numeric|min:0',
             // Precio referencial que se muestra al vendedor; la columna es
             // decimal(10,3) y admite 0 como "sin referencia".
             'precioAprox'  => 'nullable|numeric|min:0',
@@ -146,6 +158,11 @@ class ProductoController extends Controller{
         }
 
         foreach ($datos as $campo => $valor) {
+            // Unica columna numerica que admite null: vacio = sin precio de compra.
+            if ($campo === 'precio_compra') {
+                $producto->precio_compra = $valor === null ? null : round((float) $valor, 2);
+                continue;
+            }
             if (in_array($campo, self::CAMPOS_NUMERICOS, true)) {
                 $producto->$campo = $valor === null ? 0 : round((float) $valor, 3);
                 continue;
@@ -237,6 +254,17 @@ class ProductoController extends Controller{
             'Precio4'      => 'nullable|numeric|min:0',
             'Precio5'      => 'nullable|numeric|min:0',
             'Precio6'      => 'nullable|numeric|min:0',
+            'Precio7'      => 'nullable|numeric|min:0',
+            'Precio8'      => 'nullable|numeric|min:0',
+            'Precio9'      => 'nullable|numeric|min:0',
+            'Precio10'     => 'nullable|numeric|min:0',
+            'Precio11'     => 'nullable|numeric|min:0',
+            'Precio12'     => 'nullable|numeric|min:0',
+            'Precio13'     => 'nullable|numeric|min:0',
+            // Existencia (tbproductos.stock_actual): se corrige a mano desde Productos.
+            'stock_actual' => 'nullable|numeric',
+            // Vacio = sin precio de compra cargado.
+            'precio_compra' => 'nullable|numeric|min:0',
             'precioAprox'  => 'nullable|numeric|min:0',
             'trozado'      => 'nullable|boolean',
         ]);
@@ -272,6 +300,7 @@ class ProductoController extends Controller{
         foreach (self::CAMPOS_NUMERICOS as $campo) {
             $producto->$campo = round((float) ($datos[$campo] ?? 0), 3);
         }
+        $producto->precio_compra = isset($datos['precio_compra']) ? round((float) $datos['precio_compra'], 2) : null;
 
         $producto->save();
 
@@ -392,7 +421,7 @@ class ProductoController extends Controller{
                 'p.Precio', 'p.Precio_Costo', 'p.Precio3', 'p.Precio4', 'p.Precio5',
                 'p.Precio6', 'p.Precio7', 'p.Precio8', 'p.Precio9', 'p.Precio10',
                 'p.Precio11', 'p.Precio12', 'p.Precio13', 'p.PreCosto',
-                'p.precioAprox',
+                'p.precioAprox', 'p.precio_compra',
                 'p.imagen',
                 // Bandera de texto: la pantalla la maneja como check.
                 DB::raw("UPPER(TRIM(COALESCE(p.trozado, 'NO'))) as trozado"),
