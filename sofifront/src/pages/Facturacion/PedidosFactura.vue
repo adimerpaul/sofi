@@ -10,7 +10,7 @@
         <q-select v-model="tipo" dense outlined emit-value map-options :options="tipos"/>
       </div>
       <div class="col">
-        <q-input v-model.trim="buscar" dense outlined clearable placeholder="Pedido o cliente"/>
+        <q-input v-model.trim="buscar" dense outlined clearable debounce="400" placeholder="Pedido o cliente"/>
       </div>
       <div class="col-auto">
         <q-btn color="primary" unelevated dense padding="6px 10px" icon="search" :loading="cargando" @click="cargar">
@@ -137,6 +137,16 @@
               {{ pedido.detalle_pollo.observaciones.join(' · ') }}
             </q-banner>
 
+            <!-- Pollo, cerdo y res: lo que cargo el preventista (cantidades,
+                 precios BS/BS2, horario, pago) a la vista, sin abrir el detalle. -->
+            <div v-if="resumenDetalle(pedido).length" class="rounded-borders q-mt-xs q-px-xs bg-orange-1 text-caption resumen-detalle">
+              <template v-for="(parte, indice) in resumenDetalle(pedido)" :key="'r-' + indice">
+                <span v-if="indice" class="text-grey-6"> · </span>
+                <span class="text-grey-8">{{ parte.etiqueta }} </span>
+                <span class="text-weight-bold">{{ parte.valor }}</span>
+              </template>
+            </div>
+
             <div class="row items-end q-mt-xs">
               <div class="col">
                 <div class="text-caption" :class="pedido.factura_id ? 'text-green-9' : 'text-grey-7'">{{ pedido.productos }} productos</div>
@@ -262,6 +272,7 @@ export default {
       camion: this.$route.query.camion || null,
       buscar: '',
       cargando: false,
+      consultaActual: 0,
       imprimiendo: null,
       pedidos: [],
       tipos: [
@@ -275,9 +286,18 @@ export default {
   created () {
     this.cargar()
   },
+  // Fecha y tipo buscan apenas cambian; el texto, 400 ms despues de dejar de
+  // escribir (debounce del q-input). Enter y el boton siguen buscando al toque.
   watch: {
-    fecha () { this.sincronizarUrl() },
-    tipo () { this.sincronizarUrl() },
+    fecha () {
+      this.sincronizarUrl()
+      this.cargar()
+    },
+    tipo () {
+      this.sincronizarUrl()
+      this.cargar()
+    },
+    buscar () { this.cargar() },
     camion () { this.sincronizarUrl() }
   },
   computed: {
@@ -347,6 +367,20 @@ export default {
     money (valor) {
       return Number(valor || 0).toFixed(2)
     },
+    // Una linea con el detalle de pollo/cerdo/res: productos con cantidad y
+    // precio, y los datos que tengan valor (los vacios no ocupan lugar).
+    resumenDetalle (pedido) {
+      const detalle = pedido.detalle_pollo || {}
+      const productos = (detalle.productos || []).map(dato => ({
+        etiqueta: dato.nombre,
+        valor: [
+          dato.cantidad !== null ? this.cantidad(dato.cantidad) + ' ' + dato.unidad : '',
+          dato.precio ? 'Bs ' + this.money(dato.precio) : ''
+        ].filter(Boolean).join(' ')
+      }))
+      const datos = (detalle.datos || []).filter(dato => dato.valor && dato.valor !== '—')
+      return [...productos, ...datos]
+    },
     cantidad (valor) {
       return Number(valor || 0).toLocaleString('es-BO', { maximumFractionDigits: 3 })
     },
@@ -383,10 +417,16 @@ export default {
       return partes.length > 1 ? partes[1].substr(0, 5) : ''
     },
     cargar () {
+      if (!this.fecha) return
+      // Con varias busquedas seguidas solo vale la ultima: si una anterior
+      // tarda mas en volver, no pisa el resultado nuevo.
+      const consulta = (this.consultaActual || 0) + 1
+      this.consultaActual = consulta
       this.cargando = true
       this.$api.get('facturacion/pedidos', {
         params: { fecha: this.fecha, tipo: this.tipo, buscar: this.buscar || '' }
       }).then(res => {
+        if (consulta !== this.consultaActual) return
         this.pedidos = res.data
         // Si el camion elegido no aparece en la nueva consulta el filtro
         // dejaria la pantalla vacia sin motivo visible: se vuelve a Todos.
@@ -394,11 +434,14 @@ export default {
           this.camion = null
         }
       }).catch(err => {
+        if (consulta !== this.consultaActual) return
         this.$q.notify({
           type: 'negative', position: 'top',
           message: err.response?.data?.message || 'No se pudieron recuperar los pedidos'
         })
-      }).finally(() => { this.cargando = false })
+      }).finally(() => {
+        if (consulta === this.consultaActual) this.cargando = false
+      })
     },
     revisar (pedido) {
       // El camion viaja en la query para que el boton volver del detalle
@@ -495,5 +538,10 @@ export default {
   text-align: right;
   font-size: 11px;
   font-weight: 700;
+}
+.resumen-detalle {
+  line-height: 1.35;
+  padding-top: 2px;
+  padding-bottom: 2px;
 }
 </style>

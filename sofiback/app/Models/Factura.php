@@ -70,6 +70,9 @@ class Factura extends Model
         'anulado_at' => 'datetime',
         // Lo que cambio al editar: ver App\Services\ModificacionFactura.
         'modificacion_campos' => 'array',
+        // Lo que se cambio del pedido al cobrar: ver App\Services\CambioPedido.
+        'cambio_pedido'        => 'boolean',
+        'cambio_pedido_campos' => 'array',
     ];
 
     public function detalles()

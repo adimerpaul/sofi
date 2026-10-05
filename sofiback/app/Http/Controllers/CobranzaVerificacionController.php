@@ -64,6 +64,112 @@ class CobranzaVerificacionController extends Controller
             ->paginate(20, ['id', 'fecha', 'hora', 'tipo_comprobante', 'pedido_nro', 'tipo_pago', 'total', 'estado']);
     }
 
+    /** Busca clientes por nombre o NIT, con cuantos comprobantes le faltan verificar. */
+    public function buscarClientes(Request $request)
+    {
+        $datos = $request->validate(['buscar' => 'required|string|min:2|max:100']);
+        $like = '%' . trim($datos['buscar']) . '%';
+
+        $clientes = DB::table('tbclientes')->where(function ($q) use ($like) {
+            $q->where('Nombres', 'like', $like)->orWhere('Id', 'like', $like);
+        })->orderBy('Nombres')->limit(30)->get(['Cod_Aut as id', 'Nombres as nombre', 'Id as nit']);
+
+        $resumen = $this->resumenClientes($clientes->pluck('id')->all())->keyBy('cliente_id');
+
+        return $clientes->map(function ($c) use ($resumen) {
+            $r = $resumen->get($c->id);
+            return [
+                'id' => (int) $c->id,
+                'nombre' => trim((string) $c->nombre),
+                'nit' => trim((string) $c->nit),
+                'comprobantes' => $r ? (int) $r->comprobantes : 0,
+                'pendientes' => $r ? (int) $r->comprobantes - (int) $r->verificados : 0,
+            ];
+        })->values();
+    }
+
+    /**
+     * Las compras (comprobantes vigentes) de un cliente de todas las fechas,
+     * con la misma fila y el mismo tilde que la verificacion del dia.
+     */
+    public function facturasCliente(Request $request, $cliente)
+    {
+        $datos = $request->validate([
+            'page' => 'nullable|integer|min:1',
+            'estado' => 'nullable|in:pendientes,verificados,todos',
+            'desde' => 'nullable|date',
+            'hasta' => 'nullable|date',
+        ]);
+        $datosCliente = DB::table('tbclientes')->where('Cod_Aut', $cliente)->first(['Cod_Aut', 'Nombres', 'Id']);
+        abort_unless($datosCliente, 404, 'Cliente no encontrado');
+
+        $estado = $datos['estado'] ?? 'todos';
+        $pagina = DB::table('facturas as f')
+            ->leftJoin('cobranza_verificaciones as v', 'v.factura_id', '=', 'f.id')
+            ->where('f.cliente_id', $cliente)
+            ->whereNull('f.deleted_at')
+            ->where('f.estado', 'ACTIVO')
+            ->when($datos['desde'] ?? null, function ($q, $desde) { $q->where('f.fecha', '>=', $desde); })
+            ->when($datos['hasta'] ?? null, function ($q, $hasta) { $q->where('f.fecha', '<=', $hasta); })
+            ->when($estado === 'pendientes', function ($q) {
+                $q->where(function ($w) { $w->whereNull('v.id')->orWhere('v.verificado', 0); });
+            })
+            ->when($estado === 'verificados', function ($q) { $q->where('v.verificado', 1); })
+            ->orderByDesc('f.fecha')->orderByDesc('f.hora')->orderByDesc('f.id')
+            ->paginate(30, ['f.id']);
+
+        $ids = collect($pagina->items())->pluck('id')->map(function ($id) { return (int) $id; })->all();
+        $orden = array_flip($ids);
+        $filas = $ids ? $this->filas(null, null, $ids)->sortBy(function ($f) use ($orden) {
+            return $orden[$f['factura_id']];
+        })->values() : collect();
+
+        $resumen = $this->resumenClientes([(int) $cliente])->first();
+
+        return [
+            'cliente' => [
+                'id' => (int) $datosCliente->Cod_Aut,
+                'nombre' => trim((string) $datosCliente->Nombres),
+                'nit' => trim((string) $datosCliente->Id),
+            ],
+            'filas' => $filas,
+            'pagina' => $pagina->currentPage(),
+            'paginas' => $pagina->lastPage(),
+            'total' => $pagina->total(),
+            // Resumen de todas las compras del cliente, sin filtros.
+            'totales' => [
+                'comprobantes' => $resumen ? (int) $resumen->comprobantes : 0,
+                'verificados' => $resumen ? (int) $resumen->verificados : 0,
+                'facturado' => $resumen ? round((float) $resumen->facturado, 2) : 0,
+                'verificado' => $resumen ? round((float) $resumen->verificado, 2) : 0,
+                'por_verificar' => $resumen ? round((float) $resumen->facturado - (float) $resumen->facturado_verificado, 2) : 0,
+            ],
+        ];
+    }
+
+    /** Conteos y montos de los comprobantes vigentes de varios clientes. */
+    private function resumenClientes(array $clientes)
+    {
+        if (!$clientes) {
+            return collect();
+        }
+
+        return DB::table('facturas as f')
+            ->leftJoin('cobranza_verificaciones as v', 'v.factura_id', '=', 'f.id')
+            ->whereIn('f.cliente_id', $clientes)
+            ->whereNull('f.deleted_at')
+            ->where('f.estado', 'ACTIVO')
+            ->groupBy('f.cliente_id')
+            ->get([
+                'f.cliente_id',
+                DB::raw('COUNT(*) as comprobantes'),
+                DB::raw('SUM(CASE WHEN v.verificado = 1 THEN 1 ELSE 0 END) as verificados'),
+                DB::raw('SUM(f.total) as facturado'),
+                DB::raw('SUM(CASE WHEN v.verificado = 1 THEN f.total ELSE 0 END) as facturado_verificado'),
+                DB::raw('SUM(CASE WHEN v.verificado = 1 THEN v.monto_verificado ELSE 0 END) as verificado'),
+            ]);
+    }
+
     /** Tilda (o destilda) un comprobante con el monto que se recibio. */
     public function verificar(Request $request)
     {
@@ -259,7 +365,8 @@ class CobranzaVerificacionController extends Controller
 
     /**
      * Los comprobantes vigentes de un dia, con su camion, lo que marco el
-     * caminero y la verificacion de cobranzas.
+     * caminero y la verificacion de cobranzas. $facturaId puede ser un id o
+     * una lista de ids (las compras de un cliente).
      */
     private function filas($fecha, $camion, $facturaId = null)
     {
@@ -268,7 +375,7 @@ class CobranzaVerificacionController extends Controller
             ->whereNull('f.deleted_at')
             ->where('f.estado', 'ACTIVO')
             ->when($fecha, function ($q) use ($fecha) { $q->where('f.fecha', $fecha); })
-            ->when($facturaId, function ($q) use ($facturaId) { $q->where('f.id', $facturaId); })
+            ->when($facturaId, function ($q) use ($facturaId) { $q->whereIn('f.id', (array) $facturaId); })
             ->orderBy('f.hora')
             ->get([
                 'f.id', 'f.cliente_id', 'f.fecha', 'f.hora', 'f.tipo_comprobante', 'f.tipo_pago', 'f.total', 'f.pedido_nro', 'f.pedido_tipo',

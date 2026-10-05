@@ -198,6 +198,15 @@
                 <q-badge :color="cliente.venta=='ACTIVO'?'green':'negative'" class="text-h5">{{ cliente.venta }}
                 </q-badge>
               </div>
+              <!-- El bloqueo lo calcula DeudaCliente::bloquear (sofiback/app/Services), desde Clientes o el Kernel (9, 15 y 18 h de lunes a viernes).
+                   No impide registrar el pedido: lo retiene y no se envía a despacho hasta que se desbloquee. -->
+              <q-banner v-if="cliente.venta=='INACTIVO'" dense class="bg-red-1 text-negative q-my-sm" rounded>
+                <template v-slot:avatar>
+                  <q-icon name="block" color="negative"/>
+                </template>
+                Cliente bloqueado por deuda (cobranzas/créditos): debe más de 12 000 Bs o tiene una deuda pendiente de más de 9 días.
+                El pedido se puede registrar, pero no se enviará a despacho hasta que pague o lo desbloqueen.
+              </q-banner>
               <div>
 <!--                <pre>{{ cliente.fotografias }}</pre>-->
 <!--                <q-img :src="cliente.fotografias" style="max-width: 150px; max-height: 150px"/>-->
