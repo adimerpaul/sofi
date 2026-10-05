@@ -1405,6 +1405,8 @@ class ExcelController extends Controller
             $resumen->getColumnDimension($col)->setWidth(11);
         }
 
+        $this->hojaPorVendedor($spreadsheet->createSheet(), $fecha, $especie, $codigos, $lineas, $cantidad);
+
         $spreadsheet->setActiveSheetIndex(0);
 
         $filename = 'Preparacion_' . ucfirst($especie) . '_' . $fecha . '.xlsx';
@@ -1413,6 +1415,102 @@ class ExcelController extends Controller
         header('Cache-Control: max-age=0');
         (new Xlsx($spreadsheet))->save('php://output');
         exit;
+    }
+
+    /**
+     * Reporte del dia: cuanto pidio cada preventista de cada codigo, con el
+     * total abajo. Van todos los codigos de la lista aunque nadie los haya
+     * pedido, como la planilla de papel. Si un codigo se pidio en unidades
+     * distintas (u, cja, kg) lleva una columna por unidad, porque no se suman.
+     */
+    private function hojaPorVendedor($hoja, $fecha, $especie, array $codigos, array $lineas, callable $cantidad)
+    {
+        $hoja->setTitle('Por vendedor');
+
+        // [codigo][unidad][preventista] => suma; y las unidades en el orden en que aparecen.
+        $sumas = [];
+        $unidades = array_fill_keys($codigos, []);
+        $nombres = [];
+        $vendedores = [];
+        foreach ($lineas as $l) {
+            $partes = explode(' ', $cantidad($l));
+            $unidad = count($partes) > 1 ? end($partes) : '';
+            $prev = $l->preventista !== '' ? $l->preventista : 'SIN PREVENTISTA';
+            $unidades[$l->cod_prod][$unidad] = true;
+            $nombres[$l->cod_prod] = $l->producto;
+            $vendedores[$prev] = true;
+            $sumas[$l->cod_prod][$unidad][$prev] = ($sumas[$l->cod_prod][$unidad][$prev] ?? 0) + (float) $l->Cant;
+        }
+        ksort($vendedores);
+
+        $columnas = [];
+        foreach ($codigos as $cod) {
+            $us = array_keys($unidades[$cod]) ?: [''];
+            foreach ($us as $u) {
+                $columnas[] = [$cod, $u];
+            }
+        }
+        // Los codigos que nadie pidio tambien llevan su nombre.
+        $faltan = array_values(array_diff($codigos, array_keys($nombres)));
+        if ($faltan) {
+            $nombres += DB::table('tbproductos')->whereIn(DB::raw('TRIM(cod_prod)'), $faltan)
+                ->get([DB::raw('TRIM(cod_prod) as cod'), 'Producto'])
+                ->pluck('Producto', 'cod')->all();
+        }
+
+        $colFin = Coordinate::stringFromColumnIndex(1 + count($columnas));
+        $hoja->setCellValue('A1', 'REPORTE DEL DIA - ' . strtoupper($especie) . '   ' . $fecha);
+        $hoja->mergeCells('A1:' . $colFin . '1');
+        $hoja->getStyle('A1')->getFont()->setBold(true)->setSize(13)->getColor()->setRGB('C62828');
+
+        $hoja->setCellValue('A2', 'Código');
+        $hoja->setCellValue('A3', 'Producto');
+        $hoja->setCellValue('A4', 'Unidad');
+        foreach ($columnas as $i => [$cod, $u]) {
+            $col = Coordinate::stringFromColumnIndex(2 + $i);
+            $hoja->setCellValueExplicit($col . '2', $cod, DataType::TYPE_STRING);
+            $hoja->setCellValue($col . '3', mb_substr(trim((string) ($nombres[$cod] ?? '')), 0, 3));
+            $hoja->setCellValue($col . '4', $u);
+        }
+        $hoja->getStyle('A2:' . $colFin . '4')->applyFromArray([
+            'font' => ['bold' => true],
+            'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'DDEBF7']],
+        ]);
+
+        $fila = 5;
+        foreach (array_keys($vendedores) as $prev) {
+            $hoja->setCellValue('A' . $fila, $prev);
+            foreach ($columnas as $i => [$cod, $u]) {
+                $valor = $sumas[$cod][$u][$prev] ?? null;
+                if ($valor) {
+                    $hoja->setCellValue(Coordinate::stringFromColumnIndex(2 + $i) . $fila, round($valor, 2));
+                }
+            }
+            $fila++;
+        }
+
+        $hoja->setCellValue('A' . $fila, 'TOTAL');
+        foreach ($columnas as $i => $_) {
+            $col = Coordinate::stringFromColumnIndex(2 + $i);
+            $hoja->setCellValue($col . $fila, $fila > 5 ? '=SUM(' . $col . '5:' . $col . ($fila - 1) . ')' : 0);
+        }
+        $hoja->getStyle('A' . $fila . ':' . $colFin . $fila)->applyFromArray([
+            'font' => ['bold' => true],
+            'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'F8CBAD']],
+        ]);
+
+        $hoja->getStyle('A2:' . $colFin . $fila)->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_THIN);
+        $hoja->getStyle('B2:' . $colFin . $fila)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+        $hoja->getStyle('B5:' . $colFin . $fila)->getNumberFormat()->setFormatCode('#,##0.##');
+        $hoja->getStyle('A5:A' . $fila)->getFont()->setBold(true);
+        $hoja->getColumnDimension('A')->setWidth(24);
+        foreach ($columnas as $i => $_) {
+            $hoja->getColumnDimension(Coordinate::stringFromColumnIndex(2 + $i))->setWidth(8.5);
+        }
+        $hoja->freezePane('B5');
+        $hoja->getPageSetup()->setOrientation(PageSetup::ORIENTATION_LANDSCAPE)
+            ->setPaperSize(PageSetup::PAPERSIZE_LETTER)
+            ->setFitToWidth(1)->setFitToHeight(0);
     }
 
     public function generarXlsBrasa($fecha)

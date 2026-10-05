@@ -51,18 +51,23 @@
         <div class="row">
           <div class="col-xs-12 col-md-12">
             <div style="height: 450px; width: 100%;" :class="{ 'mapa-cuadro': modoCuadro }">
+              <!-- max-zoom explicito: si no, vue-leaflet manda maxZoom undefined a la
+                   capa, Leaflet lo vuelve NaN y al hacer zoom da "infinite number of tiles". -->
               <l-map
-                v-model="zoom"
-                :zoom="zoom"
+                v-model:zoom="zoom"
                 :center="center"
+                :min-zoom="3"
+                :max-zoom="19"
                 @ready="mapaListo"
               >
                 <LTileLayer
                   url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                  :min-zoom="3"
+                  :max-zoom="19"
                 ></LTileLayer>
                 <LGeoJson :geojson="geojsonData" :options="geoJsonOptions"/>
                 <l-marker
-                  v-for="(pedido, i) in clientes"
+                  v-for="(pedido, i) in clientesEnMapa"
                   :key="i"
                   :lat-lng="[parseFloat(pedido.Latitud), parseFloat(pedido.longitud)]"
                   @click="toggleSeleccion(pedido)"
@@ -728,6 +733,12 @@ export default {
       usuario: []
     }
   },
+  computed: {
+    // Solo clientes con coordenadas: un marcador con lat/lng vacio rompe el mapa
+    clientesEnMapa() {
+      return this.clientes.filter(c => !isNaN(parseFloat(c.Latitud)) && !isNaN(parseFloat(c.longitud)));
+    }
+  },
   mounted() {
     // ordernar zonas por zona
     this.colores.sort((a, b) => a.zona.localeCompare(b.zona));
@@ -986,8 +997,12 @@ export default {
       });
     },
     toggleSeleccionZoom(cliente) {
-      this.center = [cliente.Latitud, cliente.longitud];
-      this.zoom = 17;
+      const lat = parseFloat(cliente.Latitud);
+      const lng = parseFloat(cliente.longitud);
+      if (!isNaN(lat) && !isNaN(lng)) {
+        this.center = [lat, lng];
+        this.zoom = 17;
+      }
       cliente.selected = !cliente.selected;
       if (cliente.selected) {
         this.seleccionados.push(cliente);
