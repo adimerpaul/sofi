@@ -833,7 +833,7 @@ class FacturacionController extends Controller
             ->orderByDesc('p.NroPed')
             ->get([
                 'p.NroPed as nro_pedido',
-                DB::raw(TipoPedido::sql('p') . ' as tipo'),
+                DB::raw(TipoPedido::sqlAgrupado('p') . ' as tipo'),
                 DB::raw('MIN(p.fecha) as fecha'),
                 DB::raw('MIN(p.estado) as estado'),
                 DB::raw('MIN(p.fact) as fact'),

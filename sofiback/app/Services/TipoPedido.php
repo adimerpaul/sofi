@@ -47,6 +47,17 @@ class TipoPedido
             . " THEN 'PODIUM' ELSE UPPER(TRIM({$a}tipo)) END)";
     }
 
+    /**
+     * Para el SELECT de una consulta agrupada por sql(): con ONLY_FULL_GROUP_BY
+     * (el servidor lo tiene, local no) MySQL rechaza la expresion suelta porque
+     * usa cod_prod, que no esta en el GROUP BY. Dentro del grupo el tipo es
+     * uno solo, asi que MIN() da lo mismo y pasa en cualquier modo.
+     */
+    public static function sqlAgrupado($alias = 'p')
+    {
+        return 'MIN' . self::sql($alias);
+    }
+
     private static function lista(array $codigos)
     {
         // Son constantes de esta clase (solo digitos): se pueden escribir en el SQL.

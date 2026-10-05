@@ -395,7 +395,7 @@ class CobranzaVerificacionController extends Controller
             ->where('bonificacion', 0)
             ->groupBy('NroPed', DB::raw(TipoPedido::sql('')))
             ->get([
-                'NroPed', DB::raw(TipoPedido::sql('') . ' as tipo'),
+                'NroPed', DB::raw(TipoPedido::sqlAgrupado('') . ' as tipo'),
                 DB::raw("TRIM(COALESCE(MIN(placa), '')) as placa"),
                 DB::raw("TRIM(COALESCE(MIN(colorStyle), '')) as color"),
             ])

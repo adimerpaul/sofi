@@ -78,7 +78,7 @@ class CamineroController extends Controller
                 ->groupBy('NroPed', DB::raw(TipoPedido::sql('')))
                 ->get([
                     'NroPed as nro_pedido',
-                    DB::raw(TipoPedido::sql('') . ' as tipo'),
+                    DB::raw(TipoPedido::sqlAgrupado('') . ' as tipo'),
                     DB::raw("TRIM(COALESCE(MIN(placa), '')) as placa"),
                     DB::raw("TRIM(COALESCE(MIN(colorStyle), '')) as placa_color"),
                     DB::raw('MIN(fecha) as pedido_fecha'),
