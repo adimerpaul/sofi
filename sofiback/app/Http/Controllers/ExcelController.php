@@ -21,6 +21,7 @@ class ExcelController extends Controller
     const POLLO_PREPARACION = [
         '500106', '500107', '500108', '500109', '501600', '501601',
         '501604', '501606', '501704', '502102', '502108', '502106', '502109',
+        '502101', '501118', '501117', '501114', '501115', '501119',
     ];
 
     /** Codigos de cerdo que van a la hoja de preparacion. */
