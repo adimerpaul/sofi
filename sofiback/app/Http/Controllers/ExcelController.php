@@ -20,7 +20,7 @@ class ExcelController extends Controller
     /** Codigos de pollo que van a la hoja de preparacion. */
     const POLLO_PREPARACION = [
         '500106', '500107', '500108', '500109', '501600', '501601',
-        '501604', '501606', '501704', '502102', '502108', '502106',
+        '501604', '501606', '501704', '502102', '502108', '502106', '502109',
     ];
 
     /** Codigos de cerdo que van a la hoja de preparacion. */
@@ -1175,7 +1175,9 @@ class ExcelController extends Controller
             "SELECT p.NroPed, p.CIfunc, TRIM(p.cod_prod) AS cod_prod, p.Cant, UPPER(TRIM(p.caja)) AS caja,
                     p.Observaciones, p.fact, p.pago, p.bs, p.bs2, p.horario, p.color, p.bonificacionId,
                     TRIM(c.Nombres) AS cliente, TRIM(pr.Producto) AS producto, UPPER(TRIM(pr.tipo)) AS tipo_prod,
-                    TRIM(pr.codUnid) AS unidad,
+                    TRIM(pr.codUnid) AS unidad, p.precio AS precio_pedido,
+                    pr.Precio, pr.Precio_Costo, pr.Precio3, pr.Precio4, pr.Precio5, pr.Precio6, pr.Precio7,
+                    pr.Precio8, pr.Precio9, pr.Precio10, pr.Precio11, pr.Precio12, pr.Precio13,
                     TRIM(CONCAT_WS(' ', NULLIF(TRIM(pe.Nombre1), ''), NULLIF(TRIM(pe.App1), ''))) AS preventista
              FROM tbpedidos p
              INNER JOIN tbproductos pr ON pr.cod_prod = p.cod_prod
@@ -1220,18 +1222,18 @@ class ExcelController extends Controller
 
         // Cada pedido es una fila con el cliente y debajo sus productos, uno
         // por fila con el nombre completo en la columna F. Columnas fijas:
-        // A-F pedido y cliente, G-K el producto y L la observacion.
-        $colFin = 'L';
+        // A-F pedido y cliente, G-L el producto (con el precio que eligio el preventista) y M la observacion.
+        $colFin = 'M';
         $celeste = 'DDEBF7';
 
         $sheet->setCellValue('F1', 'FECHA: ' . $fecha);
         $sheet->setCellValue('G1', 'HOJA DE PESOS ' . strtoupper($especie));
-        $sheet->mergeCells('G1:L1');
-        $sheet->getStyle('A1:L1')->getFont()->setBold(true)->setSize(12)->getColor()->setRGB('C62828');
+        $sheet->mergeCells('G1:M1');
+        $sheet->getStyle('A1:M1')->getFont()->setBold(true)->setSize(12)->getColor()->setRGB('C62828');
 
         $sheet->fromArray(['HORARIO', 'FACTURA', 'CONTADO', 'P. TROZADO', 'P. POLLO', 'CLIENTE',
-            'Prod', 'Nom', 'Nº Cja', 'Bruto', 'Neto', 'Obs.'], null, 'A2');
-        $sheet->getStyle('A2:L2')->applyFromArray([
+            'Prod', 'Nom', 'Nº Cja', 'Precio', 'Bruto', 'Neto', 'Obs.'], null, 'A2');
+        $sheet->getStyle('A2:M2')->applyFromArray([
             'font' => ['bold' => true, 'size' => 9],
             'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER, 'vertical' => Alignment::VERTICAL_CENTER],
         ]);
@@ -1254,7 +1256,7 @@ class ExcelController extends Controller
             // Fila del preventista en gris oscuro, para no confundirla con la
             // fila de cada cliente que va debajo.
             $sheet->setCellValue('F' . $c, 'PREVENTISTA: ' . $preventista);
-            $sheet->getStyle("A{$c}:L{$c}")->applyFromArray([
+            $sheet->getStyle("A{$c}:M{$c}")->applyFromArray([
                 'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
                 'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => '595959']],
             ]);
@@ -1279,8 +1281,8 @@ class ExcelController extends Controller
                 $filasCliente[] = $c;
                 // El cliente real de una bonificacion va como observacion del pedido.
                 if ($esBaja) {
-                    $sheet->setCellValue('L' . $c, $r->cliente);
-                    $celdasObs[] = 'L' . $c;
+                    $sheet->setCellValue('M' . $c, $r->cliente);
+                    $celdasObs[] = 'M' . $c;
                 }
                 if ($hex) {
                     $sheet->getStyle('F' . $c)->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB($hex);
@@ -1295,18 +1297,19 @@ class ExcelController extends Controller
                     // Solo las 3 primeras letras: el codigo ya lo identifica.
                     $sheet->setCellValue('H' . $c, mb_substr($l->producto, 0, 3));
                     $sheet->setCellValue('I' . $c, $cantidad($l));
+                    $sheet->setCellValue('J' . $c, $this->precioElegido($l));
 
                     $obs = trim((string) $l->Observaciones);
                     if ($obs !== '') {
-                        $sheet->setCellValue('L' . $c, $obs);
-                        $celdasObs[] = 'L' . $c;
+                        $sheet->setCellValue('M' . $c, $obs);
+                        $celdasObs[] = 'M' . $c;
                     }
                     $c++;
                 }
 
                 // Pedidos alternados en celeste para ver donde empieza cada uno.
                 if ($nPedido++ % 2 === 1) {
-                    $sheet->getStyle("G{$desde}:K" . ($c - 1))->getFill()
+                    $sheet->getStyle("G{$desde}:L" . ($c - 1))->getFill()
                         ->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB($celeste);
                 }
                 $finPedido[] = $c - 1;
@@ -1315,11 +1318,11 @@ class ExcelController extends Controller
 
         // Denso: letra chica y filas bajas para ver mas pedidos por pantalla.
         $ultima = max($c - 1, 2);
-        $sheet->getStyle('A2:L' . $ultima)->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_THIN);
+        $sheet->getStyle('A2:M' . $ultima)->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_THIN);
         foreach ($finPedido as $fila) {
-            $sheet->getStyle("A{$fila}:L{$fila}")->getBorders()->getBottom()->setBorderStyle(Border::BORDER_MEDIUM);
+            $sheet->getStyle("A{$fila}:M{$fila}")->getBorders()->getBottom()->setBorderStyle(Border::BORDER_MEDIUM);
         }
-        $sheet->getStyle('A3:L' . $ultima)->applyFromArray([
+        $sheet->getStyle('A3:M' . $ultima)->applyFromArray([
             'font' => ['size' => 10],
             'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER, 'vertical' => Alignment::VERTICAL_CENTER],
         ]);
@@ -1346,10 +1349,11 @@ class ExcelController extends Controller
         $sheet->getColumnDimension('F')->setWidth(32);
         $sheet->getColumnDimension('G')->setWidth(8);
         $sheet->getColumnDimension('H')->setWidth(6);
-        foreach (['I', 'J', 'K'] as $col) {
+        foreach (['I', 'K', 'L'] as $col) {
             $sheet->getColumnDimension($col)->setWidth(9);
         }
-        $sheet->getColumnDimension('L')->setWidth(32);
+        $sheet->getColumnDimension('J')->setWidth(15);
+        $sheet->getColumnDimension('M')->setWidth(32);
         $sheet->freezePane('G3');
         $sheet->getSheetView()->setZoomScale(70);
 
@@ -1405,6 +1409,28 @@ class ExcelController extends Controller
         header('Cache-Control: max-age=0');
         (new Xlsx($spreadsheet))->save('php://output');
         exit;
+    }
+
+    /**
+     * Que precio de la lista eligio el preventista: "Precio 3 · 25.00".
+     *
+     * Misma numeracion que la pantalla de pedidos: Precio es el 1, Precio_Costo
+     * el 2 (nombre heredado, no es el costo) y despues Precio3..Precio13. Si
+     * dos valen lo mismo cuenta el primero, como en la lista del preventista.
+     * Un precio que no esta en la lista sale solo con el importe.
+     */
+    private function precioElegido($linea)
+    {
+        $precio = round((float) $linea->precio_pedido, 2);
+        $campos = ['Precio', 'Precio_Costo', 'Precio3', 'Precio4', 'Precio5', 'Precio6', 'Precio7',
+            'Precio8', 'Precio9', 'Precio10', 'Precio11', 'Precio12', 'Precio13'];
+        foreach ($campos as $i => $campo) {
+            $valor = round((float) ($linea->$campo ?? 0), 2);
+            if ($valor > 0 && abs($valor - $precio) < 0.005) {
+                return 'Precio ' . ($i + 1) . ' · ' . number_format($precio, 2, '.', '');
+            }
+        }
+        return $precio > 0 ? 'Bs ' . number_format($precio, 2, '.', '') : '';
     }
 
     /**

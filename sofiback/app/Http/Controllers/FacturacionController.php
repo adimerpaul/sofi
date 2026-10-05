@@ -1014,14 +1014,14 @@ class FacturacionController extends Controller
                 DB::raw("NULLIF(TRIM(p.caja), '') as caja"),
                 DB::raw('COALESCE(p.precio, 0) as precio'),
                 // La lista de precios del producto, para el select del carrito.
-                DB::raw('pr.Precio as precio1'),
+                DB::raw('pr.Precio as precio1'), 'pr.Precio_Costo',
                 'pr.Precio3', 'pr.Precio4', 'pr.Precio5', 'pr.Precio6', 'pr.Precio7', 'pr.Precio8',
                 'pr.Precio9', 'pr.Precio10', 'pr.Precio11', 'pr.Precio12', 'pr.Precio13',
             ])
             ->map(function ($item) {
                 // El precio del pedido va primero aunque no este en la lista.
                 $item->precios = $this->listaPrecios($item, ['Pedido' => $item->precio, 'Precio 1' => $item->precio1]);
-                unset($item->precio1);
+                unset($item->precio1, $item->Precio_Costo);
                 foreach (self::PRECIOS_LISTA as $columna) {
                     unset($item->$columna);
                 }
@@ -1841,6 +1841,9 @@ class FacturacionController extends Controller
     private function listaPrecios($fila, array $primeros)
     {
         $valores = $primeros;
+        // Precio_Costo es el Precio 2 del preventista (nombre heredado, no es
+        // el costo); el catalogo lo trae con el alias "costo".
+        $valores['Precio 2'] = $fila->Precio_Costo ?? $fila->costo ?? 0;
         foreach (self::PRECIOS_LISTA as $columna) {
             $valores['Precio ' . substr($columna, 6)] = $fila->$columna ?? 0;
         }
