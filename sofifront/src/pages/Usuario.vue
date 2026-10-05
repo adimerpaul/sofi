@@ -4,11 +4,14 @@
     <div class="col-12 col-md-3">
       <q-card flat bordered>
         <q-card-section class="q-pa-xs">
-          <q-input outlined dense debounce="300" v-model="filter" placeholder="Buscar por nombre o CI" clearable>
-            <template v-slot:append>
-              <q-icon name="search" size="18px"/>
-            </template>
-          </q-input>
+          <div class="row no-wrap q-gutter-x-xs">
+            <q-input outlined dense debounce="300" v-model="filter" placeholder="Buscar por nombre o CI" clearable class="col">
+              <template v-slot:append>
+                <q-icon name="search" size="18px"/>
+              </template>
+            </q-input>
+            <q-btn color="positive" icon="person_add" dense no-caps label="Nuevo" @click="nuevoUsuario"/>
+          </div>
         </q-card-section>
         <q-list separator dense class="lista-usuarios">
           <q-item
@@ -36,6 +39,10 @@
             <span class="text-subtitle2">{{ nombreCompleto(usuario) }}</span>
             <span class="text-caption text-grey q-ml-sm">CI: {{ (usuario.ci || '').trim() }}</span>
           </div>
+          <q-btn flat round dense color="primary" icon="edit" size="sm" @click="editarUsuario">
+            <q-tooltip>Modificar datos del usuario</q-tooltip>
+          </q-btn>
+          <span class="text-caption text-grey" v-if="usuario.placa">Camión: {{ usuario.placa }}</span>
           <q-space/>
           <q-btn outline color="positive" icon="done_all" label="Todo" size="sm" dense no-caps @click="marcarTodo"/>
           <q-btn outline color="negative" icon="remove_done" label="Ninguno" size="sm" dense no-caps @click="quitarTodo"/>
@@ -82,6 +89,62 @@
       </q-card>
     </div>
   </div>
+
+  <q-dialog v-model="dialogUsuario" persistent>
+    <q-card style="width: 480px; max-width: 95vw">
+      <q-card-section class="row items-center q-pb-none">
+        <div class="text-subtitle1 text-weight-bold">{{ form.CodAut ? 'Modificar usuario' : 'Nuevo usuario' }}</div>
+        <q-space/>
+        <q-btn icon="close" flat round dense v-close-popup/>
+      </q-card-section>
+      <q-form @submit="guardarUsuario">
+        <q-card-section class="q-gutter-y-sm">
+          <div class="row q-col-gutter-sm">
+            <div class="col-6">
+              <q-input outlined dense v-model="form.ci" label="Carnet (CI) *" maxlength="15" :rules="[v => !!(v && v.trim()) || 'Requerido']" hide-bottom-space/>
+            </div>
+            <div class="col-6">
+              <q-input outlined dense v-model="form.pasw" :type="verPasw ? 'text' : 'password'" maxlength="15"
+                       :label="form.CodAut ? 'Nueva contraseña' : 'Contraseña *'"
+                       :hint="form.CodAut ? 'Vacío = no cambia' : ''"
+                       :rules="[v => !!form.CodAut || !!(v && v.trim()) || 'Requerido']" hide-bottom-space>
+                <template v-slot:append>
+                  <q-icon :name="verPasw ? 'visibility_off' : 'visibility'" class="cursor-pointer" @click="verPasw = !verPasw"/>
+                </template>
+              </q-input>
+            </div>
+            <div class="col-6">
+              <q-input outlined dense v-model="form.Nombre1" label="Primer nombre *" maxlength="15" :rules="[v => !!(v && v.trim()) || 'Requerido']" hide-bottom-space/>
+            </div>
+            <div class="col-6">
+              <q-input outlined dense v-model="form.Nombre2" label="Segundo nombre" maxlength="15"/>
+            </div>
+            <div class="col-6">
+              <q-input outlined dense v-model="form.App1" label="Apellido paterno *" maxlength="20" :rules="[v => !!(v && v.trim()) || 'Requerido']" hide-bottom-space/>
+            </div>
+            <div class="col-6">
+              <q-input outlined dense v-model="form.Apm" label="Apellido materno" maxlength="20"/>
+            </div>
+            <div class="col-6">
+              <q-input outlined dense v-model="form.Fech_naci" type="date" label="Fecha de nacimiento" stack-label/>
+            </div>
+            <div class="col-6">
+              <q-select outlined dense v-model="form.placa" :options="placasFiltradas" label="Camión (caminero)"
+                        use-input fill-input hide-selected input-debounce="0" clearable
+                        new-value-mode="add-unique" @filter="filtrarPlacas" @input-value="v => form.placa = v"/>
+            </div>
+            <div class="col-12">
+              <q-input outlined dense v-model="form.direccion" label="Dirección" maxlength="250"/>
+            </div>
+          </div>
+        </q-card-section>
+        <q-card-actions align="right">
+          <q-btn flat no-caps label="Cancelar" v-close-popup/>
+          <q-btn color="primary" no-caps icon="save" label="Guardar" type="submit" :loading="guardandoUsuario"/>
+        </q-card-actions>
+      </q-form>
+    </q-card>
+  </q-dialog>
 </q-page>
 </template>
 
@@ -98,7 +161,13 @@ export default {
       permisos: [],
       rolesUsuario: [],
       permisosUsuario: [],
-      guardando: false
+      guardando: false,
+      placas: [],
+      placasFiltradas: [],
+      dialogUsuario: false,
+      guardandoUsuario: false,
+      verPasw: false,
+      form: {}
     }
   },
   computed: {
@@ -147,10 +216,59 @@ export default {
         this.usuarios = resUsers.data
         this.roles = resPerms.data.roles
         this.permisos = resPerms.data.permisos
+        this.placas = resPerms.data.placas || []
       }).catch(() => {
         this.$q.notify({ type: 'negative', message: 'Error al cargar usuarios y permisos' })
       }).finally(() => {
         this.$q.loading.hide()
+      })
+    },
+    filtrarPlacas(val, update) {
+      update(() => {
+        const f = (val || '').toLowerCase()
+        this.placasFiltradas = this.placas.filter(p => p.toLowerCase().includes(f))
+      })
+    },
+    nuevoUsuario() {
+      this.form = { CodAut: null, ci: '', pasw: '', Nombre1: '', Nombre2: '', App1: '', Apm: '', Fech_naci: '', direccion: '', placa: null }
+      this.verPasw = false
+      this.dialogUsuario = true
+    },
+    editarUsuario() {
+      this.$q.loading.show()
+      this.$api.get('user/' + this.usuario.CodAut).then(res => {
+        this.form = { ...res.data, pasw: '' }
+        this.verPasw = false
+        this.dialogUsuario = true
+      }).catch(() => {
+        this.$q.notify({ type: 'negative', message: 'Error al cargar los datos del usuario' })
+      }).finally(() => {
+        this.$q.loading.hide()
+      })
+    },
+    guardarUsuario() {
+      this.guardandoUsuario = true
+      const datos = { ...this.form, placa: (this.form.placa || '').trim() }
+      const peticion = datos.CodAut
+        ? this.$api.put('user/' + datos.CodAut, datos)
+        : this.$api.post('user', datos)
+      peticion.then(res => {
+        const u = res.data
+        const i = this.usuarios.findIndex(x => String(x.CodAut) === String(u.CodAut))
+        if (i >= 0) this.usuarios.splice(i, 1, { ...this.usuarios[i], ...u })
+        else this.usuarios.push(u)
+        if (u.placa && !this.placas.includes(u.placa)) this.placas = [...this.placas, u.placa].sort()
+        this.dialogUsuario = false
+        this.$q.notify({ type: 'positive', message: datos.CodAut ? 'Usuario modificado' : 'Usuario creado' })
+        if (!datos.CodAut || (this.usuario && String(this.usuario.CodAut) === String(u.CodAut))) {
+          this.seleccionar(this.usuarios.find(x => String(x.CodAut) === String(u.CodAut)))
+        }
+      }).catch(err => {
+        const data = (err.response && err.response.data) || {}
+        const errores = data.errors ? Object.values(data.errors).flat().join(' ') : ''
+        this.$q.notify({ type: 'negative', message: errores || data.message || 'Error al guardar el usuario' })
+      }).finally(() => {
+        this.guardandoUsuario = false
       })
     },
     seleccionar(u) {

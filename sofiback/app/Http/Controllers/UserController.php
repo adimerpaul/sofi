@@ -14,7 +14,7 @@ class UserController extends Controller{
     public function index()
     {
         //
-        return DB::SELECT('SELECT CodAut,ci,Nombre1,Nombre2,App1,Apm from personal');
+        return DB::SELECT('SELECT CodAut,ci,Nombre1,Nombre2,App1,Apm,TRIM(placa) placa from personal');
     }
     public function users(){
         $sql='
@@ -29,6 +29,13 @@ class UserController extends Controller{
             'roles'=>Role::with('permissions')->orderBy('name')->get()->map(function($rol){
                 return ['name'=>$rol->name,'permisos'=>$rol->permissions->pluck('name')];
             }),
+            // Camiones para asignar al usuario: los de vehiculo y los que ya
+            // tiene algun usuario (no siempre coinciden letra por letra).
+            'placas'=>DB::table('vehiculo')->select(DB::raw('TRIM(placa) placa'))
+                ->union(DB::table('personal')->select(DB::raw('TRIM(placa) placa')))
+                ->get()->pluck('placa')
+                ->filter(function($p){ return $p!==null && $p!==''; })
+                ->unique()->sort()->values(),
         ]);
     }
     public function usuarioPermisos($id){
@@ -109,7 +116,24 @@ class UserController extends Controller{
 
     public function store(Request $request)
     {
-        //
+        $datos=$this->validarUsuario($request,null);
+        $user=new User();
+        $user->timestamps=false; // personal no tiene created_at/updated_at
+        $user->forceFill(array_merge($datos,[
+            // Columnas legadas NOT NULL sin default: van con lo mismo que
+            // tienen los usuarios existentes.
+            'Fech_naci'=>$datos['Fech_naci'] ?? now()->toDateString(),
+            'cod_Prof'=>0,
+            'correo'=>'',
+            'Salario'=>0,
+            'direccion'=>$datos['direccion'] ?? '',
+            'cod_car'=>1,
+            'Nro'=>0,
+            'NroAlm'=>0,
+            'AccesoEmp'=>0,
+        ]));
+        $user->save();
+        return response()->json($this->datosUsuario($user),201);
     }
 
     /**
@@ -120,7 +144,7 @@ class UserController extends Controller{
      */
     public function show($id)
     {
-        //
+        return $this->datosUsuario(User::findOrFail($id));
     }
 
     /**
@@ -132,7 +156,66 @@ class UserController extends Controller{
      */
     public function update(Request $request, $id)
     {
-        //
+        $user=User::findOrFail($id);
+        $datos=$this->validarUsuario($request,$user);
+        // Contraseña vacia al editar = se mantiene la actual.
+        if (($datos['pasw'] ?? '')==='') unset($datos['pasw']);
+        if (!array_key_exists('direccion',$datos) || $datos['direccion']===null) unset($datos['direccion']);
+        if (!array_key_exists('Fech_naci',$datos) || $datos['Fech_naci']===null) unset($datos['Fech_naci']);
+        $user->timestamps=false; // personal no tiene created_at/updated_at
+        $user->forceFill($datos)->save();
+        return $this->datosUsuario($user->fresh());
+    }
+
+    private function validarUsuario(Request $request,$user){
+        foreach (['ci','pasw','Nombre1','Nombre2','App1','Apm','direccion','placa'] as $campo){
+            if ($request->has($campo)) $request->merge([$campo=>trim((string)$request->input($campo))]);
+        }
+        $request->validate([
+            'ci'=>'required|max:15',
+            'pasw'=>($user ? 'nullable' : 'required').'|max:15',
+            'Nombre1'=>'required|max:15',
+            'Nombre2'=>'nullable|max:15',
+            'App1'=>'required|max:20',
+            'Apm'=>'nullable|max:20',
+            'Fech_naci'=>'nullable|date',
+            'direccion'=>'nullable|max:250',
+            'placa'=>'nullable|max:100',
+        ],[],[
+            'ci'=>'carnet','pasw'=>'contraseña','Nombre1'=>'nombre','Nombre2'=>'segundo nombre',
+            'App1'=>'apellido paterno','Apm'=>'apellido materno','Fech_naci'=>'fecha de nacimiento',
+        ]);
+        // El login busca por TRIM(ci): no puede haber dos con el mismo carnet.
+        $repetido=DB::table('personal')->whereRaw('TRIM(ci)=?',[$request->ci]);
+        if ($user) $repetido->where('CodAut','<>',$user->CodAut);
+        if ($repetido->exists()){
+            abort(response()->json(['message'=>'El carnet '.$request->ci.' ya está registrado','errors'=>['ci'=>['El carnet ya está registrado']]],422));
+        }
+        return [
+            'ci'=>$request->ci,
+            'pasw'=>$request->pasw,
+            'Nombre1'=>$request->Nombre1,
+            'Nombre2'=>$request->Nombre2 ?? '',
+            'App1'=>$request->App1,
+            'Apm'=>$request->Apm ?? '',
+            'Fech_naci'=>$request->Fech_naci ?: null,
+            'direccion'=>$request->direccion,
+            'placa'=>($request->placa ?? '')==='' ? null : $request->placa,
+        ];
+    }
+
+    private function datosUsuario($user){
+        return [
+            'CodAut'=>$user->CodAut,
+            'ci'=>trim($user->ci),
+            'Nombre1'=>trim($user->Nombre1),
+            'Nombre2'=>trim($user->Nombre2),
+            'App1'=>trim($user->App1),
+            'Apm'=>trim($user->Apm),
+            'Fech_naci'=>$user->Fech_naci ? substr($user->Fech_naci,0,10) : null,
+            'direccion'=>trim($user->direccion),
+            'placa'=>$user->placa!==null ? trim($user->placa) : null,
+        ];
     }
 
     /**
