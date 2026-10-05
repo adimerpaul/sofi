@@ -472,7 +472,7 @@ export default {
         fila.total++
         if (comprobante.verificado) fila.revisados++
       })
-      const orden = ['POLLO', 'NORMAL', 'CERDO', 'RES']
+      const orden = ['POLLO', 'NORMAL', 'CERDO', 'RES', 'PODIUM']
       return Object.values(porTipo).sort((a, b) => orden.indexOf(a.valor) - orden.indexOf(b.valor))
     },
     // La carga del tipo elegido: de ahi salen los chips de cliente y la
@@ -622,10 +622,10 @@ export default {
       return comprobante.items.filter(item => item.revisado).length
     },
     nombreTipo (valor) {
-      return { POLLO: 'Pollo', NORMAL: 'Embutidos', CERDO: 'Cerdo', RES: 'Res' }[valor] || valor
+      return { POLLO: 'Pollo', NORMAL: 'Embutidos', CERDO: 'Cerdo', RES: 'Res', PODIUM: 'Podium y Huevo' }[valor] || valor
     },
     iconoTipo (valor) {
-      return { POLLO: 'egg', NORMAL: 'lunch_dining', CERDO: 'savings', RES: 'kebab_dining' }[valor] || 'local_shipping'
+      return { POLLO: 'egg', NORMAL: 'lunch_dining', CERDO: 'savings', RES: 'kebab_dining', PODIUM: 'pets' }[valor] || 'local_shipping'
     },
     verificadosDe (lista) {
       return lista.filter(comprobante => comprobante.verificado).length

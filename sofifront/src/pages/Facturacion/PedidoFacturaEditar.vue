@@ -346,7 +346,7 @@ export default {
   computed: {
     numeroPedido () { return this.$route.params.pedido },
     tipoPedido () { return String(this.$route.params.tipo || '').toUpperCase() },
-    nombreTipo () { return this.tipoPedido === 'NORMAL' ? 'EMBUTIDOS' : this.tipoPedido },
+    nombreTipo () { return { NORMAL: 'EMBUTIDOS', PODIUM: 'PODIUM Y HUEVO' }[this.tipoPedido] || this.tipoPedido },
     // Lo dice el backend: pollo, cerdo y res se pesan en canastillos.
     conCanastillos () { return !!(this.pedido && this.pedido.con_canastillos) },
     kgCanastillo () { return Number((this.pedido && this.pedido.kg_canastillo) || 2) },

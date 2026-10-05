@@ -279,7 +279,9 @@ export default {
         { label: 'Embutidos', value: 'NORMAL' },
         { label: 'Pollo', value: 'POLLO' },
         { label: 'Cerdo', value: 'CERDO' },
-        { label: 'Res', value: 'RES' }
+        { label: 'Res', value: 'RES' },
+        // Sale de los pedidos de embutidos, por codigo de producto.
+        { label: 'Podium y Huevo', value: 'PODIUM' }
       ]
     }
   },

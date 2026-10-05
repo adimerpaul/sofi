@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Controllers\Concerns\PapeleriaSofia;
 use App\Services\RecojoDelDia;
+use App\Services\TipoPedido;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\DB;
@@ -392,9 +393,9 @@ class CobranzaVerificacionController extends Controller
             ->whereNull('tbpedidos.deleted_at')
             ->whereIn('NroPed', $facturas->pluck('pedido_nro')->filter()->unique()->all())
             ->where('bonificacion', 0)
-            ->groupBy('NroPed', DB::raw('UPPER(TRIM(tipo))'))
+            ->groupBy('NroPed', DB::raw(TipoPedido::sql('')))
             ->get([
-                'NroPed', DB::raw('UPPER(TRIM(tipo)) as tipo'),
+                'NroPed', DB::raw(TipoPedido::sql('') . ' as tipo'),
                 DB::raw("TRIM(COALESCE(MIN(placa), '')) as placa"),
                 DB::raw("TRIM(COALESCE(MIN(colorStyle), '')) as color"),
             ])

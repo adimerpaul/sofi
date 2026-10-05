@@ -42,7 +42,7 @@ class CambioPedido
             })
             ->whereNull('p.deleted_at')
             ->where('p.NroPed', $factura->pedido_nro)
-            ->whereRaw('UPPER(TRIM(p.tipo)) = ?', [$tipo])
+            ->whereRaw(TipoPedido::sql('p') . ' = ?', [$tipo])
             ->where('p.bonificacion', 0)
             ->get([
                 DB::raw('TRIM(p.cod_prod) as cod_prod'),

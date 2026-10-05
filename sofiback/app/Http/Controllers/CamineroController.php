@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Controllers\Concerns\PapeleriaSofia;
 use App\Services\CargaCamion;
 use App\Services\RecojoDelDia;
+use App\Services\TipoPedido;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\App;
@@ -74,10 +75,10 @@ class CamineroController extends Controller
                 ->whereNull('tbpedidos.deleted_at')
                 ->whereIn('NroPed', $facturas->pluck('nro_pedido')->unique()->all())
                 ->where('bonificacion', 0)
-                ->groupBy('NroPed', DB::raw('UPPER(TRIM(tipo))'))
+                ->groupBy('NroPed', DB::raw(TipoPedido::sql('')))
                 ->get([
                     'NroPed as nro_pedido',
-                    DB::raw('UPPER(TRIM(tipo)) as tipo'),
+                    DB::raw(TipoPedido::sql('') . ' as tipo'),
                     DB::raw("TRIM(COALESCE(MIN(placa), '')) as placa"),
                     DB::raw("TRIM(COALESCE(MIN(colorStyle), '')) as placa_color"),
                     DB::raw('MIN(fecha) as pedido_fecha'),
@@ -166,7 +167,7 @@ class CamineroController extends Controller
             ->whereNull('p.deleted_at')
             ->leftJoin('facturas as f', function ($join) {
                 $join->on('f.pedido_nro', '=', 'p.NroPed')
-                    ->on(DB::raw('UPPER(TRIM(f.pedido_tipo))'), '=', DB::raw('UPPER(TRIM(p.tipo))'))
+                    ->on(DB::raw('UPPER(TRIM(f.pedido_tipo))'), '=', DB::raw(TipoPedido::sql('p')))
                     ->whereNull('f.deleted_at')
                     ->where('f.estado', '<>', 'ANULADO');
             })
@@ -382,7 +383,7 @@ class CamineroController extends Controller
         $pedido = DB::table('tbpedidos')
             ->whereNull('tbpedidos.deleted_at')
             ->where('NroPed', $factura->pedido_nro)
-            ->whereRaw('UPPER(TRIM(tipo)) = ?', [strtoupper(trim((string) $factura->pedido_tipo))])
+            ->whereRaw(TipoPedido::sql('') . ' = ?', [strtoupper(trim((string) $factura->pedido_tipo))])
             ->where('bonificacion', 0)
             ->first([DB::raw("TRIM(COALESCE(placa, '')) as placa"), 'fecha']);
 

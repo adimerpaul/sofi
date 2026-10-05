@@ -9,6 +9,7 @@ use App\Services\CambioPedido;
 use App\Services\CargaCamion;
 use App\Services\ModificacionFactura;
 use App\Services\SiatService;
+use App\Services\TipoPedido;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\DB;
@@ -233,7 +234,7 @@ class FacturacionController extends Controller
                 $sub->from('tbpedidos as pc')
                     ->whereNull('pc.deleted_at')
                     ->whereColumn('pc.NroPed', 'facturas.pedido_nro')
-                    ->whereRaw('UPPER(TRIM(pc.tipo)) = UPPER(TRIM(facturas.pedido_tipo))')
+                    ->whereRaw(TipoPedido::sql('pc') . ' = UPPER(TRIM(facturas.pedido_tipo))')
                     ->limit(1)
                     ->select(DB::raw("TRIM(COALESCE(pc.placa, ''))"));
             }, 'placa')
@@ -339,7 +340,7 @@ class FacturacionController extends Controller
             ->whereNull('p.deleted_at')
             ->leftJoin('facturas as f', function ($join) {
                 $join->on('f.pedido_nro', '=', 'p.NroPed')
-                    ->on(DB::raw('UPPER(TRIM(f.pedido_tipo))'), '=', DB::raw('UPPER(TRIM(p.tipo))'))
+                    ->on(DB::raw('UPPER(TRIM(f.pedido_tipo))'), '=', DB::raw(TipoPedido::sql('p')))
                     ->whereNull('f.deleted_at')
                     ->where('f.estado', '<>', 'ANULADO');
             })
@@ -353,7 +354,7 @@ class FacturacionController extends Controller
             })
             ->whereRaw("UPPER(TRIM(p.estado)) = 'ENVIADO'")
             ->where('p.bonificacion', 0)
-            ->groupBy('p.NroPed', DB::raw('UPPER(TRIM(p.tipo))'))
+            ->groupBy('p.NroPed', DB::raw(TipoPedido::sql('p')))
             ->get([
                 DB::raw("TRIM(COALESCE(MIN(p.placa), '')) as placa"),
                 DB::raw("TRIM(COALESCE(MIN(p.colorStyle), '')) as color"),
@@ -613,7 +614,7 @@ class FacturacionController extends Controller
         $pedido = DB::table('tbpedidos')
             ->whereNull('tbpedidos.deleted_at')
             ->where('NroPed', $factura->pedido_nro)
-            ->whereRaw('UPPER(TRIM(tipo)) = ?', [strtoupper(trim((string) $factura->pedido_tipo))])
+            ->whereRaw(TipoPedido::sql('') . ' = ?', [strtoupper(trim((string) $factura->pedido_tipo))])
             ->where('bonificacion', 0)
             ->first([DB::raw("TRIM(COALESCE(placa, '')) as placa")]);
 
@@ -783,7 +784,7 @@ class FacturacionController extends Controller
     {
         $datos = $request->validate([
             'fecha' => 'required|date',
-            'tipo' => 'required|in:NORMAL,POLLO,CERDO,RES',
+            'tipo' => 'required|' . TipoPedido::regla(),
             'buscar' => 'nullable|string|max:100',
         ]);
 
@@ -796,12 +797,12 @@ class FacturacionController extends Controller
             // comprobante vigente por pedido.
             ->leftJoin('facturas as f', function ($join) {
                 $join->on('f.pedido_nro', '=', 'p.NroPed')
-                    ->on(DB::raw('UPPER(TRIM(f.pedido_tipo))'), '=', DB::raw('UPPER(TRIM(p.tipo))'))
+                    ->on(DB::raw('UPPER(TRIM(f.pedido_tipo))'), '=', DB::raw(TipoPedido::sql('p')))
                     ->whereNull('f.deleted_at')
                     ->where('f.estado', '<>', 'ANULADO');
             })
             ->whereDate('p.fecha', $datos['fecha'])
-            ->whereRaw('UPPER(TRIM(p.tipo)) = ?', [$datos['tipo']])
+            ->whereRaw(TipoPedido::sql('p') . ' = ?', [$datos['tipo']])
             // Un pedido en CREADO todavia lo esta armando el preventista: solo
             // se factura lo que ya fue enviado.
             ->whereRaw("UPPER(TRIM(p.estado)) = 'ENVIADO'")
@@ -825,14 +826,14 @@ class FacturacionController extends Controller
             // pueden tener distinta hora (se van agregando de a poco), asi que
             // la cabecera se resume con MIN y solo se agrupa por el pedido.
             ->groupBy([
-                'p.NroPed', DB::raw('UPPER(TRIM(p.tipo))'), 'f.id', 'f.tipo_comprobante',
+                'p.NroPed', DB::raw(TipoPedido::sql('p')), 'f.id', 'f.tipo_comprobante',
                 'f.fecha', 'f.nit', 'f.tipo_pago',
             ])
             ->orderByRaw('CASE WHEN f.id IS NULL THEN 0 ELSE 1 END ASC')
             ->orderByDesc('p.NroPed')
             ->get([
                 'p.NroPed as nro_pedido',
-                DB::raw('UPPER(TRIM(p.tipo)) as tipo'),
+                DB::raw(TipoPedido::sql('p') . ' as tipo'),
                 DB::raw('MIN(p.fecha) as fecha'),
                 DB::raw('MIN(p.estado) as estado'),
                 DB::raw('MIN(p.fact) as fact'),
@@ -868,7 +869,7 @@ class FacturacionController extends Controller
                 $join->on(DB::raw('TRIM(pr.cod_prod)'), '=', DB::raw('TRIM(p.cod_prod)'));
             })
             ->whereIn('p.NroPed', $numeros)
-            ->whereRaw('UPPER(TRIM(p.tipo)) = ?', [$datos['tipo']])
+            ->whereRaw(TipoPedido::sql('p') . ' = ?', [$datos['tipo']])
             ->whereRaw("UPPER(TRIM(p.estado)) = 'ENVIADO'")
             ->where('p.bonificacion', 0)
             ->orderBy('p.codAut')
@@ -882,7 +883,7 @@ class FacturacionController extends Controller
             ->groupBy('nro_pedido');
 
         $filasPedido = DB::table('tbpedidos')->whereNull('tbpedidos.deleted_at')->whereIn('NroPed', $numeros)
-            ->whereRaw('UPPER(TRIM(tipo)) = ?', [$datos['tipo']])
+            ->whereRaw(TipoPedido::sql('') . ' = ?', [$datos['tipo']])
             ->whereRaw("UPPER(TRIM(estado)) = 'ENVIADO'")
             ->where('bonificacion', 0)
             ->orderBy('codAut')->get()->groupBy('NroPed');
@@ -931,7 +932,7 @@ class FacturacionController extends Controller
     public function pedido(Request $request, $nroPedido)
     {
         $datos = $request->validate([
-            'tipo' => 'required|in:NORMAL,POLLO,CERDO,RES',
+            'tipo' => 'required|' . TipoPedido::regla(),
         ]);
 
         $cabecera = DB::table('tbpedidos as p')
@@ -939,10 +940,10 @@ class FacturacionController extends Controller
             ->leftJoin('tbclientes as c', 'c.Cod_Aut', '=', 'p.idCli')
             ->leftJoin('personal as v', 'v.CodAut', '=', 'p.CIfunc')
             ->where('p.NroPed', $nroPedido)
-            ->whereRaw('UPPER(TRIM(p.tipo)) = ?', [$datos['tipo']])
+            ->whereRaw(TipoPedido::sql('p') . ' = ?', [$datos['tipo']])
             ->where('p.bonificacion', 0)
             ->first([
-                'p.NroPed as nro_pedido', DB::raw('UPPER(TRIM(p.tipo)) as tipo'),
+                'p.NroPed as nro_pedido', DB::raw(TipoPedido::sql('p') . ' as tipo'),
                 'p.fecha', 'p.estado', 'p.fact', 'p.pago', 'p.comentario',
                 // Mismo camion que se ve en el listado de pedidos por facturar.
                 DB::raw("TRIM(COALESCE(p.placa, '')) as placa"),
@@ -984,7 +985,7 @@ class FacturacionController extends Controller
                 $join->on(DB::raw('TRIM(pr.cod_prod)'), '=', DB::raw('TRIM(p.cod_prod)'));
             })
             ->where('p.NroPed', $nroPedido)
-            ->whereRaw('UPPER(TRIM(p.tipo)) = ?', [$datos['tipo']])
+            ->whereRaw(TipoPedido::sql('p') . ' = ?', [$datos['tipo']])
             ->where('p.bonificacion', 0)
             ->orderBy('p.codAut')
             ->get([
@@ -1019,7 +1020,7 @@ class FacturacionController extends Controller
         $cabecera->kg_canastillo = FacturaDetalle::KG_CANASTILLO;
 
         $filasPedido = DB::table('tbpedidos')->whereNull('tbpedidos.deleted_at')->where('NroPed', $nroPedido)
-            ->whereRaw('UPPER(TRIM(tipo)) = ?', [$datos['tipo']])->where('bonificacion', 0)
+            ->whereRaw(TipoPedido::sql('') . ' = ?', [$datos['tipo']])->where('bonificacion', 0)
             ->orderBy('codAut')->get();
         $cabecera->detalle_pollo = $this->detallePollo($filasPedido);
 
@@ -1096,7 +1097,7 @@ class FacturacionController extends Controller
     public function guardarBorrador(Request $request, $nroPedido)
     {
         $datos = $request->validate([
-            'pedido_tipo'         => 'required|in:NORMAL,POLLO,CERDO,RES',
+            'pedido_tipo'         => 'required|' . TipoPedido::regla(),
             'items'               => 'present|array',
             'items.*.cod_prod'    => 'required|string|max:25',
             'items.*.nombre'      => 'nullable|string|max:150',
@@ -1467,7 +1468,7 @@ class FacturacionController extends Controller
             'descuento'        => 'nullable|numeric|min:0',
             'observacion'      => 'nullable|string|max:255',
             'pedido_nro'       => 'nullable|required_with:pedido_tipo|integer',
-            'pedido_tipo'      => 'nullable|required_with:pedido_nro|in:NORMAL,POLLO,CERDO,RES',
+            'pedido_tipo'      => 'nullable|required_with:pedido_nro|' . TipoPedido::regla(),
         ]);
 
         $tipo = $datos['tipo_comprobante'] ?? 'VENTA';
@@ -1571,7 +1572,7 @@ class FacturacionController extends Controller
             $existePedido = DB::table('tbpedidos')
                 ->whereNull('tbpedidos.deleted_at')
                 ->where('NroPed', $datos['pedido_nro'])
-                ->whereRaw('UPPER(TRIM(tipo)) = ?', [$datos['pedido_tipo']])
+                ->whereRaw(TipoPedido::sql('') . ' = ?', [$datos['pedido_tipo']])
                 ->whereRaw("UPPER(TRIM(estado)) = 'ENVIADO'")
                 ->exists();
             if (!$existePedido) {
@@ -1592,7 +1593,7 @@ class FacturacionController extends Controller
                 $delPedido = DB::table('tbpedidos')
                     ->whereNull('tbpedidos.deleted_at')
                     ->where('NroPed', $datos['pedido_nro'])
-                    ->whereRaw('UPPER(TRIM(tipo)) = ?', [$datos['pedido_tipo']])
+                    ->whereRaw(TipoPedido::sql('') . ' = ?', [$datos['pedido_tipo']])
                     ->where('bonificacion', 0)
                     ->get([DB::raw('TRIM(cod_prod) as cod_prod'), 'precio'])
                     ->groupBy('cod_prod');

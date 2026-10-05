@@ -974,7 +974,7 @@ export default {
     nombreTipoPedido (tipo) {
       const valor = String(tipo || '').toUpperCase()
       if (!valor) return ''
-      return valor === 'NORMAL' ? 'EMBUTIDOS' : valor
+      return { NORMAL: 'EMBUTIDOS', PODIUM: 'PODIUM Y HUEVO' }[valor] || valor
     },
     /** La hora del legado viene con segundos; en la grilla sobran. */
     horaCorta (valor) {

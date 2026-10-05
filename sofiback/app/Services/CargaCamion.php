@@ -315,7 +315,7 @@ class CargaCamion
             ->whereNull('p.deleted_at')
             ->leftJoin('facturas as f', function ($join) {
                 $join->on('f.pedido_nro', '=', 'p.NroPed')
-                    ->on(DB::raw('UPPER(TRIM(f.pedido_tipo))'), '=', DB::raw('UPPER(TRIM(p.tipo))'))
+                    ->on(DB::raw('UPPER(TRIM(f.pedido_tipo))'), '=', DB::raw(TipoPedido::sql('p')))
                     ->whereNull('f.deleted_at')
                     ->where('f.estado', '<>', 'ANULADO');
             })
@@ -325,7 +325,7 @@ class CargaCamion
             ->whereRaw("TRIM(COALESCE(p.placa, '')) = ?", [$placa])
             ->whereNull('f.id')
             ->distinct()
-            ->count(DB::raw("CONCAT(p.NroPed, '|', UPPER(TRIM(p.tipo)))"));
+            ->count(DB::raw("CONCAT(p.NroPed, '|', " . TipoPedido::sql('p') . ")"));
     }
 
     /** Los comprobantes vigentes del dia que salen en ese camion. */
@@ -339,7 +339,7 @@ class CargaCamion
             // comprobante no viaja en ningun camion.
             ->join('tbpedidos as p', function ($join) {
                 $join->on('p.NroPed', '=', 'f.pedido_nro')
-                    ->on(DB::raw('UPPER(TRIM(p.tipo))'), '=', DB::raw('UPPER(TRIM(f.pedido_tipo))'))
+                    ->on(DB::raw(TipoPedido::sql('p')), '=', DB::raw('UPPER(TRIM(f.pedido_tipo))'))
                     ->whereNull('p.deleted_at')
                     ->where('p.bonificacion', 0);
             })
