@@ -168,7 +168,8 @@ class FacturacionController extends Controller
      */
     private function estadoEntrega(Factura $factura, $entrega)
     {
-        if (!trim((string) $factura->placa) || $factura->estado === 'ANULADO') {
+        // La venta directa con camion no pasa por el caminero: no aplica.
+        if (!$factura->pedido_nro || !trim((string) $factura->placa) || $factura->estado === 'ANULADO') {
             return 'NO_APLICA';
         }
 
@@ -190,7 +191,7 @@ class FacturacionController extends Controller
      */
     private function estadoCarga(Factura $factura, $marca)
     {
-        if (!trim((string) $factura->placa) || $factura->estado === 'ANULADO') {
+        if (!$factura->pedido_nro || !trim((string) $factura->placa) || $factura->estado === 'ANULADO') {
             return 'NO_APLICA';
         }
 
@@ -228,16 +229,17 @@ class FacturacionController extends Controller
                 'vendedor:CodAut,ci,Nombre1,Nombre2,App1,Apm',
             ])
             ->select('facturas.*')
-            // El camion no es de la factura sino del pedido que la origino, y
-            // por eso se trae de tbpedidos en vez de guardarse repetido.
-            ->selectSub(function ($sub) {
-                $sub->from('tbpedidos as pc')
-                    ->whereNull('pc.deleted_at')
-                    ->whereColumn('pc.NroPed', 'facturas.pedido_nro')
-                    ->whereRaw(TipoPedido::sql('pc') . ' = UPPER(TRIM(facturas.pedido_tipo))')
-                    ->limit(1)
-                    ->select(DB::raw("TRIM(COALESCE(pc.placa, ''))"));
-            }, 'placa')
+            // El camion de lo que sale de un pedido es el del pedido, y por eso
+            // se trae de tbpedidos en vez de guardarse repetido. La venta
+            // directa trae el suyo en facturas.placa. El CONVERT evita mezclar
+            // la collation del legado (latin1) con la de facturas (utf8mb4).
+            ->selectRaw("COALESCE(NULLIF(TRIM(facturas.placa), ''), (
+                SELECT CONVERT(TRIM(COALESCE(pc.placa, '')) USING utf8mb4)
+                FROM tbpedidos pc
+                WHERE pc.deleted_at IS NULL AND pc.NroPed = facturas.pedido_nro
+                  AND " . TipoPedido::sql('pc') . " = UPPER(TRIM(facturas.pedido_tipo))
+                LIMIT 1
+            )) as placa")
             ->orderByDesc('id');
 
         // Los comprobantes marcados a mano en la grilla: van solos, sin los
@@ -263,18 +265,24 @@ class FacturacionController extends Controller
         // El camion se filtra por los pedidos que salieron en esa placa. La
         // subconsulta se queda dentro de tbpedidos a proposito: cruzar textos
         // entre facturas (utf8mb4) y el legado (latin1) mezcla collations.
+        // La venta directa se filtra por su propia placa (facturas.placa).
         if ($camion = trim((string) $request->input('camion', ''))) {
             if ($camion === 'SIN') {
-                $query->where(function ($w) {
-                    $w->whereNull('pedido_nro')->orWhereNotIn('pedido_nro', function ($sub) {
-                        $sub->from('tbpedidos')->whereNull('tbpedidos.deleted_at')->select('NroPed')
-                            ->whereRaw("TRIM(COALESCE(placa, '')) <> ''");
+                $query->whereRaw("TRIM(COALESCE(facturas.placa, '')) = ''")
+                    ->where(function ($w) {
+                        $w->whereNull('pedido_nro')->orWhereNotIn('pedido_nro', function ($sub) {
+                            $sub->from('tbpedidos')->whereNull('tbpedidos.deleted_at')->select('NroPed')
+                                ->whereRaw("TRIM(COALESCE(placa, '')) <> ''");
+                        });
                     });
-                });
             } else {
-                $query->whereIn('pedido_nro', function ($sub) use ($camion) {
-                    $sub->from('tbpedidos')->whereNull('tbpedidos.deleted_at')->select('NroPed')
-                        ->whereRaw('TRIM(placa) = ?', [$camion]);
+                $query->where(function ($w) use ($camion) {
+                    $w->whereIn('pedido_nro', function ($sub) use ($camion) {
+                        $sub->from('tbpedidos')->whereNull('tbpedidos.deleted_at')->select('NroPed')
+                            ->whereRaw('TRIM(placa) = ?', [$camion]);
+                    })->orWhere(function ($directa) use ($camion) {
+                        $directa->whereNull('pedido_nro')->whereRaw('TRIM(facturas.placa) = ?', [$camion]);
+                    });
                 });
             }
         }
@@ -360,6 +368,21 @@ class FacturacionController extends Controller
                 DB::raw("TRIM(COALESCE(MIN(p.colorStyle), '')) as color"),
                 DB::raw('MAX(f.id) as factura_id'),
             ]);
+
+        // Las ventas directas a las que se les eligio camion cuentan como un
+        // pedido mas de ese camion, ya cobrado.
+        $colores = DB::table('vehiculo')->get(['placa', 'colorStyle'])
+            ->mapWithKeys(function ($v) { return [trim((string) $v->placa) => trim((string) $v->colorStyle)]; });
+        $directas = Factura::whereNull('pedido_nro')
+            ->where('estado', '<>', 'ANULADO')
+            ->whereDate('fecha', '>=', $desde)->whereDate('fecha', '<=', $hasta)
+            ->whereRaw("TRIM(COALESCE(placa, '')) <> ''")
+            ->get(['id', 'placa'])
+            ->map(function ($f) use ($colores) {
+                $placa = trim($f->placa);
+                return (object) ['placa' => $placa, 'color' => (string) $colores->get($placa, ''), 'factura_id' => $f->id];
+            });
+        $pedidos = $pedidos->concat($directas);
 
         return $pedidos->groupBy(function ($pedido) {
             return $pedido->placa !== '' ? $pedido->placa : 'SIN';
@@ -1472,6 +1495,8 @@ class FacturacionController extends Controller
             'observacion'      => 'nullable|string|max:255',
             'pedido_nro'       => 'nullable|required_with:pedido_tipo|integer',
             'pedido_tipo'      => 'nullable|required_with:pedido_nro|' . TipoPedido::regla(),
+            // Camion de la venta directa; con pedido manda el del pedido.
+            'placa'            => 'nullable|string|max:50',
         ]);
 
         $tipo = $datos['tipo_comprobante'] ?? 'VENTA';
@@ -1688,6 +1713,8 @@ class FacturacionController extends Controller
                 'observacion'      => $datos['observacion'] ?? null,
                 'pedido_nro'       => $datos['pedido_nro'] ?? null,
                 'pedido_tipo'      => $datos['pedido_tipo'] ?? null,
+                'placa'            => empty($datos['pedido_nro']) && trim((string) ($datos['placa'] ?? '')) !== ''
+                    ? trim($datos['placa']) : null,
             ]);
 
             $factura->detalles()->createMany($lineas);

@@ -36,6 +36,8 @@ class Factura extends Model
         'observacion',
         'pedido_nro',
         'pedido_tipo',
+        // Camion de una venta directa; en lo que sale de un pedido es el del pedido.
+        'placa',
         // Retorno parcial: de que comprobante salio y en que punto del reparto
         // nace. Ver AddRetornoParcialToFacturas.
         'factura_origen_id',

@@ -171,10 +171,11 @@
                   <!-- El precio no se escribe: se elige de la lista del producto. -->
                   <q-select
                     v-model="item.precio"
-                    dense outlined class="col" label="Precio"
+                    dense outlined options-dense class="col carrito-precio" label="Precio"
                     emit-value map-options
                     :options="opcionesPrecio(item)"
                     :option-label="etiquetaPrecio"
+                    :display-value="money(item.precio)"
                     @update:model-value="sincronizarTotal(item)"
                   />
                   <!-- El total sale de cantidad x precio; ya no se escribe. -->
@@ -360,6 +361,24 @@
             <q-input
               v-model.trim="observacion" outlined dense class="col-12 col-sm-4" label="Observación"
             />
+            <!-- Camion de la venta directa: con el se filtra en facturacion como
+                 si hubiera sido un pedido. Lo que sale de un pedido usa el suyo. -->
+            <q-select
+              v-if="!pedidoOrigen"
+              v-model="placa" outlined dense clearable emit-value map-options
+              class="col-12" label="Camión (opcional)"
+              :options="camiones" option-label="placa" option-value="placa"
+            >
+              <template v-slot:prepend><q-icon name="local_shipping"/></template>
+              <template v-slot:option="scope">
+                <q-item v-bind="scope.itemProps">
+                  <q-item-section avatar>
+                    <div class="camion-color" :style="scope.opt.colorStyle"/>
+                  </q-item-section>
+                  <q-item-section>{{ scope.opt.placa }}</q-item-section>
+                </q-item>
+              </template>
+            </q-select>
           </div>
 
           <q-banner dense rounded class="q-mt-sm" :class="tipoComprobante === 'FACTURA' ? 'bg-orange-1 text-orange-10' : 'bg-grey-2 text-grey-8'">
@@ -436,6 +455,9 @@ export default {
       dialogCobro: false,
       tipoComprobante: 'VENTA',
       tipoPago: 'EFECTIVO',
+      // Camion de la venta directa (tabla vehiculo, igual que en despacho).
+      placa: null,
+      camiones: [],
       cliente: null,
       clientes: [],
       buscandoCliente: false,
@@ -473,6 +495,7 @@ export default {
   },
   created () {
     this.cargarCategorias()
+    this.cargarCamiones()
     this.cargarCatalogo()
     if (this.$route.query.pedido && this.$route.query.tipo) {
       this.cargarPedido(this.$route.query.pedido, this.$route.query.tipo)
@@ -539,6 +562,13 @@ export default {
         .finally(() => { this.cargandoPedido = false })
     },
 
+    cargarCamiones () {
+      this.$api.post('listVehiculo').then(res => {
+        this.camiones = (res.data || [])
+          .map(v => ({ placa: String(v.placa || '').trim(), colorStyle: v.colorStyle || '' }))
+          .filter(v => v.placa)
+      }).catch(() => {})
+    },
     cargarCategorias () {
       this.$api.get('facturacion/categorias').then(res => {
         this.categorias = res.data
@@ -741,6 +771,7 @@ export default {
         nombre: this.cliente ? this.cliente.nombre : '',
         descuento: Number(this.descuento) || 0,
         observacion: this.observacion || '',
+        placa: this.pedidoOrigen ? null : (this.placa || null),
         pedido_nro: this.pedidoOrigen ? this.pedidoOrigen.nro_pedido : null,
         pedido_tipo: this.pedidoOrigen ? this.pedidoOrigen.tipo : null,
         // Con canastillos va el bruto: el backend recalcula el neto que se cobra.
@@ -797,6 +828,7 @@ export default {
       this.observacion = ''
       this.tipoComprobante = 'VENTA'
       this.tipoPago = 'EFECTIVO'
+      this.placa = null
       this.dialogCobro = false
     },
 
@@ -813,6 +845,12 @@ export default {
 </script>
 
 <style scoped>
+.camion-color {
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+  border: 1px solid rgba(0, 0, 0, .15);
+}
 /* 4 tarjetas por fila en media pantalla, para que el nombre entre completo. */
 .producto {
   min-height: 92px;
@@ -898,6 +936,31 @@ export default {
   min-height: 0;
   padding-top: 3px;
   padding-bottom: 3px;
+}
+/* El select de precio arma el valor en otra caja que el input: sin esto el
+   monto queda debajo del campo de 26px. Se alinea a la derecha como los demas. */
+.carrito :deep(.carrito-precio .q-field__control-container) {
+  padding-top: 0 !important;
+  height: 26px;
+}
+.carrito :deep(.carrito-precio .q-field__native) {
+  padding: 0 !important;
+  min-height: 26px;
+  height: 26px;
+  line-height: 26px;
+  flex-wrap: nowrap;
+  justify-content: flex-end;
+  overflow: hidden;
+}
+.carrito :deep(.carrito-precio .q-field__native > span) {
+  white-space: nowrap;
+}
+.carrito :deep(.carrito-precio .q-field__append) {
+  height: 26px;
+  padding-left: 2px;
+}
+.carrito :deep(.carrito-precio .q-select__dropdown-icon) {
+  font-size: 16px;
 }
 .carrito-nombre {
   font-size: 11px;
