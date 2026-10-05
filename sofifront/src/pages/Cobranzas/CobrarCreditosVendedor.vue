@@ -46,6 +46,15 @@
               <q-card-section class="q-pa-sm">
                 <div class="text-weight-medium">{{ d.concepto }}</div>
                 <div class="row justify-between text-caption q-mb-sm"><span>{{ String(d.fecha).slice(0, 10) }}</span><strong>Saldo: Bs {{ money(d.saldo) }}</strong></div>
+                <!-- Saldo traido del sistema anterior: importe original, lo pagado y de quien era. -->
+                <div v-if="d.comanda" class="text-caption text-grey-8 q-mb-sm">
+                  Importe Bs {{ money(d.importe) }} · A cuenta Bs {{ money(d.a_cuenta) }}
+                  <span v-if="d.ultimo_pago"> · Último pago {{ String(d.ultimo_pago).slice(0, 10) }}</span>
+                  <div v-if="d.vendedor || d.empresa">
+                    <span v-if="d.vendedor">Vendedor: {{ d.vendedor }}</span>
+                    <span v-if="d.empresa"> · Empresa: {{ d.empresa }}</span>
+                  </div>
+                </div>
                 <div class="row q-col-gutter-sm">
                   <div class="col-6"><q-input v-model="d.recogido" outlined dense type="number" min="0" :max="d.saldo" step="0.01" label="Monto recogido" prefix="Bs" :disable="guardando || enviado"/></div>
                   <div class="col-6"><q-input v-model="d.boleta" outlined dense label="Nº de boleta" maxlength="100" :disable="guardando || enviado"/></div>

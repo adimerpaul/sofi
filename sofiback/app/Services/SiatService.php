@@ -219,7 +219,8 @@ class SiatService
 
     /**
      * Emite una factura ya registrada: pide el CUFD del dia si falta, calcula
-     * el CUF, arma el XML, lo valida contra el XSD y lo manda al SIAT.
+     * el CUF, arma el XML, lo valida contra el XSD y lo manda al SIAT. Si el
+     * SIAT la rechaza por el CUFD, pide uno nuevo y la reenvia una vez.
      *
      * Devuelve la misma factura actualizada. No lanza excepciones de negocio
      * hacia afuera: si algo falla, la factura queda con estado_siat = ERROR y
@@ -291,7 +292,11 @@ class SiatService
         return $factura->fresh();
     }
 
-    private function emitir(Factura $factura, $userId)
+    /**
+     * @param bool $reintentoCufd true cuando se reintenta con un CUFD recien
+     *                            pedido porque el SIAT rechazo el anterior.
+     */
+    private function emitir(Factura $factura, $userId, $reintentoCufd = false)
     {
         if ($faltan = $this->config->faltantes()) {
             throw new \RuntimeException('Falta ' . implode(', ', $faltan) . ' en los datos de Impuestos');
@@ -322,7 +327,11 @@ class SiatService
         $mili = str_pad((string) ((int) (($ahora - floor($ahora)) * 1000)), 3, '0', STR_PAD_LEFT);
         $fechaEmision = date('Y-m-d\TH:i:s', (int) $ahora) . '.' . $mili;
 
-        $numero = $this->siguienteNumero($sucursal, $puntoVenta);
+        // En el reintento se conserva el numero: el SIAT rechazo la factura, asi
+        // que ese numero no quedo usado, y siguienteNumero() ya la contaria.
+        $numero = $reintentoCufd && $factura->nro_factura
+            ? (int) $factura->nro_factura
+            : $this->siguienteNumero($sucursal, $puntoVenta);
 
         $cuf = $this->calcularCuf(
             date('YmdHis', (int) $ahora) . $mili,
@@ -375,6 +384,17 @@ class SiatService
 
         $estado = isset($respuesta->codigoDescripcion) ? strtoupper($respuesta->codigoDescripcion) : null;
 
+        // El CUFD guardado puede seguir "vigente" aca y aun asi no servir: si
+        // se pidio otro para el mismo punto de venta (por ejemplo desde el
+        // sistema de caja) el SIAT invalida el anterior. Se da de baja y se
+        // vuelve a emitir una sola vez con uno nuevo.
+        if (!$reintentoCufd && $this->rechazoPorCufd($estado, $respuesta)) {
+            $cufd->delete();
+            $this->pedirCufd($sucursal, $puntoVenta, $userId);
+
+            return $this->emitir($factura, $userId, true);
+        }
+
         $factura->update([
             'codigo_recepcion' => isset($respuesta->codigoRecepcion) ? $respuesta->codigoRecepcion : null,
             'estado_siat'      => $estado ?: 'DESCONOCIDO',
@@ -384,6 +404,20 @@ class SiatService
         ]);
 
         return $factura->fresh();
+    }
+
+    /**
+     * Si el SIAT no acepto la factura y alguno de sus mensajes habla del CUFD
+     * (invalido, inexistente, no vigente...). Se mira el texto y no un codigo
+     * porque el SIAT usa varios codigos distintos para el mismo problema.
+     */
+    private function rechazoPorCufd($estado, $respuesta)
+    {
+        if (in_array($estado, ['VALIDADA', 'PENDIENTE', 'RECIBIDA'], true)) {
+            return false;
+        }
+
+        return stripos($this->mensajes($respuesta, ''), 'CUFD') !== false;
     }
 
     /**

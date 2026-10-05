@@ -266,7 +266,9 @@ class CreditoController extends Controller
 
         $manuales = DB::table('creditos_manuales as d')->leftJoin('tbclientes as c', 'c.Cod_Aut', '=', 'd.cliente_id')
             ->when($cliente, function ($q) use ($cliente) { $q->where('d.cliente_id', $cliente); })
-            ->get(['d.id', 'd.cliente_id', 'd.fecha', 'd.monto', 'd.concepto', 'c.Nombres as cliente']);
+            ->get(['d.id', 'd.cliente_id', 'd.fecha', 'd.monto', 'd.concepto', 'c.Nombres as cliente',
+                // Lo que trae el saldo del sistema anterior (vacio en las deudas a mano).
+                'd.comanda', 'd.importe', 'd.a_cuenta', 'd.empresa', 'd.vendedor', 'd.ultimo_pago']);
 
         foreach ($manuales as $deuda) {
             $deuda->origen = 'manual';
