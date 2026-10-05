@@ -134,6 +134,113 @@ class CreditoController extends Controller
     }
 
     /**
+     * "Cuentas por cobrar debito sumado": el mismo formato del reporte del
+     * sistema anterior (COMANDA ... DIAS), una fila por deuda pendiente. Solo
+     * deudores. Lleva autofiltro y una fila de totales con SUBTOTAL, que suma
+     * solo lo que queda visible al filtrar.
+     */
+    public function excelDeudores()
+    {
+        $vendedores = DB::table('personal')->whereRaw("TRIM(COALESCE(ci, '')) <> ''")
+            ->get(['ci', 'Nombre1', 'App1'])
+            ->mapWithKeys(function ($p) {
+                return [trim($p->ci) => trim(trim((string) $p->Nombre1) . ' ' . trim((string) $p->App1))];
+            });
+        $clientes = DB::table('tbclientes')->get(['Cod_Aut', 'Nombres', 'CiVend'])->keyBy('Cod_Aut');
+
+        // Fecha de pago = el ultimo abono que vale; si no hubo, la que traia el saldo.
+        $ultimosAbonos = DB::table('creditos_abonos')->whereNull('anulado_at')
+            ->select('origen', 'deuda_id', DB::raw('MAX(created_at) as ultimo'))
+            ->groupBy('origen', 'deuda_id')->get()
+            ->mapWithKeys(function ($a) { return [$a->origen . ':' . $a->deuda_id => $a->ultimo]; });
+
+        $filas = $this->deudas(null)->where('saldo', '>', 0)->map(function ($d) use ($clientes, $vendedores, $ultimosAbonos) {
+            $cliente = $clientes->get($d->cliente_id);
+            $esSaldo = $d->origen === 'manual' && !empty($d->comanda);
+            $fechaPago = $ultimosAbonos->get($d->clave)
+                ?: ($esSaldo && $d->ultimo_pago ? $d->ultimo_pago : $d->fecha);
+
+            return [
+                'comanda' => $esSaldo ? (int) $d->comanda
+                    : ($d->origen === 'factura' ? (int) ($d->pedido_nro ?: $d->id) : 'M' . $d->id),
+                'cliente' => trim((string) ($cliente->Nombres ?? $d->cliente)),
+                'empresa' => $esSaldo ? (string) $d->empresa : '',
+                // Del saldo anterior se respeta su importe y lo que ya traia a cuenta.
+                'importe' => $esSaldo && $d->importe !== null ? (float) $d->importe : (float) $d->monto,
+                'a_cuenta' => $esSaldo && $d->importe !== null
+                    ? round((float) $d->importe - $d->saldo, 2) : round((float) $d->pagado, 2),
+                'deuda' => (float) $d->saldo,
+                'fecha_pago' => $fechaPago,
+                'vendedor' => $esSaldo && $d->vendedor
+                    ? $d->vendedor
+                    : ($cliente ? $vendedores->get(trim((string) $cliente->CiVend), '') : ''),
+            ];
+        })->sortBy('comanda')->values();
+
+        $libro = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
+        $hoja = $libro->getActiveSheet();
+        $hoja->setTitle('Hoja1');
+
+        $hoja->setCellValue('B1', 'C U E N T A S  P O R   C O B R A R  D E B I T O  S U M A D O');
+        $hoja->mergeCells('B1:J1');
+        $hoja->getStyle('B1')->getFont()->setBold(true)->setSize(14);
+        $hoja->getStyle('B1')->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
+        $hoja->setCellValue('B2', 'Al ' . date('d/m/Y H:i'));
+
+        $hoja->fromArray(['COMANDA', 'NOMBRE DE CLIENTE', 'EMPRESA', 'IMPORTE', 'A CUENTA', 'DEUDA',
+            'FECHA DE PAGO', 'VENDEDOR', 'DIAS'], null, 'B3');
+
+        $hoy = new \DateTime(date('Y-m-d'));
+        $fila = 4;
+        foreach ($filas as $f) {
+            $fecha = $f['fecha_pago'] ? new \DateTime((string) $f['fecha_pago']) : null;
+            $hoja->setCellValue('B' . $fila, $f['comanda']);
+            $hoja->setCellValueExplicit('C' . $fila, $f['cliente'], \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
+            $hoja->setCellValueExplicit('D' . $fila, $f['empresa'], \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
+            $hoja->setCellValue('E' . $fila, $f['importe']);
+            $hoja->setCellValue('F' . $fila, $f['a_cuenta']);
+            $hoja->setCellValue('G' . $fila, $f['deuda']);
+            if ($fecha) {
+                $hoja->setCellValue('H' . $fila, \PhpOffice\PhpSpreadsheet\Shared\Date::PHPToExcel($fecha));
+                $hoja->setCellValue('J' . $fila, (int) (new \DateTime($fecha->format('Y-m-d')))->diff($hoy)->format('%r%a'));
+            }
+            $hoja->setCellValueExplicit('I' . $fila, $f['vendedor'], \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
+            $fila++;
+        }
+        $ultima = max($fila - 1, 3);
+
+        // Totales: SUBTOTAL(9) suma solo las filas visibles con el filtro puesto.
+        $total = $ultima + 1;
+        $hoja->setCellValue('C' . $total, 'TOTAL');
+        foreach (['E', 'F', 'G'] as $col) {
+            $hoja->setCellValue($col . $total, $ultima >= 4 ? "=SUBTOTAL(9,{$col}4:{$col}{$ultima})" : 0);
+        }
+        $hoja->setCellValue('B' . $total, $ultima >= 4 ? "=SUBTOTAL(3,B4:B{$ultima})" : 0);
+
+        $hoja->getStyle('B3:J3')->getFont()->setBold(true);
+        $hoja->getStyle('B4:B' . $ultima)->getFont()->setBold(true);
+        $hoja->getStyle("B{$total}:J{$total}")->applyFromArray([
+            'font' => ['bold' => true],
+            'fill' => ['fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID, 'startColor' => ['rgb' => 'FCE4D6']],
+            'borders' => ['top' => ['borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_DOUBLE]],
+        ]);
+        $hoja->getStyle("E4:G{$total}")->getNumberFormat()->setFormatCode('#,##0.00');
+        $hoja->getStyle("H4:H{$ultima}")->getNumberFormat()->setFormatCode('d/m/yyyy h:mm');
+        $hoja->setAutoFilter("B3:J{$ultima}");
+        $hoja->freezePane('B4');
+
+        foreach (['A' => 8.71, 'B' => 9.71, 'C' => 40.71, 'D' => 25.71, 'E' => 12.71, 'F' => 12.71,
+            'G' => 12.71, 'H' => 15.71, 'I' => 32.71, 'J' => 8.71] as $col => $ancho) {
+            $hoja->getColumnDimension($col)->setWidth($ancho);
+        }
+
+        $nombre = 'CUENTAS POR COBRAR ' . date('Y-m-d') . '.xlsx';
+        return response()->streamDownload(function () use ($libro) {
+            (new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($libro))->save('php://output');
+        }, $nombre, ['Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet']);
+    }
+
+    /**
      * El detalle de un cliente: sus datos, todas sus deudas (pendientes y
      * pagadas) y las ventas que se le hicieron a credito con sus productos.
      */

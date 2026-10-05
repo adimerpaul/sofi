@@ -5,6 +5,10 @@
       <q-space/>
       <span class="text-caption">Total general</span>
       <acciones-reporte-credito alcance="total general" :disable="cargando || !!error || !clientes.length || reportando" @reporte="reporteTotal($event)"/>
+      <q-btn unelevated dense no-caps color="green-8" icon="grid_on" label="Excel deudores"
+             :loading="descargandoExcel" @click="excelDeudores">
+        <q-tooltip>Cuentas por cobrar (formato debito sumado): una fila por deuda, con filtros y totales</q-tooltip>
+      </q-btn>
       <q-btn outline dense no-caps color="primary" icon="local_shipping" label="Reportes de camiones" to="/cobranzas/recojo"/>
       <q-btn unelevated dense no-caps color="red-7" icon="add" label="Agregar deuda" @click="nuevaDeuda()"/>
       <q-btn flat dense round icon="refresh" color="primary" :loading="cargando" @click="cargar">
@@ -417,6 +421,7 @@ export default {
     return {
       clientes: [],
       reportando: false,
+      descargandoExcel: false,
       totales: { clientes: 0, con_deuda: 0, saldo: 0, deudas: 0 },
       buscar: '',
       // Arranca en los que deben: es lo que cobranzas viene a mirar.
@@ -524,6 +529,23 @@ export default {
     exportarVenta (formato, venta) {
       const deuda = this.detalle.deudas.find(d => d.origen === 'factura' && String(d.id) === String(venta.id))
       return this.exportarDeuda(formato, deuda || { origen: 'factura', id: venta.id, fecha: venta.fecha, concepto: 'Venta #' + venta.id, estado: venta.estado, monto: venta.total, pagado: venta.pagado, saldo: venta.saldo })
+    },
+    // El Excel lo arma el backend con el formato del sistema anterior.
+    async excelDeudores () {
+      this.descargandoExcel = true
+      try {
+        const { data } = await this.$api.get('creditos/excel-deudores', { responseType: 'blob' })
+        const url = URL.createObjectURL(data)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = 'CUENTAS POR COBRAR ' + date.formatDate(new Date(), 'YYYY-MM-DD') + '.xlsx'
+        a.click()
+        URL.revokeObjectURL(url)
+      } catch (e) {
+        this.$q.notify({ type: 'negative', message: 'No se pudo generar el Excel de deudores' })
+      } finally {
+        this.descargandoExcel = false
+      }
     },
     money (v) { return Number(v || 0).toFixed(2) },
     cantidad (v) { return Number(v || 0).toLocaleString('es-BO', { maximumFractionDigits: 3 }) },
