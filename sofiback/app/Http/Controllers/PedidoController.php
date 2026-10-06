@@ -578,6 +578,50 @@ class PedidoController extends Controller{
     }
 
     /**
+     * Cabeceras de pedido de un tipo, en carta, para imprimir desde
+     * facturacion/pedidos: solo el cliente en grande y el recuadro con el
+     * numero de pedido en el color del camion, varias por hoja para recortar.
+     * Los tipos son los de facturacion (TipoPedido): EMBUTIDOS ya no trae
+     * podium ni huevo, que salen en su propio tipo.
+     */
+    public function reportePedidoTipo($fecha, $tipo)
+    {
+        $tipo = strtoupper(trim($tipo));
+        abort_unless(in_array($tipo, \App\Services\TipoPedido::TIPOS, true), 404, 'Tipo de pedido no valido');
+
+        $filas = DB::table('tbpedidos as p')
+            ->leftJoin('tbclientes as c', 'c.Cod_Aut', '=', 'p.idCli')
+            ->leftJoin('tbclientes as b', 'b.Cod_Aut', '=', 'p.bonificacionId')
+            ->whereNull('p.deleted_at')
+            ->whereDate('p.fecha', $fecha)
+            ->where('p.estado', 'ENVIADO')
+            ->whereRaw(\App\Services\TipoPedido::sql('p') . ' = ?', [$tipo])
+            ->where('p.bonificacion', 0)
+            ->groupBy('p.NroPed')
+            ->orderBy('p.NroPed')
+            ->get([
+                'p.NroPed as nro',
+                // En una bonificacion la cabecera lleva la cuenta de la baja,
+                // igual que la solicitud de pedido.
+                DB::raw("TRIM(MIN(CASE WHEN p.bonificacionAprovacion IS NOT NULL AND b.Nombres IS NOT NULL
+                    THEN b.Nombres ELSE c.Nombres END)) as cliente"),
+                DB::raw("TRIM(COALESCE(MIN(p.colorStyle), '')) as color"),
+            ])
+            ->map(function ($f) {
+                return ['nro' => $f->nro, 'cliente' => $f->cliente, 'color' => $f->color];
+            });
+
+        $nombres = ['NORMAL' => 'EMBUTIDOS', 'PODIUM' => 'PODIUM Y HUEVO'];
+        $tipoNombre = $nombres[$tipo] ?? $tipo;
+
+        return \PDF::loadView('pdf.cabecerasPedido', [
+            'pedidos' => $filas,
+            'tipoNombre' => $tipoNombre,
+            'fecha' => date('d/m/Y', strtotime($fecha)),
+        ])->setPaper('letter')->stream('Cabeceras ' . $tipoNombre . ' ' . $fecha . '.pdf');
+    }
+
+    /**
      * Arma un reporte de una pagina por pedido rindiendolo de a tandas.
      *
      * dompdf reflowea el documento entero de una sola vez y su costo no crece

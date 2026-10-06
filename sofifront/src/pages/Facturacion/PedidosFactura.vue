@@ -17,6 +17,16 @@
           <q-tooltip>Buscar</q-tooltip>
         </q-btn>
       </div>
+      <!-- Cabeceras (cliente y Nro de pedido) del tipo elegido, en carta,
+           para imprimir y pegar. -->
+      <div class="col-auto">
+        <q-btn
+          unelevated dense padding="6px 10px" color="deep-purple-7" icon="print" no-caps label="Imprimir"
+          type="a" target="_blank" :href="urlApi + 'reportePedidoTipo/' + fecha + '/' + tipo" :disable="!fecha"
+        >
+          <q-tooltip>Cabeceras de los pedidos {{ (tipos.find(t => t.value === tipo) || {}).label }} del día (PDF carta)</q-tooltip>
+        </q-btn>
+      </div>
       <div class="col-auto">
         <q-btn flat dense padding="6px 8px" color="primary" icon="request_quote" to="/facturacion">
           <q-tooltip>Ver facturación</q-tooltip>
@@ -269,6 +279,8 @@ export default {
     return {
       fecha: this.$route.query.fecha || date.formatDate(new Date(), 'YYYY-MM-DD'),
       tipo: this.$route.query.tipo || 'NORMAL',
+      // El PDF se abre en otra pestana, directo contra la API.
+      urlApi: process.env.API,
       camion: this.$route.query.camion || null,
       buscar: '',
       cargando: false,

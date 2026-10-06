@@ -306,6 +306,7 @@ Route::get('/generarXlsPreparacion/{fecha}/{especie?}',[\App\Http\Controllers\Ex
 Route::get('/generarXlsCerdo/{fecha}',[\App\Http\Controllers\ExcelController::class,'generarXlsCerdo']);
 Route::get('/reportePedido/{fecha}',[\App\Http\Controllers\PedidoController::class,'reportePedido']);
 Route::get('/reportePedido3/{fecha}',[\App\Http\Controllers\PedidoController::class,'reportePedido3']);
+Route::get('/reportePedidoTipo/{fecha}/{tipo}',[\App\Http\Controllers\PedidoController::class,'reportePedidoTipo']);
 Route::get('/reportePedidoZona/{fecha}/{placa}',[\App\Http\Controllers\PedidoController::class,'reportePedidoZona']);
 Route::get('/reportePedidoZonaTotal/{fecha}',[\App\Http\Controllers\PedidoController::class,'reportePedidoZonaTotal']);
 Route::get('/reportePedidoProductos/{fecha}', [\App\Http\Controllers\PedidoController::class,'reportePedidoProductos']);
