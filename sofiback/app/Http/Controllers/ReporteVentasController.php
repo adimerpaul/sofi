@@ -457,6 +457,405 @@ class ReporteVentasController extends Controller
         ]);
     }
 
+    /** Productos para elegir en el kardex: por codigo o nombre. */
+    public function kardexProductos(Request $request)
+    {
+        $buscar = trim((string) $request->input('buscar', ''));
+
+        return DB::table('tbproductos')
+            ->when($buscar !== '', function ($q) use ($buscar) {
+                $q->where(function ($w) use ($buscar) {
+                    $w->where('cod_prod', 'like', $buscar . '%')
+                        ->orWhere('Producto', 'like', '%' . $buscar . '%');
+                });
+            })
+            ->orderBy('Producto')
+            ->limit(30)
+            ->get([
+                DB::raw('TRIM(cod_prod) as cod_prod'),
+                DB::raw('TRIM(Producto) as producto'),
+                DB::raw('COALESCE(stock_actual, 0) as stock_actual'),
+            ]);
+    }
+
+    /** Kardex de un producto en pantalla. */
+    public function kardex(Request $request)
+    {
+        return $this->datosKardex($request);
+    }
+
+    /**
+     * Kardex de un producto: cada entrada y salida de inventario (tbstock) en
+     * el rango, con la existencia que iba quedando.
+     *
+     * - Entrada = cant, salida = saldo: el stock es SUM(cant - saldo).
+     * - La existencia arranca con todo lo movido antes del rango y va sumando.
+     *   Es la de tbstock; el stock del sistema (stock_actual) va aparte porque
+     *   se reinicio con el conteo del 05/10/2026 y desde ahi solo lo mueven las
+     *   ventas y compras web.
+     * - Nro comanda y nro factura: los del sistema anterior salen de la fila
+     *   (comandast) y de tbfactura; los movimientos web ("VENTA WEB 123")
+     *   apuntan a la factura del sistema y de ahi sale su pedido.
+     * - Por defecto, el año en curso.
+     */
+    private function datosKardex(Request $request): array
+    {
+        $datos = $request->validate([
+            'cod_prod' => 'required|string|max:25',
+            'desde' => 'nullable|date',
+            'hasta' => 'nullable|date',
+        ]);
+        $cod = trim($datos['cod_prod']);
+        $desde = $datos['desde'] ?? date('Y') . '-01-01';
+        $hasta = $datos['hasta'] ?? date('Y') . '-12-31';
+
+        $producto = DB::table('tbproductos')->where('cod_prod', $cod)
+            ->first([DB::raw('TRIM(Producto) as producto'), DB::raw('COALESCE(stock_actual, 0) as stock_actual')]);
+        abort_unless($producto, 404, 'Ese producto no existe');
+
+        // El indice de cod_prod sirve: en tbstock los codigos no tienen espacios.
+        $anterior = (float) DB::table('tbstock')->where('cod_prod', $cod)
+            ->where('fecha', '<', $desde . ' 00:00:00')
+            ->sum(DB::raw('cant - saldo'));
+
+        $filas = DB::table('tbstock')->where('cod_prod', $cod)
+            ->whereBetween('fecha', [$desde . ' 00:00:00', $hasta . ' 23:59:59'])
+            ->orderBy('fecha')->orderBy('CodAut')
+            ->get(['CodAut', 'fecha', 'cant', 'saldo', 'MotivoEgreso', 'comandast', 'motivstock']);
+
+        // Facturas web de los movimientos "VENTA WEB id" / "ANULA VENTA WEB id".
+        $idsWeb = $filas->map(function ($f) {
+            return preg_match('/VENTA WEB (\d+)$/', trim((string) $f->motivstock), $m) ? (int) $m[1] : null;
+        })->filter()->unique()->values()->all();
+        $web = $idsWeb ? DB::table('facturas')->whereIn('id', $idsWeb)
+            ->get(['id', 'nro_factura', 'tipo_comprobante', 'pedido_nro'])->keyBy('id') : collect();
+
+        // Facturas del sistema anterior, por comanda.
+        $comandas = $filas->pluck('comandast')->filter()->unique()->values()->all();
+        $legado = $comandas ? DB::table('tbfactura')->whereIn('comanda', $comandas)
+            ->where('nrofac', '>', 0)->pluck('nrofac', 'comanda') : collect();
+
+        $existencia = $anterior;
+        $movimientos = $filas->map(function ($f) use (&$existencia, $web, $legado) {
+            $entrada = (float) $f->cant;
+            $salida = (float) $f->saldo;
+            $existencia += $entrada - $salida;
+
+            $comanda = (int) $f->comandast;
+            $factura = $comanda ? ($legado[$comanda] ?? null) : null;
+            if (preg_match('/VENTA WEB (\d+)$/', trim((string) $f->motivstock), $m) && ($w = $web->get((int) $m[1]))) {
+                $comanda = $comanda ?: (int) $w->pedido_nro;
+                $factura = $w->tipo_comprobante === 'FACTURA' && $w->nro_factura
+                    ? $w->nro_factura
+                    : 'Voucher #' . $w->id;
+            }
+
+            return [
+                'id' => $f->CodAut,
+                'fecha' => substr((string) $f->fecha, 0, 16),
+                'entrada' => round($entrada, 3),
+                'salida' => round($salida, 3),
+                'motivo' => trim((string) $f->MotivoEgreso),
+                'existencia' => round($existencia, 3),
+                'comanda' => $comanda ?: null,
+                'factura' => $factura ?: null,
+                'motivo_stock' => trim((string) $f->motivstock),
+            ];
+        })->values();
+
+        return [
+            'cod_prod' => $cod,
+            'producto' => $producto->producto,
+            'desde' => $desde,
+            'hasta' => $hasta,
+            'saldo_anterior' => round($anterior, 3),
+            'entradas' => round($movimientos->sum('entrada'), 3),
+            'salidas' => round($movimientos->sum('salida'), 3),
+            'saldo_final' => round($existencia, 3),
+            'stock_sistema' => round((float) $producto->stock_actual, 3),
+            'movimientos' => $movimientos,
+        ];
+    }
+
+    /** El kardex en Excel, con las columnas de la planilla de siempre. */
+    public function kardexExcel(Request $request)
+    {
+        $datos = $this->datosKardex($request);
+
+        $libro = new Spreadsheet();
+        $hoja = $libro->getActiveSheet();
+        $hoja->setTitle('Kardex');
+
+        $hoja->setCellValue('A1', 'KARDEX ' . $datos['cod_prod'] . ' - ' . $datos['producto']);
+        $hoja->mergeCells('A1:J1');
+        $hoja->getStyle('A1')->getFont()->setBold(true)->setSize(13);
+        $hoja->setCellValue('A2', 'Del ' . date('d/m/Y', strtotime($datos['desde'])) . ' al ' . date('d/m/Y', strtotime($datos['hasta']))
+            . '   ·   Saldo anterior: ' . $datos['saldo_anterior']);
+
+        $hoja->fromArray(['CODIGO', 'PRODUCTO', 'FECHA REGISTRO', 'ENTRADA', 'SALIDA', 'MOTIVO INGRE/EGRE',
+            'EXISTENCIA', 'NRO COMANDA', 'NRO FACTURA', 'MOTIVO INGR. STOCK'], null, 'A4');
+        $hoja->getStyle('A4:J4')->applyFromArray([
+            'font' => ['bold' => true, 'size' => 9],
+            'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'D9D9D9']],
+        ]);
+
+        $fila = 5;
+        foreach ($datos['movimientos'] as $m) {
+            $hoja->setCellValueExplicit('A' . $fila, $datos['cod_prod'], DataType::TYPE_STRING);
+            $hoja->setCellValue('B' . $fila, $datos['producto']);
+            $hoja->setCellValue('C' . $fila, date('d/m/Y H:i', strtotime($m['fecha'])));
+            $hoja->setCellValue('D' . $fila, $m['entrada']);
+            $hoja->setCellValue('E' . $fila, $m['salida']);
+            $hoja->setCellValue('F' . $fila, $m['motivo']);
+            $hoja->setCellValue('G' . $fila, $m['existencia']);
+            $hoja->setCellValue('H' . $fila, $m['comanda']);
+            $hoja->setCellValue('I' . $fila, $m['factura']);
+            $hoja->setCellValue('J' . $fila, $m['motivo_stock']);
+            $fila++;
+        }
+
+        $hoja->setCellValue('C' . $fila, 'TOTAL');
+        $hoja->setCellValue('D' . $fila, $datos['entradas']);
+        $hoja->setCellValue('E' . $fila, $datos['salidas']);
+        $hoja->setCellValue('G' . $fila, $datos['saldo_final']);
+        $hoja->getStyle("A{$fila}:J{$fila}")->applyFromArray([
+            'font' => ['bold' => true],
+            'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'D9D9D9']],
+        ]);
+
+        $hoja->getStyle('D5:E' . $fila)->getNumberFormat()->setFormatCode('#,##0.00');
+        $hoja->getStyle('G5:G' . $fila)->getNumberFormat()->setFormatCode('#,##0.00');
+        $hoja->getStyle('A4:J' . $fila)->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_HAIR);
+        foreach (['A' => 10, 'B' => 36, 'C' => 16, 'D' => 10, 'E' => 10, 'F' => 34, 'G' => 11, 'H' => 12, 'I' => 14, 'J' => 26] as $col => $ancho) {
+            $hoja->getColumnDimension($col)->setWidth($ancho);
+        }
+        $hoja->freezePane('A5');
+        $hoja->setAutoFilter('A4:J' . max($fila - 1, 4));
+        $hoja->getPageSetup()->setOrientation(PageSetup::ORIENTATION_LANDSCAPE)
+            ->setPaperSize(PageSetup::PAPERSIZE_LETTER)
+            ->setFitToWidth(1)->setFitToHeight(0)
+            ->setRowsToRepeatAtTopByStartAndEnd(4, 4);
+
+        return response()->streamDownload(function () use ($libro) {
+            (new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($libro))->save('php://output');
+        }, 'kardex_' . $datos['cod_prod'] . '_' . $datos['desde'] . '_' . $datos['hasta'] . '.xlsx', [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        ]);
+    }
+
+    /** Columnas del detalle de ventas, en el orden de la planilla que ya usaban. */
+    private const COLUMNAS_DETALLE = [
+        'vendedor'     => 'VENDEDOR',
+        'cod_prod'     => 'COD. PRODUCTO',
+        'producto'     => 'PRODUCTO',
+        'peso'         => 'PESO',
+        'importe'      => 'IMPORTE',
+        'p_compra'     => 'P.COMPRA',
+        'placa'        => 'PLACA',
+        'tipo_pago'    => 'TIP. PAGO',
+        'cantidad'     => 'CANTIDAD',
+        'cajas'        => 'CAJAS',
+        'direccion'    => 'DIRECCION',
+        'peso_promedio' => 'PESO PROMED',
+        'doc_cliente'  => 'DOC CLIENTE',
+        'nro_factura'  => 'NRO FACT',
+    ];
+
+    /** Detalle de ventas en pantalla. */
+    public function detalleVentas(Request $request)
+    {
+        [$desde, $hasta] = $this->turno($request);
+        $filas = $this->detalle($desde, $hasta);
+
+        return [
+            'desde'   => $desde,
+            'hasta'   => $hasta,
+            'filas'   => $filas,
+            'totales' => [
+                'lineas'       => count($filas),
+                'comprobantes' => count(array_unique(array_column($filas, 'factura_id'))),
+                'peso'         => round(array_sum(array_column($filas, 'peso')), 3),
+                'importe'      => round(array_sum(array_column($filas, 'importe')), 2),
+                'p_compra'     => round(array_sum(array_column($filas, 'p_compra')), 2),
+            ],
+        ];
+    }
+
+    /**
+     * Todo lo facturado en el turno, una fila por producto de cada comprobante
+     * (factura o voucher), como la planilla de ventas del sistema anterior.
+     *
+     * - Entra todo lo que no esta anulado, venga de un pedido o de mostrador;
+     *   la venta de mostrador va como vendedor AGENCIA.
+     * - PESO: lo cobrado por kilo; lo que va por unidad, cantidad x el peso de
+     *   cada unidad (tbproductos.CantPren).
+     * - P.COMPRA: tbproductos.precio_compra x lo cobrado (kilos o unidades).
+     *   Vacio mientras el producto no tenga precio de compra cargado.
+     * - CANTIDAD: las piezas; en lo que va a granel sin piezas contadas, 0.
+     * - CAJAS: los canastillos con que se peso en caja.
+     * - NRO FACT: el numero de factura; 0 en un voucher.
+     */
+    private function detalle($desde, $hasta)
+    {
+        $lineas = DB::table('facturas as f')
+            ->join('factura_detalles as d', 'd.factura_id', '=', 'f.id')
+            ->leftJoin('tbproductos as pr', DB::raw('TRIM(pr.cod_prod)'), '=', DB::raw('TRIM(d.cod_prod)'))
+            ->leftJoin('tbclientes as c', 'c.Cod_Aut', '=', 'f.cliente_id')
+            ->whereNull('f.deleted_at')
+            ->whereNull('d.deleted_at')
+            ->where('f.estado', '<>', 'ANULADO')
+            ->whereRaw('TIMESTAMP(DATE(f.fecha), f.hora) >= ?', [$desde])
+            ->whereRaw('TIMESTAMP(DATE(f.fecha), f.hora) < ?', [$hasta])
+            ->orderBy('f.id')
+            ->orderBy('d.id')
+            ->get([
+                'f.id as factura_id', 'f.tipo_comprobante', 'f.nro_factura', 'f.tipo_pago', 'f.nit',
+                // El camion: el de la venta directa o el del pedido (igual que en facturacion).
+                DB::raw("COALESCE(NULLIF(TRIM(f.placa), ''), (
+                    SELECT CONVERT(TRIM(COALESCE(pc.placa, '')) USING utf8mb4)
+                    FROM tbpedidos pc
+                    WHERE pc.deleted_at IS NULL AND pc.NroPed = f.pedido_nro
+                      AND " . TipoPedido::sql('pc') . " = UPPER(TRIM(f.pedido_tipo))
+                    LIMIT 1
+                )) as placa"),
+                // Por subconsulta: personal.ci no es unico y un join duplicaria filas.
+                DB::raw("(SELECT TRIM(CONCAT_WS(' ', NULLIF(TRIM(pe.Nombre1), ''), NULLIF(TRIM(pe.Nombre2), ''),
+                    NULLIF(TRIM(pe.App1), ''), NULLIF(TRIM(pe.Apm), '')))
+                    FROM personal pe WHERE pe.ci = f.vendedor_ci LIMIT 1) as vendedor"),
+                DB::raw('TRIM(c.Direccion) as direccion'),
+                DB::raw('TRIM(d.cod_prod) as cod_prod'), 'd.nombre', 'd.unidad', 'd.cantidad', 'd.peso',
+                'd.canastillos', 'd.subtotal',
+                'pr.CantPren', 'pr.precio_compra',
+            ]);
+
+        $filas = [];
+        foreach ($lineas as $l) {
+            $porKilo = (float) $l->peso > 0 || strtoupper(trim((string) $l->unidad)) === 'KG';
+            $cantidad = (float) $l->cantidad;
+            $pesoUnidad = (float) $l->CantPren;
+
+            if ((float) $l->peso > 0) {
+                $peso = (float) $l->peso;
+            } elseif ($porKilo) {
+                // Granel sin pesar aparte: la cantidad ya son kilos.
+                $peso = $cantidad;
+                $cantidad = 0.0;
+            } else {
+                $peso = $cantidad * $pesoUnidad;
+            }
+
+            $base = $porKilo ? $peso : (float) $l->cantidad;
+            $pesoPromedio = !$porKilo && $pesoUnidad > 0
+                ? $pesoUnidad
+                : ($cantidad > 0 ? $peso / $cantidad : null);
+
+            $filas[] = [
+                'factura_id'    => (int) $l->factura_id,
+                'vendedor'      => $l->vendedor ?: 'AGENCIA',
+                'cod_prod'      => $l->cod_prod,
+                'producto'      => trim((string) $l->nombre),
+                'peso'          => round($peso, 3),
+                'importe'       => round((float) $l->subtotal, 2),
+                'p_compra'      => $l->precio_compra !== null ? round($base * (float) $l->precio_compra, 2) : null,
+                'placa'         => (string) $l->placa,
+                'tipo_pago'     => (string) $l->tipo_pago,
+                'cantidad'      => round($cantidad, 3),
+                'cajas'         => (int) $l->canastillos,
+                'direccion'     => (string) $l->direccion,
+                'peso_promedio' => $pesoPromedio !== null ? round($pesoPromedio, 3) : null,
+                'doc_cliente'   => trim((string) $l->nit),
+                'nro_factura'   => $l->tipo_comprobante === 'FACTURA' ? (int) $l->nro_factura : 0,
+            ];
+        }
+
+        // Como la planilla: por vendedor y, dentro, por cliente.
+        usort($filas, function ($a, $b) {
+            return [$a['vendedor'] !== 'AGENCIA', $a['vendedor'], $a['doc_cliente'], $a['factura_id']]
+                <=> [$b['vendedor'] !== 'AGENCIA', $b['vendedor'], $b['doc_cliente'], $b['factura_id']];
+        });
+
+        return $filas;
+    }
+
+    /** El detalle de ventas en Excel, con las columnas de la planilla. */
+    public function detalleVentasExcel(Request $request)
+    {
+        [$desde, $hasta] = $this->turno($request);
+        $filas = $this->detalle($desde, $hasta);
+
+        $libro = new Spreadsheet();
+        $hoja = $libro->getActiveSheet();
+        $hoja->setTitle('Ventas');
+
+        $hoja->fromArray(array_values(self::COLUMNAS_DETALLE), null, 'A1');
+        $ultimaCol = Coordinate::stringFromColumnIndex(count(self::COLUMNAS_DETALLE));
+        $hoja->getStyle("A1:{$ultimaCol}1")->applyFromArray([
+            'font' => ['bold' => true, 'size' => 9],
+            'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'D9D9D9']],
+        ]);
+
+        $fila = 2;
+        foreach ($filas as $f) {
+            $col = 1;
+            foreach (array_keys(self::COLUMNAS_DETALLE) as $campo) {
+                $celda = Coordinate::stringFromColumnIndex($col++) . $fila;
+                // Codigos y documentos como texto: si no, Excel les come los ceros.
+                if (in_array($campo, ['cod_prod', 'doc_cliente'], true)) {
+                    $hoja->setCellValueExplicit($celda, (string) $f[$campo], DataType::TYPE_STRING);
+                } else {
+                    $hoja->setCellValue($celda, $f[$campo]);
+                }
+            }
+            $fila++;
+        }
+
+        $hoja->setCellValue('A' . $fila, 'TOTAL');
+        $hoja->setCellValue('D' . $fila, round(array_sum(array_column($filas, 'peso')), 3));
+        $hoja->setCellValue('E' . $fila, round(array_sum(array_column($filas, 'importe')), 2));
+        $hoja->setCellValue('F' . $fila, round(array_sum(array_column($filas, 'p_compra')), 2));
+        $hoja->getStyle("A{$fila}:{$ultimaCol}{$fila}")->getFont()->setBold(true);
+
+        $hoja->getStyle('D2:D' . $fila)->getNumberFormat()->setFormatCode('#,##0.000');
+        $hoja->getStyle('E2:F' . $fila)->getNumberFormat()->setFormatCode('#,##0.00');
+        $hoja->getStyle('I2:I' . $fila)->getNumberFormat()->setFormatCode('#,##0.00');
+        $hoja->getStyle('L2:L' . $fila)->getNumberFormat()->setFormatCode('#,##0.00');
+        $hoja->getStyle("A1:{$ultimaCol}{$fila}")->getFont()->setSize(9);
+        foreach (['A' => 34, 'B' => 10, 'C' => 46, 'D' => 9, 'E' => 11, 'F' => 11, 'G' => 18, 'H' => 11,
+                     'I' => 9, 'J' => 7, 'K' => 40, 'L' => 10, 'M' => 13, 'N' => 9] as $col => $ancho) {
+            $hoja->getColumnDimension($col)->setWidth($ancho);
+        }
+        $hoja->freezePane('A2');
+        $hoja->setAutoFilter("A1:{$ultimaCol}" . max($fila - 1, 1));
+
+        $nombre = 'ventas_' . str_replace([' ', ':'], ['_', ''], substr($desde, 0, 16))
+            . '_a_' . str_replace([' ', ':'], ['_', ''], substr($hasta, 0, 16)) . '.xlsx';
+
+        return response()->streamDownload(function () use ($libro) {
+            (new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($libro))->save('php://output');
+        }, $nombre, [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        ]);
+    }
+
+    /**
+     * Desde y hasta del detalle de ventas como 'Y-m-d H:i:s'. Por defecto el
+     * turno de ayer a las 18:00 a hoy a las 18:00; el hasta no se incluye.
+     */
+    private function turno(Request $request)
+    {
+        $datos = $request->validate([
+            'desde'      => 'nullable|date_format:Y-m-d',
+            'hora_desde' => 'nullable|date_format:H:i',
+            'hasta'      => 'nullable|date_format:Y-m-d',
+            'hora_hasta' => 'nullable|date_format:H:i',
+        ]);
+
+        $desde = ($datos['desde'] ?? date('Y-m-d', strtotime('-1 day'))) . ' ' . ($datos['hora_desde'] ?? '18:00') . ':00';
+        $hasta = ($datos['hasta'] ?? date('Y-m-d')) . ' ' . ($datos['hora_hasta'] ?? '18:00') . ':00';
+
+        return [$desde, $hasta];
+    }
+
     private function fecha(Request $request)
     {
         $datos = $request->validate(['fecha' => 'nullable|date']);

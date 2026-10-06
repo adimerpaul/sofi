@@ -148,17 +148,19 @@ class CamineroController extends Controller
      */
     private function comprobantesDelCamion($fecha, $placa)
     {
-        // La fecha es la de entrega del pedido (el dia siguiente al pedido),
-        // no la del comprobante: el caminero sale ese dia con lo que tiene que
-        // entregar, lo haya facturado caja ese dia o la vispera.
+        // Misma jornada que la carga del camion: lo facturado desde la vispera
+        // a las 18:00 hasta ese dia a las 18:00, asi el caminero entrega
+        // exactamente lo que reviso al cargar.
         $facturas = DB::table('facturas as f')
             ->leftJoin('tbclientes as c', 'c.Cod_Aut', '=', 'f.cliente_id')
             ->whereNull('f.deleted_at')
             ->where('f.estado', '<>', 'ANULADO')
-            ->whereIn('f.pedido_nro', function ($pedidos) use ($fecha, $placa) {
+            ->tap(function ($consulta) use ($fecha) {
+                CargaCamion::enJornada($consulta, $fecha);
+            })
+            ->whereIn('f.pedido_nro', function ($pedidos) use ($placa) {
                 $pedidos->from('tbpedidos')
                     ->whereNull('deleted_at')
-                    ->where('fecha_entrega', $fecha)
                     ->where('bonificacion', 0)
                     ->whereRaw("TRIM(COALESCE(placa, '')) = ?", [$placa])
                     ->select('NroPed');

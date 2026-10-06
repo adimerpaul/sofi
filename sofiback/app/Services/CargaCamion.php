@@ -377,8 +377,9 @@ class CargaCamion
                     ->where('p.bonificacion', 0);
             })
             ->leftJoin('tbclientes as c', 'c.Cod_Aut', '=', 'f.cliente_id')
-            ->where('f.fecha', '>=', $fecha . ' 00:00:00')
-            ->where('f.fecha', '<', $this->diaSiguiente($fecha))
+            ->tap(function ($consulta) use ($fecha) {
+                self::enJornada($consulta, $fecha);
+            })
             ->whereNull('f.deleted_at')
             ->where('f.estado', '<>', 'ANULADO')
             ->whereRaw("TRIM(COALESCE(p.placa, '')) = ?", [$placa])
@@ -452,6 +453,35 @@ class CargaCamion
             ->where('placa', $placa)
             ->get()
             ->keyBy('factura_id');
+    }
+
+    /** Hora en que cierra la jornada de reparto. */
+    public const CORTE_JORNADA = '18:00:00';
+
+    /**
+     * Limita los comprobantes (alias f) a la jornada que termina ese dia: desde
+     * la vispera a las 18:00 hasta ese dia a las 18:00. Caja factura de tarde
+     * y de noche lo que sale a la manana siguiente, asi que el dia calendario
+     * partia la carga en dos.
+     *
+     * fecha y hora son columnas separadas: el rango sobre f.fecha deja usar
+     * el indice y la hora solo corta las puntas.
+     */
+    public static function enJornada($consulta, $fecha, $alias = 'f')
+    {
+        $vispera = date('Y-m-d', strtotime($fecha . ' -1 day'));
+        $corte = self::CORTE_JORNADA;
+
+        return $consulta
+            ->where("$alias.fecha", '>=', $vispera)
+            ->where("$alias.fecha", '<=', $fecha)
+            ->where(function ($q) use ($alias, $vispera, $fecha, $corte) {
+                $q->where(function ($q) use ($alias, $vispera, $corte) {
+                    $q->where("$alias.fecha", $vispera)->where("$alias.hora", '>=', $corte);
+                })->orWhere(function ($q) use ($alias, $fecha, $corte) {
+                    $q->where("$alias.fecha", $fecha)->where("$alias.hora", '<', $corte);
+                });
+            });
     }
 
     private function diaSiguiente($fecha)

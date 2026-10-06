@@ -5,6 +5,8 @@
             class="text-grey-8">
       <q-tab name="quiebre" icon="production_quantity_limits" label="Quiebre de stock embutido"/>
       <q-tab name="pollo" icon="egg" label="Reporte auxiliar de pollo"/>
+      <q-tab name="detalle" icon="receipt_long" label="Detalle de ventas"/>
+      <q-tab name="kardex" icon="inventory" label="Kardex por producto"/>
     </q-tabs>
     <q-separator/>
 
@@ -190,6 +192,163 @@
           </table>
         </div>
       </q-tab-panel>
+
+      <!-- Todo lo facturado en el turno, una fila por producto: la planilla de
+           ventas que se sacaba del sistema anterior. -->
+      <q-tab-panel name="detalle" class="q-pa-none q-pt-sm">
+        <div class="row items-center q-gutter-sm">
+          <q-input v-model="turno.desde" type="date" dense outlined label="Desde" style="width: 150px"/>
+          <q-input v-model="turno.horaDesde" type="time" dense outlined label="Hora" style="width: 105px"/>
+          <q-input v-model="turno.hasta" type="date" dense outlined label="Hasta" style="width: 150px"/>
+          <q-input v-model="turno.horaHasta" type="time" dense outlined label="Hora" style="width: 105px"/>
+          <q-btn color="primary" icon="refresh" label="Actualizar" no-caps unelevated :loading="cargandoDetalle"
+                 @click="consultarDetalle"/>
+          <q-btn color="green-8" icon="download" label="Excel" no-caps unelevated :loading="descargandoDetalle"
+                 :disable="!detalle.filas.length" @click="descargarDetalle"/>
+        </div>
+
+        <div class="text-caption text-grey-7 q-mt-xs">
+          Facturas y vouchers no anulados del turno (la hora de cierre ya es del turno siguiente). La venta de
+          mostrador sale como AGENCIA. P.COMPRA usa el precio de compra cargado en Productos.
+        </div>
+
+        <div class="row q-col-gutter-sm q-mt-xs">
+          <div class="col-6 col-sm-3">
+            <q-card flat bordered class="tarjeta">
+              <div class="tarjeta-titulo">Comprobantes</div>
+              <div class="tarjeta-valor">{{ detalle.totales.comprobantes }}</div>
+              <div class="tarjeta-sub">{{ detalle.totales.lineas }} líneas</div>
+            </q-card>
+          </div>
+          <div class="col-6 col-sm-3">
+            <q-card flat bordered class="tarjeta">
+              <div class="tarjeta-titulo">Importe Bs</div>
+              <div class="tarjeta-valor text-positive">{{ bs(detalle.totales.importe) }}</div>
+            </q-card>
+          </div>
+          <div class="col-6 col-sm-3">
+            <q-card flat bordered class="tarjeta">
+              <div class="tarjeta-titulo">Peso kg</div>
+              <div class="tarjeta-valor">{{ numero(detalle.totales.peso) }}</div>
+            </q-card>
+          </div>
+          <div class="col-6 col-sm-3">
+            <q-card flat bordered class="tarjeta">
+              <div class="tarjeta-titulo">P. compra Bs</div>
+              <div class="tarjeta-valor text-blue-9">{{ bs(detalle.totales.p_compra) }}</div>
+            </q-card>
+          </div>
+        </div>
+
+        <q-table
+          class="q-mt-sm tabla-detalle" flat bordered dense virtual-scroll
+          :rows="detalle.filas" :columns="columnasDetalle" :filter="buscarDetalle"
+          :rows-per-page-options="[0]" row-key="_k" :loading="cargandoDetalle"
+          no-data-label="No hay ventas en ese turno"
+        >
+          <template v-slot:top-right>
+            <q-input v-model="buscarDetalle" dense outlined clearable debounce="300"
+                     placeholder="Vendedor, producto, placa, documento…" style="width: 280px">
+              <template v-slot:append><q-icon name="search"/></template>
+            </q-input>
+          </template>
+        </q-table>
+      </q-tab-panel>
+
+      <!-- Kardex: se elige un producto y salen todas sus entradas y salidas,
+           con la existencia que iba quedando. Por defecto, el año entero. -->
+      <q-tab-panel name="kardex" class="q-pa-none q-pt-sm">
+        <div class="row items-center q-gutter-sm">
+          <q-select
+            v-model="kardexProducto" :options="kardexOpciones" dense outlined clearable
+            use-input input-debounce="300" label="Producto (código o nombre)" style="min-width: 320px"
+            option-value="cod_prod" :option-label="o => o.cod_prod + ' · ' + o.producto"
+            @filter="buscarKardexProducto" @update:model-value="consultarKardex"
+          >
+            <template v-slot:no-option>
+              <q-item><q-item-section class="text-grey">Escribe para buscar</q-item-section></q-item>
+            </template>
+          </q-select>
+          <q-input v-model="kardexDesde" type="date" dense outlined label="Desde" style="width: 150px"
+                   @update:model-value="consultarKardex"/>
+          <q-input v-model="kardexHasta" type="date" dense outlined label="Hasta" style="width: 150px"
+                   @update:model-value="consultarKardex"/>
+          <q-btn color="primary" icon="refresh" label="Actualizar" no-caps unelevated :loading="cargandoKardex"
+                 :disable="!kardexProducto" @click="consultarKardex"/>
+          <q-btn color="green-8" icon="download" label="Excel" no-caps unelevated :loading="descargandoKardex"
+                 :disable="!kardex.movimientos.length" @click="descargarKardex"/>
+        </div>
+
+        <template v-if="kardex.cod_prod">
+          <div class="row q-col-gutter-sm q-mt-xs">
+            <div class="col-6 col-sm">
+              <q-card flat bordered class="tarjeta">
+                <div class="tarjeta-titulo">Saldo anterior</div>
+                <div class="tarjeta-valor">{{ numero(kardex.saldo_anterior) }}</div>
+              </q-card>
+            </div>
+            <div class="col-6 col-sm">
+              <q-card flat bordered class="tarjeta">
+                <div class="tarjeta-titulo">Entradas</div>
+                <div class="tarjeta-valor text-green-9">{{ numero(kardex.entradas) }}</div>
+              </q-card>
+            </div>
+            <div class="col-6 col-sm">
+              <q-card flat bordered class="tarjeta">
+                <div class="tarjeta-titulo">Salidas</div>
+                <div class="tarjeta-valor text-negative">{{ numero(kardex.salidas) }}</div>
+              </q-card>
+            </div>
+            <div class="col-6 col-sm">
+              <q-card flat bordered class="tarjeta">
+                <div class="tarjeta-titulo">Existencia final</div>
+                <div class="tarjeta-valor text-blue-9">{{ numero(kardex.saldo_final) }}</div>
+                <div class="tarjeta-sub">Stock del sistema hoy: {{ numero(kardex.stock_sistema) }}</div>
+              </q-card>
+            </div>
+          </div>
+
+          <q-input v-model="buscarKardex" dense outlined clearable placeholder="Buscar motivo, comanda o factura"
+                   class="q-mt-sm">
+            <template v-slot:append><q-icon name="search"/></template>
+          </q-input>
+
+          <q-markup-table flat bordered dense separator="horizontal" class="q-mt-sm tabla-quiebre">
+            <thead>
+            <tr class="bg-grey-3">
+              <th class="text-left">Fecha registro</th>
+              <th class="text-right">Entrada</th>
+              <th class="text-right">Salida</th>
+              <th class="text-left">Motivo ingre/egre</th>
+              <th class="text-right">Existencia</th>
+              <th class="text-right">Nro comanda</th>
+              <th class="text-right">Nro factura</th>
+              <th class="text-left">Motivo ingr. stock</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr v-if="!kardexVisibles.length">
+              <td colspan="8" class="text-center text-grey-7 q-pa-md">
+                {{ cargandoKardex ? 'Cargando…' : 'Sin movimientos en este rango' }}
+              </td>
+            </tr>
+            <tr v-for="m in kardexVisibles" :key="m.id">
+              <td>{{ fechaHora(m.fecha) }}</td>
+              <td class="text-right text-green-9">{{ m.entrada ? numero(m.entrada) : '' }}</td>
+              <td class="text-right text-negative">{{ m.salida ? numero(m.salida) : '' }}</td>
+              <td>{{ m.motivo }}</td>
+              <td class="text-right text-weight-bold">{{ numero(m.existencia) }}</td>
+              <td class="text-right">{{ m.comanda || '' }}</td>
+              <td class="text-right">{{ m.factura || '' }}</td>
+              <td>{{ m.motivo_stock }}</td>
+            </tr>
+            </tbody>
+          </q-markup-table>
+        </template>
+        <div v-else class="text-grey-7 q-pa-md">
+          Elige un producto para ver sus entradas y salidas.
+        </div>
+      </q-tab-panel>
     </q-tab-panels>
   </q-page>
 </template>
@@ -214,16 +373,59 @@ export default {
       fechaPollo: date.formatDate(Date.now(), 'YYYY-MM-DD'),
       pollo: { columnas: [], stock_inicial: {}, vendedores: [], ventas_directas: {}, total_ventas: {}, stock_final: {} },
       cargandoPollo: false,
-      descargandoPollo: false
+      descargandoPollo: false,
+      // Detalle de ventas: el turno va de ayer a las 18:00 a hoy a las 18:00.
+      turno: {
+        desde: date.formatDate(date.subtractFromDate(Date.now(), { days: 1 }), 'YYYY-MM-DD'),
+        horaDesde: '18:00',
+        hasta: date.formatDate(Date.now(), 'YYYY-MM-DD'),
+        horaHasta: '18:00'
+      },
+      detalle: { filas: [], totales: { lineas: 0, comprobantes: 0, peso: 0, importe: 0, p_compra: 0 } },
+      buscarDetalle: '',
+      cargandoDetalle: false,
+      descargandoDetalle: false,
+      columnasDetalle: [
+        { name: 'vendedor', label: 'Vendedor', field: 'vendedor', align: 'left', sortable: true },
+        { name: 'cod_prod', label: 'Cód. producto', field: 'cod_prod', align: 'left', sortable: true },
+        { name: 'producto', label: 'Producto', field: 'producto', align: 'left', sortable: true },
+        { name: 'peso', label: 'Peso', field: 'peso', align: 'right', sortable: true, format: v => this.numero(v) },
+        { name: 'importe', label: 'Importe', field: 'importe', align: 'right', sortable: true, format: v => this.bs(v) },
+        { name: 'p_compra', label: 'P. compra', field: 'p_compra', align: 'right', sortable: true, format: v => v === null ? '—' : this.bs(v) },
+        { name: 'placa', label: 'Placa', field: 'placa', align: 'left', sortable: true },
+        { name: 'tipo_pago', label: 'Tip. pago', field: 'tipo_pago', align: 'left', sortable: true },
+        { name: 'cantidad', label: 'Cantidad', field: 'cantidad', align: 'right', sortable: true, format: v => this.numero(v) },
+        { name: 'cajas', label: 'Cajas', field: 'cajas', align: 'right', sortable: true },
+        { name: 'direccion', label: 'Dirección', field: 'direccion', align: 'left' },
+        { name: 'peso_promedio', label: 'Peso prom.', field: 'peso_promedio', align: 'right', format: v => v === null ? '—' : this.numero(v) },
+        { name: 'doc_cliente', label: 'Doc. cliente', field: 'doc_cliente', align: 'left', sortable: true },
+        { name: 'nro_factura', label: 'Nro. fact.', field: 'nro_factura', align: 'right', sortable: true }
+      ],
+      // Kardex: por defecto el año en curso.
+      kardexProducto: null,
+      kardexOpciones: [],
+      kardexDesde: date.formatDate(Date.now(), 'YYYY') + '-01-01',
+      kardexHasta: date.formatDate(Date.now(), 'YYYY') + '-12-31',
+      kardex: { movimientos: [] },
+      buscarKardex: '',
+      cargandoKardex: false,
+      descargandoKardex: false
     }
   },
   watch: {
-    // El de pollo se pide recien cuando se abre su pestaña.
+    // Los otros reportes se piden recien cuando se abre su pestaña.
     reporte (valor) {
       if (valor === 'pollo' && !this.pollo.columnas.length) this.consultarPollo()
+      if (valor === 'detalle' && !this.detalle.filas.length) this.consultarDetalle()
     }
   },
   computed: {
+    kardexVisibles () {
+      const texto = (this.buscarKardex || '').toLowerCase()
+      if (!texto) return this.kardex.movimientos
+      return this.kardex.movimientos.filter(m =>
+        [m.motivo, m.motivo_stock, m.comanda, m.factura].some(v => String(v || '').toLowerCase().includes(texto)))
+    },
     // Filtradas, y marcando en que fila cambia estado, vendedor o cliente.
     visibles () {
       const texto = (this.buscar || '').toLowerCase()
@@ -251,6 +453,47 @@ export default {
     this.consultar()
   },
   methods: {
+    buscarKardexProducto (texto, actualizar) {
+      this.$api.get('reportes/kardex/productos', { params: { buscar: texto || '' } })
+        .then(res => actualizar(() => { this.kardexOpciones = res.data }))
+        .catch(() => actualizar(() => { this.kardexOpciones = [] }))
+    },
+    consultarKardex () {
+      if (!this.kardexProducto) {
+        this.kardex = { movimientos: [] }
+        return
+      }
+      this.cargandoKardex = true
+      this.$api.get('reportes/kardex', { params: this.paramsKardex() }).then(res => {
+        this.kardex = res.data
+      }).catch(err => {
+        this.$q.notify({ type: 'negative', message: err.response?.data?.message || 'No se pudo cargar el kardex' })
+      }).finally(() => {
+        this.cargandoKardex = false
+      })
+    },
+    paramsKardex () {
+      return { cod_prod: this.kardexProducto.cod_prod, desde: this.kardexDesde, hasta: this.kardexHasta }
+    },
+    async descargarKardex () {
+      this.descargandoKardex = true
+      try {
+        const res = await this.$api.get('reportes/kardex/excel', { params: this.paramsKardex(), responseType: 'blob' })
+        const url = window.URL.createObjectURL(res.data)
+        const enlace = document.createElement('a')
+        enlace.href = url
+        enlace.download = 'kardex_' + this.kardexProducto.cod_prod + '.xlsx'
+        enlace.click()
+        window.URL.revokeObjectURL(url)
+      } catch (e) {
+        this.$q.notify({ type: 'negative', message: 'No se pudo descargar el Excel' })
+      } finally {
+        this.descargandoKardex = false
+      }
+    },
+    fechaHora (valor) {
+      return valor ? date.formatDate(valor.replace(' ', 'T'), 'DD/MM/YYYY HH:mm') : ''
+    },
     consultar () {
       this.cargando = true
       this.$api.get('reportes/quiebre-embutido', { params: { fecha: this.fecha } }).then(res => {
@@ -313,6 +556,49 @@ export default {
         this.descargandoPollo = false
       }
     },
+    paramsTurno () {
+      return {
+        desde: this.turno.desde,
+        hora_desde: this.turno.horaDesde || '00:00',
+        hasta: this.turno.hasta,
+        hora_hasta: this.turno.horaHasta || '00:00'
+      }
+    },
+    consultarDetalle () {
+      if (!this.turno.desde || !this.turno.hasta) return
+      this.cargandoDetalle = true
+      this.$api.get('reportes/detalle-ventas', { params: this.paramsTurno() }).then(res => {
+        // Clave propia: un mismo comprobante puede repetir producto.
+        res.data.filas.forEach((f, i) => { f._k = i })
+        this.detalle = res.data
+      }).catch(err => {
+        this.$q.notify({ type: 'negative', message: err.response?.data?.message || 'No se pudo cargar el detalle de ventas' })
+      }).finally(() => {
+        this.cargandoDetalle = false
+      })
+    },
+    async descargarDetalle () {
+      this.descargandoDetalle = true
+      try {
+        const res = await this.$api.get('reportes/detalle-ventas/excel', {
+          params: this.paramsTurno(),
+          responseType: 'blob'
+        })
+        const url = window.URL.createObjectURL(res.data)
+        const enlace = document.createElement('a')
+        enlace.href = url
+        enlace.download = 'ventas_' + this.turno.desde + '_a_' + this.turno.hasta + '.xlsx'
+        enlace.click()
+        window.URL.revokeObjectURL(url)
+      } catch (e) {
+        this.$q.notify({ type: 'negative', message: 'No se pudo descargar el Excel' })
+      } finally {
+        this.descargandoDetalle = false
+      }
+    },
+    bs (valor) {
+      return Number(valor || 0).toLocaleString('es-BO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+    },
     // Suma del pollo entero (frial y brasa) de una fila, como la ultima columna del Excel.
     entero (valores) {
       return this.pollo.columnas.filter(c => c.entero).reduce((s, c) => s + Number(valores[c.cod_prod] || 0), 0)
@@ -348,6 +634,22 @@ export default {
 .tarjeta-sub {
   font-size: 10px;
   color: rgba(0, 0, 0, 0.55);
+}
+/* Cientos de lineas por turno: alto fijo y scroll virtual, encabezado fijo. */
+.tabla-detalle {
+  height: 62vh;
+}
+.tabla-detalle :deep(thead tr th) {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: #eeeeee;
+}
+.tabla-detalle :deep(td),
+.tabla-detalle :deep(th) {
+  font-size: 11px;
+  padding: 2px 6px;
+  height: 22px;
 }
 .tabla-quiebre td,
 .tabla-quiebre th {

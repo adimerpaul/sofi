@@ -328,6 +328,17 @@
         </q-td>
       </template>
 
+      <!-- Al lado del camion, un cuadrito con el color de zona del pedido
+           (el mismo del mapa) para guiarse al armar la carga. -->
+      <template v-slot:body-cell-placa="props">
+        <q-td :props="props" style="white-space: nowrap">
+          <span v-if="zona(props.row)" class="cuadro-zona" :style="zona(props.row).estilo">
+            <q-tooltip>Zona {{ zona(props.row).nombre }}</q-tooltip>
+          </span>
+          {{ props.row.placa || '—' }}
+        </q-td>
+      </template>
+
       <template v-slot:body-cell-pedido="props">
         <q-td :props="props">
           <template v-if="props.value">
@@ -892,6 +903,23 @@ function filtrosPorDefecto () {
  * Se corta la parte del dia antes de formatear: interpretarla como fecha con
  * hora la correria un dia segun la zona horaria del navegador.
  */
+/** Nombre de cada color de zona, como en el mapa de clientes (MapaCliente.vue). */
+const ZONAS = {
+  'deep-orange-4': 'NORTE',
+  'pink-4': 'BOLIVAR',
+  'blue-grey-4': 'SE RECOGE',
+  yellow: 'CENTRO',
+  'green-4': 'APOYO',
+  'green-9': 'APOYO2',
+  'deep-purple-4': 'HUANUNI',
+  'red-10': 'CHALLAPATA',
+  'red-4': 'LLALLAGUA',
+  'light-blue-8': 'CARACOLLO',
+  'blue-4': 'SUD',
+  'amber-8': 'MOTO1',
+  'grey-6': 'SIN ZONA'
+}
+
 function fechaCorta (valor) {
   const dia = String(valor || '').substr(0, 10)
   return dia ? date.formatDate(dia + 'T00:00:00', 'DD/MM/YYYY') : '—'
@@ -1030,6 +1058,15 @@ export default {
       return Number(v || 0).toFixed(2)
     },
     fechaCorta,
+    /**
+     * Color y nombre de la zona del pedido. Llega como 'clase|estilo'
+     * ('pink-4|background-color: #F06292'); la venta de mostrador no tiene.
+     */
+    zona (row) {
+      const [clase, estilo] = String(row.zona_color || '').split('|')
+      if (!estilo || !estilo.includes('#')) return null
+      return { estilo, nombre: ZONAS[clase] || clase || 'sin nombre' }
+    },
     /** En el legado los embutidos van como NORMAL; en pantalla se dicen asi. */
     nombreTipoPedido (tipo) {
       const valor = String(tipo || '').toUpperCase()
@@ -1672,6 +1709,15 @@ export default {
   font-size: 12px;
   padding: 0;
   min-height: 28px;
+}
+.cuadro-zona {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+  border: 1px solid rgba(0, 0, 0, 0.25);
+  vertical-align: middle;
+  margin-right: 4px;
 }
 .filtros .campo-fecha {
   width: 132px;

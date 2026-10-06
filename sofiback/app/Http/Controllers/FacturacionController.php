@@ -240,6 +240,15 @@ class FacturacionController extends Controller
                   AND " . TipoPedido::sql('pc') . " = UPPER(TRIM(facturas.pedido_tipo))
                 LIMIT 1
             )) as placa")
+            // El color de zona que se le dio al pedido al asignarle camion (el
+            // mismo del mapa de clientes): en la grilla guia a que zona va.
+            ->selectRaw("(
+                SELECT CONVERT(CONCAT(TRIM(COALESCE(pz.color, '')), '|', TRIM(COALESCE(pz.colorStyle, ''))) USING utf8mb4)
+                FROM tbpedidos pz
+                WHERE pz.deleted_at IS NULL AND pz.NroPed = facturas.pedido_nro
+                  AND " . TipoPedido::sql('pz') . " = UPPER(TRIM(facturas.pedido_tipo))
+                LIMIT 1
+            ) as zona_color")
             ->orderByDesc('id');
 
         // Los comprobantes marcados a mano en la grilla: van solos, sin los

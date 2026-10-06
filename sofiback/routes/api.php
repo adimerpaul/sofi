@@ -99,9 +99,16 @@ Route::group(['middleware'=>'auth:sanctum'],function (){
     // Reportes de Ventas y Facturacion: quiebre de stock (pedido contra vendido).
     Route::get('/reportes/quiebre-embutido',[\App\Http\Controllers\ReporteVentasController::class,'quiebreEmbutido']);
     Route::get('/reportes/quiebre-embutido/excel',[\App\Http\Controllers\ReporteVentasController::class,'quiebreEmbutidoExcel']);
+    // Detalle de lo facturado en el turno (ayer 18:00 a hoy 18:00), una fila por producto.
+    Route::get('/reportes/detalle-ventas',[\App\Http\Controllers\ReporteVentasController::class,'detalleVentas']);
+    Route::get('/reportes/detalle-ventas/excel',[\App\Http\Controllers\ReporteVentasController::class,'detalleVentasExcel']);
     // Reporte auxiliar del dia de pollo: stock, ventas por preventista y stock final.
     Route::get('/reportes/auxiliar-pollo',[\App\Http\Controllers\ReporteVentasController::class,'auxiliarPollo']);
     Route::get('/reportes/auxiliar-pollo/excel',[\App\Http\Controllers\ReporteVentasController::class,'auxiliarPolloExcel']);
+    // Kardex: entradas y salidas de un producto con su existencia.
+    Route::get('/reportes/kardex/productos',[\App\Http\Controllers\ReporteVentasController::class,'kardexProductos']);
+    Route::get('/reportes/kardex',[\App\Http\Controllers\ReporteVentasController::class,'kardex']);
+    Route::get('/reportes/kardex/excel',[\App\Http\Controllers\ReporteVentasController::class,'kardexExcel']);
     Route::get('/facturacion/{factura}/voucher',[\App\Http\Controllers\FacturacionController::class,'voucher']);
     Route::get('/facturacion/{factura}/factura',[\App\Http\Controllers\FacturacionController::class,'factura']);
     Route::get('/facturacion/{factura}/url-impuestos',[\App\Http\Controllers\FacturacionController::class,'urlImpuestos']);
