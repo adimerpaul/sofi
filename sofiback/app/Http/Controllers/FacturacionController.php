@@ -3057,7 +3057,8 @@ class FacturacionController extends Controller
         $html = '<style>' . $this->estilosImpresion() . "
             .subtitulo { text-align: center; font-size: 8.5px; color: #666; margin: 6px 0 2px }
         </style>"
-        . $this->cabeceraEmisor($caja)
+        // La factura fiscal va con la razon social registrada en Impuestos.
+        . $this->cabeceraEmisor($caja, \App\Models\SiatConfiguracion::activa()->razon_social ?: config('siat.razon_social'))
         . "<div class='subtitulo'>(Con derecho a crédito fiscal)</div>"
         . $sinCuf
         . $anulado

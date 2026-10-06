@@ -68,7 +68,7 @@
 <body>
 
 <div class="header">
-    ALMACÉN SOFIA - BOLETA DE ENTREGA - ORIGINAL
+    {{ config('siat.emisor.nombre') }} - BOLETA DE ENTREGA - ORIGINAL
 </div>
 
 <table class="info-table">

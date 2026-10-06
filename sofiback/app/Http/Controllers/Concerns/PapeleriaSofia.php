@@ -67,13 +67,16 @@ trait PapeleriaSofia
         ";
     }
 
-    /** Logo, datos de la empresa y, a la derecha, la caja del documento. */
-    private function cabeceraEmisor($cajaDerecha)
+    /**
+     * Logo, datos de la empresa y, a la derecha, la caja del documento. La
+     * factura fiscal pasa su razon social: el nombre comercial no es el que
+     * esta registrado en Impuestos.
+     */
+    private function cabeceraEmisor($cajaDerecha, $nombre = null)
     {
         $emisor = config('siat.emisor');
-        $logo = is_file(public_path('img/sofia.png'))
-            ? base64_encode(file_get_contents(public_path('img/sofia.png')))
-            : '';
+        $archivo = public_path($emisor['logo'] ?? 'img/sofia.png');
+        $logo = is_file($archivo) ? base64_encode(file_get_contents($archivo)) : '';
 
         return "<table class='cabecera'>
             <tr>
@@ -81,7 +84,7 @@ trait PapeleriaSofia
                     . ($logo ? "<img class='logo' src='data:image/png;base64,$logo'>" : '')
                 . "</td>
                 <td style='padding-left:6px'>
-                    <div class='empresa'>" . e($emisor['nombre']) . "</div>
+                    <div class='empresa'>" . e($nombre ?: $emisor['nombre']) . "</div>
                     <div class='empresa-dato'>
                         " . e($emisor['sucursal']) . " &middot; NIT " . e(config('siat.nit')) . "<br>
                         " . e($emisor['direccion']) . "<br>

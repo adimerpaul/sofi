@@ -269,7 +269,7 @@
       <q-card style="min-width: 340px; max-width: 900px; width: 100%">
         <q-card-section class="bg-primary text-white q-py-sm row items-center">
           <div class="col">
-            <div class="text-subtitle1 text-weight-bold">ALMACEN SOFIA</div>
+            <div class="text-subtitle1 text-weight-bold">ALMACEN AREA FRESCA</div>
             <div class="text-caption">Boleta de entrega</div>
           </div>
           <div class="col-auto text-right">

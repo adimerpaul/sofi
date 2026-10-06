@@ -17,10 +17,10 @@
           :key="tipoMapa" :url="urlMapa" :subdomains="['mt0', 'mt1', 'mt2', 'mt3']"
           :max-zoom="20" attribution="Google"
         />
-        <!-- Una marca por puerta y no por pedido: el mismo cliente pide dos o
-             tres veces el mismo dia y las marcas se tapaban entre ellas. El
-             globito dice cuantos pedidos hay en ese punto, y al tocarlo se
-             abre la lista de todos. -->
+        <!-- Una marca por cliente y no por pedido: el mismo cliente pide dos
+             o tres veces el mismo dia. El globito dice cuantos pedidos tiene y
+             al tocarla se abren solo los suyos. Cada marca va en la ubicacion
+             real del cliente, aunque quede cerca de otra. -->
         <l-marker
           v-for="punto in marcadores" :key="punto.clave"
           :lat-lng="punto.latLng"
@@ -271,6 +271,11 @@
                   {{ punto.entregas.length }} pedidos ·
                 </span>
                 {{ punto.direccion || 'Sin dirección' }}
+              </div>
+              <div v-if="punto.telefono" class="text-caption">
+                <a :href="'tel:' + punto.telefono" class="text-green-9 text-weight-medium" style="text-decoration: none">
+                  <q-icon name="call" size="14px"/> {{ punto.telefono }}
+                </a>
               </div>
             </div>
             <template v-if="!esMovil">
@@ -1018,18 +1023,15 @@ export default {
     /**
      * Las marcas del mapa: una por puerta, no una por pedido.
      *
-     * El mismo cliente pide dos y tres veces en el dia, y la tienda de al lado
-     * esta cargada en la misma esquina: todo eso llegaba con la misma
-     * coordenada y la ultima marca tapaba a las demas. Ahora esas entregas
-     * comparten una sola marca y se abren juntas al tocarla.
-     *
-     * Se agrupa por metros en el terreno y no por pixeles en pantalla para que
-     * la marca sea siempre la misma aunque el caminero acerque o aleje: si la
-     * agrupacion cambiara con el zoom, Leaflet tendria que rehacer las marcas
-     * a cada rato.
+     * El mismo cliente pide dos y tres veces en el dia: esas entregas
+     * comparten una sola marca y se abren juntas al tocarla. La tienda de al
+     * lado tiene su propia marca, siempre en la ubicacion real del cliente.
      */
     marcadores () {
+      // Una marca por cliente: sus notas del dia van juntas, pero un vecino
+      // de la misma esquina (en un mercado hay varios) tiene la suya.
       const grupos = []
+      const porCliente = {}
 
       this.filtradas.forEach((entrega, indice) => {
         const lat = Number(entrega.latitud)
@@ -1037,16 +1039,17 @@ export default {
         // Sin coordenada no hay nada que poner en el mapa.
         if (!lat || !lng) return
 
-        // Quince metros: la misma puerta aunque el GPS del vendedor la haya
-        // marcado dos veces desde la vereda de enfrente.
-        const junto = grupos.find(grupo => this.metros(grupo, { lat, lng }) < 15)
-
-        if (junto) junto.entregas.push(entrega)
-        else grupos.push({ lat, lng, indice, entregas: [entrega] })
+        const clave = this.claveCliente(entrega)
+        if (porCliente[clave]) {
+          porCliente[clave].entregas.push(entrega)
+          return
+        }
+        porCliente[clave] = { lat, lng, indice, entregas: [entrega] }
+        grupos.push(porCliente[clave])
       })
 
+      // Cada marca en la ubicacion real del cliente, sin moverla.
       return grupos.map(grupo => ({
-        // La clave no depende del zoom, asi que la marca no se rehace sola.
         clave: grupo.entregas.map(entrega => entrega.factura_id).join('-'),
         latLng: [grupo.lat, grupo.lng],
         indice: grupo.indice,
@@ -1067,6 +1070,7 @@ export default {
         entregas,
         cliente: nombres.length === 1 ? nombres[0] : '',
         direccion: primera.direccion || '',
+        telefono: nombres.length === 1 ? (primera.telefono || '') : '',
         lat: Number(primera.latitud) || 0,
         lng: Number(primera.longitud) || 0,
         total: entregas.reduce((suma, entrega) => suma + Number(entrega.total || 0), 0),
@@ -1313,8 +1317,11 @@ export default {
     // Desde la lista se abren todas las notas de ese cliente, y solo las
     // suyas: en un mercado varios clientes caen en el mismo punto del mapa y
     // no tienen que aparecer mezclados al tocar uno.
+    claveCliente (fila) {
+      return fila.cliente_id ? 'id:' + fila.cliente_id : 'nombre:' + this.clienteDe(fila)
+    },
     abrirPuntoDe (entrega) {
-      const clave = fila => fila.cliente_id ? 'id:' + fila.cliente_id : 'nombre:' + this.clienteDe(fila)
+      const clave = this.claveCliente
       const entregas = this.filtradas.filter(fila => clave(fila) === clave(entrega))
 
       this.abrirPunto({ entregas: entregas.length ? entregas : [entrega] })

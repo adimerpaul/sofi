@@ -58,10 +58,14 @@ return [
     */
     'simulado' => filter_var(env('SIAT_SIMULADO', false), FILTER_VALIDATE_BOOLEAN),
 
-    // Cabecera que se imprime en vouchers y facturas. Estaba repetida dentro
-    // del HTML de FacturaFiscalController; aca se cambia en un solo sitio.
+    // Cabecera que se imprime en vouchers, boletas y reportes. Estaba repetida
+    // dentro del HTML de FacturaFiscalController; aca se cambia en un solo sitio.
+    // La factura fiscal no usa este nombre: lleva la razon social registrada
+    // en Impuestos (siat_configuraciones.razon_social).
     'emisor' => [
-        'nombre'    => env('EMISOR_NOMBRE', 'ALMACEN SOFIA'),
+        'nombre'    => env('EMISOR_NOMBRE', 'ALMACEN AREA FRESCA'),
+        // Logo de los reportes, relativo a public/.
+        'logo'      => env('EMISOR_LOGO', 'img/area-fresca.png'),
         'sucursal'  => env('EMISOR_SUCURSAL', 'SUCURSAL 1'),
         'direccion' => env('EMISOR_DIRECCION', 'Prolongacion Campo Jordan esq Tacna Nro 28 ZONA Norte'),
         'telefono'  => env('EMISOR_TELEFONO', '5230064'),

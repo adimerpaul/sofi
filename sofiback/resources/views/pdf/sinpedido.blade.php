@@ -43,7 +43,7 @@
 </head>
 <body>
 <div class="header">
-    <img src="{{ public_path('logo-sofia.png') }}" class="logo">
+    <img src="{{ public_path(config('siat.emisor.logo', 'logo-sofia.png')) }}" class="logo">
     <div class="meta">
         <div>Generado por: <strong>{{ $usuario->Nombre1 }}</strong></div>
         <div>Fecha: {{ $fecha }}</div>

@@ -233,7 +233,7 @@ class ReporteVentasController extends Controller
         $hoja->getStyle('A2:B4')->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_THIN);
         $hoja->getStyle('B2:B4')->getFont()->setBold(true);
 
-        $logo = public_path('logo-sofia.png');
+        $logo = public_path(config('siat.emisor.logo', 'logo-sofia.png'));
         if (is_file($logo)) {
             $dibujo = new Drawing();
             $dibujo->setPath($logo);

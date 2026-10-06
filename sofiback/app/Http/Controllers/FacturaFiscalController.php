@@ -63,7 +63,7 @@ class FacturaFiscalController extends Controller
         $decimal = intval(($subtotal - $entero) * 100);
         $formatter = new NumeroALetras();
 
-        $logo = base64_encode(file_get_contents(public_path('img/sofia.png')));
+        $logo = base64_encode(file_get_contents(public_path(config('siat.emisor.logo', 'img/sofia.png'))));
 
         $autoriza = $fact->cuffac;
         $png = base64_encode(self::qrPng(self::urlSiat($autoriza, $fact->nrofac)));
