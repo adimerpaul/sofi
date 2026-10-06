@@ -536,6 +536,11 @@ class CamineroController extends Controller
         // El mismo servicio que usa cobranzas: la hoja que el caminero firma
         // tiene que ser identica a la que despues le reclaman.
         $recojo = new RecojoDelDia();
+<<<<<<< HEAD
+=======
+        // Solo lo que el caminero cerro con la app (con comprobante), igual que
+        // en "Mis entregas": la ruta del sistema anterior no entra.
+>>>>>>> e92c2591c24c59872b9d4049b14ddd411c46dd26
         $filas = $recojo->filas($fecha, $placa, true);
         $grupos = $recojo->agrupar($filas);
         $entregadas = $filas->whereIn('estado', RecojoDelDia::ESTADOS_COBRADOS);
@@ -607,6 +612,11 @@ class CamineroController extends Controller
         }
 
         $recojo = new RecojoDelDia();
+<<<<<<< HEAD
+=======
+        // Solo lo que el caminero cerro con la app (con comprobante), igual que
+        // en "Mis entregas": la ruta del sistema anterior no entra.
+>>>>>>> e92c2591c24c59872b9d4049b14ddd411c46dd26
         $filas = $recojo->filas($fecha, $placa, true);
         $grupos = $recojo->agrupar($filas);
         $caminero = $this->nombre($request);

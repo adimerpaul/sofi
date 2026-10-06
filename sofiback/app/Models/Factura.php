@@ -29,6 +29,9 @@ class Factura extends Model
         'nombre',
         'tipo_comprobante',
         'tipo_pago',
+        // Partes del cobro; en MIXTO suman el total. Ver AddMontosPagoToFacturas.
+        'monto_efectivo',
+        'monto_qr',
         'estado',
         'subtotal',
         'descuento',

@@ -1488,6 +1488,9 @@ class FacturacionController extends Controller
             'items.*.precio'   => 'required|numeric|min:0',
             'tipo_comprobante' => 'nullable|in:VENTA,FACTURA',
             'tipo_pago'        => 'nullable|string|max:20',
+            // Pago MIXTO: una parte en efectivo y otra por QR; deben sumar el total.
+            'monto_efectivo'   => 'nullable|required_if:tipo_pago,MIXTO|numeric|gt:0',
+            'monto_qr'         => 'nullable|required_if:tipo_pago,MIXTO|numeric|gt:0',
             'cliente_id'       => 'nullable|integer',
             'nit'              => 'nullable|string|max:20',
             'nombre'           => 'nullable|string|max:150',
@@ -1695,6 +1698,8 @@ class FacturacionController extends Controller
 
             $subtotal = round($subtotal, 2);
             $descuento = min(round((float) ($datos['descuento'] ?? 0), 2), $subtotal);
+            $tipoPago = $datos['tipo_pago'] ?? 'EFECTIVO';
+            list($montoEfectivo, $montoQr) = $this->montosPago($tipoPago, round($subtotal - $descuento, 2), $datos);
 
             $factura = Factura::create([
                 'user_id'          => $usuario->CodAut,
@@ -1705,7 +1710,9 @@ class FacturacionController extends Controller
                 'nit'              => $nit !== '' ? $nit : ($cliente ? trim($cliente->Id) : null),
                 'nombre'           => $datos['nombre'] ?? ($cliente ? trim($cliente->Nombres) : null),
                 'tipo_comprobante' => $tipo,
-                'tipo_pago'        => $datos['tipo_pago'] ?? 'EFECTIVO',
+                'tipo_pago'        => $tipoPago,
+                'monto_efectivo'   => $montoEfectivo,
+                'monto_qr'         => $montoQr,
                 'estado'           => 'ACTIVO',
                 'subtotal'         => $subtotal,
                 'descuento'        => $descuento,
@@ -1777,6 +1784,47 @@ class FacturacionController extends Controller
             ],
             'message' => $this->mensajeEmision($factura),
         ], 201);
+    }
+
+    /**
+     * Cuanto del total se cobro en efectivo y cuanto por QR: [efectivo, qr].
+     *
+     * EFECTIVO y QR llevan el total en su columna; MIXTO trae las dos partes y
+     * tienen que sumar justo el total, si no la venta no se guarda. El resto
+     * (TARJETA, CREDITO) no lleva montos.
+     *
+     * @throws \Illuminate\Validation\ValidationException
+     */
+    private function montosPago($tipoPago, $total, array $datos)
+    {
+        switch (strtoupper(trim((string) $tipoPago))) {
+            case 'EFECTIVO':
+                return [$total, null];
+            case 'QR':
+                return [null, $total];
+            case 'MIXTO':
+                $efectivo = round((float) ($datos['monto_efectivo'] ?? 0), 2);
+                $qr = round((float) ($datos['monto_qr'] ?? 0), 2);
+                if (abs($efectivo + $qr - $total) > 0.005) {
+                    throw \Illuminate\Validation\ValidationException::withMessages([
+                        'monto_efectivo' => 'En pago mixto efectivo (' . number_format($efectivo, 2) . ') + QR ('
+                            . number_format($qr, 2) . ') tiene que sumar el total: Bs ' . number_format($total, 2),
+                    ]);
+                }
+                return [$efectivo, $qr];
+            default:
+                return [null, null];
+        }
+    }
+
+    /** Forma de pago para el impreso; el mixto lleva cuanto fue de cada lado. */
+    private function textoPago($factura)
+    {
+        if (strtoupper((string) $factura->tipo_pago) !== 'MIXTO') {
+            return (string) $factura->tipo_pago;
+        }
+        return 'MIXTO (Efectivo ' . number_format((float) $factura->monto_efectivo, 2)
+            . ' + QR ' . number_format((float) $factura->monto_qr, 2) . ')';
     }
 
     /**
@@ -2418,7 +2466,7 @@ class FacturacionController extends Controller
             </tr>
             <tr>
                 <td><span class='et'>Vendedor</span><br>" . e($vendedor ?: '—') . "</td>
-                <td><span class='et'>Tipo de pago</span><br><b>" . e($factura->tipo_pago) . "</b></td>
+                <td><span class='et'>Tipo de pago</span><br><b>" . e($this->textoPago($factura)) . "</b></td>
                 <td><span class='et'>Camión</span><br><b>" . e($placa ?: '—') . "</b></td>
             </tr>
             <tr>
@@ -2611,7 +2659,7 @@ class FacturacionController extends Controller
                 <td><span class='et'>Cod. cliente</span><br>" . ($factura->cliente_id ?: '—') . "</td>
                 <td><span class='et'>Complemento</span><br>"
                     . e(trim((string) ($factura->cliente->complto ?? '')) ?: '—') . "</td>
-                <td><span class='et'>Forma de pago</span><br>" . e($factura->tipo_pago) . "</td>
+                <td><span class='et'>Forma de pago</span><br>" . e($this->textoPago($factura)) . "</td>
             </tr>
             <tr>
                 <td><span class='et'>Camión</span><br><b>" . e($placa ?: '—') . "</b></td>
