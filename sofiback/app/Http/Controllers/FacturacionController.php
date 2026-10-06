@@ -1185,6 +1185,9 @@ class FacturacionController extends Controller
 
         // Pollo, cerdo y res se pesan en canastillos: la pantalla pide bruto y
         // canastillos en vez del peso directo.
+        // Si es una baja, el comprobante sale a nombre de esa cuenta.
+        $cabecera->baja = $this->cuentaDeBaja($nroPedido, $datos['tipo']);
+
         $cabecera->con_canastillos = in_array($datos['tipo'], FacturaDetalle::TIPOS_CON_CANASTILLOS, true);
         $cabecera->kg_canastillo = FacturaDetalle::KG_CANASTILLO;
 
@@ -1252,6 +1255,10 @@ class FacturacionController extends Controller
                 'guardado'         => substr((string) $borrador->updated_at, 0, 16),
             ];
         }
+
+        // Cada linea con su lista de precios, para el select y para cambiar
+        // todas de una vez a un mismo precio (por ejemplo, al Precio 8).
+        $items = $this->completarPrecios($items, $filasPedido);
 
         return response()->json(['pedido' => $cabecera, 'items' => $items]);
     }
@@ -2079,11 +2086,111 @@ class FacturacionController extends Controller
         foreach (self::PRECIOS_LISTA as $columna) {
             $valores['Precio ' . substr($columna, 6)] = $fila->$columna ?? 0;
         }
-        return collect($valores)
-            ->map(function ($v, $nombre) { return ['label' => $nombre, 'value' => round((float) $v, 2)]; })
-            ->filter(function ($p) { return $p['value'] > 0; })
-            ->unique('value')
-            ->values();
+        // Los que valen lo mismo van en una sola opcion con todos sus nombres
+        // ("Precio 3 / 8"): descartar el repetido hacia desaparecer el Precio
+        // 8 de la lista y no se podia elegir por su nombre.
+        $opciones = [];
+        foreach ($valores as $nombre => $valor) {
+            $valor = round((float) $valor, 2);
+            if ($valor <= 0) {
+                continue;
+            }
+            $clave = number_format($valor, 2, '.', '');
+            $opciones[$clave] = $opciones[$clave] ?? ['value' => $valor, 'nombres' => []];
+            $opciones[$clave]['nombres'][] = $nombre;
+        }
+
+        return collect($opciones)->map(function ($opcion) {
+            return ['label' => self::etiquetaPrecios($opcion['nombres'])] + $opcion;
+        })->values();
+    }
+
+    /**
+     * Las cuentas a las que se cargan las bajas: el pedido las lleva en
+     * bonificacionId (las mismas que usa el Excel de preparacion).
+     */
+    const CUENTAS_BAJA = [2728, 3070]; // BAJAS POR BONIFICACIONES, BAJAS POR CALIDAD
+
+    /** El nombre de la cuenta de baja del pedido, o null si no es una baja. */
+    private function cuentaDeBaja($nroPedido, $tipo)
+    {
+        $cuentaId = DB::table('tbpedidos')
+            ->whereNull('tbpedidos.deleted_at')
+            ->where('NroPed', $nroPedido)
+            ->whereRaw(TipoPedido::sql('') . ' = ?', [strtoupper(trim((string) $tipo))])
+            ->whereIn('bonificacionId', self::CUENTAS_BAJA)
+            ->value('bonificacionId');
+
+        if (!$cuentaId) {
+            return null;
+        }
+
+        return trim((string) DB::table('tbclientes')->where('Cod_Aut', $cuentaId)->value('Nombres')) ?: null;
+    }
+
+    /** "- BONIFICACION" -> "GONZALO ... - BONIFICACION"; sin repetir el nombre. */
+    private function observacionDeBaja($cliente, $observacion)
+    {
+        $observacion = trim((string) $observacion);
+        if ($cliente === '' || ($observacion !== '' && mb_stripos($observacion, $cliente) !== false)) {
+            return $observacion;
+        }
+        if ($observacion === '') {
+            return $cliente;
+        }
+
+        return mb_substr($cliente . (strpos($observacion, '-') === 0 ? ' ' : ' - ') . $observacion, 0, 255);
+    }
+
+    /** ['Pedido', 'Precio 3', 'Precio 8'] -> "Pedido · Precio 3 / 8". */
+    private static function etiquetaPrecios(array $nombres)
+    {
+        $numeros = [];
+        $otros = [];
+        foreach ($nombres as $nombre) {
+            if (preg_match('/^Precio (\d+)$/', $nombre, $m)) {
+                $numeros[] = $m[1];
+            } else {
+                $otros[] = $nombre;
+            }
+        }
+        if ($numeros) {
+            $otros[] = 'Precio ' . implode(' / ', $numeros);
+        }
+
+        return implode(' · ', $otros);
+    }
+
+    /**
+     * Le pone su lista de precios a las lineas que llegan sin ella: lo que se
+     * recupero de una venta anulada o lo que viene de un borrador guardado.
+     */
+    private function completarPrecios($items, $filasPedido)
+    {
+        $faltan = $items->filter(function ($item) { return empty($item->precios); })
+            ->map(function ($item) { return trim((string) $item->cod_prod); })
+            ->unique()->values()->all();
+        if (!$faltan) {
+            return $items;
+        }
+
+        $productos = DB::table('tbproductos')
+            ->whereIn(DB::raw('TRIM(cod_prod)'), $faltan)
+            ->get(array_merge([DB::raw('TRIM(cod_prod) as cod_prod'), 'Precio', 'Precio_Costo'], self::PRECIOS_LISTA))
+            ->keyBy('cod_prod');
+        $delPedido = collect($filasPedido)->mapWithKeys(function ($fila) {
+            return [trim((string) $fila->cod_prod) => (float) $fila->precio];
+        });
+
+        return $items->map(function ($item) use ($productos, $delPedido) {
+            $codigo = trim((string) $item->cod_prod);
+            $producto = $productos->get($codigo);
+            if (empty($item->precios) && $producto) {
+                $primeros = $delPedido->has($codigo) ? ['Pedido' => $delPedido->get($codigo)] : [];
+                $item->precios = $this->listaPrecios($producto, $primeros + ['Precio 1' => $producto->Precio]);
+            }
+            return $item;
+        });
     }
 
     /** unidadVenta() en SQL; {p} es el alias de tbproductos. */
@@ -2677,6 +2784,18 @@ class FacturacionController extends Controller
     {
         $cliente = $factura->cliente;
 
+        // Una baja (por bonificacion o por calidad) se imprime a nombre de la
+        // cuenta de baja y con el cliente que la recibe en la observacion,
+        // como en la hoja de preparacion. Solo en el papel: el comprobante
+        // guardado no cambia.
+        $nombre = $factura->nombre;
+        $observacion = $factura->observacion;
+        $cuentaBaja = $factura->pedido_nro ? $this->cuentaDeBaja($factura->pedido_nro, $factura->pedido_tipo) : null;
+        if ($cuentaBaja) {
+            $nombre = $cuentaBaja;
+            $observacion = $this->observacionDeBaja(trim((string) ($factura->nombre ?: ($cliente->Nombres ?? ''))), $observacion);
+        }
+
         $vendedor = $factura->vendedor
             ? trim(implode(' ', array_filter([
                 trim($factura->vendedor->Nombre1),
@@ -2753,7 +2872,7 @@ class FacturacionController extends Controller
         . "<table class='datos'>
             <tr>
                 <td style='width:52%'><span class='et'>Cliente</span><br><b>"
-                    . e($factura->nombre ?: 'Sin cliente') . "</b></td>
+                    . e($nombre ?: 'Sin cliente') . "</b></td>
                 <td style='width:24%'><span class='et'>CI / NIT</span><br>" . e($factura->nit ?: '—') . "</td>
                 <td><span class='et'>Teléfono</span><br>" . e($cliente->Telf ?? '—') . "</td>
             </tr>
@@ -2769,7 +2888,7 @@ class FacturacionController extends Controller
             </tr>
             <tr>
                 <td colspan='3'><span class='et'>Observación</span><br>"
-                    . e($factura->observacion ?: '—') . "</td>
+                    . e($observacion ?: '—') . "</td>
             </tr>
         </table>
 

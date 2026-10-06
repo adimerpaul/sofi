@@ -106,7 +106,11 @@
             <q-td :props="props">
               <div class="text-weight-medium ellipsis-cliente">{{ props.row.cliente?.Nombres || '—' }}</div>
               <q-chip v-if="props.row.bonificacion==1" color="orange" text-color="white" dense size="xs"
-                      class="q-ma-none" :label="props.row.clienteBonificacion"/>
+                      class="q-ma-none" :label="'Bonif. pendiente: ' + (props.row.clienteBonificacion || '')"/>
+              <q-chip v-else-if="props.row.bonificacionAprovacion" color="green" text-color="white" dense size="xs"
+                      class="q-ma-none" icon="check"
+                      :label="'Bonif. aprobada por ' + props.row.bonificacionAprovacion + (props.row.clienteBonificacion ? ': ' + props.row.clienteBonificacion : '')"/>
+              <div v-if="props.row.comentario" class="text-caption text-grey-8">{{ props.row.comentario }}</div>
             </q-td>
           </template>
         </q-table>
@@ -1837,7 +1841,8 @@ export default {
   <div><b>Fecha:</b> ${esc(fechaPedido)}</div><div><b>Horario:</b> ${esc(primera.horario || '-')}</div>
   <div><b>Pago:</b> ${esc(comanda1.pago)}</div><div><b>Factura:</b> ${esc(comanda1.fact)}</div>
   <div><b>Vendedor:</b> ${esc(usuario)}</div>
-  ${comanda1.bonificacion == 1 ? `<div><b>Bonificación:</b> ${esc(comanda1.clienteBonificacion)}</div>` : ''}
+  ${comanda1.bonificacion == 1 ? `<div><b>Bonificación:</b> ${esc(comanda1.clienteBonificacion)} (pendiente)</div>` : ''}
+  ${comanda1.bonificacion != 1 && comanda1.bonificacionAprovacion ? `<div><b>Bonificación:</b> ${esc(comanda1.clienteBonificacion)} (aprobada por ${esc(comanda1.bonificacionAprovacion)})</div>` : ''}
 </div>
 ${primera.comentario ? `<div class="coment"><b>Comentario:</b> ${esc(primera.comentario)}</div>` : ''}
 <table>

@@ -1632,6 +1632,9 @@ $resPedido = $rows->groupBy('NroPed')->map(function ($g) use ($bonis) {
                     'bonificacion' => $pedido->bonificacion,
                     'bonificacionId' => $pedido->bonificacionId,
                     'clienteBonificacion' => $pedido->bonificacionId ? Cliente::where('Cod_Aut', $pedido->bonificacionId)->value('Nombres') : null,
+                    // Al aprobar, bonificacion vuelve a 0 y queda quien la aprobo.
+                    'bonificacionAprovacion' => $pedido->bonificacionAprovacion,
+                    'comentario'  => $pedido->comentario,
                     'fact'        => $pedido->fact,
                     'estado'      => $pedido->estado,
                     'cliente'     => $pedido->cliente, // Objeto completo del cliente

@@ -35,6 +35,12 @@
            habia pesado y corregido llega cargado, no hay que rehacerlo. -->
       <!-- El caminero marco un retorno parcial: las cantidades ya vienen con
            lo que el cliente se quedo, listas para emitir el comprobante nuevo. -->
+      <q-banner v-if="pedido.baja" dense rounded class="bg-purple-1 text-purple-10 q-mb-sm">
+        <template v-slot:avatar><q-icon name="card_giftcard" color="purple"/></template>
+        <div class="text-weight-medium">Es una baja: la boleta se imprime a nombre de {{ pedido.baja }}</div>
+        <div class="text-caption">{{ pedido.cliente }} va en la observación de la boleta.</div>
+      </q-banner>
+
       <q-banner v-if="pedido.retorno" dense rounded class="bg-deep-orange-1 text-deep-orange-10 q-mb-sm">
         <template v-slot:avatar><q-icon name="assignment_return" color="deep-orange-8"/></template>
         <div class="text-weight-medium">
@@ -81,8 +87,23 @@
         </template>
       </div>
 
-      <div class="row items-center q-mb-xs">
+      <div class="row items-center q-mb-xs q-gutter-xs">
         <div class="col text-subtitle2 text-weight-bold">Productos ({{ items.length }})</div>
+        <!-- Pasa todos los productos a un mismo precio de lista de una vez
+             (por ejemplo, todos al Precio 8). -->
+        <q-btn-dropdown
+          v-if="nombresPrecio.length" color="indigo-7" outline dense no-caps
+          icon="price_change" label="Cambiar todos a…"
+        >
+          <q-list dense style="min-width: 160px">
+            <q-item v-for="nombre in nombresPrecio" :key="nombre" clickable v-close-popup @click="cambiarTodos(nombre)">
+              <q-item-section>{{ nombre }}</q-item-section>
+              <q-item-section side class="text-caption">
+                {{ conPrecio(nombre) }}/{{ items.length }}
+              </q-item-section>
+            </q-item>
+          </q-list>
+        </q-btn-dropdown>
         <q-btn color="primary" outline dense no-caps icon="add" label="Agregar producto" @click="abrirCatalogo"/>
       </div>
 
@@ -182,17 +203,14 @@
                   />
                 </div>
                 <div :class="esPeso(item) && conCanastillos ? 'col-3' : esPeso(item) ? 'col-4' : 'col-5'">
-                  <q-input
-                    v-model.number="item.precio" type="number" min="0" step="0.01"
-                    dense outlined label="Precio Bs" @update:model-value="actualizar(item)"
-                    :readonly="!puedeCambiarPrecio"
-                  >
-                    <template v-if="!puedeCambiarPrecio" v-slot:append>
-                      <q-icon name="lock" size="14px" color="grey">
-                        <q-tooltip>No tiene permiso para cambiar el precio</q-tooltip>
-                      </q-icon>
-                    </template>
-                  </q-input>
+                  <!-- El precio se elige de la lista del producto (Precio 1 a
+                       13); con permiso tambien se puede escribir otro. -->
+                  <q-select
+                    :model-value="Number(item.precio)" :options="opcionesPrecio(item)"
+                    emit-value map-options dense outlined options-dense label="Precio Bs"
+                    :display-value="textoPrecio(item)"
+                    @update:model-value="valor => elegirPrecio(item, valor)"
+                  />
                 </div>
                 <div class="col-2 flex flex-center">
                   <q-btn flat round dense color="negative" icon="delete" @click="items.splice(indice, 1)"/>
@@ -355,6 +373,14 @@ export default {
     total () {
       return this.items.reduce((suma, item) => suma + this.facturable(item) * Number(item.precio || 0), 0)
     },
+    // Los nombres de precio que tiene al menos un producto: Pedido primero y
+    // despues Precio 1 a 13 en orden.
+    nombresPrecio () {
+      const nombres = new Set()
+      this.items.forEach(item => (item.precios || []).forEach(p => (p.nombres || [p.label]).forEach(n => nombres.add(n))))
+      const orden = n => n === 'Pedido' ? 0 : (Number(String(n).replace(/\D/g, '')) || 99)
+      return [...nombres].sort((a, b) => orden(a) - orden(b))
+    },
     // El detalle de pollo armado como una sola linea: productos con su
     // cantidad, observaciones y los datos con valor (los vacios no ocupan lugar).
     detalleLinea () {
@@ -411,6 +437,74 @@ export default {
     diferencia (item) {
       const resta = Number(item.cantidad || 0) - Number(item.cantidad_pedida)
       return (resta > 0 ? '+' : '−') + this.cantidad(Math.abs(resta))
+    },
+    /** La opcion de la lista con ese nombre ("Precio 8"), o null. */
+    precioLlamado (item, nombre) {
+      return (item.precios || []).find(p => (p.nombres || [p.label]).includes(nombre)) || null
+    },
+    conPrecio (nombre) {
+      return this.items.filter(item => this.precioLlamado(item, nombre)).length
+    },
+    // Las opciones del select: los precios de lista, el actual si no esta en
+    // la lista, y con permiso uno escrito a mano.
+    opcionesPrecio (item) {
+      const lista = (item.precios || []).map(p => ({
+        label: p.label + ' · Bs ' + this.money(p.value), value: Number(p.value)
+      }))
+      const actual = Math.round(Number(item.precio || 0) * 100) / 100
+      if (actual > 0 && !lista.some(p => p.value === actual)) {
+        lista.unshift({ label: 'Actual · Bs ' + this.money(actual), value: actual })
+      }
+      if (this.puedeCambiarPrecio) lista.push({ label: 'Otro precio…', value: 'otro' })
+      return lista
+    },
+    // En el campo va el importe y, si es de lista, de que precio es.
+    textoPrecio (item) {
+      const actual = Math.round(Number(item.precio || 0) * 100) / 100
+      const opcion = (item.precios || []).find(p => Number(p.value) === actual)
+      return 'Bs ' + this.money(actual) + (opcion ? ' · ' + opcion.label : '')
+    },
+    elegirPrecio (item, valor) {
+      if (valor !== 'otro') {
+        item.precio = Number(valor)
+        this.actualizar(item)
+        return
+      }
+      this.$q.dialog({
+        title: 'Otro precio',
+        message: item.nombre,
+        prompt: { model: String(item.precio || ''), type: 'number', inputmode: 'decimal' },
+        cancel: { flat: true, label: 'Cancelar' },
+        ok: { unelevated: true, label: 'Aplicar' }
+      }).onOk(texto => {
+        const numero = Math.round(Number(texto) * 100) / 100
+        if (isNaN(numero) || numero < 0) return
+        item.precio = numero
+        this.actualizar(item)
+      })
+    },
+    // Todos los productos al mismo precio de lista. Los que no tienen ese
+    // precio cargado (o en cero) se quedan como estaban y se avisa cuales.
+    cambiarTodos (nombre) {
+      const sinPrecio = []
+      let cambiados = 0
+      this.items.forEach(item => {
+        const opcion = this.precioLlamado(item, nombre)
+        if (!opcion) {
+          sinPrecio.push(item.nombre)
+          return
+        }
+        item.precio = Number(opcion.value)
+        this.actualizar(item)
+        cambiados++
+      })
+      this.$q.notify({
+        type: sinPrecio.length ? 'warning' : 'positive',
+        position: 'top',
+        timeout: sinPrecio.length ? 8000 : 3000,
+        message: cambiados + (cambiados === 1 ? ' producto pasó' : ' productos pasaron') + ' a ' + nombre +
+          (sinPrecio.length ? ' · sin ' + nombre + ' (quedan igual): ' + sinPrecio.join(', ') : '')
+      })
     },
     facturable (item) {
       return Number((this.esPeso(item) ? item.peso : item.cantidad) || 0)
@@ -507,6 +601,7 @@ export default {
           peso_bruto: null,
           canastillos: null,
           precio: Number(producto.precio || 0),
+          precios: producto.precios || [],
           total: this.esPeso(producto) ? 0 : Number(producto.precio || 0)
         })
       }
@@ -531,6 +626,7 @@ export default {
         peso_bruto: null,
         canastillos: null,
         precio: Number(original.precio || 0),
+        precios: original.precios || [],
         total: 0
       }
       this.actualizar(copia)
