@@ -356,11 +356,33 @@
             />
             <q-select
               v-model="tipoPago" outlined dense class="col-12 col-sm-3"
-              label="Pago" :options="['EFECTIVO', 'QR', 'TARJETA', 'CRÉDITO']"
+              label="Pago" :options="['EFECTIVO', 'QR', 'MIXTO', 'TARJETA', 'CRÉDITO']"
+              @update:model-value="cambioTipoPago"
             />
             <q-input
               v-model.trim="observacion" outlined dense class="col-12 col-sm-4" label="Observación"
             />
+            <!-- Mixto: parte en efectivo y parte por QR; tienen que sumar el total.
+                 Al escribir uno, el otro se completa con lo que falta. -->
+            <template v-if="tipoPago === 'MIXTO'">
+              <q-input
+                v-model.number="montoEfectivo" type="number" step="0.01" min="0" outlined dense
+                class="col-6 col-sm-4" label="Efectivo Bs" @update:model-value="completarMixto('efectivo')"
+              >
+                <template v-slot:prepend><q-icon name="payments"/></template>
+              </q-input>
+              <q-input
+                v-model.number="montoQr" type="number" step="0.01" min="0" outlined dense
+                class="col-6 col-sm-4" label="QR Bs" @update:model-value="completarMixto('qr')"
+              >
+                <template v-slot:prepend><q-icon name="qr_code_2"/></template>
+              </q-input>
+              <div class="col-12 col-sm-4 flex items-center text-caption text-weight-bold"
+                   :class="mixtoValido ? 'text-positive' : 'text-negative'">
+                <q-icon :name="mixtoValido ? 'check_circle' : 'error'" size="xs" class="q-mr-xs"/>
+                {{ mixtoValido ? 'Suma Bs ' + money(total) : mixtoAviso }}
+              </div>
+            </template>
             <!-- Camion de la venta directa: con el se filtra en facturacion como
                  si hubiera sido un pedido. Lo que sale de un pedido usa el suyo. -->
             <q-select
@@ -423,7 +445,7 @@
           <q-btn flat dense no-caps label="Volver" v-close-popup/>
           <q-btn
             color="positive" dense unelevated no-caps icon="save"
-            label="Guardar" :loading="guardando" @click="guardar"
+            label="Guardar" :loading="guardando" :disable="tipoPago === 'MIXTO' && !mixtoValido" @click="guardar"
           />
         </q-card-actions>
       </q-card>
@@ -455,6 +477,9 @@ export default {
       dialogCobro: false,
       tipoComprobante: 'VENTA',
       tipoPago: 'EFECTIVO',
+      // Partes del pago MIXTO.
+      montoEfectivo: null,
+      montoQr: null,
       // Camion de la venta directa (tabla vehiculo, igual que en despacho).
       placa: null,
       camiones: [],
@@ -483,6 +508,18 @@ export default {
     total () {
       const desc = Math.min(Math.max(Number(this.descuento) || 0, 0), this.subtotal)
       return this.subtotal - desc
+    },
+    // En mixto las dos partes van con monto y suman justo el total.
+    mixtoAviso () {
+      const ef = Number(this.montoEfectivo) || 0
+      const qr = Number(this.montoQr) || 0
+      if (!(ef > 0) || !(qr > 0)) return 'Efectivo y QR deben tener monto'
+      const dif = Math.round((ef + qr - this.total) * 100) / 100
+      if (dif !== 0) return (dif > 0 ? 'Sobra Bs ' : 'Falta Bs ') + this.money(Math.abs(dif))
+      return ''
+    },
+    mixtoValido () {
+      return this.mixtoAviso === ''
     }
   },
   watch: {
@@ -766,6 +803,8 @@ export default {
       this.$api.post('facturacion', {
         tipo_comprobante: this.tipoComprobante,
         tipo_pago: this.tipoPago,
+        monto_efectivo: this.tipoPago === 'MIXTO' ? Number(this.montoEfectivo) : null,
+        monto_qr: this.tipoPago === 'MIXTO' ? Number(this.montoQr) : null,
         cliente_id: this.cliente ? this.cliente.id : null,
         nit: this.nit || '',
         nombre: this.cliente ? this.cliente.nombre : '',
@@ -828,8 +867,28 @@ export default {
       this.observacion = ''
       this.tipoComprobante = 'VENTA'
       this.tipoPago = 'EFECTIVO'
+      this.montoEfectivo = null
+      this.montoQr = null
       this.placa = null
       this.dialogCobro = false
+    },
+
+    cambioTipoPago (tipo) {
+      // Al pasar a mixto se arranca con todo en efectivo para que solo haya
+      // que escribir cuanto va por QR.
+      if (tipo === 'MIXTO') {
+        this.montoEfectivo = Math.round(this.total * 100) / 100
+        this.montoQr = null
+      }
+    },
+
+    // Lo que se escribe en un lado deja en el otro lo que falta para el total.
+    completarMixto (escrito) {
+      const valor = Number(escrito === 'efectivo' ? this.montoEfectivo : this.montoQr)
+      if (isNaN(valor) || valor < 0 || valor > this.total) return
+      const resto = Math.round((this.total - valor) * 100) / 100
+      if (escrito === 'efectivo') this.montoQr = resto
+      else this.montoEfectivo = resto
     },
 
     avisar (err, porDefecto) {
