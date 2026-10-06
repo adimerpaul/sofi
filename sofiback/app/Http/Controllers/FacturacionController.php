@@ -1381,6 +1381,9 @@ class FacturacionController extends Controller
                 'verificado'      => true,
                 'observado'       => false,
                 'observacion'     => 'Reemitida por retorno parcial de #' . $anterior->id,
+                // La mercaderia sigue en la misma canasta.
+                'nro_canasta'     => $marca->nro_canasta,
+                'nota'            => $marca->nota,
                 'personal_id'     => $usuario->CodAut,
                 'verificado_por'  => trim($usuario->Nombre1 . ' ' . $usuario->App1),
                 'verificado_en'   => $ahora,

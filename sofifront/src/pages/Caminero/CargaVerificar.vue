@@ -330,6 +330,29 @@
               </div>
             </q-card-section>
 
+            <!-- En que canasta va lo del cliente y una nota libre: el caminero lo
+                 anota al cargar y lo ve al entregar. Fuera de la zona que se toca
+                 para verificar, asi escribir no marca la canasta. Se graba solo. -->
+            <div class="row q-col-gutter-xs q-px-xs q-pb-xs canasta-datos">
+              <div class="col-4">
+                <q-input
+                  v-model="comprobante.nro_canasta" dense outlined maxlength="30"
+                  label="N° canasta" debounce="700" inputmode="numeric"
+                  :loading="guardandoCanasta === comprobante.factura_id"
+                  @update:model-value="guardarCanasta(comprobante)"
+                >
+                  <template v-slot:prepend><q-icon name="shopping_basket" size="16px"/></template>
+                </q-input>
+              </div>
+              <div class="col-8">
+                <q-input
+                  v-model="comprobante.nota" dense outlined maxlength="255"
+                  label="Observación" debounce="700"
+                  @update:model-value="guardarCanasta(comprobante)"
+                />
+              </div>
+            </div>
+
             <q-separator/>
             <!-- Producto por producto: cada uno se tilda al verlo subir. Con
                  todos tildados la canasta queda verificada sola. La verificada
@@ -477,6 +500,8 @@ export default {
       imprimiendo: false,
       // Id del comprobante que se esta grabando, o 'todo'.
       guardando: null,
+      // Comprobante cuyo numero de canasta o nota se esta grabando.
+      guardandoCanasta: null,
       error: '',
       placa: '',
       caminero: '',
@@ -850,6 +875,24 @@ export default {
       this.colas[facturaId] = actual
       return actual
     },
+    // Numero de canasta y nota: van aparte del visto bueno y no cambian el
+    // estado de la canasta, por eso no pasan por la cola de verificacion.
+    guardarCanasta (comprobante) {
+      this.guardandoCanasta = comprobante.factura_id
+      this.$api.post('caminero/carga/canasta', {
+        fecha: this.fecha,
+        factura_id: comprobante.factura_id,
+        nro_canasta: comprobante.nro_canasta || '',
+        nota: comprobante.nota || ''
+      }).catch(err => {
+        this.$q.notify({
+          type: 'negative', position: 'top',
+          message: err.response?.data?.message || 'No se pudo guardar la canasta'
+        })
+      }).finally(() => {
+        if (this.guardandoCanasta === comprobante.factura_id) this.guardandoCanasta = null
+      })
+    },
     abrirObservacion (comprobante) {
       this.editando = comprobante
       this.observacion = comprobante.observacion || ''
@@ -965,6 +1008,9 @@ export default {
   min-height: 60px;
 }
 /* Filas de producto altas, faciles de tocar con el pulgar. */
+.canasta-datos :deep(.q-field__label) {
+  font-size: 11px;
+}
 .producto {
   min-height: 52px;
 }

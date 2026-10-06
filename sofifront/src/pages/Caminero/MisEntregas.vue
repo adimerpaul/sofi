@@ -201,10 +201,17 @@
               <div class="marca" :class="claseEstado(entrega)">{{ indice + 1 }}</div>
             </td>
             <td>
-              <div class="linea-cliente ellipsis">{{ entrega.cliente || entrega.nombre || 'Sin cliente' }}</div>
+              <div class="linea-cliente ellipsis">
+                <!-- La canasta en la que va lo del cliente, anotada al cargar. -->
+                <span v-if="entrega.nro_canasta" class="canasta-num">C {{ entrega.nro_canasta }}</span>
+                {{ entrega.cliente || entrega.nombre || 'Sin cliente' }}
+              </div>
               <div class="linea-pie ellipsis">
                 <q-icon name="place" size="11px"/>
                 {{ entrega.direccion || 'Sin dirección' }}
+              </div>
+              <div v-if="entrega.nota_carga" class="linea-pie nota-carga ellipsis">
+                <q-icon name="sticky_note_2" size="11px"/> {{ entrega.nota_carga }}
               </div>
             </td>
             <td class="col-monto">
@@ -347,6 +354,10 @@
                         Pedido #{{ props.row.nro_pedido }} ·
                         {{ props.row.tipo_comprobante }} #{{ props.row.factura_id }}
                       </div>
+                      <div v-if="props.row.nro_canasta || props.row.nota_carga" class="q-mt-xs">
+                        <span v-if="props.row.nro_canasta" class="canasta-num">Canasta {{ props.row.nro_canasta }}</span>
+                        <span v-if="props.row.nota_carga" class="text-caption nota-carga">{{ props.row.nota_carga }}</span>
+                      </div>
                       <!-- En la puerta el cliente revisa bulto por bulto: el
                            detalle se abre aca mismo, sin ir al comprobante. -->
                       <div
@@ -485,6 +496,10 @@
                   <div class="text-caption text-grey-7">
                     Pedido #{{ props.row.nro_pedido }} ·
                     {{ props.row.tipo_comprobante }} #{{ props.row.factura_id }}
+                  </div>
+                  <div v-if="props.row.nro_canasta || props.row.nota_carga" class="q-mt-xs">
+                    <span v-if="props.row.nro_canasta" class="canasta-num">Canasta {{ props.row.nro_canasta }}</span>
+                    <span v-if="props.row.nota_carga" class="text-caption nota-carga">{{ props.row.nota_carga }}</span>
                   </div>
                   <div
                     v-if="props.row.detalles && props.row.detalles.length"
@@ -748,6 +763,10 @@
           <div class="text-caption text-grey-7">
             {{ verEntrega.tipo_comprobante }} #{{ verEntrega.factura_id }} ·
             Pedido #{{ verEntrega.nro_pedido }} · NIT {{ verEntrega.nit || '—' }}
+          </div>
+          <div v-if="verEntrega.nro_canasta || verEntrega.nota_carga" class="q-mt-xs">
+            <span v-if="verEntrega.nro_canasta" class="canasta-num">Canasta {{ verEntrega.nro_canasta }}</span>
+            <span v-if="verEntrega.nota_carga" class="text-caption nota-carga">{{ verEntrega.nota_carga }}</span>
           </div>
         </q-card-section>
         <q-separator/>
@@ -1710,6 +1729,22 @@ export default {
 </script>
 
 <style scoped>
+/* Numero de canasta: lo primero que se busca al bajar la mercaderia. */
+.canasta-num {
+  display: inline-block;
+  background: #e65100;
+  color: #fff;
+  font-weight: 800;
+  font-size: 11px;
+  line-height: 1.4;
+  padding: 0 6px;
+  border-radius: 4px;
+  margin-right: 4px;
+}
+.nota-carga {
+  color: #6d4c41;
+  font-style: italic;
+}
 .fotos-punto {
   overflow-x: auto;
 }

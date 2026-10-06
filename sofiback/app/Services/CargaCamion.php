@@ -106,6 +106,10 @@ class CargaCamion
             $comprobante['observado'] = $marca ? ((bool) $marca->observado && !$cambio) : false;
             $comprobante['cambio'] = (bool) $cambio;
             $comprobante['observacion'] = $marca->observacion ?? null;
+            // En que canasta va y la nota del caminero: siguen valiendo aunque
+            // cambie la venta, la canasta fisica es la misma.
+            $comprobante['nro_canasta'] = $marca->nro_canasta ?? null;
+            $comprobante['nota'] = $marca->nota ?? null;
             $comprobante['verificado_por'] = $marca->verificado_por ?? null;
             $comprobante['verificado_en'] = $marca->verificado_en ?? null;
 
@@ -203,6 +207,35 @@ class CargaCamion
         }
 
         return count($filas);
+    }
+
+    /**
+     * Guarda el numero de canasta y la nota de un comprobante. Si la canasta
+     * todavia no se reviso se abre su fila sin visto bueno; si ya tenia, no se
+     * toca nada mas que estos dos campos.
+     */
+    public function guardarCanasta($fecha, $placa, array $comprobante, $nroCanasta, $nota, $personalId, $nombre): array
+    {
+        $nroCanasta = trim((string) $nroCanasta);
+        $nota = trim((string) $nota);
+        $campos = [
+            'nro_canasta' => $nroCanasta !== '' ? $nroCanasta : null,
+            'nota' => $nota !== '' ? $nota : null,
+            'updated_at' => date('Y-m-d H:i:s'),
+        ];
+
+        $existe = DB::table('carga_verificaciones')->where('factura_id', $comprobante['factura_id'])->exists();
+        if ($existe) {
+            DB::table('carga_verificaciones')->where('factura_id', $comprobante['factura_id'])->update($campos);
+        } else {
+            $fila = $this->fila($fecha, $placa, $comprobante, false, null, false, $personalId, $nombre);
+            DB::table('carga_verificaciones')->insert(array_merge($fila, $campos));
+        }
+
+        $comprobante['nro_canasta'] = $campos['nro_canasta'];
+        $comprobante['nota'] = $campos['nota'];
+
+        return $comprobante;
     }
 
     /** Los id de factura_detalles que ya se tildaron en esa canasta. */

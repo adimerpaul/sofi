@@ -72,8 +72,21 @@ class CamineroController extends Controller
                 ->groupBy('factura_id');
         }
 
-        $lista = $facturas->map(function ($factura) use ($entregas, $detalles) {
+        // En que canasta va cada nota y lo que el caminero anoto al cargarla:
+        // al entregar baja esa canasta sin revolver el camion.
+        $canastas = collect();
+        if ($facturas->isNotEmpty()) {
+            $canastas = DB::table('carga_verificaciones')
+                ->whereIn('factura_id', $facturas->pluck('factura_id')->all())
+                ->get(['factura_id', 'nro_canasta', 'nota'])
+                ->keyBy('factura_id');
+        }
+
+        $lista = $facturas->map(function ($factura) use ($entregas, $detalles, $canastas) {
             $entrega = $entregas->get($factura->factura_id);
+            $canasta = $canastas->get($factura->factura_id);
+            $factura->nro_canasta = $canasta->nro_canasta ?? null;
+            $factura->nota_carga = $canasta->nota ?? null;
             $factura->detalles = ($detalles->get($factura->factura_id) ?? collect())
                 ->map(function ($linea) {
                     return [
@@ -790,6 +803,43 @@ class CamineroController extends Controller
                 : ($verificado ? 'Canasta verificada' : 'Canasta desmarcada'),
             'resumen' => $servicio->estado($fecha, $placa),
             'comprobante' => $comprobante,
+        ];
+    }
+
+    /**
+     * Numero de canasta y nota de un comprobante. El caminero anota al cargar
+     * en que canasta va lo del cliente, y lo ve despues en sus entregas.
+     */
+    public function canasta(Request $request)
+    {
+        $datos = $request->validate([
+            'fecha' => 'nullable|date',
+            'factura_id' => 'required|integer',
+            'nro_canasta' => 'nullable|string|max:30',
+            'nota' => 'nullable|string|max:255',
+        ]);
+
+        $fecha = $datos['fecha'] ?? date('Y-m-d');
+        $placa = $this->placa($request);
+        if ($placa === '') {
+            return response()->json(['message' => 'Tu usuario no tiene un camión asignado'], 422);
+        }
+
+        $servicio = new CargaCamion();
+        $comprobante = $servicio->comprobante($fecha, $placa, $datos['factura_id']);
+        if (!$comprobante) {
+            return response()->json(['message' => 'Ese comprobante no sale en tu camión'], 404);
+        }
+
+        $comprobante = $servicio->guardarCanasta(
+            $fecha, $placa, $comprobante, $datos['nro_canasta'] ?? null, $datos['nota'] ?? null,
+            $request->user()->CodAut, $this->nombre($request)
+        );
+
+        return [
+            'message' => 'Canasta guardada',
+            'nro_canasta' => $comprobante['nro_canasta'],
+            'nota' => $comprobante['nota'],
         ];
     }
 

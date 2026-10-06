@@ -158,6 +158,8 @@ Route::group(['middleware'=>'auth:sanctum'],function (){
     Route::post('/caminero/carga/verificar',[\App\Http\Controllers\CamineroController::class,'verificarCarga']);
     // Tilde de a un producto dentro de la canasta.
     Route::post('/caminero/carga/productos',[\App\Http\Controllers\CamineroController::class,'verificarProductos']);
+    // Numero de canasta y nota de cada comprobante; se ven despues en sus entregas.
+    Route::post('/caminero/carga/canasta',[\App\Http\Controllers\CamineroController::class,'canasta']);
     Route::post('/caminero/carga/verificar-todo',[\App\Http\Controllers\CamineroController::class,'verificarCargaTodo']);
 
     // Compras a proveedor: suben el stock de tbstock.
