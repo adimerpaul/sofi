@@ -6,7 +6,6 @@
     <style>
         @page { margin: 30px 30px; }
         body { font-family: Arial, sans-serif; margin: 0; }
-        .titulo { font-size: 11px; font-weight: bold; color: #555; margin-bottom: 8px; }
         /* Una cabecera por pedido, separadas para poder recortarlas. */
         .cabecera {
             width: 100%;
@@ -19,17 +18,14 @@
         .numero { width: 34%; text-align: right; white-space: nowrap; }
         .numero .rotulo { font-size: 10px; font-weight: bold; }
         .numero .nro { font-size: 28px; font-weight: bold; }
-        .tipo { display: block; font-size: 10px; font-weight: bold; letter-spacing: 1px; }
     </style>
 </head>
 <body>
-<div class="titulo">{{ $tipoNombre }} · {{ $fecha }} · {{ count($pedidos) }} pedidos</div>
 @foreach ($pedidos as $p)
     <table class="cabecera">
         <tr>
             <td class="cliente">{{ $p['cliente'] }}</td>
             <td class="numero" style="{{ $p['color'] }}">
-                <span class="tipo">{{ $tipoNombre }}</span>
                 <span class="rotulo">Nro pedido:</span>
                 <span class="nro">{{ $p['nro'] }}</span>
             </td>
