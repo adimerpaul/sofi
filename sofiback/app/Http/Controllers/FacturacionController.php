@@ -337,6 +337,10 @@ class FacturacionController extends Controller
     {
         $desde = $request->input('desde') ?: date('Y-m-d');
         $hasta = $request->input('hasta') ?: $desde;
+        // Con un tipo de pedido elegido, cada camion cuenta solo los pedidos de
+        // ese tipo, igual que la lista de comprobantes.
+        $pedidoTipo = strtoupper(trim((string) $request->input('pedido_tipo', '')));
+        $pedidoTipo = in_array($pedidoTipo, TipoPedido::TIPOS, true) ? $pedidoTipo : null;
 
         // El comprobante lleva la fecha del dia en que se cobro y el pedido la
         // del dia en que se tomo (normalmente el anterior): ademas del rango se
@@ -368,6 +372,9 @@ class FacturacionController extends Controller
             })
             ->whereRaw("UPPER(TRIM(p.estado)) = 'ENVIADO'")
             ->where('p.bonificacion', 0)
+            ->when($pedidoTipo, function ($q) use ($pedidoTipo) {
+                $q->whereRaw(TipoPedido::sql('p') . ' = ?', [$pedidoTipo]);
+            })
             ->groupBy('p.NroPed', DB::raw(TipoPedido::sql('p')))
             ->get([
                 DB::raw("TRIM(COALESCE(MIN(p.placa), '')) as placa"),
@@ -383,6 +390,10 @@ class FacturacionController extends Controller
             ->where('estado', '<>', 'ANULADO')
             ->whereDate('fecha', '>=', $desde)->whereDate('fecha', '<=', $hasta)
             ->whereRaw("TRIM(COALESCE(placa, '')) <> ''")
+            // La venta directa no tiene tipo de pedido: filtrando por tipo no entra.
+            ->when($pedidoTipo, function ($q) {
+                $q->whereRaw('1 = 0');
+            })
             ->get(['id', 'placa'])
             ->map(function ($f) use ($colores) {
                 $placa = trim($f->placa);
@@ -2431,9 +2442,7 @@ class FacturacionController extends Controller
                 $bruto = (float) $d->peso_bruto > 0 ? (float) $d->peso_bruto : $peso;
                 $canastillos = (float) $d->peso_bruto > 0 ? (int) $d->canastillos : 0;
                 $columnasPeso = "<td class='r'>" . ($bruto > 0 ? number_format($bruto, 2) : '—') . '</td>'
-                    . "<td class='c'>" . ($canastillos > 0 ? $canastillos : '—') . '</td>'
-                    . "<td class='r'>" . ($canastillos > 0
-                        ? number_format($canastillos * FacturaDetalle::KG_CANASTILLO, 2) : '—') . '</td>';
+                    . "<td class='c'>" . ($canastillos > 0 ? $canastillos : '—') . '</td>';
             } else {
                 $columnasPeso = "<td class='r'>" . ($peso > 0 ? number_format($peso, 3) : '—') . '</td>';
             }
@@ -2502,7 +2511,7 @@ class FacturacionController extends Controller
                 <th>Concepto</th>
                 <th style='width:6%'>Unid</th>
                 " . ($conCanastillos
-                    ? "<th style='width:8%'>P. Bruto</th><th style='width:6%'>Canast.</th><th style='width:7%'>Kg Canast.</th>"
+                    ? "<th style='width:9%'>P. Bruto</th><th style='width:7%'>Canast.</th>"
                     : "<th style='width:9%'>Peso Kg</th>") . "
                 <th style='width:9%'>P. Neto</th>
                 <th style='width:10%'>P. Unit</th>
@@ -2609,9 +2618,7 @@ class FacturacionController extends Controller
                 $bruto = (float) $d->peso_bruto > 0 ? (float) $d->peso_bruto : $peso;
                 $canastillos = (float) $d->peso_bruto > 0 ? (int) $d->canastillos : 0;
                 $columnasPeso = "<td class='r'>" . ($bruto > 0 ? number_format($bruto, 2) : '—') . '</td>'
-                    . "<td class='c'>" . ($canastillos > 0 ? $canastillos : '—') . '</td>'
-                    . "<td class='r'>" . ($canastillos > 0
-                        ? number_format($canastillos * FacturaDetalle::KG_CANASTILLO, 2) : '—') . '</td>';
+                    . "<td class='c'>" . ($canastillos > 0 ? $canastillos : '—') . '</td>';
             }
 
             $filas .= "<tr$par>"
@@ -2695,8 +2702,7 @@ class FacturacionController extends Controller
                 <th style='width:" . ($conCanastillos ? '10' : '12') . "%'>Unidad</th>
                 <th>Descripción</th>
                 " . ($conCanastillos
-                    ? "<th style='width:7%'>P. Bruto</th><th style='width:5%'>Canast.</th>"
-                        . "<th style='width:7%'>Kg Canast.</th>"
+                    ? "<th style='width:8%'>P. Bruto</th><th style='width:6%'>Canast.</th>"
                     : '') . "
                 <th style='width:10%'>P. Unitario</th>
                 <th style='width:8%'>Descuento</th>
