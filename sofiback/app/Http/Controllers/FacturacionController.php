@@ -2119,61 +2119,95 @@ class FacturacionController extends Controller
      * Se guarda el motivo porque una anulacion sin razon no sirve de nada.
      */
     /**
-     * Pasa un comprobante a otro camion.
+     * Las zonas (colores) que se le pueden dar a un pedido, las mismas del
+     * mapa de clientes.
+     */
+    public function colores()
+    {
+        return DB::table('colores')->whereNull('deleted_at')->orderBy('id')
+            ->get(['id', 'zona', 'color', 'colorStyle']);
+    }
+
+    /**
+     * Cambia el camion y/o el color de zona de un comprobante.
      *
-     * - De un pedido: el camion es tbpedidos.placa, asi que se cambian las
-     *   lineas de ese pedido y de ese tipo (un pedido con embutidos y podium
-     *   tiene un comprobante por tipo), por el modelo para que quede en audits.
-     *   Color y colorStyle van con la placa, igual que al asignar camion.
-     * - Venta directa: el camion es facturas.placa.
+     * - De un pedido: camion y color viven en tbpedidos (placa, color,
+     *   colorStyle), asi que se cambian las lineas de ese pedido y de ese
+     *   tipo (un pedido con embutidos y podium tiene un comprobante por
+     *   tipo), por el modelo para que quede en audits.
+     * - Venta directa: el camion es facturas.placa y no tiene color.
      *
-     * La revision de carga era del otro camion: vuelve a pendiente para que
-     * el caminero nuevo la revise, y el numero de canasta se borra (esa
-     * canasta quedo en el otro camion).
+     * Se puede aunque ya este entregado o cobrado: la entrega pasa al camion
+     * nuevo junto con el comprobante, asi el recojo del dia sale en ese camion.
      *
-     * No se cambia lo que ya se cobro: esa plata la tiene el otro caminero.
+     * Si cambia el camion, la revision de carga era del otro: vuelve a
+     * pendiente para que el caminero nuevo la revise, y el numero de canasta
+     * se borra (esa canasta quedo en el otro camion).
      */
     public function cambiarCamion(Request $request, $id)
     {
-        $datos = $request->validate(['placa' => 'required|string|max:50']);
-        $placa = trim($datos['placa']);
+        $datos = $request->validate([
+            'placa' => 'nullable|string|max:50',
+            'color_id' => 'nullable|integer',
+        ]);
+        $placa = trim((string) ($datos['placa'] ?? ''));
+        $colorId = $datos['color_id'] ?? null;
 
-        $vehiculo = DB::table('vehiculo')->whereRaw('TRIM(placa) = ?', [$placa])->first(['placa', 'color', 'colorStyle']);
-        if (!$vehiculo || $placa === '') {
+        if ($placa === '' && !$colorId) {
+            return response()->json(['message' => 'Elegí un camión o un color'], 422);
+        }
+
+        if ($placa !== '' && !DB::table('vehiculo')->whereRaw('TRIM(placa) = ?', [$placa])->exists()) {
             return response()->json(['message' => 'Ese camión no existe'], 422);
+        }
+
+        $zona = null;
+        if ($colorId) {
+            $zona = DB::table('colores')->whereNull('deleted_at')->where('id', $colorId)->first(['zona', 'color', 'colorStyle']);
+            if (!$zona) {
+                return response()->json(['message' => 'Ese color no existe'], 422);
+            }
         }
 
         $factura = Factura::findOrFail($id);
         if ($factura->estado === 'ANULADO') {
             return response()->json(['message' => 'El comprobante está anulado'], 422);
         }
-
-        $cobrada = DB::table('entregas')->where('factura_id', $factura->id)
-            ->whereIn('estado', \App\Services\RecojoDelDia::ESTADOS_COBRADOS)->exists();
-        if ($cobrada) {
-            return response()->json(['message' => 'Esa entrega ya fue cobrada por el caminero; no se puede cambiar de camión'], 422);
+        if ($zona && !$factura->pedido_nro) {
+            return response()->json(['message' => 'La venta directa no tiene color de zona'], 422);
         }
 
         $anterior = $factura->pedido_nro ? $this->camionDeFactura($factura) : trim((string) $factura->placa);
-        if ($anterior === $placa) {
+        $cambiaPlaca = $placa !== '' && $anterior !== $placa;
+        if (!$cambiaPlaca && !$zona) {
             return response()->json(['message' => 'El comprobante ya va en ' . $placa], 422);
         }
 
-        DB::transaction(function () use ($factura, $placa, $vehiculo) {
+        DB::transaction(function () use ($factura, $placa, $cambiaPlaca, $zona) {
             if ($factura->pedido_nro) {
                 \App\Models\Pedido::where('NroPed', $factura->pedido_nro)
                     ->whereRaw(TipoPedido::sql('') . ' = ?', [strtoupper(trim((string) $factura->pedido_tipo))])
                     ->get()
-                    ->each(function ($linea) use ($placa, $vehiculo) {
-                        $linea->placa = $placa;
-                        $linea->color = trim((string) $vehiculo->color);
-                        $linea->colorStyle = trim((string) $vehiculo->colorStyle);
+                    ->each(function ($linea) use ($placa, $cambiaPlaca, $zona) {
+                        if ($cambiaPlaca) {
+                            $linea->placa = $placa;
+                        }
+                        if ($zona) {
+                            $linea->color = trim((string) $zona->color);
+                            $linea->colorStyle = trim((string) $zona->colorStyle);
+                        }
                         $linea->save();
                     });
-            } else {
+            } elseif ($cambiaPlaca) {
                 $factura->placa = $placa;
                 $factura->save();
             }
+
+            if (!$cambiaPlaca) {
+                return;
+            }
+
+            DB::table('entregas')->where('factura_id', $factura->id)->update(['placa' => $placa]);
 
             DB::table('carga_verificaciones')->where('factura_id', $factura->id)->update([
                 'placa' => $placa,
@@ -2187,8 +2221,16 @@ class FacturacionController extends Controller
             ]);
         });
 
+        $partes = [];
+        if ($cambiaPlaca) {
+            $partes[] = 'pasado de ' . ($anterior ?: 'sin camión') . ' a ' . $placa;
+        }
+        if ($zona) {
+            $partes[] = 'zona ' . trim((string) $zona->zona);
+        }
+
         return response()->json([
-            'message' => 'Comprobante #' . $factura->id . ' pasado de ' . ($anterior ?: 'sin camión') . ' a ' . $placa,
+            'message' => 'Comprobante #' . $factura->id . ': ' . implode(', ', $partes),
         ]);
     }
 

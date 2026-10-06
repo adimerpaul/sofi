@@ -96,6 +96,8 @@ Route::group(['middleware'=>'auth:sanctum'],function (){
     // Caja marca como revisadas las canastas elegidas en la grilla.
     Route::post('/facturacion/carga/marcar',[\App\Http\Controllers\FacturacionController::class,'marcarCargaVarias']);
     Route::get('/facturacion/camiones',[\App\Http\Controllers\FacturacionController::class,'camiones']);
+    // Zonas (colores) para cambiar el color de un comprobante.
+    Route::get('/facturacion/colores',[\App\Http\Controllers\FacturacionController::class,'colores']);
     // Reportes de Ventas y Facturacion: quiebre de stock (pedido contra vendido).
     Route::get('/reportes/quiebre-embutido',[\App\Http\Controllers\ReporteVentasController::class,'quiebreEmbutido']);
     Route::get('/reportes/quiebre-embutido/excel',[\App\Http\Controllers\ReporteVentasController::class,'quiebreEmbutidoExcel']);

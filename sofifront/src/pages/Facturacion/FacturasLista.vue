@@ -684,15 +684,17 @@
                 </q-item-section>
               </q-item>
 
-              <!-- Pasar la venta a otro camion: cambia el camion del pedido y
-                   la carga vuelve a pendiente para que la revise el otro caminero. -->
+              <!-- Cambiar camion y/o color de zona, aunque ya este entregado. Si
+                   cambia el camion la carga vuelve a pendiente para el otro caminero. -->
               <template v-if="props.row.estado !== 'ANULADO'">
                 <q-separator/>
                 <q-item clickable v-close-popup @click="abrirCambioCamion(props.row)">
                   <q-item-section avatar><q-icon name="local_shipping" color="indigo-7"/></q-item-section>
                   <q-item-section>
-                    Cambiar de camión
-                    <q-item-label caption>Ahora va en {{ props.row.placa || 'ningún camión' }}</q-item-label>
+                    Cambiar camión y color
+                    <q-item-label caption>
+                      Ahora va en {{ props.row.placa || 'ningún camión' }}<template v-if="zona(props.row)"> · {{ zona(props.row).nombre }}</template>
+                    </q-item-label>
                   </q-item-section>
                 </q-item>
               </template>
@@ -847,26 +849,42 @@
     <q-dialog v-model="dialogCamion">
       <q-card v-if="filaCamion" style="min-width: 320px">
         <q-card-section class="q-pb-xs">
-          <div class="text-subtitle1 text-weight-bold">Cambiar de camión</div>
+          <div class="text-subtitle1 text-weight-bold">Cambiar camión y color</div>
           <div class="text-caption text-grey-7">
             #{{ filaCamion.id }} · {{ filaCamion.nombre || 'Sin cliente' }}
             · ahora en <b>{{ filaCamion.placa || 'ningún camión' }}</b>
+            <template v-if="zona(filaCamion)"> · zona <b>{{ zona(filaCamion).nombre }}</b></template>
           </div>
         </q-card-section>
-        <q-card-section class="q-pt-sm">
+        <q-card-section class="q-pt-sm q-gutter-y-sm">
           <q-select
             v-model="placaNueva" :options="vehiculos.filter(v => v !== (filaCamion.placa || ''))"
-            dense outlined label="Nuevo camión"
+            dense outlined clearable label="Nuevo camión" hint="Vacío: se queda en el mismo"
           />
-          <div class="text-caption text-grey-7 q-mt-sm">
-            La carga vuelve a pendiente para que la revise el caminero del otro camión
-            y se borra el número de canasta.
+          <q-select
+            v-if="filaCamion.pedido_nro"
+            v-model="colorNuevo" :options="colores" option-label="zona"
+            dense outlined clearable label="Nuevo color (zona)" hint="Vacío: se queda con el mismo"
+          >
+            <template v-slot:option="scope">
+              <q-item v-bind="scope.itemProps">
+                <q-item-section avatar><span class="cuadro-zona" :style="scope.opt.colorStyle"/></q-item-section>
+                <q-item-section>{{ scope.opt.zona }}</q-item-section>
+              </q-item>
+            </template>
+            <template v-slot:selected-item="scope">
+              <span class="cuadro-zona q-mr-xs" :style="scope.opt.colorStyle"/>{{ scope.opt.zona }}
+            </template>
+          </q-select>
+          <div class="text-caption text-grey-7">
+            Se puede aunque ya esté entregado. Si cambia el camión, la entrega pasa al
+            camión nuevo, la carga vuelve a pendiente y se borra el número de canasta.
           </div>
         </q-card-section>
         <q-card-actions align="right">
           <q-btn flat no-caps label="Cancelar" v-close-popup/>
           <q-btn unelevated no-caps color="indigo-7" icon="local_shipping" label="Cambiar"
-                 :disable="!placaNueva" :loading="cambiandoCamion" @click="cambiarCamion"/>
+                 :disable="!placaNueva && !colorNuevo" :loading="cambiandoCamion" @click="cambiarCamion"/>
         </q-card-actions>
       </q-card>
     </q-dialog>
@@ -977,6 +995,8 @@ export default {
       dialogCamion: false,
       filaCamion: null,
       placaNueva: null,
+      colorNuevo: null,
+      colores: [],
       vehiculos: [],
       cambiandoCamion: false,
       codigoMotivoAnulacion: null,
@@ -1676,7 +1696,11 @@ export default {
     abrirCambioCamion (row) {
       this.filaCamion = row
       this.placaNueva = null
+      this.colorNuevo = null
       this.dialogCamion = true
+      if (!this.colores.length) {
+        this.$api.get('facturacion/colores').then(res => { this.colores = res.data })
+      }
       if (!this.vehiculos.length) {
         this.$api.post('listVehiculo').then(res => {
           this.vehiculos = res.data.map(v => String(v.placa || '').trim()).filter(p => p)
@@ -1685,13 +1709,16 @@ export default {
     },
     cambiarCamion () {
       this.cambiandoCamion = true
-      this.$api.put('facturacion/' + this.filaCamion.id + '/camion', { placa: this.placaNueva })
+      this.$api.put('facturacion/' + this.filaCamion.id + '/camion', {
+        placa: this.placaNueva,
+        color_id: this.colorNuevo ? this.colorNuevo.id : null
+      })
         .then(res => {
           this.$q.notify({ type: 'positive', position: 'top', message: res.data.message })
           this.dialogCamion = false
           this.recargar()
         })
-        .catch(err => { this.avisar(err, 'No se pudo cambiar el camión') })
+        .catch(err => { this.avisar(err, 'No se pudo cambiar el camión o el color') })
         .finally(() => { this.cambiandoCamion = false })
     },
     pedirEdicion (row) {
