@@ -1205,6 +1205,13 @@ class CamineroController extends Controller
     /** Metros entre el celular del caminero y el punto del cliente. */
     private function distancia($lat1, $lon1, $lat2, $lon2)
     {
+        // La coordenada del cliente es texto cargado a mano y a veces viene
+        // sucia ("S-67.09", "-17,96", "-18.42}"): en PHP 8 multiplicar ese
+        // texto corta el cobro entero. Sin coordenada valida no hay distancia.
+        $lat1 = self::coordenada($lat1);
+        $lon1 = self::coordenada($lon1);
+        $lat2 = self::coordenada($lat2);
+        $lon2 = self::coordenada($lon2);
         if (!$lat1 || !$lon1 || !$lat2 || !$lon2) {
             return 0;
         }
@@ -1218,5 +1225,14 @@ class CamineroController extends Controller
             + cos($lat1) * cos($lat2) * sin(($lon2 - $lon1) / 2) ** 2;
 
         return round(6372797 * 2 * atan2(sqrt($a), sqrt(1 - $a)));
+    }
+
+    /** Una coordenada como numero, o null si no se puede leer. */
+    private static function coordenada($valor)
+    {
+        // Coma decimal y letras o llaves sueltas que se colaron al cargarla.
+        $texto = preg_replace('/[^0-9.\-]/', '', str_replace(',', '.', trim((string) $valor)));
+
+        return is_numeric($texto) ? (float) $texto : null;
     }
 }
