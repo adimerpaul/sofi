@@ -403,8 +403,18 @@
                   <q-item-section avatar>
                     <div class="camion-color" :style="scope.opt.colorStyle"/>
                   </q-item-section>
-                  <q-item-section>{{ scope.opt.placa }}</q-item-section>
+                  <q-item-section>
+                    <q-item-label>{{ scope.opt.placa }}</q-item-label>
+                    <q-item-label v-if="!scope.opt.deAsignacion" caption>Sin asignación reciente: color del vehículo</q-item-label>
+                  </q-item-section>
                 </q-item>
+              </template>
+              <!-- El color con el que va a salir la venta, a la vista al elegir. -->
+              <template v-slot:selected-item="scope">
+                <div class="row items-center no-wrap">
+                  <div class="camion-color q-mr-sm" :style="scope.opt.colorStyle"/>
+                  {{ scope.opt.placa }}
+                </div>
               </template>
             </q-select>
           </div>
@@ -605,10 +615,12 @@ export default {
         .finally(() => { this.cargandoPedido = false })
     },
 
+    // Cada camion con el color de zona de su ultima asignacion en el mapa de
+    // clientes: es el que va a llevar la venta, parejo con sus pedidos.
     cargarCamiones () {
-      this.$api.post('listVehiculo').then(res => {
+      this.$api.get('facturacion/camiones-color').then(res => {
         this.camiones = (res.data || [])
-          .map(v => ({ placa: String(v.placa || '').trim(), colorStyle: v.colorStyle || '' }))
+          .map(v => ({ placa: String(v.placa || '').trim(), colorStyle: v.colorStyle || '', deAsignacion: !!v.de_asignacion }))
           .filter(v => v.placa)
       }).catch(() => {})
     },

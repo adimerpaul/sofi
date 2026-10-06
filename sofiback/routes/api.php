@@ -99,6 +99,10 @@ Route::group(['middleware'=>'auth:sanctum'],function (){
     // Caja marca como revisadas las canastas elegidas en la grilla.
     Route::post('/facturacion/carga/marcar',[\App\Http\Controllers\FacturacionController::class,'marcarCargaVarias']);
     Route::get('/facturacion/camiones',[\App\Http\Controllers\FacturacionController::class,'camiones']);
+    // Entregas del dia sobre facturacion (reemplaza al reporte de /entrega).
+    Route::get('/entrega-factura',[\App\Http\Controllers\EntregaFacturaController::class,'index']);
+    // Color de zona de la ultima asignacion de cada camion (venta directa).
+    Route::get('/facturacion/camiones-color',[\App\Http\Controllers\FacturacionController::class,'coloresCamion']);
     // Zonas (colores) para cambiar el color de un comprobante.
     Route::get('/facturacion/colores',[\App\Http\Controllers\FacturacionController::class,'colores']);
     // Reportes de Ventas y Facturacion: quiebre de stock (pedido contra vendido).
@@ -136,6 +140,8 @@ Route::group(['middleware'=>'auth:sanctum'],function (){
     Route::get('/caminero/reporte',[\App\Http\Controllers\CamineroController::class,'reporte']);
     // Las hojas del recojo en PDF, una por forma de pago, para firmar.
     Route::get('/caminero/reporte/pdf',[\App\Http\Controllers\CamineroController::class,'reportePdf']);
+    // Lo mismo en Excel: la tabla del dia, contados y QR, una hoja cada una.
+    Route::get('/caminero/reporte/excel',[\App\Http\Controllers\CamineroController::class,'reporteExcel']);
     // Antes de salir, el caminero revisa la carga de su camion producto por
     // producto; hasta que no este completa, caja no imprime sus comprobantes.
     // Cobranzas ve el recojo de todos los camiones, no solo el suyo: es

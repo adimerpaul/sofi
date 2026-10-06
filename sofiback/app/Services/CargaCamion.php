@@ -502,6 +502,59 @@ class CargaCamion
             . ' a ' . date('d/m/Y', strtotime($fecha)) . ' ' . $hora;
     }
 
+    /**
+     * El color de zona que se le dio al camion en la asignacion del mapa de
+     * clientes (tbpedidos.color / colorStyle), para la venta directa que no
+     * tiene pedido propio: asi sale pareja con lo demas del camion.
+     *
+     * La asignacion no guarda la hora, asi que vale el ultimo dia en que se
+     * asigno ese camion (hasta $hasta) y, de ese dia, el color que se le dio a
+     * mas pedidos: un pedido suelto con otro color no cambia la zona. Null si
+     * en el ultimo mes no se le asigno nada.
+     */
+    public static function colorDeZona($placa, $hasta = null)
+    {
+        $placa = trim((string) $placa);
+        if ($placa === '') {
+            return null;
+        }
+
+        return self::coloresDeZona([$placa], $hasta)[$placa] ?? null;
+    }
+
+    /**
+     * Lo mismo que colorDeZona para varios camiones (o todos, con null) en una
+     * sola consulta: [placa => ['color' => ..., 'colorStyle' => ...]].
+     */
+    public static function coloresDeZona(?array $placas = null, $hasta = null): array
+    {
+        $hasta = substr((string) ($hasta ?: date('Y-m-d')), 0, 10);
+
+        $filas = DB::table('tbpedidos')
+            ->whereNull('deleted_at')
+            // Rango sobre fecha (indexada); el ultimo mes alcanza de sobra.
+            ->where('fecha', '>=', date('Y-m-d', strtotime($hasta . ' -30 days')) . ' 00:00:00')
+            ->where('fecha', '<', date('Y-m-d', strtotime($hasta . ' +1 day')) . ' 00:00:00')
+            ->whereRaw("TRIM(COALESCE(placa, '')) <> ''")
+            ->whereRaw("TRIM(COALESCE(colorStyle, '')) <> ''")
+            ->when($placas !== null, function ($q) use ($placas) {
+                $q->whereIn(DB::raw('TRIM(placa)'), array_map('trim', $placas));
+            })
+            ->groupBy(DB::raw('TRIM(placa)'), DB::raw('DATE(fecha)'), DB::raw('TRIM(color)'), DB::raw('TRIM(colorStyle)'))
+            ->get([
+                DB::raw('TRIM(placa) as placa'), DB::raw('DATE(fecha) as dia'),
+                DB::raw('TRIM(color) as color'), DB::raw('TRIM(colorStyle) as colorStyle'),
+                DB::raw('COUNT(*) as pedidos'),
+            ]);
+
+        // Por camion: el ultimo dia y, de ese dia, el color con mas pedidos.
+        return $filas->groupBy('placa')->map(function ($delCamion) {
+            $dia = $delCamion->max('dia');
+            $fila = $delCamion->where('dia', $dia)->sortByDesc('pedidos')->first();
+            return ['color' => (string) $fila->color, 'colorStyle' => (string) $fila->colorStyle];
+        })->all();
+    }
+
     private function diaSiguiente($fecha)
     {
         return date('Y-m-d', strtotime($fecha . ' +1 day')) . ' 00:00:00';

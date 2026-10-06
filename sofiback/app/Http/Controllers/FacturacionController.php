@@ -57,6 +57,7 @@ class FacturacionController extends Controller
 
         $this->adjuntarCarga($pagina->getCollection());
         $this->adjuntarEntrega($pagina->getCollection());
+        $this->adjuntarZonaDirecta($pagina->getCollection());
 
         // Los conteos van pegados a la pagina y no en otra ruta: la pantalla
         // los muestra junto a los filtros y pedirlos aparte era una segunda
@@ -95,6 +96,51 @@ class FacturacionController extends Controller
      * el estado a CargaCamion fila por fila reconstruiria la carga entera del
      * camion una vez por comprobante.
      */
+    private function adjuntarZonaDirecta($facturas)
+    {
+        // La venta directa con camion no tiene pedido del que sacar el color:
+        // lleva el ultimo que se le dio a ese camion en la asignacion.
+        $cache = [];
+        foreach ($facturas as $factura) {
+            $placa = trim((string) $factura->placa);
+            if ($factura->pedido_nro || $placa === '' || $factura->zona_color) {
+                continue;
+            }
+            $dia = optional($factura->fecha)->format('Y-m-d') ?? date('Y-m-d');
+            $clave = $placa . '|' . $dia;
+            if (!array_key_exists($clave, $cache)) {
+                $cache[$clave] = CargaCamion::colorDeZona($placa, $dia);
+            }
+            if ($cache[$clave]) {
+                $factura->zona_color = $cache[$clave]['color'] . '|' . $cache[$clave]['colorStyle'];
+            }
+        }
+    }
+
+    /**
+     * Los camiones con el color de zona que se les dio en la ultima
+     * asignacion: es el que toma la venta directa al elegir camion.
+     */
+    public function coloresCamion()
+    {
+        $zonas = CargaCamion::coloresDeZona();
+
+        return DB::table('vehiculo')->get(['placa', 'colorStyle'])
+            ->map(function ($v) use ($zonas) {
+                $placa = trim((string) $v->placa);
+                $zona = $zonas[$placa] ?? null;
+                return [
+                    'placa' => $placa,
+                    // Sin asignacion reciente queda el color propio del vehiculo.
+                    'colorStyle' => $zona['colorStyle'] ?? trim((string) $v->colorStyle),
+                    'color' => $zona['color'] ?? null,
+                    'de_asignacion' => (bool) $zona,
+                ];
+            })
+            ->filter(function ($v) { return $v['placa'] !== ''; })
+            ->values();
+    }
+
     private function adjuntarCarga($facturas)
     {
         $marcas = collect();
@@ -395,9 +441,9 @@ class FacturacionController extends Controller
             ]);
 
         // Las ventas directas a las que se les eligio camion cuentan como un
-        // pedido mas de ese camion, ya cobrado.
-        $colores = DB::table('vehiculo')->get(['placa', 'colorStyle'])
-            ->mapWithKeys(function ($v) { return [trim((string) $v->placa) => trim((string) $v->colorStyle)]; });
+        // pedido mas de ese camion, ya cobrado, con el color de zona de su
+        // ultima asignacion.
+        $colores = collect();
         $directas = $this->enVentana(Factura::whereNull('pedido_nro'), $request)
             ->where('estado', '<>', 'ANULADO')
             ->whereRaw("TRIM(COALESCE(placa, '')) <> ''")
@@ -406,9 +452,12 @@ class FacturacionController extends Controller
                 $q->whereRaw('1 = 0');
             })
             ->get(['id', 'placa'])
-            ->map(function ($f) use ($colores) {
+            ->map(function ($f) use ($colores, $hasta) {
                 $placa = trim($f->placa);
-                return (object) ['placa' => $placa, 'color' => (string) $colores->get($placa, ''), 'factura_id' => $f->id];
+                if (!$colores->has($placa)) {
+                    $colores->put($placa, CargaCamion::colorDeZona($placa, $hasta)['colorStyle'] ?? '');
+                }
+                return (object) ['placa' => $placa, 'color' => (string) $colores->get($placa), 'factura_id' => $f->id];
             });
         // Que comprobantes ya tienen la canasta revisada por el caminero. La
         // venta directa con camion tambien la revisa el caminero.
@@ -734,16 +783,29 @@ class FacturacionController extends Controller
     private function zonaDeFactura(Factura $factura)
     {
         if (!$factura->pedido_nro) {
-            return null;
+            // Venta directa con camion: el color de su ultima asignacion.
+            $zona = CargaCamion::colorDeZona($factura->getRawOriginal('placa'), optional($factura->fecha)->format('Y-m-d'));
+            $estilo = $zona['colorStyle'] ?? '';
+        } else {
+            $estilo = $this->estiloDelPedido($factura);
         }
 
-        $estilo = DB::table('tbpedidos')
+        return $this->zonaDeEstilo($estilo);
+    }
+
+    private function estiloDelPedido(Factura $factura)
+    {
+        return DB::table('tbpedidos')
             ->whereNull('tbpedidos.deleted_at')
             ->where('NroPed', $factura->pedido_nro)
             ->whereRaw(TipoPedido::sql('') . ' = ?', [strtoupper(trim((string) $factura->pedido_tipo))])
             ->where('bonificacion', 0)
             ->value('colorStyle');
+    }
 
+    /** "background-color: #F5EE17" -> ['zona' => 'NORTE', 'hex' => '#F5EE17'], o null. */
+    private function zonaDeEstilo($estilo)
+    {
         if (!preg_match('/#[0-9a-f]{6}/i', (string) $estilo, $m)) {
             return null;
         }

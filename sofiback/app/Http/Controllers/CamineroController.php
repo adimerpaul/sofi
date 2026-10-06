@@ -221,8 +221,10 @@ class CamineroController extends Controller
             ? DB::table('factura_detalles')->whereIn('factura_id', $directas)->whereNull('deleted_at')
                 ->groupBy('factura_id')->pluck(DB::raw('COUNT(*) as n'), 'factura_id')
             : collect();
+        // El color de zona de la ultima asignacion del camion, el mismo que
+        // llevan sus pedidos.
         $colorCamion = $directas
-            ? trim((string) DB::table('vehiculo')->whereRaw('TRIM(placa) = ?', [$placa])->value('colorStyle'))
+            ? (CargaCamion::colorDeZona($placa, $fecha)['colorStyle'] ?? '')
             : '';
 
         $facturas = $facturas->filter(function ($factura) use ($pedidos, $placa, $productosDirecta, $colorCamion) {
@@ -744,6 +746,117 @@ class CamineroController extends Controller
             implode("<div style='page-break-after: always'></div>", $hojas),
             ($grupo === 'todos' ? 'recojo' : $grupo) . '_' . $fecha
         );
+    }
+
+    /**
+     * El recojo en Excel, con lo mismo que se imprime: la tabla del dia (solo
+     * las notas cobradas) y las hojas de contados y de QR, cada una en su
+     * pestaña y con su total.
+     */
+    public function reporteExcel(Request $request)
+    {
+        $datos = $request->validate(['fecha' => 'nullable|date']);
+        $fecha = $datos['fecha'] ?? date('Y-m-d');
+
+        $placa = $this->placa($request);
+        if ($placa === '') {
+            return response()->json(['message' => 'Tu usuario no tiene un camión asignado'], 422);
+        }
+
+        $recojo = new RecojoDelDia();
+        $filas = $recojo->filas($fecha, $placa, true);
+        $grupos = $recojo->agrupar($filas);
+        $caminero = $this->nombre($request);
+
+        $cobradas = $filas->whereIn('estado', RecojoDelDia::ESTADOS_COBRADOS)
+            ->filter(function ($fila) {
+                return $fila->monto_efectivo > 0 || $fila->monto_qr > 0;
+            })->values();
+        $tabla = $recojo->tabla($cobradas);
+
+        $libro = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
+        $cabecera = function ($hoja, $titulo, $ultimaCol) use ($fecha, $caminero, $placa) {
+            $hoja->setCellValue('A1', $titulo);
+            $hoja->mergeCells("A1:{$ultimaCol}1");
+            $hoja->getStyle('A1')->getFont()->setBold(true)->setSize(14);
+            $hoja->setCellValue('A2', 'Caminero: ' . $caminero . '   ·   Camión: ' . $placa);
+            $hoja->setCellValue('A3', 'Día del recojo: ' . date('d/m/Y', strtotime($fecha)));
+        };
+        $estiloTitulos = [
+            'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
+            'fill' => ['fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID, 'startColor' => ['rgb' => '37474F']],
+        ];
+        $estiloTotal = [
+            'font' => ['bold' => true],
+            'fill' => ['fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID, 'startColor' => ['rgb' => 'FCE4D6']],
+            'borders' => ['top' => ['borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_DOUBLE]],
+        ];
+
+        // Tabla del dia: una fila por nota y una columna por via.
+        $hoja = $libro->getActiveSheet();
+        $hoja->setTitle('Tabla del día');
+        $cabecera($hoja, 'RECOJO DEL DÍA', 'I');
+        $hoja->fromArray(['N°', 'Nro', 'Cliente', 'Total', 'Efectivo', 'QR', 'Crédito', 'Falta', 'Motivo'], null, 'A5');
+        $hoja->getStyle('A5:I5')->applyFromArray($estiloTitulos);
+        $fila = 6;
+        foreach ($tabla['filas'] as $i => $f) {
+            $hoja->setCellValue('A' . $fila, $i + 1);
+            $hoja->setCellValueExplicit('B' . $fila, (string) $f['nota'], \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
+            $hoja->setCellValueExplicit('C' . $fila, $f['cliente'] ?: 'Sin cliente', \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
+            $hoja->setCellValue('D' . $fila, $f['monto']);
+            $hoja->setCellValue('E' . $fila, $f['efectivo']);
+            $hoja->setCellValue('F' . $fila, $f['qr']);
+            $hoja->setCellValue('G' . $fila, $f['credito']);
+            $hoja->setCellValue('H' . $fila, $f['falta']);
+            $hoja->setCellValueExplicit('I' . $fila, (string) $f['motivo'], \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
+            $fila++;
+        }
+        $ultima = $fila - 1;
+        $hoja->setCellValue('C' . $fila, 'TOTALES');
+        foreach (['D', 'E', 'F', 'G', 'H'] as $col) {
+            $hoja->setCellValue($col . $fila, $ultima >= 6 ? "=SUM({$col}6:{$col}{$ultima})" : 0);
+        }
+        $hoja->getStyle("A{$fila}:I{$fila}")->applyFromArray($estiloTotal);
+        $hoja->setCellValue('C' . ($fila + 2), 'A RENDIR EN CAJA (EFECTIVO + QR)');
+        $hoja->setCellValue('D' . ($fila + 2), "=E{$fila}+F{$fila}");
+        $hoja->getStyle('C' . ($fila + 2) . ':D' . ($fila + 2))->getFont()->setBold(true);
+        $hoja->getStyle('D6:H' . ($fila + 2))->getNumberFormat()->setFormatCode('#,##0.00');
+        foreach (['A' => 6, 'B' => 10, 'C' => 40, 'D' => 12, 'E' => 12, 'F' => 12, 'G' => 12, 'H' => 12, 'I' => 30] as $col => $ancho) {
+            $hoja->getColumnDimension($col)->setWidth($ancho);
+        }
+        $hoja->freezePane('A6');
+
+        // Contados y QR: las mismas hojas que se firman en papel.
+        foreach (['contados' => 'Contados', 'qr' => 'QR'] as $clave => $pestana) {
+            $hoja = $libro->createSheet();
+            $hoja->setTitle($pestana);
+            $titulo = RecojoDelDia::HOJAS[$clave];
+            $cabecera($hoja, $titulo, 'D');
+            $hoja->fromArray(['N°', 'Nro', 'Nombre del cliente', 'Monto Bs.'], null, 'A5');
+            $hoja->getStyle('A5:D5')->applyFromArray($estiloTitulos);
+            $fila = 6;
+            foreach ($grupos[$clave] as $i => $f) {
+                $hoja->setCellValue('A' . $fila, $i + 1);
+                $hoja->setCellValueExplicit('B' . $fila, (string) $f->nota, \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
+                $hoja->setCellValueExplicit('C' . $fila, (string) $f->cliente, \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
+                $hoja->setCellValue('D' . $fila, round($f->monto, 2));
+                $fila++;
+            }
+            $ultima = $fila - 1;
+            $hoja->setCellValue('C' . $fila, 'TOTAL ' . $titulo);
+            $hoja->setCellValue('D' . $fila, $ultima >= 6 ? "=SUM(D6:D{$ultima})" : 0);
+            $hoja->getStyle("A{$fila}:D{$fila}")->applyFromArray($estiloTotal);
+            $hoja->getStyle("D6:D{$fila}")->getNumberFormat()->setFormatCode('#,##0.00');
+            foreach (['A' => 6, 'B' => 10, 'C' => 45, 'D' => 14] as $col => $ancho) {
+                $hoja->getColumnDimension($col)->setWidth($ancho);
+            }
+            $hoja->freezePane('A6');
+        }
+        $libro->setActiveSheetIndex(0);
+
+        return response()->streamDownload(function () use ($libro) {
+            (new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($libro))->save('php://output');
+        }, 'recojo_' . $fecha . '.xlsx', ['Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet']);
     }
 
     /**

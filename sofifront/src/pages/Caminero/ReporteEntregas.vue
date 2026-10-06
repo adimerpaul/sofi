@@ -57,6 +57,15 @@
           </q-list>
         </q-btn-dropdown>
       </div>
+      <!-- Lo mismo que se imprime, en un Excel: tabla del dia, contados y QR. -->
+      <div class="col-auto">
+        <q-btn
+          color="green-8" unelevated dense no-caps icon="grid_on" label="Excel"
+          padding="6px 10px" :loading="exportando" @click="excel"
+        >
+          <q-tooltip>Exportar todo a Excel</q-tooltip>
+        </q-btn>
+      </div>
       <div class="col-auto">
         <q-btn flat dense padding="6px 8px" color="primary" icon="local_shipping" to="/caminero/entregas">
           <q-tooltip>Mis entregas</q-tooltip>
@@ -128,6 +137,7 @@ export default {
       fecha: this.$route.query.fecha || date.formatDate(new Date(), 'YYYY-MM-DD'),
       cargando: false,
       imprimiendo: false,
+      exportando: false,
       placa: '',
       despachador: '',
       grupos: { contados: [], qr: [], creditos: [], anulados: [] },
