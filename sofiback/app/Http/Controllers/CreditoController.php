@@ -325,29 +325,198 @@ class CreditoController extends Controller
     }
 
     /**
-     * Cobros del rango (formato de la hoja de deposito de cobranzas): por cada
-     * dia un titulo "DEPOSITO dd/mm/yy" y un bloque por deposito -los cobros
-     * con la misma forma de pago y boleta- con vendedor, cliente, pago,
-     * comanda y si era factura, y el total del bloque. Al pie, quien lo saco.
-     * Los cobros anulados no entran.
+     * Rango de fecha y hora de los reportes de cierre: por defecto el dia de
+     * hoy entero (00:00 a 23:59). Devuelve [inicio, fin] como 'Y-m-d H:i:s'.
      */
-    public function excelCobros(Request $request)
+    private function rangoCierre(Request $request): array
     {
         $datos = $request->validate([
             'desde' => 'nullable|date_format:Y-m-d',
             'hasta' => 'nullable|date_format:Y-m-d',
+            'hora_desde' => ['nullable', 'regex:/^([01]\d|2[0-3]):[0-5]\d$/'],
+            'hora_hasta' => ['nullable', 'regex:/^([01]\d|2[0-3]):[0-5]\d$/'],
+            'user_id' => 'nullable|integer',
         ]);
         $desde = $datos['desde'] ?? date('Y-m-d');
         $hasta = $datos['hasta'] ?? $desde;
 
-        $abonos = DB::table('creditos_abonos')->whereNull('anulado_at')
-            ->whereDate('created_at', '>=', $desde)->whereDate('created_at', '<=', $hasta)
-            ->orderBy('created_at')->orderBy('id')
-            ->get(['id', 'origen', 'deuda_id', 'cliente_id', 'monto', 'monto_efectivo', 'monto_qr', 'forma_pago', 'referencia', 'created_at']);
+        return [
+            $desde . ' ' . ($datos['hora_desde'] ?? '00:00') . ':00',
+            // Hasta las 23:59 incluye ese minuto entero.
+            $hasta . ' ' . ($datos['hora_hasta'] ?? '23:59') . ':59',
+            isset($datos['user_id']) ? (int) $datos['user_id'] : null,
+        ];
+    }
 
+    /** Los abonos vigentes del rango de cierre, opcionalmente de un solo cobrador. */
+    private function abonosDelCierre($inicio, $fin, $usuario)
+    {
+        return DB::table('creditos_abonos')->whereNull('anulado_at')
+            ->whereBetween('created_at', [$inicio, $fin])
+            ->when($usuario, function ($q) use ($usuario) { $q->where('user_id', $usuario); })
+            ->orderBy('user_id')->orderBy('created_at')->orderBy('id')
+            ->get(['id', 'origen', 'deuda_id', 'cliente_id', 'monto', 'monto_efectivo', 'monto_qr',
+                'forma_pago', 'referencia', 'created_at', 'user_id']);
+    }
+
+    /** Quienes cobraron en el rango, con cuanto: para elegir el cajero del cierre. */
+    public function cobradores(Request $request)
+    {
+        [$inicio, $fin] = $this->rangoCierre($request);
+
+        return DB::table('creditos_abonos as a')->leftJoin('personal as p', 'p.CodAut', '=', 'a.user_id')
+            ->whereNull('a.anulado_at')
+            ->whereBetween('a.created_at', [$inicio, $fin])
+            ->groupBy('a.user_id')
+            ->orderByRaw('MIN(p.Nombre1)')
+            ->get([
+                'a.user_id',
+                DB::raw("UPPER(TRIM(CONCAT(TRIM(COALESCE(MIN(p.Nombre1), '')), ' ', TRIM(COALESCE(MIN(p.App1), ''))))) as nombre"),
+                DB::raw('COUNT(*) as cobros'),
+                DB::raw('ROUND(SUM(a.monto), 2) as total'),
+            ]);
+    }
+
+    /**
+     * Cierre de caja de cobros: lo que cobro cada usuario en el rango de fecha
+     * y hora (por defecto hoy, de 00:00 a 23:59), con el formato de la hoja de
+     * cierre de caja. Una hoja por cobrador: cada abono con su comanda,
+     * cliente y cuanto entro en efectivo y por QR, y los totales. Si se elige
+     * un cobrador, sale solo el suyo. Los abonos anulados no entran.
+     */
+    public function excelCierre(Request $request)
+    {
+        [$inicio, $fin, $usuario] = $this->rangoCierre($request);
+        $filas = $this->filasDeAbonos($this->abonosDelCierre($inicio, $fin, $usuario));
+
+        $libro = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
+        $libro->removeSheetByIndex(0);
+        $borde = ['borders' => ['allBorders' => ['borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN]]];
+        $gris = ['fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID, 'startColor' => ['rgb' => 'D9D9D9']];
+        $rango = date('d/m/Y H:i', strtotime($inicio)) . ' a ' . date('d/m/Y H:i', strtotime($fin));
+
+        $grupos = $filas->isEmpty() ? collect(['SIN COBROS' => collect()]) : $filas->groupBy('cobrador');
+        $titulos = [];
+        foreach ($grupos as $cobrador => $cobros) {
+            // Una hoja con lo cobrado en efectivo y otra con lo cobrado por
+            // QR. Un pago mixto sale en las dos, cada una con su parte.
+            $secciones = ['efectivo' => 'EFECTIVO', 'qr' => 'QR'];
+            foreach ($secciones as $campo => $nombreSeccion) {
+                // Con un solo cajero las hojas se llaman EFECTIVO y QR; con
+                // varios llevan el nombre. Sin caracteres prohibidos y hasta 31.
+                $titulo = $grupos->count() > 1
+                    ? $nombreSeccion . ' ' . preg_replace('/[\\\/\?\*\[\]:]/', ' ', (string) $cobrador)
+                    : $nombreSeccion;
+                $titulo = mb_substr($titulo, 0, 31);
+                for ($n = 2; in_array(mb_strtoupper($titulo), $titulos, true); $n++) {
+                    $titulo = mb_substr($titulo, 0, 28) . ' ' . $n;
+                }
+                $titulos[] = mb_strtoupper($titulo);
+                $hoja = $libro->createSheet();
+                $hoja->setTitle($titulo);
+
+                $hoja->setCellValue('A1', 'CIERRE DE CAJA - COBROS ' . ($campo === 'qr' ? 'POR QR' : 'EN EFECTIVO'));
+                $hoja->mergeCells('A1:E1');
+                $hoja->getStyle('A1')->getFont()->setBold(true)->setSize(15);
+                $hoja->getStyle('A1')->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
+                $hoja->setCellValue('A3', 'Fecha:');
+                $hoja->setCellValue('B3', $rango);
+                $hoja->setCellValue('D3', 'Cajero: ' . $cobrador);
+                $hoja->getStyle('A3:E3')->getFont()->setBold(true);
+
+                $hoja->fromArray(['Hora', 'Coman', 'Cliente', 'Descripción', 'Monto'], null, 'A5');
+                $hoja->getStyle('A5:E5')->applyFromArray($borde + ['font' => ['bold' => true], 'fill' => $gris]);
+
+                $fila = 6;
+                $deLaSeccion = $cobros->filter(function ($c) use ($campo) { return $c[$campo] > 0; });
+                foreach ($deLaSeccion as $c) {
+                    $mixto = $c['efectivo'] > 0 && $c['qr'] > 0;
+                    $hoja->setCellValue('A' . $fila, $c['hora']);
+                    $hoja->setCellValue('B' . $fila, $c['comanda']);
+                    $hoja->setCellValueExplicit('C' . $fila, $c['cliente'], \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
+                    $hoja->setCellValueExplicit('D' . $fila, trim('ABONO A CUENTA ' . $c['concepto']
+                        . ($c['referencia'] !== '' ? ' · ' . $c['referencia'] : '')
+                        . ($mixto ? ' (pago mixto, total ' . number_format($c['pago'], 2) . ')' : '')),
+                        \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
+                    $hoja->setCellValue('E' . $fila, $c[$campo]);
+                    $fila++;
+                }
+                if ($deLaSeccion->isEmpty()) {
+                    $hoja->setCellValue('C' . $fila, 'Sin cobros en este rango');
+                    $fila++;
+                }
+                $hoja->getStyle('A6:E' . ($fila - 1))->applyFromArray($borde);
+
+                $hoja->setCellValue('D' . $fila, 'TOTAL ' . $nombreSeccion . ':');
+                $hoja->setCellValue('E' . $fila, $deLaSeccion->isEmpty() ? 0 : '=SUM(E6:E' . ($fila - 1) . ')');
+                $hoja->getStyle("D{$fila}:E{$fila}")->applyFromArray($borde + ['font' => ['bold' => true], 'fill' => $gris]);
+                $hoja->getStyle('D' . $fila)->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_RIGHT);
+                $hoja->getStyle('E6:E' . $fila)->getNumberFormat()->setFormatCode('#,##0.00');
+
+                $fila += 2;
+                $hoja->setCellValue('A' . $fila, 'Cobros: ' . $deLaSeccion->count());
+                $hoja->setCellValue('A' . ($fila + 3), '________________________');
+                $hoja->setCellValue('A' . ($fila + 4), 'Firma ' . $cobrador);
+
+                foreach (['A' => 7, 'B' => 10, 'C' => 34, 'D' => 42, 'E' => 13] as $col => $ancho) {
+                    $hoja->getColumnDimension($col)->setWidth($ancho);
+                }
+                $hoja->freezePane('A6');
+                $hoja->getPageSetup()->setOrientation(\PhpOffice\PhpSpreadsheet\Worksheet\PageSetup::ORIENTATION_PORTRAIT)
+                    ->setPaperSize(\PhpOffice\PhpSpreadsheet\Worksheet\PageSetup::PAPERSIZE_LETTER)
+                    ->setFitToWidth(1)->setFitToHeight(0);
+            }
+        }
+
+        // Con varios cobradores, una hoja de resumen al principio.
+        if ($filas->isNotEmpty() && $grupos->count() > 1) {
+            $resumen = $libro->createSheet(0);
+            $resumen->setTitle('Resumen');
+            $resumen->setCellValue('A1', 'CIERRE DE CAJA - COBROS');
+            $resumen->getStyle('A1')->getFont()->setBold(true)->setSize(15);
+            $resumen->setCellValue('A2', $rango);
+            $resumen->fromArray(['Cajero', 'Cobros', 'Monto', 'Efectivo', 'QR'], null, 'A4');
+            $resumen->getStyle('A4:E4')->applyFromArray($borde + ['font' => ['bold' => true], 'fill' => $gris]);
+            $fila = 5;
+            foreach ($grupos as $cobrador => $cobros) {
+                $resumen->fromArray([$cobrador, $cobros->count(), round($cobros->sum('pago'), 2),
+                    round($cobros->sum('efectivo'), 2), round($cobros->sum('qr'), 2)], null, 'A' . $fila);
+                $fila++;
+            }
+            $resumen->setCellValue('A' . $fila, 'TOTAL');
+            foreach (['B', 'C', 'D', 'E'] as $col) {
+                $resumen->setCellValue($col . $fila, "=SUM({$col}5:{$col}" . ($fila - 1) . ')');
+            }
+            $resumen->getStyle("A5:E{$fila}")->applyFromArray($borde);
+            $resumen->getStyle("A{$fila}:E{$fila}")->applyFromArray(['font' => ['bold' => true], 'fill' => $gris]);
+            $resumen->getStyle("C5:E{$fila}")->getNumberFormat()->setFormatCode('#,##0.00');
+            foreach (['A' => 34, 'B' => 9, 'C' => 13, 'D' => 13, 'E' => 13] as $col => $ancho) {
+                $resumen->getColumnDimension($col)->setWidth($ancho);
+            }
+        }
+        $libro->setActiveSheetIndex(0);
+
+        $nombre = 'CIERRE COBROS ' . substr($inicio, 0, 10) . '.xlsx';
+        return response()->streamDownload(function () use ($libro) {
+            (new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($libro))->save('php://output');
+        }, $nombre, ['Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet']);
+    }
+
+    /**
+     * Cada abono con lo que hace falta para los reportes de cobros: comanda,
+     * cliente, vendedor y si era factura (con el mismo criterio que el Excel
+     * de deudores), y quien lo cobro.
+     */
+    private function filasDeAbonos($abonos)
+    {
         // De la deuda salen la comanda, el vendedor y si era factura, con el
         // mismo criterio que el Excel de deudores.
         $deudas = $this->deudas(null)->keyBy('clave');
+        $cobradores = DB::table('personal')->whereIn('CodAut', $abonos->pluck('user_id')->filter()->unique()->all())
+            ->get(['CodAut', 'Nombre1', 'App1'])
+            ->mapWithKeys(function ($p) {
+                return [(int) $p->CodAut => strtoupper(trim(trim((string) $p->Nombre1) . ' ' . trim((string) $p->App1)))];
+            });
         $vendedores = DB::table('personal')->whereRaw("TRIM(COALESCE(ci, '')) <> ''")
             ->get(['ci', 'Nombre1', 'App1'])
             ->mapWithKeys(function ($p) {
@@ -356,7 +525,7 @@ class CreditoController extends Controller
         $clientes = DB::table('tbclientes')->whereIn('Cod_Aut', $abonos->pluck('cliente_id')->unique()->all())
             ->get(['Cod_Aut', 'Nombres', 'CiVend'])->keyBy('Cod_Aut');
 
-        $filas = $abonos->map(function ($a) use ($deudas, $vendedores, $clientes) {
+        return $abonos->map(function ($a) use ($deudas, $vendedores, $clientes, $cobradores) {
             $d = $deudas->get($a->origen . ':' . $a->deuda_id);
             $cliente = $clientes->get($a->cliente_id);
             $esSaldo = $d && $d->origen === 'manual' && !empty($d->comanda);
@@ -379,9 +548,39 @@ class CreditoController extends Controller
                 'qr' => (float) $a->monto_qr,
                 'comanda' => $comanda,
                 'factura' => $a->origen === 'factura' && $d && ($d->tipo_comprobante ?? '') === 'FACTURA' ? 'SI' : 'NO',
+                'id' => $a->id,
+                'hora' => substr((string) $a->created_at, 11, 5),
+                'forma_pago' => strtoupper((string) $a->forma_pago),
+                'referencia' => trim((string) $a->referencia),
+                'user_id' => (int) ($a->user_id ?? 0),
+                'cobrador' => $cobradores->get((int) ($a->user_id ?? 0), 'SIN USUARIO'),
+                'concepto' => $d ? (string) ($d->concepto ?? '') : '',
             ];
         });
+    }
 
+    /**
+     * Cobros del rango (formato de la hoja de deposito de cobranzas): por cada
+     * dia un titulo "DEPOSITO dd/mm/yy" y un bloque por deposito -los cobros
+     * con la misma forma de pago y boleta- con vendedor, cliente, pago,
+     * comanda y si era factura, y el total del bloque. Al pie, quien lo saco.
+     * Los cobros anulados no entran.
+     */
+    public function excelCobros(Request $request)
+    {
+        $datos = $request->validate([
+            'desde' => 'nullable|date_format:Y-m-d',
+            'hasta' => 'nullable|date_format:Y-m-d',
+        ]);
+        $desde = $datos['desde'] ?? date('Y-m-d');
+        $hasta = $datos['hasta'] ?? $desde;
+
+        $abonos = DB::table('creditos_abonos')->whereNull('anulado_at')
+            ->whereDate('created_at', '>=', $desde)->whereDate('created_at', '<=', $hasta)
+            ->orderBy('created_at')->orderBy('id')
+            ->get(['id', 'origen', 'deuda_id', 'cliente_id', 'monto', 'monto_efectivo', 'monto_qr', 'forma_pago', 'referencia', 'created_at', 'user_id']);
+
+        $filas = $this->filasDeAbonos($abonos);
         $libro = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
         $hoja = $libro->getActiveSheet();
         $hoja->setTitle('Cobros');

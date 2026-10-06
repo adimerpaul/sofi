@@ -159,6 +159,9 @@ Route::group(['middleware'=>'auth:sanctum'],function (){
     Route::get('/creditos/resumen',[\App\Http\Controllers\CreditoController::class,'resumen']);
     Route::get('/creditos/excel-deudores',[\App\Http\Controllers\CreditoController::class,'excelDeudores']);
     Route::get('/creditos/excel-cobros',[\App\Http\Controllers\CreditoController::class,'excelCobros']);
+    // Cierre de caja de cobros: lo cobrado por cada usuario entre fecha/hora.
+    Route::get('/creditos/cobradores',[\App\Http\Controllers\CreditoController::class,'cobradores']);
+    Route::get('/creditos/excel-cierre',[\App\Http\Controllers\CreditoController::class,'excelCierre']);
     Route::get('/creditos/clientes/{id}',[\App\Http\Controllers\CreditoController::class,'detalle'])->where('id', '[0-9]+');
     Route::get('/creditos',[\App\Http\Controllers\CreditoController::class,'index']);
     Route::post('/creditos',[\App\Http\Controllers\CreditoController::class,'store']);

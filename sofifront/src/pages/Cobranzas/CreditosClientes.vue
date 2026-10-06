@@ -13,6 +13,30 @@
                  :loading="descargandoCobros" @click="excelCobros"/>
         </div>
       </q-btn-dropdown>
+      <!-- Cierre de caja: lo que cobro cada usuario entre fecha y hora. -->
+      <q-btn-dropdown unelevated dense no-caps color="indigo-7" icon="point_of_sale" label="Cierre de caja"
+                      @show="cargarCobradores">
+        <div class="q-pa-sm column q-gutter-sm" style="min-width: 280px">
+          <div class="text-caption text-grey-8">Cobros registrados entre:</div>
+          <div class="row q-col-gutter-xs">
+            <div class="col-7"><q-input v-model="cierre.desde" type="date" dense outlined label="Desde" @update:model-value="cargarCobradores"/></div>
+            <div class="col-5"><q-input v-model="cierre.horaDesde" type="time" dense outlined label="Hora" @update:model-value="cargarCobradores"/></div>
+            <div class="col-7"><q-input v-model="cierre.hasta" type="date" dense outlined label="Hasta" @update:model-value="cargarCobradores"/></div>
+            <div class="col-5"><q-input v-model="cierre.horaHasta" type="time" dense outlined label="Hora" @update:model-value="cargarCobradores"/></div>
+          </div>
+          <q-select
+            v-model="cierre.usuario" :options="cobradores" dense outlined clearable emit-value map-options
+            option-value="user_id" :option-label="c => c.nombre + ' · ' + c.cobros + ' cobros · Bs ' + money(c.total)"
+            label="Cajero (vacío = todos)" :loading="cargandoCobradores"
+          >
+            <template v-slot:no-option>
+              <q-item><q-item-section class="text-grey">Nadie cobró en ese rango</q-item-section></q-item>
+            </template>
+          </q-select>
+          <q-btn unelevated dense no-caps color="indigo-7" icon="download" label="Descargar cierre"
+                 :loading="descargandoCierre" @click="excelCierre"/>
+        </div>
+      </q-btn-dropdown>
       <q-btn unelevated dense no-caps color="green-8" icon="grid_on" label="Excel deudores"
              :loading="descargandoExcel" @click="excelDeudores">
         <q-tooltip>Cuentas por cobrar (formato debito sumado): una fila por deuda, con filtros y totales</q-tooltip>
@@ -449,6 +473,17 @@ export default {
       descargandoExcel: false,
       descargandoCobros: false,
       rangoCobros: { desde: date.formatDate(new Date(), 'YYYY-MM-DD'), hasta: date.formatDate(new Date(), 'YYYY-MM-DD') },
+      // Cierre de caja: por defecto hoy de 00:00 a 23:59, todos los cajeros.
+      cierre: {
+        desde: date.formatDate(new Date(), 'YYYY-MM-DD'),
+        horaDesde: '00:00',
+        hasta: date.formatDate(new Date(), 'YYYY-MM-DD'),
+        horaHasta: '23:59',
+        usuario: null
+      },
+      cobradores: [],
+      cargandoCobradores: false,
+      descargandoCierre: false,
       totales: { clientes: 0, con_deuda: 0, saldo: 0, deudas: 0 },
       buscar: '',
       // Arranca en los que deben: es lo que cobranzas viene a mirar.
@@ -600,6 +635,51 @@ export default {
         this.$q.notify({ type: 'negative', message: 'No se pudo generar el Excel de cobros' })
       } finally {
         this.descargandoCobros = false
+      }
+    },
+    paramsCierre () {
+      const { desde, hasta, horaDesde, horaHasta, usuario } = this.cierre
+      const params = { desde, hasta, hora_desde: horaDesde || '00:00', hora_hasta: horaHasta || '23:59' }
+      if (usuario) params.user_id = usuario
+      return params
+    },
+    // Quienes cobraron en el rango, para elegir el cajero del cierre.
+    async cargarCobradores () {
+      if (!this.cierre.desde || !this.cierre.hasta) return
+      this.cargandoCobradores = true
+      try {
+        const { usuario, ...sinUsuario } = this.cierre
+        const { data } = await this.$api.get('creditos/cobradores', {
+          params: { desde: sinUsuario.desde, hasta: sinUsuario.hasta, hora_desde: sinUsuario.horaDesde || '00:00', hora_hasta: sinUsuario.horaHasta || '23:59' }
+        })
+        this.cobradores = data
+        // Si el cajero elegido no cobro en el rango nuevo, se suelta.
+        if (usuario && !data.some(c => c.user_id === usuario)) this.cierre.usuario = null
+      } catch (e) {
+        this.cobradores = []
+      } finally {
+        this.cargandoCobradores = false
+      }
+    },
+    async excelCierre () {
+      const { desde, hasta, horaDesde, horaHasta } = this.cierre
+      if (!desde || !hasta || (desde + ' ' + (horaDesde || '00:00')) > (hasta + ' ' + (horaHasta || '23:59'))) {
+        this.$q.notify({ type: 'warning', message: 'Revisa el rango de fechas y horas' })
+        return
+      }
+      this.descargandoCierre = true
+      try {
+        const { data } = await this.$api.get('creditos/excel-cierre', { params: this.paramsCierre(), responseType: 'blob' })
+        const url = URL.createObjectURL(data)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = 'CIERRE COBROS ' + desde + '.xlsx'
+        a.click()
+        URL.revokeObjectURL(url)
+      } catch (e) {
+        this.$q.notify({ type: 'negative', message: 'No se pudo generar el cierre de caja' })
+      } finally {
+        this.descargandoCierre = false
       }
     },
     money (v) { return Number(v || 0).toFixed(2) },
