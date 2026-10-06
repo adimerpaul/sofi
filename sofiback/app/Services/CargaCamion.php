@@ -484,6 +484,15 @@ class CargaCamion
             });
     }
 
+    /** La jornada escrita para el papel: "05/10/2026 18:00 a 06/10/2026 18:00". */
+    public static function textoJornada($fecha)
+    {
+        $hora = substr(self::CORTE_JORNADA, 0, 5);
+
+        return date('d/m/Y', strtotime($fecha . ' -1 day')) . ' ' . $hora
+            . ' a ' . date('d/m/Y', strtotime($fecha)) . ' ' . $hora;
+    }
+
     private function diaSiguiente($fecha)
     {
         return date('Y-m-d', strtotime($fecha . ' +1 day')) . ' 00:00:00';

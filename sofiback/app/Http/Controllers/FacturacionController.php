@@ -727,6 +727,66 @@ class FacturacionController extends Controller
         return $pedido->placa ?? '';
     }
 
+    /**
+     * La zona de reparto del pedido con su color, la que despacho le asigno al
+     * armarlo. Es la misma marca de color con la que se arma la canasta, asi
+     * que en el papel se ve a que zona va sin leer nada. Null si la venta no
+     * salio de un pedido o el pedido no tiene color.
+     */
+    private function zonaDeFactura(Factura $factura)
+    {
+        if (!$factura->pedido_nro) {
+            return null;
+        }
+
+        $estilo = DB::table('tbpedidos')
+            ->whereNull('tbpedidos.deleted_at')
+            ->where('NroPed', $factura->pedido_nro)
+            ->whereRaw(TipoPedido::sql('') . ' = ?', [strtoupper(trim((string) $factura->pedido_tipo))])
+            ->where('bonificacion', 0)
+            ->value('colorStyle');
+
+        if (!preg_match('/#[0-9a-f]{6}/i', (string) $estilo, $m)) {
+            return null;
+        }
+        $hex = strtoupper($m[0]);
+
+        // El pedido guarda solo el estilo; el nombre sale de la tabla de colores.
+        $zona = DB::table('colores')
+            ->whereNull('deleted_at')
+            ->where('colorStyle', 'like', '%' . $hex . '%')
+            ->value('zona');
+
+        return ['zona' => trim((string) $zona), 'hex' => $hex];
+    }
+
+    /**
+     * La celda Camion del papel: la placa y, al lado, un cuadro pintado con el
+     * color de la zona. Sin color queda solo la placa, como antes.
+     */
+    private function celdaCamion(Factura $factura, $placa)
+    {
+        $camion = "<span class='et'>Camión</span><br><b>" . e($placa ?: '—') . '</b>';
+
+        $zona = $this->zonaDeFactura($factura);
+        if (!$zona) {
+            return $camion;
+        }
+
+        // Sobre los colores claros (amarillo, rosado) el texto blanco no se lee.
+        [$r, $g, $b] = sscanf($zona['hex'], '#%02x%02x%02x');
+        $texto = ($r * 299 + $g * 587 + $b * 114) / 1000 > 150 ? '#222' : '#fff';
+
+        // dompdf no acomoda bien bloques en linea: placa y cuadro van en una
+        // tablita para que queden uno al lado del otro.
+        return "<table style='width:100%; border-collapse:collapse'><tr>
+            <td style='padding:0; border:0; vertical-align:top'>$camion</td>
+            <td style='width:52%; padding:4px 3px; border:1px solid #444;
+                       background-color:{$zona['hex']}; color:$texto; text-align:center;
+                       font-size:9px; font-weight:bold'>" . e($zona['zona'] ?: '') . "</td>
+        </tr></table>";
+    }
+
     /** Una factura con su detalle, para ver o reimprimir. */
     public function show($id)
     {
@@ -2058,6 +2118,80 @@ class FacturacionController extends Controller
      * Anula sin borrar: la factura sigue existiendo pero deja de sumar.
      * Se guarda el motivo porque una anulacion sin razon no sirve de nada.
      */
+    /**
+     * Pasa un comprobante a otro camion.
+     *
+     * - De un pedido: el camion es tbpedidos.placa, asi que se cambian las
+     *   lineas de ese pedido y de ese tipo (un pedido con embutidos y podium
+     *   tiene un comprobante por tipo), por el modelo para que quede en audits.
+     *   Color y colorStyle van con la placa, igual que al asignar camion.
+     * - Venta directa: el camion es facturas.placa.
+     *
+     * La revision de carga era del otro camion: vuelve a pendiente para que
+     * el caminero nuevo la revise, y el numero de canasta se borra (esa
+     * canasta quedo en el otro camion).
+     *
+     * No se cambia lo que ya se cobro: esa plata la tiene el otro caminero.
+     */
+    public function cambiarCamion(Request $request, $id)
+    {
+        $datos = $request->validate(['placa' => 'required|string|max:50']);
+        $placa = trim($datos['placa']);
+
+        $vehiculo = DB::table('vehiculo')->whereRaw('TRIM(placa) = ?', [$placa])->first(['placa', 'color', 'colorStyle']);
+        if (!$vehiculo || $placa === '') {
+            return response()->json(['message' => 'Ese camión no existe'], 422);
+        }
+
+        $factura = Factura::findOrFail($id);
+        if ($factura->estado === 'ANULADO') {
+            return response()->json(['message' => 'El comprobante está anulado'], 422);
+        }
+
+        $cobrada = DB::table('entregas')->where('factura_id', $factura->id)
+            ->whereIn('estado', \App\Services\RecojoDelDia::ESTADOS_COBRADOS)->exists();
+        if ($cobrada) {
+            return response()->json(['message' => 'Esa entrega ya fue cobrada por el caminero; no se puede cambiar de camión'], 422);
+        }
+
+        $anterior = $factura->pedido_nro ? $this->camionDeFactura($factura) : trim((string) $factura->placa);
+        if ($anterior === $placa) {
+            return response()->json(['message' => 'El comprobante ya va en ' . $placa], 422);
+        }
+
+        DB::transaction(function () use ($factura, $placa, $vehiculo) {
+            if ($factura->pedido_nro) {
+                \App\Models\Pedido::where('NroPed', $factura->pedido_nro)
+                    ->whereRaw(TipoPedido::sql('') . ' = ?', [strtoupper(trim((string) $factura->pedido_tipo))])
+                    ->get()
+                    ->each(function ($linea) use ($placa, $vehiculo) {
+                        $linea->placa = $placa;
+                        $linea->color = trim((string) $vehiculo->color);
+                        $linea->colorStyle = trim((string) $vehiculo->colorStyle);
+                        $linea->save();
+                    });
+            } else {
+                $factura->placa = $placa;
+                $factura->save();
+            }
+
+            DB::table('carga_verificaciones')->where('factura_id', $factura->id)->update([
+                'placa' => $placa,
+                'verificado' => false,
+                'observado' => false,
+                'observacion' => null,
+                'items_revisados' => null,
+                'nro_canasta' => null,
+                'verificado_en' => null,
+                'updated_at' => date('Y-m-d H:i:s'),
+            ]);
+        });
+
+        return response()->json([
+            'message' => 'Comprobante #' . $factura->id . ' pasado de ' . ($anterior ?: 'sin camión') . ' a ' . $placa,
+        ]);
+    }
+
     public function anular(Request $request, $id)
     {
         $datos = $request->validate([
@@ -2591,7 +2725,7 @@ class FacturacionController extends Controller
             <tr>
                 <td><span class='et'>Vendedor</span><br>" . e($vendedor ?: '—') . "</td>
                 <td><span class='et'>Tipo de pago</span><br><b>" . e($this->textoPago($factura)) . "</b></td>
-                <td><span class='et'>Camión</span><br><b>" . e($placa ?: '—') . "</b></td>
+                <td>" . $this->celdaCamion($factura, $placa) . "</td>
             </tr>
             <tr>
                 <td colspan='3'><span class='et'>Observación</span><br>"
@@ -2784,7 +2918,7 @@ class FacturacionController extends Controller
                 <td><span class='et'>Forma de pago</span><br>" . e($this->textoPago($factura)) . "</td>
             </tr>
             <tr>
-                <td><span class='et'>Camión</span><br><b>" . e($placa ?: '—') . "</b></td>
+                <td>" . $this->celdaCamion($factura, $placa) . "</td>
                 <td><span class='et'>Pedido</span><br>" . ($factura->pedido_nro ?: '—') . "</td>
                 <td><span class='et'>Observación</span><br>" . e($factura->observacion ?: '—') . "</td>
             </tr>

@@ -684,6 +684,19 @@
                 </q-item-section>
               </q-item>
 
+              <!-- Pasar la venta a otro camion: cambia el camion del pedido y
+                   la carga vuelve a pendiente para que la revise el otro caminero. -->
+              <template v-if="props.row.estado !== 'ANULADO'">
+                <q-separator/>
+                <q-item clickable v-close-popup @click="abrirCambioCamion(props.row)">
+                  <q-item-section avatar><q-icon name="local_shipping" color="indigo-7"/></q-item-section>
+                  <q-item-section>
+                    Cambiar de camión
+                    <q-item-label caption>Ahora va en {{ props.row.placa || 'ningún camión' }}</q-item-label>
+                  </q-item-section>
+                </q-item>
+              </template>
+
               <!-- Un comprobante emitido no se corrige: se anula y el pedido
                    vuelve a abrirse con todo cargado para emitir uno nuevo. -->
               <template v-if="can('facturacionAnular') && props.row.estado !== 'ANULADO'">
@@ -831,6 +844,33 @@
     </q-dialog>
 
     <!-- Anulación -->
+    <q-dialog v-model="dialogCamion">
+      <q-card v-if="filaCamion" style="min-width: 320px">
+        <q-card-section class="q-pb-xs">
+          <div class="text-subtitle1 text-weight-bold">Cambiar de camión</div>
+          <div class="text-caption text-grey-7">
+            #{{ filaCamion.id }} · {{ filaCamion.nombre || 'Sin cliente' }}
+            · ahora en <b>{{ filaCamion.placa || 'ningún camión' }}</b>
+          </div>
+        </q-card-section>
+        <q-card-section class="q-pt-sm">
+          <q-select
+            v-model="placaNueva" :options="vehiculos.filter(v => v !== (filaCamion.placa || ''))"
+            dense outlined label="Nuevo camión"
+          />
+          <div class="text-caption text-grey-7 q-mt-sm">
+            La carga vuelve a pendiente para que la revise el caminero del otro camión
+            y se borra el número de canasta.
+          </div>
+        </q-card-section>
+        <q-card-actions align="right">
+          <q-btn flat no-caps label="Cancelar" v-close-popup/>
+          <q-btn unelevated no-caps color="indigo-7" icon="local_shipping" label="Cambiar"
+                 :disable="!placaNueva" :loading="cambiandoCamion" @click="cambiarCamion"/>
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
+
     <q-dialog v-model="dialogAnular">
       <q-card style="min-width: 340px">
         <q-card-section class="q-py-sm">
@@ -933,6 +973,12 @@ export default {
       sel: {},
       dialogDetalle: false,
       dialogAnular: false,
+      // Cambio de camion de un comprobante.
+      dialogCamion: false,
+      filaCamion: null,
+      placaNueva: null,
+      vehiculos: [],
+      cambiandoCamion: false,
       codigoMotivoAnulacion: null,
       motivosAnulacion: [
         { label: '1 - Factura mal emitida', value: 1 },
@@ -1627,6 +1673,27 @@ export default {
      * su pedido, que llega con lo cobrado ya cargado (cantidades, pesos y
      * precios) para corregirlo y emitir uno nuevo.
      */
+    abrirCambioCamion (row) {
+      this.filaCamion = row
+      this.placaNueva = null
+      this.dialogCamion = true
+      if (!this.vehiculos.length) {
+        this.$api.post('listVehiculo').then(res => {
+          this.vehiculos = res.data.map(v => String(v.placa || '').trim()).filter(p => p)
+        })
+      }
+    },
+    cambiarCamion () {
+      this.cambiandoCamion = true
+      this.$api.put('facturacion/' + this.filaCamion.id + '/camion', { placa: this.placaNueva })
+        .then(res => {
+          this.$q.notify({ type: 'positive', position: 'top', message: res.data.message })
+          this.dialogCamion = false
+          this.recargar()
+        })
+        .catch(err => { this.avisar(err, 'No se pudo cambiar el camión') })
+        .finally(() => { this.cambiandoCamion = false })
+    },
     pedirEdicion (row) {
       this.sel = row
       this.editando = true

@@ -117,6 +117,8 @@ Route::group(['middleware'=>'auth:sanctum'],function (){
     // Caja marca la canasta de un comprobante como revisada o sin revisar.
     Route::post('/facturacion/{factura}/carga',[\App\Http\Controllers\FacturacionController::class,'marcarCarga']);
     Route::put('/facturacion/{factura}/anular',[\App\Http\Controllers\FacturacionController::class,'anular']);
+    // Pasa el comprobante (y su pedido) a otro camion.
+    Route::put('/facturacion/{factura}/camion',[\App\Http\Controllers\FacturacionController::class,'cambiarCamion']);
     // Retorno parcial: anula el comprobante y emite otro con lo entregado.
     Route::put('/facturacion/{factura}/retorno-parcial',[\App\Http\Controllers\FacturacionController::class,'retornoParcial']);
 

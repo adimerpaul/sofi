@@ -1059,6 +1059,10 @@ class CamineroController extends Controller
                 <td class='et'>Sale el</td><td>" . date('d/m/Y', strtotime($fecha)) . "</td>
             </tr>
             <tr>
+                <td class='et'>Jornada</td>
+                <td colspan='3'>" . CargaCamion::textoJornada($fecha) . "</td>
+            </tr>
+            <tr>
                 <td class='et'>Caminero</td><td>" . e($caminero) . "</td>
                 <td class='et'>Verificado</td>
                 <td>" . $resumen['verificados'] . ' de ' . $resumen['comprobantes']
