@@ -593,7 +593,8 @@ class PedidoController extends Controller{
             ->leftJoin('tbclientes as c', 'c.Cod_Aut', '=', 'p.idCli')
             ->leftJoin('tbclientes as b', 'b.Cod_Aut', '=', 'p.bonificacionId')
             ->whereNull('p.deleted_at')
-            ->whereDate('p.fecha', $fecha)
+            // Mismo dia que la lista de pedidos por facturar: el de entrega.
+            ->where('p.fecha_entrega', $fecha)
             ->where('p.estado', 'ENVIADO')
             ->whereRaw(\App\Services\TipoPedido::sql('p') . ' = ?', [$tipo])
             ->where('p.bonificacion', 0)

@@ -817,7 +817,8 @@ class FacturacionController extends Controller
                     ->whereNull('f.deleted_at')
                     ->where('f.estado', '<>', 'ANULADO');
             })
-            ->whereDate('p.fecha', $datos['fecha'])
+            // La lista va por dia de entrega: es el dia en que se hace la venta.
+            ->where('p.fecha_entrega', $datos['fecha'])
             ->whereRaw(TipoPedido::sql('p') . ' = ?', [$datos['tipo']])
             // Un pedido en CREADO todavia lo esta armando el preventista: solo
             // se factura lo que ya fue enviado.
@@ -851,6 +852,7 @@ class FacturacionController extends Controller
                 'p.NroPed as nro_pedido',
                 DB::raw(TipoPedido::sqlAgrupado('p') . ' as tipo'),
                 DB::raw('MIN(p.fecha) as fecha'),
+                DB::raw('MIN(p.fecha_entrega) as fecha_entrega'),
                 DB::raw('MIN(p.estado) as estado'),
                 DB::raw('MIN(p.fact) as fact'),
                 DB::raw('MIN(p.pago) as pago'),
@@ -960,7 +962,7 @@ class FacturacionController extends Controller
             ->where('p.bonificacion', 0)
             ->first([
                 'p.NroPed as nro_pedido', DB::raw(TipoPedido::sql('p') . ' as tipo'),
-                'p.fecha', 'p.estado', 'p.fact', 'p.pago', 'p.comentario',
+                'p.fecha', 'p.fecha_entrega', 'p.estado', 'p.fact', 'p.pago', 'p.comentario',
                 // Mismo camion que se ve en el listado de pedidos por facturar.
                 DB::raw("TRIM(COALESCE(p.placa, '')) as placa"),
                 DB::raw("TRIM(COALESCE(p.colorStyle, '')) as placa_color"),

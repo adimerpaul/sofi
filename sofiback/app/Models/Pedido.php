@@ -32,6 +32,7 @@ class Pedido extends Model implements Auditable{
         'Canttxt',
         'precio',
         'fecha',
+        'fecha_entrega',
         'estado',
         'estados',
         'impreso',
@@ -126,6 +127,20 @@ class Pedido extends Model implements Auditable{
         'bonificacionAprovacion',
         'bonificacionId',
     ];
+
+    /**
+     * La fecha de entrega es el dia siguiente al del pedido. Se recalcula
+     * cada vez que cambia la fecha, salvo que la fecha de entrega venga puesta
+     * a mano en el mismo guardado.
+     */
+    protected static function booted()
+    {
+        static::saving(function (Pedido $pedido) {
+            if ($pedido->fecha && ($pedido->isDirty('fecha') || !$pedido->fecha_entrega) && !$pedido->isDirty('fecha_entrega')) {
+                $pedido->fecha_entrega = date('Y-m-d', strtotime(substr((string) $pedido->fecha, 0, 10) . ' +1 day'));
+            }
+        });
+    }
 
     function user(){
         return $this->belongsTo(User::class,'CIfunc','CodAut');

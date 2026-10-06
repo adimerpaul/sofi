@@ -112,7 +112,7 @@ class CamineroController extends Controller
                     ->whereNull('f.deleted_at')
                     ->where('f.estado', '<>', 'ANULADO');
             })
-            ->whereDate('p.fecha', $fecha)
+            ->where('p.fecha_entrega', $fecha)
             ->where('p.bonificacion', 0)
             ->whereRaw("TRIM(COALESCE(p.placa, '')) = ?", [$placa])
             ->whereNull('f.id')
@@ -135,15 +135,21 @@ class CamineroController extends Controller
      */
     private function comprobantesDelCamion($fecha, $placa)
     {
-        // La fecha es la del comprobante, no la del pedido: el pedido se toma
-        // un dia y se cobra al siguiente, y el caminero sale con lo que caja
-        // facturo hoy.
+        // La fecha es la de entrega del pedido (el dia siguiente al pedido),
+        // no la del comprobante: el caminero sale ese dia con lo que tiene que
+        // entregar, lo haya facturado caja ese dia o la vispera.
         $facturas = DB::table('facturas as f')
             ->leftJoin('tbclientes as c', 'c.Cod_Aut', '=', 'f.cliente_id')
             ->whereNull('f.deleted_at')
             ->where('f.estado', '<>', 'ANULADO')
-            ->where('f.fecha', $fecha)
-            ->whereNotNull('f.pedido_nro')
+            ->whereIn('f.pedido_nro', function ($pedidos) use ($fecha, $placa) {
+                $pedidos->from('tbpedidos')
+                    ->whereNull('deleted_at')
+                    ->where('fecha_entrega', $fecha)
+                    ->where('bonificacion', 0)
+                    ->whereRaw("TRIM(COALESCE(placa, '')) = ?", [$placa])
+                    ->select('NroPed');
+            })
             ->orderBy('f.hora')
             ->get([
                 'f.id as factura_id', 'f.fecha as factura_fecha', 'f.hora',
@@ -175,6 +181,7 @@ class CamineroController extends Controller
                     DB::raw("TRIM(COALESCE(MIN(placa), '')) as placa"),
                     DB::raw("TRIM(COALESCE(MIN(colorStyle), '')) as placa_color"),
                     DB::raw('MIN(fecha) as pedido_fecha'),
+                    DB::raw('MIN(fecha_entrega) as fecha_entrega'),
                     DB::raw('COUNT(*) as productos'),
                     DB::raw('ROUND(SUM(COALESCE(Cant, 0) * COALESCE(precio, 0)), 2) as total_pedido'),
                 ])
@@ -191,6 +198,7 @@ class CamineroController extends Controller
             $factura->placa = $pedido->placa;
             $factura->placa_color = $pedido->placa_color;
             $factura->pedido_fecha = $pedido->pedido_fecha;
+            $factura->fecha_entrega = $pedido->fecha_entrega;
             $factura->productos = $pedido->productos;
             $factura->total_pedido = $pedido->total_pedido;
             return true;
@@ -397,7 +405,7 @@ class CamineroController extends Controller
             ->where('NroPed', $factura->pedido_nro)
             ->whereRaw(TipoPedido::sql('') . ' = ?', [strtoupper(trim((string) $factura->pedido_tipo))])
             ->where('bonificacion', 0)
-            ->first([DB::raw("TRIM(COALESCE(placa, '')) as placa"), 'fecha']);
+            ->first([DB::raw("TRIM(COALESCE(placa, '')) as placa"), 'fecha', 'fecha_entrega']);
 
         if (!$pedido || $pedido->placa !== $placa) {
             return [null, $placa, response()->json(['message' => 'Ese pedido no va en tu camión'], 403)];
@@ -411,6 +419,9 @@ class CamineroController extends Controller
         if ($yaCobrada) {
             return [null, $placa, response()->json(['message' => 'Esa entrega ya fue cobrada'], 422)];
         }
+
+        // El dia de reparto del pedido: con esa fecha se registra la entrega.
+        $factura->fecha_entrega = $pedido->fecha_entrega;
 
         return [$factura, $placa, null];
     }
@@ -502,9 +513,9 @@ class CamineroController extends Controller
             'lat' => (string) ($datos['lat'] ?? ''),
             'lng' => (string) ($datos['lng'] ?? ''),
             'fecha' => date('Y-m-d'),
-            // El dia de reparto es el del comprobante, no el del pedido: asi
-            // lo cobrado sale en el reporte del mismo dia en que se ve la lista.
-            'fechaEntreg' => date('Y-m-d', strtotime($factura->fecha)),
+            // El dia de reparto es la fecha de entrega del pedido: asi lo
+            // cobrado sale en el reporte del mismo dia en que se ve la lista.
+            'fechaEntreg' => date('Y-m-d', strtotime($factura->fecha_entrega ?: $factura->fecha)),
             'hora' => date('H:i:s'),
             'distancia' => (string) $this->distancia(
                 $datos['lat'] ?? null, $datos['lng'] ?? null,

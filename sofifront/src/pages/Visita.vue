@@ -297,7 +297,8 @@
                 <!--              <pre>{{fact}}</pre>-->
               </div>
             <div class="col-md-6 col-xs-6">
-              <q-input label="Fecha" v-model="fecha" type="date" dense outlined :min="fechamenos"/>
+              <q-input label="Fecha" v-model="fecha" type="date" dense outlined :min="fechamenos"
+                       :hint="fechaEntrega ? 'Entrega: ' + fechaEntrega : ''"/>
             </div>
             <div class="col-md-6 col-xs-6">
               <q-select dense outlined v-model="horario" :options="horarios" label="Horario"/>
@@ -1561,6 +1562,11 @@ export default {
     },
   },
   computed: {
+    // El pedido se entrega al dia siguiente; el backend guarda la misma fecha.
+    fechaEntrega() {
+      if (!this.fecha) return ''
+      return date.formatDate(addToDate(new Date(this.fecha + 'T00:00:00'), {days: 1}), 'DD/MM/YYYY')
+    },
     resumen() {
       const resumen = {pedido: 0, nopedido: 0, parado: 0, total: 0, efectividad: 0};
       this.clientes.forEach(c => {
