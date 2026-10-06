@@ -22,6 +22,8 @@ class ExcelController extends Controller
         '500106', '500107', '500108', '500109', '501600', '501601',
         '501604', '501606', '501704', '502102', '502108', '502106', '502109',
         '502101', '501118','501116', '501117', '501114', '501115', '501119',
+        // Ala premium a granel y a granel congelada.
+        '501641', '501762',
         // Pollo brasa y brasa con cogote.
         '501005', '501006', '501007', '501008', '501009',
         '511116', '511117', '511118', '511119',
@@ -1203,6 +1205,113 @@ class ExcelController extends Controller
             $zonas[$l->zona][$l->NroPed][] = $l;
         }
 
+        // Preventista -> pedidos -> lineas, como era la hoja antes de ir por
+        // zona: preventistas por nombre y dentro sus pedidos por numero.
+        $vendedores = [];
+        foreach ($lineas as $l) {
+            $prev = $l->preventista !== '' ? $l->preventista : 'SIN PREVENTISTA';
+            $vendedores[$prev][$l->NroPed][] = $l;
+        }
+        ksort($vendedores);
+        foreach ($vendedores as &$pedidos) {
+            ksort($pedidos);
+        }
+        unset($pedidos);
+
+        $cantidad = function ($l) {
+            $n = rtrim(rtrim(number_format((float) $l->Cant, 2, '.', ''), '0'), '.');
+            $unidad = $l->caja !== null && $l->caja !== '' ? $l->caja : strtoupper((string) $l->unidad);
+            $sufijo = ['U' => 'u', 'UNIDA' => 'u', 'UNIDAD' => 'u', 'KG' => 'kg', 'CAJA' => 'cja'][$unidad] ?? strtolower($unidad);
+            return trim($n . ' ' . $sufijo);
+        };
+
+        $nombre = $especie === 'cerdo' ? 'Cerdo' : 'Pollo';
+        $spreadsheet = new Spreadsheet();
+        $porZona = $spreadsheet->getActiveSheet();
+        $porZona->setTitle($nombre);
+        $this->hojaPreparacion($porZona, $fecha, $especie, $zonas, 'ZONA', $cantidad);
+
+        // La misma hoja pero agrupada por preventista, como se sacaba antes.
+        $porPreventista = $spreadsheet->createSheet();
+        $porPreventista->setTitle($nombre . ' x vendedor');
+        $this->hojaPreparacion($porPreventista, $fecha, $especie, $vendedores, 'PREVENTISTA', $cantidad);
+
+        // Resumen: lo que hay que preparar por codigo, para cuadrar con stock.
+        $resumen = $spreadsheet->createSheet();
+        $resumen->setTitle('Resumen');
+        $resumen->fromArray(['Código', 'Descripción', 'Unidades', 'Cajas', 'Kilos', 'Pedidos'], null, 'A1');
+        $totales = [];
+        foreach ($lineas as $l) {
+            $t = &$totales[$l->cod_prod];
+            if ($t === null) {
+                $t = ['producto' => $l->producto, 'u' => 0, 'cja' => 0, 'kg' => 0, 'pedidos' => []];
+            }
+            $suf = explode(' ', $cantidad($l));
+            $clave = in_array(end($suf), ['u', 'cja', 'kg'], true) ? end($suf) : 'u';
+            $t[$clave] += (float) $l->Cant;
+            $t['pedidos'][$l->NroPed] = true;
+            unset($t);
+        }
+        ksort($totales);
+        $fila = 2;
+        foreach ($totales as $cod => $t) {
+            $resumen->setCellValueExplicit('A' . $fila, $cod, DataType::TYPE_STRING);
+            $resumen->setCellValue('B' . $fila, $t['producto']);
+            $resumen->setCellValue('C' . $fila, $t['u'] ?: null);
+            $resumen->setCellValue('D' . $fila, $t['cja'] ?: null);
+            $resumen->setCellValue('E' . $fila, $t['kg'] ?: null);
+            $resumen->setCellValue('F' . $fila, count($t['pedidos']));
+            $fila++;
+        }
+        $resumen->getStyle('A1:F1')->getFont()->setBold(true);
+        $resumen->getStyle('A1:F' . max($fila - 1, 1))->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_THIN);
+        $resumen->getColumnDimension('A')->setWidth(10);
+        $resumen->getColumnDimension('B')->setWidth(45);
+        foreach (['C', 'D', 'E', 'F'] as $col) {
+            $resumen->getColumnDimension($col)->setWidth(11);
+        }
+
+        $this->hojaPorVendedor($spreadsheet->createSheet(), $fecha, $especie, $codigos, $lineas, $cantidad);
+
+        $spreadsheet->setActiveSheetIndex(0);
+
+        $filename = 'Preparacion_' . ucfirst($especie) . '_' . $fecha . '.xlsx';
+        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        header('Content-Disposition: attachment; filename="' . $filename . '"');
+        header('Cache-Control: max-age=0');
+        (new Xlsx($spreadsheet))->save('php://output');
+        exit;
+    }
+
+    /**
+     * Que precio de la lista eligio el preventista: "Precio 3 · 25.00".
+     *
+     * Misma numeracion que la pantalla de pedidos: Precio es el 1, Precio_Costo
+     * el 2 (nombre heredado, no es el costo) y despues Precio3..Precio13. Si
+     * dos valen lo mismo cuenta el primero, como en la lista del preventista.
+     * Un precio que no esta en la lista sale solo con el importe.
+     */
+    private function precioElegido($linea)
+    {
+        $precio = round((float) $linea->precio_pedido, 2);
+        $campos = ['Precio', 'Precio_Costo', 'Precio3', 'Precio4', 'Precio5', 'Precio6', 'Precio7',
+            'Precio8', 'Precio9', 'Precio10', 'Precio11', 'Precio12', 'Precio13'];
+        foreach ($campos as $i => $campo) {
+            $valor = round((float) ($linea->$campo ?? 0), 2);
+            if ($valor > 0 && abs($valor - $precio) < 0.005) {
+                return 'Precio ' . ($i + 1) . ' · ' . number_format($precio, 2, '.', '');
+            }
+        }
+        return $precio > 0 ? 'Bs ' . number_format($precio, 2, '.', '') : '';
+    }
+
+    /**
+     * Dibuja la hoja de pesos de preparacion: por cada grupo (zona o
+     * preventista) una fila gris, y debajo sus pedidos con una fila por
+     * producto. $grupos es [grupo][NroPed][] = linea.
+     */
+    private function hojaPreparacion($sheet, $fecha, $especie, array $grupos, $rotulo, callable $cantidad)
+    {
         $mapaColores = [
             'deep-orange-4' => 'FF7043', // NORTE
             'pink-4' => 'F06292', // BOLIVAR
@@ -1221,10 +1330,6 @@ class ExcelController extends Controller
         };
         $cuentasBaja = DB::table('tbclientes')->whereIn('Cod_Aut', [3070, 2728])
             ->pluck('Nombres', 'Cod_Aut');
-
-        $spreadsheet = new Spreadsheet();
-        $sheet = $spreadsheet->getActiveSheet();
-        $sheet->setTitle($especie === 'cerdo' ? 'Cerdo' : 'Pollo');
 
         // Cada pedido es una fila con el cliente y debajo sus productos, uno
         // por fila con el nombre completo en la columna F. Columnas fijas:
@@ -1246,22 +1351,15 @@ class ExcelController extends Controller
         $sheet->getStyle('A2:E2')->getAlignment()->setTextRotation(90);
         $sheet->getRowDimension(2)->setRowHeight(52);
 
-        $cantidad = function ($l) {
-            $n = rtrim(rtrim(number_format((float) $l->Cant, 2, '.', ''), '0'), '.');
-            $unidad = $l->caja !== null && $l->caja !== '' ? $l->caja : strtoupper((string) $l->unidad);
-            $sufijo = ['U' => 'u', 'UNIDA' => 'u', 'UNIDAD' => 'u', 'KG' => 'kg', 'CAJA' => 'cja'][$unidad] ?? strtolower($unidad);
-            return trim($n . ' ' . $sufijo);
-        };
-
         $c = 3;
         $celdasObs = [];
         $finPedido = [];
         $filasCliente = [];
         $nPedido = 0;
-        foreach ($zonas as $zona => $pedidos) {
-            // Fila de la zona en gris oscuro, para no confundirla con la fila
-            // de cada cliente que va debajo.
-            $sheet->setCellValue('F' . $c, 'ZONA: ' . $zona);
+        foreach ($grupos as $grupo => $pedidos) {
+            // Fila del grupo (zona o preventista) en gris oscuro, para no
+            // confundirla con la fila de cada cliente que va debajo.
+            $sheet->setCellValue('F' . $c, $rotulo . ': ' . $grupo);
             $sheet->getStyle("A{$c}:M{$c}")->applyFromArray([
                 'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
                 'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => '595959']],
@@ -1369,74 +1467,6 @@ class ExcelController extends Controller
             ->setPrintArea('A1:' . $colFin . $ultima)
             ->setRowsToRepeatAtTopByStartAndEnd(2, 2);
         $sheet->getPageMargins()->setTop(0.3)->setBottom(0.3)->setLeft(0.2)->setRight(0.2);
-
-        // Resumen: lo que hay que preparar por codigo, para cuadrar con stock.
-        $resumen = $spreadsheet->createSheet();
-        $resumen->setTitle('Resumen');
-        $resumen->fromArray(['Código', 'Descripción', 'Unidades', 'Cajas', 'Kilos', 'Pedidos'], null, 'A1');
-        $totales = [];
-        foreach ($lineas as $l) {
-            $t = &$totales[$l->cod_prod];
-            if ($t === null) {
-                $t = ['producto' => $l->producto, 'u' => 0, 'cja' => 0, 'kg' => 0, 'pedidos' => []];
-            }
-            $suf = explode(' ', $cantidad($l));
-            $clave = in_array(end($suf), ['u', 'cja', 'kg'], true) ? end($suf) : 'u';
-            $t[$clave] += (float) $l->Cant;
-            $t['pedidos'][$l->NroPed] = true;
-            unset($t);
-        }
-        ksort($totales);
-        $fila = 2;
-        foreach ($totales as $cod => $t) {
-            $resumen->setCellValueExplicit('A' . $fila, $cod, DataType::TYPE_STRING);
-            $resumen->setCellValue('B' . $fila, $t['producto']);
-            $resumen->setCellValue('C' . $fila, $t['u'] ?: null);
-            $resumen->setCellValue('D' . $fila, $t['cja'] ?: null);
-            $resumen->setCellValue('E' . $fila, $t['kg'] ?: null);
-            $resumen->setCellValue('F' . $fila, count($t['pedidos']));
-            $fila++;
-        }
-        $resumen->getStyle('A1:F1')->getFont()->setBold(true);
-        $resumen->getStyle('A1:F' . max($fila - 1, 1))->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_THIN);
-        $resumen->getColumnDimension('A')->setWidth(10);
-        $resumen->getColumnDimension('B')->setWidth(45);
-        foreach (['C', 'D', 'E', 'F'] as $col) {
-            $resumen->getColumnDimension($col)->setWidth(11);
-        }
-
-        $this->hojaPorVendedor($spreadsheet->createSheet(), $fecha, $especie, $codigos, $lineas, $cantidad);
-
-        $spreadsheet->setActiveSheetIndex(0);
-
-        $filename = 'Preparacion_' . ucfirst($especie) . '_' . $fecha . '.xlsx';
-        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-        header('Content-Disposition: attachment; filename="' . $filename . '"');
-        header('Cache-Control: max-age=0');
-        (new Xlsx($spreadsheet))->save('php://output');
-        exit;
-    }
-
-    /**
-     * Que precio de la lista eligio el preventista: "Precio 3 · 25.00".
-     *
-     * Misma numeracion que la pantalla de pedidos: Precio es el 1, Precio_Costo
-     * el 2 (nombre heredado, no es el costo) y despues Precio3..Precio13. Si
-     * dos valen lo mismo cuenta el primero, como en la lista del preventista.
-     * Un precio que no esta en la lista sale solo con el importe.
-     */
-    private function precioElegido($linea)
-    {
-        $precio = round((float) $linea->precio_pedido, 2);
-        $campos = ['Precio', 'Precio_Costo', 'Precio3', 'Precio4', 'Precio5', 'Precio6', 'Precio7',
-            'Precio8', 'Precio9', 'Precio10', 'Precio11', 'Precio12', 'Precio13'];
-        foreach ($campos as $i => $campo) {
-            $valor = round((float) ($linea->$campo ?? 0), 2);
-            if ($valor > 0 && abs($valor - $precio) < 0.005) {
-                return 'Precio ' . ($i + 1) . ' · ' . number_format($precio, 2, '.', '');
-            }
-        }
-        return $precio > 0 ? 'Bs ' . number_format($precio, 2, '.', '') : '';
     }
 
     /**
