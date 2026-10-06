@@ -372,11 +372,14 @@
                     <q-item-label lines="2" class="text-weight-medium">{{ item.nombre }}</q-item-label>
                     <q-item-label caption>{{ item.cod_prod }}</q-item-label>
                   </q-item-section>
+                  <!-- La cantidad es lo que el caminero cuenta al subir la
+                       carga: va grande y en recuadro para leerla de un vistazo. -->
                   <q-item-section side class="text-right">
-                    <q-item-label class="text-weight-bold text-blue-grey-10">
-                      {{ cantidad(item.peso || item.cantidad) }} {{ item.unidad }}
-                    </q-item-label>
-                    <q-item-label caption>Bs {{ money(item.total) }}</q-item-label>
+                    <div class="cantidad-caja" :class="item.revisado ? 'cantidad-revisada' : ''">
+                      <span class="cantidad-numero">{{ cantidad(item.peso || item.cantidad) }}</span>
+                      <span class="cantidad-unidad">{{ item.unidad }}</span>
+                    </div>
+                    <q-item-label caption class="q-mt-xs">Bs {{ money(item.total) }}</q-item-label>
                   </q-item-section>
                 </q-item>
               </q-list>
@@ -936,6 +939,32 @@ export default {
 }
 .producto-revisado .q-item__label:first-child {
   color: #2e7d32;
+}
+.cantidad-caja {
+  display: inline-block;
+  min-width: 64px;
+  padding: 2px 8px;
+  border: 2px solid #1565c0;
+  border-radius: 6px;
+  background: #e3f2fd;
+  color: #0d47a1;
+  text-align: center;
+  white-space: nowrap;
+  line-height: 1.1;
+}
+.cantidad-revisada {
+  border-color: #2e7d32;
+  background: #e8f5e9;
+  color: #1b5e20;
+}
+.cantidad-numero {
+  font-size: 22px;
+  font-weight: 800;
+}
+.cantidad-unidad {
+  font-size: 12px;
+  font-weight: 700;
+  margin-left: 3px;
 }
 .canasta-ocupada {
   pointer-events: none;
