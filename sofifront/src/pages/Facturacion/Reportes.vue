@@ -1,9 +1,10 @@
 <template>
   <q-page class="q-pa-sm">
-    <!-- Una pestaña por reporte; por ahora solo el quiebre de stock. -->
+    <!-- Una pestaña por reporte. -->
     <q-tabs v-model="reporte" dense align="left" no-caps active-color="primary" indicator-color="primary"
             class="text-grey-8">
       <q-tab name="quiebre" icon="production_quantity_limits" label="Quiebre de stock embutido"/>
+      <q-tab name="pollo" icon="egg" label="Reporte auxiliar de pollo"/>
     </q-tabs>
     <q-separator/>
 
@@ -118,6 +119,77 @@
           </tfoot>
         </q-markup-table>
       </q-tab-panel>
+
+      <!-- La planilla auxiliar del dia: stock con que se arranca, lo que vendio
+           cada preventista por codigo y con cuanto se termina. -->
+      <q-tab-panel name="pollo" class="q-pa-none q-pt-sm">
+        <div class="row items-center q-gutter-sm">
+          <q-input v-model="fechaPollo" type="date" dense outlined label="Fecha de salida" style="width: 170px"
+                   @update:model-value="consultarPollo"/>
+          <q-btn color="primary" icon="refresh" label="Actualizar" no-caps unelevated :loading="cargandoPollo"
+                 @click="consultarPollo"/>
+          <q-btn color="green-8" icon="download" label="Excel" no-caps unelevated :loading="descargandoPollo"
+                 @click="descargarPollo"/>
+        </div>
+
+        <div class="text-caption text-grey-7 q-mt-xs">
+          Lo vendido es lo que facturó caja: cada pedido cuenta en su fecha de entrega y la venta de mostrador en
+          "Ventas del día". El stock sale del sistema. Tránsito, devolución, trozado y bajas van vacíos en el Excel
+          para llenarlos a mano; el stock final se recalcula solo.
+        </div>
+
+        <div class="tabla-pollo-caja q-mt-sm">
+          <table class="tabla-pollo">
+            <thead>
+            <tr>
+              <th class="rotulo"></th>
+              <th v-for="c in pollo.columnas" :key="c.cod_prod" :title="c.nombre">{{ c.cod_prod }}</th>
+              <th class="entero">POLLO</th>
+            </tr>
+            <tr>
+              <th class="rotulo">{{ diaPollo }}</th>
+              <th v-for="c in pollo.columnas" :key="'n' + c.cod_prod" :title="c.nombre">{{ c.corto }}</th>
+              <th class="entero">ENTERO</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr v-if="!pollo.columnas.length">
+              <td :colspan="2" class="text-grey-7 q-pa-md">{{ cargandoPollo ? 'Cargando…' : 'Sin datos' }}</td>
+            </tr>
+            <template v-else>
+              <tr class="fila-stock">
+                <td class="rotulo">STOCK</td>
+                <td v-for="c in pollo.columnas" :key="'s' + c.cod_prod">{{ kg(pollo.stock_inicial[c.cod_prod]) }}</td>
+                <td class="entero">{{ kg(entero(pollo.stock_inicial)) }}</td>
+              </tr>
+              <tr v-for="v in pollo.vendedores" :key="v.nombre">
+                <td class="rotulo vendedor">{{ v.nombre }}</td>
+                <td v-for="c in pollo.columnas" :key="v.nombre + c.cod_prod">{{ kg(v.valores[c.cod_prod]) }}</td>
+                <td class="entero">{{ kg(entero(v.valores)) }}</td>
+              </tr>
+              <tr class="fila-directas">
+                <td class="rotulo">VENTAS DEL DÍA</td>
+                <td v-for="c in pollo.columnas" :key="'d' + c.cod_prod">{{ kg(pollo.ventas_directas[c.cod_prod]) }}</td>
+                <td class="entero">{{ kg(entero(pollo.ventas_directas)) }}</td>
+              </tr>
+              <tr class="fila-total">
+                <td class="rotulo">TOTAL</td>
+                <td v-for="c in pollo.columnas" :key="'t' + c.cod_prod">{{ kg(pollo.total_ventas[c.cod_prod]) }}</td>
+                <td class="entero">{{ kg(entero(pollo.total_ventas)) }}</td>
+              </tr>
+              <tr class="fila-stock">
+                <td class="rotulo">STOCK</td>
+                <td v-for="c in pollo.columnas" :key="'f' + c.cod_prod"
+                    :class="{ 'text-negative': pollo.stock_final[c.cod_prod] < 0 }">
+                  {{ kg(pollo.stock_final[c.cod_prod]) }}
+                </td>
+                <td class="entero">{{ kg(entero(pollo.stock_final)) }}</td>
+              </tr>
+            </template>
+            </tbody>
+          </table>
+        </div>
+      </q-tab-panel>
     </q-tab-panels>
   </q-page>
 </template>
@@ -138,7 +210,17 @@ export default {
       estado: '',
       buscar: '',
       cargando: false,
-      descargando: false
+      descargando: false,
+      fechaPollo: date.formatDate(Date.now(), 'YYYY-MM-DD'),
+      pollo: { columnas: [], stock_inicial: {}, vendedores: [], ventas_directas: {}, total_ventas: {}, stock_final: {} },
+      cargandoPollo: false,
+      descargandoPollo: false
+    }
+  },
+  watch: {
+    // El de pollo se pide recien cuando se abre su pestaña.
+    reporte (valor) {
+      if (valor === 'pollo' && !this.pollo.columnas.length) this.consultarPollo()
     }
   },
   computed: {
@@ -157,6 +239,12 @@ export default {
     },
     porcentaje () {
       return this.totales.pedido > 0 ? Math.round(this.totales.quiebre / this.totales.pedido * 100) : 0
+    },
+    diaPollo () {
+      if (!this.fechaPollo) return ''
+      const dias = ['DOMINGO', 'LUNES', 'MARTES', 'MIÉRCOLES', 'JUEVES', 'VIERNES', 'SÁBADO']
+      const d = new Date(this.fechaPollo + 'T00:00:00')
+      return dias[d.getDay()] + ' ' + date.formatDate(d, 'DD/MM')
     }
   },
   created () {
@@ -195,6 +283,43 @@ export default {
         this.descargando = false
       }
     },
+    consultarPollo () {
+      if (!this.fechaPollo) return
+      this.cargandoPollo = true
+      this.$api.get('reportes/auxiliar-pollo', { params: { fecha: this.fechaPollo } }).then(res => {
+        this.pollo = res.data
+      }).catch(err => {
+        this.$q.notify({ type: 'negative', message: err.response?.data?.message || 'No se pudo cargar el reporte de pollo' })
+      }).finally(() => {
+        this.cargandoPollo = false
+      })
+    },
+    async descargarPollo () {
+      this.descargandoPollo = true
+      try {
+        const res = await this.$api.get('reportes/auxiliar-pollo/excel', {
+          params: { fecha: this.fechaPollo },
+          responseType: 'blob'
+        })
+        const url = window.URL.createObjectURL(res.data)
+        const enlace = document.createElement('a')
+        enlace.href = url
+        enlace.download = 'reporte_auxiliar_pollo_' + this.fechaPollo + '.xlsx'
+        enlace.click()
+        window.URL.revokeObjectURL(url)
+      } catch (e) {
+        this.$q.notify({ type: 'negative', message: 'No se pudo descargar el Excel' })
+      } finally {
+        this.descargandoPollo = false
+      }
+    },
+    // Suma del pollo entero (frial y brasa) de una fila, como la ultima columna del Excel.
+    entero (valores) {
+      return this.pollo.columnas.filter(c => c.entero).reduce((s, c) => s + Number(valores[c.cod_prod] || 0), 0)
+    },
+    kg (valor) {
+      return Number(valor || 0).toFixed(1)
+    },
     suma (campo) {
       return this.visibles.reduce((s, f) => s + Number(f[campo] || 0), 0)
     },
@@ -230,5 +355,56 @@ export default {
 }
 .tabla-quiebre tr.corte-estado td {
   border-top: 2px solid #9e9e9e;
+}
+/* Planilla de pollo: muchas columnas, se desliza de costado. */
+.tabla-pollo-caja {
+  overflow-x: auto;
+}
+.tabla-pollo {
+  border-collapse: collapse;
+  font-size: 11px;
+  min-width: 100%;
+}
+.tabla-pollo th,
+.tabla-pollo td {
+  border: 1px solid #bdbdbd;
+  padding: 2px 4px;
+  text-align: center;
+  white-space: nowrap;
+}
+.tabla-pollo thead th {
+  background: #b4c6d9;
+  font-size: 10px;
+}
+.tabla-pollo .rotulo {
+  text-align: left;
+  font-weight: 700;
+  min-width: 150px;
+  position: sticky;
+  left: 0;
+  background: #fff;
+}
+.tabla-pollo thead .rotulo {
+  background: #b4c6d9;
+}
+.tabla-pollo .vendedor {
+  font-style: italic;
+}
+.tabla-pollo .entero {
+  font-weight: 700;
+  color: #c00000;
+}
+.tabla-pollo .fila-stock td {
+  background: #d9c28f;
+  font-weight: 700;
+}
+.tabla-pollo .fila-total td {
+  background: #e6b9a6;
+  font-weight: 700;
+}
+.tabla-pollo .fila-directas td {
+  background: #f4e3a1;
+  color: #c00000;
+  font-weight: 700;
 }
 </style>

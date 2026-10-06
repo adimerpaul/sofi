@@ -99,6 +99,9 @@ Route::group(['middleware'=>'auth:sanctum'],function (){
     // Reportes de Ventas y Facturacion: quiebre de stock (pedido contra vendido).
     Route::get('/reportes/quiebre-embutido',[\App\Http\Controllers\ReporteVentasController::class,'quiebreEmbutido']);
     Route::get('/reportes/quiebre-embutido/excel',[\App\Http\Controllers\ReporteVentasController::class,'quiebreEmbutidoExcel']);
+    // Reporte auxiliar del dia de pollo: stock, ventas por preventista y stock final.
+    Route::get('/reportes/auxiliar-pollo',[\App\Http\Controllers\ReporteVentasController::class,'auxiliarPollo']);
+    Route::get('/reportes/auxiliar-pollo/excel',[\App\Http\Controllers\ReporteVentasController::class,'auxiliarPolloExcel']);
     Route::get('/facturacion/{factura}/voucher',[\App\Http\Controllers\FacturacionController::class,'voucher']);
     Route::get('/facturacion/{factura}/factura',[\App\Http\Controllers\FacturacionController::class,'factura']);
     Route::get('/facturacion/{factura}/url-impuestos',[\App\Http\Controllers\FacturacionController::class,'urlImpuestos']);

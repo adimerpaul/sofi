@@ -2,9 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Services\ReporteAuxiliarPollo;
 use App\Services\TipoPedido;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
+use PhpOffice\PhpSpreadsheet\Cell\DataType;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
 use PhpOffice\PhpSpreadsheet\Style\Border;
@@ -310,6 +313,146 @@ class ReporteVentasController extends Controller
         return response()->streamDownload(function () use ($libro) {
             (new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($libro))->save('php://output');
         }, $nombre, [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        ]);
+    }
+
+    /** Reporte auxiliar del dia de pollo en pantalla. */
+    public function auxiliarPollo(Request $request)
+    {
+        return (new ReporteAuxiliarPollo())->datos($this->fecha($request));
+    }
+
+    /**
+     * El reporte auxiliar de pollo en Excel, con el formato de la planilla de
+     * papel. TOTAL y STOCK final van como formulas: las filas que el sistema
+     * no registra (transito, devolucion, trozado, bajas) salen vacias y al
+     * llenarlas a mano el stock se recalcula solo.
+     */
+    public function auxiliarPolloExcel(Request $request)
+    {
+        $fecha = $this->fecha($request);
+        $datos = (new ReporteAuxiliarPollo())->datos($fecha);
+        $codigos = array_column($datos['columnas'], 'cod_prod');
+
+        $libro = new Spreadsheet();
+        $hoja = $libro->getActiveSheet();
+        $hoja->setTitle('Pollo');
+
+        // A rotulos, B.. un codigo por columna y al final el pollo entero.
+        $col = function ($i) { return Coordinate::stringFromColumnIndex(2 + $i); };
+        $ultimoCodigo = $col(count($codigos) - 1);
+        $colEntero = $col(count($codigos));
+        $enteros = array_keys(array_filter($datos['columnas'], function ($c) { return $c['entero']; }));
+        $rangoEntero = $col(min($enteros)) . '%d:' . $col(max($enteros)) . '%d';
+
+        $dias = ['DOMINGO', 'LUNES', 'MARTES', 'MIERCOLES', 'JUEVES', 'VIERNES', 'SABADO'];
+        $meses = ['', 'ene.', 'feb.', 'mar.', 'abr.', 'may.', 'jun.', 'jul.', 'ago.', 'sep.', 'oct.', 'nov.', 'dic.'];
+        $t = strtotime($fecha);
+        $dia = $dias[(int) date('w', $t)];
+
+        $hoja->setCellValue('A1', 'R E P O R T E     A U X I L I A R     D E L     D I A');
+        $hoja->mergeCells('A1:' . $col(10) . '2');
+        $hoja->setCellValue($col(11) . '1', 'POLLO');
+        $hoja->mergeCells($col(11) . '1:' . $colEntero . '2');
+        $hoja->getStyle('A1:' . $colEntero . '2')->applyFromArray([
+            'font' => ['bold' => true, 'size' => 18, 'color' => ['rgb' => 'C00000']],
+            'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER, 'vertical' => Alignment::VERTICAL_CENTER],
+        ]);
+        $hoja->setCellValue($col(9) . '3', 'Fecha Salida:');
+        $hoja->setCellValue($col(11) . '3', date('j', $t) . '-' . $meses[(int) date('n', $t)] . '-' . date('Y', $t));
+        $hoja->getStyle($col(9) . '3')->getFont()->getColor()->setRGB('C00000');
+        $hoja->getStyle($col(11) . '3')->getFont()->setBold(true)->getColor()->setRGB('1F4E79');
+
+        // Encabezado: codigo arriba y rotulo corto abajo.
+        foreach ($datos['columnas'] as $i => $c) {
+            $hoja->setCellValueExplicit($col($i) . '5', $c['cod_prod'], DataType::TYPE_STRING);
+            $hoja->setCellValue($col($i) . '6', $c['corto']);
+        }
+        $hoja->setCellValue($colEntero . '5', 'POLLO');
+        $hoja->setCellValue($colEntero . '6', 'ENTERO');
+        $hoja->setCellValue('A6', $dia . ' ' . date('d/m', $t));
+        $hoja->getStyle('A5:' . $colEntero . '6')->applyFromArray([
+            'font' => ['bold' => true, 'size' => 9],
+            'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER, 'vertical' => Alignment::VERTICAL_CENTER],
+            'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'B4C6D9']],
+        ]);
+
+        $fila = 7;
+        $escribir = function ($rotulo, $valores, $estilo) use ($hoja, $codigos, $col, $colEntero, $rangoEntero, &$fila) {
+            $hoja->setCellValue('A' . $fila, $rotulo);
+            if ($valores !== null) {
+                foreach ($codigos as $i => $cod) {
+                    $valor = $valores[$cod] ?? 0;
+                    $hoja->setCellValue($col($i) . $fila, is_string($valor) ? $valor : round($valor, 3));
+                }
+            }
+            $hoja->setCellValue($colEntero . $fila, '=SUM(' . sprintf($rangoEntero, $fila, $fila) . ')');
+            $hoja->getStyle('A' . $fila . ':' . $colEntero . $fila)->applyFromArray($estilo);
+            return $fila++;
+        };
+        $formula = function ($plantilla) use ($codigos, $col) {
+            $valores = [];
+            foreach ($codigos as $i => $cod) {
+                $valores[$cod] = str_replace('{c}', $col($i), $plantilla);
+            }
+            return $valores;
+        };
+
+        $relleno = function ($rgb) { return ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => $rgb]]; };
+        $estiloStock = ['font' => ['bold' => true], 'fill' => $relleno('D9C28F')];
+        $estiloManual = ['font' => ['bold' => true, 'italic' => true, 'color' => ['rgb' => '1F3864']], 'fill' => $relleno('FFF2CC')];
+        $estiloTotal = ['font' => ['bold' => true], 'fill' => $relleno('E6B9A6')];
+        $estiloVendedor = ['font' => ['bold' => true, 'italic' => true]];
+
+        // Lo que hay para el dia.
+        $desdeEntrada = $escribir('STOCK', $datos['stock_inicial'], $estiloStock);
+        foreach (['TRANSITO', 'TRANSITO 2', 'DEVOLUCION', 'TROZADO', 'PECHO/FILETE/HUESO'] as $rotulo) {
+            $escribir($rotulo, null, $estiloManual);
+        }
+        $filaEntrada = $escribir('TOTAL', $formula('=SUM({c}' . $desdeEntrada . ':{c}' . ($fila - 1) . ')'), $estiloTotal);
+
+        // Lo que salio ese dia.
+        $hoja->setCellValue('A' . $fila, $dia . ' ' . date('d/m', $t));
+        $hoja->getStyle('A' . $fila)->applyFromArray(['font' => ['bold' => true, 'color' => ['rgb' => 'C00000']]]);
+        $fila++;
+        $desdeSalida = $fila;
+        foreach (['DIFERENCIA DEL BRASA', 'TRANSF. DE 106 A 105', 'BAJA CON OLOR'] as $rotulo) {
+            $escribir($rotulo, null, $estiloManual);
+        }
+        foreach ($datos['vendedores'] as $v) {
+            $escribir($v['nombre'], $v['valores'], $estiloVendedor);
+        }
+        $escribir('TROZADO', null, $estiloManual);
+        $escribir('VENTAS DEL DIA', $datos['ventas_directas'],
+            ['font' => ['bold' => true, 'italic' => true, 'color' => ['rgb' => 'C00000']], 'fill' => $relleno('F4E3A1')]);
+        $filaSalida = $escribir('TOTAL', $formula('=SUM({c}' . $desdeSalida . ':{c}' . ($fila - 1) . ')'), $estiloTotal);
+        $filaStock = $escribir('STOCK', $formula('={c}' . $filaEntrada . '-{c}' . $filaSalida),
+            ['font' => ['bold' => true, 'color' => ['rgb' => '1F4E79']], 'fill' => $relleno('D9C28F')]);
+
+        $hoja->setCellValue('A' . ($fila + 1), 'VENTAS DEL DIA = ventas directas de mostrador. STOCK de arriba = stock del sistema al empezar el día;'
+            . ' las filas en amarillo se llenan a mano y el TOTAL y el STOCK final se recalculan solos.');
+        $hoja->getStyle('A' . ($fila + 1))->getFont()->setItalic(true)->setSize(8)->getColor()->setRGB('7F7F7F');
+
+        $hoja->getStyle('A5:' . $colEntero . $filaStock)->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_THIN);
+        $hoja->getStyle('B7:' . $colEntero . $filaStock)->applyFromArray([
+            'numberFormat' => ['formatCode' => '#,##0.0;[Red]-#,##0.0'],
+            'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
+        ]);
+        $hoja->getStyle($colEntero . '5:' . $colEntero . $filaStock)->getFont()->setBold(true)->getColor()->setRGB('C00000');
+
+        $hoja->getColumnDimension('A')->setWidth(26);
+        for ($i = 0; $i <= count($codigos); $i++) {
+            $hoja->getColumnDimension($col($i))->setWidth(9);
+        }
+        $hoja->freezePane('B7');
+        $hoja->getPageSetup()->setOrientation(PageSetup::ORIENTATION_LANDSCAPE)
+            ->setPaperSize(PageSetup::PAPERSIZE_LETTER)
+            ->setFitToWidth(1)->setFitToHeight(0);
+
+        return response()->streamDownload(function () use ($libro) {
+            (new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($libro))->save('php://output');
+        }, 'reporte_auxiliar_pollo_' . $fecha . '.xlsx', [
             'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
         ]);
     }

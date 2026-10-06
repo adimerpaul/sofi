@@ -14,7 +14,13 @@
       <q-btn
         dense flat no-caps icon="receipt_long"
         :label="pedidoOrigen ? 'Volver a pedidos' : 'Ver facturación'"
-        :to="pedidoOrigen ? '/facturacion/pedidos' : '/facturacion'"
+        :to="pedidoOrigen ? {
+          path: '/facturacion/pedidos',
+          query: {
+            fecha: String(pedidoOrigen.fecha_entrega || pedidoOrigen.fecha || '').substr(0, 10),
+            tipo: pedidoOrigen.tipo
+          }
+        } : '/facturacion'"
       />
     </div>
 

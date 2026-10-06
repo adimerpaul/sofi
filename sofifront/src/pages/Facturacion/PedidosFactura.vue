@@ -458,11 +458,14 @@ export default {
       })
     },
     revisar (pedido) {
-      // El camion viaja en la query para que el boton volver del detalle
-      // devuelva al listado con el mismo camion filtrado.
+      // Fecha y camion viajan en la query para que el boton volver del detalle
+      // devuelva al listado tal como estaba: la fecha elegida es la de
+      // entrega, que no siempre coincide con la del pedido.
+      const query = { fecha: this.fecha }
+      if (this.camion) query.camion = this.camion
       this.$router.push({
         path: '/facturacion/pedidos/' + pedido.nro_pedido + '/' + pedido.tipo,
-        query: this.camion ? { camion: this.camion } : {}
+        query
       })
     },
     // El comprobante se manda a la impresora desde aca, cuando el cajero lo

@@ -463,7 +463,11 @@ export default {
         .finally(() => { this.cargando = false })
     },
     volver () {
-      const query = { fecha: String(this.pedido?.fecha || '').substr(0, 10), tipo: this.tipoPedido }
+      // Vuelve a la fecha que estaba elegida en el listado; si se entro sin
+      // ella, a la de entrega del pedido, que es por la que filtra el listado.
+      const fecha = this.$route.query.fecha ||
+        String(this.pedido?.fecha_entrega || this.pedido?.fecha || '').substr(0, 10)
+      const query = { fecha, tipo: this.tipoPedido }
       // Se devuelve el camion con el que venia filtrado el listado.
       if (this.$route.query.camion) query.camion = this.$route.query.camion
       this.$router.push({ path: '/facturacion/pedidos', query })
