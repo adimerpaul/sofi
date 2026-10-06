@@ -598,6 +598,10 @@ class PedidoController extends Controller{
             ->whereRaw(\App\Services\TipoPedido::sql('p') . ' = ?', [$tipo])
             ->where('p.bonificacion', 0)
             ->groupBy('p.NroPed')
+            // Por ruta (el camion), para que las cabeceras de un mismo camion
+            // salgan juntas; los que no tienen camion van al final.
+            ->orderByRaw("MIN(TRIM(COALESCE(p.placa, ''))) = ''")
+            ->orderByRaw("MIN(TRIM(p.placa))")
             ->orderBy('p.NroPed')
             ->get([
                 'p.NroPed as nro',
