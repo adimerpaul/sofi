@@ -75,7 +75,7 @@
 
       <template v-slot:body-cell-acciones="props">
         <q-td :props="props" style="white-space: nowrap">
-          <q-btn dense flat round size="sm" icon="print" color="secondary" @click="imprimirCompra(props.row)">
+          <q-btn v-if="props.row.estado === 'ACTIVO'" dense flat round size="sm" icon="print" color="secondary" @click="imprimirCompra(props.row)">
             <q-tooltip>Imprimir compra con detalle</q-tooltip>
           </q-btn>
           <q-btn dense flat round size="sm" icon="visibility" color="primary" @click="verDetalle(props.row)">
@@ -285,9 +285,9 @@ export default {
       this.$api.get('compras/' + row.id)
         .then(res => {
           const compra = res.data
-          const filas = (compra.detalles || []).map(d => `<tr><td>${escaparHtml(d.cod_prod)}</td><td>${escaparHtml(d.nombre)}</td><td class="numero">${Number(d.cantidad || 0).toFixed(d.unidad === 'KG' ? 3 : 0)}</td><td class="numero">${Number(d.precio || 0).toFixed(2)}</td><td class="numero">${Number(d.subtotal || 0).toFixed(2)}</td><td>${escaparHtml(d.lote || '—')}</td><td>${escaparHtml(this.fechaCorta(d.fecha_vencimiento))}</td></tr>`).join('')
+          const filas = (compra.detalles || []).map(d => `<tr><td>${escaparHtml(d.cod_prod)}</td><td>${escaparHtml(d.nombre)}</td><td class="numero">${Number(d.cantidad || 0).toFixed(d.unidad === 'KG' ? 3 : 0)}</td><td class="numero">${Number(d.precio_producto || 0).toFixed(2)}</td><td class="numero">${Number(d.precio || 0).toFixed(2)}</td><td class="numero">${Number(d.subtotal || 0).toFixed(2)}</td><td>${escaparHtml(d.lote || '—')}</td><td>${escaparHtml(this.fechaCorta(d.fecha_vencimiento))}</td></tr>`).join('')
           const contenido = document.createElement('div')
-          contenido.innerHTML = `<h1>Compra #${escaparHtml(compra.id)}</h1><p><strong>Proveedor:</strong> ${escaparHtml(compra.proveedor || 'Sin proveedor')} &nbsp; <strong>NIT:</strong> ${escaparHtml(compra.nit || '—')}</p><p><strong>Fecha:</strong> ${escaparHtml(String(compra.fecha || '').substr(0, 10))} ${escaparHtml(compra.hora || '')} &nbsp; <strong>Factura:</strong> ${escaparHtml(compra.nro_factura || '—')} &nbsp; <strong>Pago:</strong> ${escaparHtml(compra.tipo_pago || '—')}</p><p><strong>Estado:</strong> ${escaparHtml(compra.estado || '—')}</p><table><thead><tr><th>Código</th><th>Producto</th><th>Cantidad</th><th>Costo (Bs)</th><th>Subtotal (Bs)</th><th>Lote</th><th>Vence</th></tr></thead><tbody>${filas}</tbody></table><div class="totales"><p>Subtotal: Bs ${Number(compra.subtotal || 0).toFixed(2)}</p><p>Descuento: Bs ${Number(compra.descuento || 0).toFixed(2)}</p><h2>Total: Bs ${Number(compra.total || 0).toFixed(2)}</h2></div>`
+          contenido.innerHTML = `<h1>Compra #${escaparHtml(compra.id)}</h1><p><strong>Proveedor:</strong> ${escaparHtml(compra.proveedor || 'Sin proveedor')} &nbsp; <strong>NIT:</strong> ${escaparHtml(compra.nit || '—')}</p><p><strong>Fecha:</strong> ${escaparHtml(String(compra.fecha || '').substr(0, 10))} ${escaparHtml(compra.hora || '')} &nbsp; <strong>Factura:</strong> ${escaparHtml(compra.nro_factura || '—')} &nbsp; <strong>Pago:</strong> ${escaparHtml(compra.tipo_pago || '—')}</p><table><thead><tr><th>Código</th><th>Producto</th><th>Cantidad</th><th>Precio producto (Bs)</th><th>Costo (Bs)</th><th>Subtotal (Bs)</th><th>Lote</th><th>Vence</th></tr></thead><tbody>${filas}</tbody></table><div class="totales"><p>Subtotal: Bs ${Number(compra.subtotal || 0).toFixed(2)}</p><p>Descuento: Bs ${Number(compra.descuento || 0).toFixed(2)}</p><h2>Total: Bs ${Number(compra.total || 0).toFixed(2)}</h2></div>`
           if (!impresoraCompras) impresoraCompras = new Printd()
           impresoraCompras.print(contenido, ['@page { size: A4 portrait; margin: 12mm; } body { font: 11px Arial, sans-serif; color: #111; } h1 { font-size: 20px; } h2 { font-size: 16px; } table { width: 100%; border-collapse: collapse; } th, td { border: 1px solid #bbb; padding: 5px; text-align: left; } th { background: #eee; } .numero { text-align: right; white-space: nowrap; } .totales { margin: 16px 0 0 auto; text-align: right; }'])
         })

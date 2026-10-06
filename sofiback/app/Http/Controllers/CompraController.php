@@ -58,11 +58,17 @@ class CompraController extends Controller
     /** Una compra con su detalle. */
     public function show($id)
     {
-        $compra = Compra::with(['detalles', 'usuario', 'proveedorRel'])->find($id);
+        $compra = Compra::with(['detalles.producto', 'usuario', 'proveedorRel'])->find($id);
 
         if (!$compra) {
             return response()->json(['message' => 'La compra no existe'], 404);
         }
+
+        $compra->detalles->each(function ($detalle) {
+            // Precio de venta actual tomado de tbproductos.Precio.
+            $detalle->setAttribute('precio_producto', $detalle->producto->Precio ?? null);
+            $detalle->unsetRelation('producto');
+        });
 
         return response()->json($compra);
     }
