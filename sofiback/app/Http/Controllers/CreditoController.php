@@ -259,7 +259,7 @@ class CreditoController extends Controller
         $abonos = DB::table('creditos_abonos')->whereNull('anulado_at')
             ->whereDate('created_at', '>=', $desde)->whereDate('created_at', '<=', $hasta)
             ->orderBy('created_at')->orderBy('id')
-            ->get(['id', 'origen', 'deuda_id', 'cliente_id', 'monto', 'forma_pago', 'referencia', 'created_at']);
+            ->get(['id', 'origen', 'deuda_id', 'cliente_id', 'monto', 'monto_efectivo', 'monto_qr', 'forma_pago', 'referencia', 'created_at']);
 
         // De la deuda salen la comanda, el vendedor y si era factura, con el
         // mismo criterio que el Excel de deudores.
@@ -291,6 +291,8 @@ class CreditoController extends Controller
                     : ($cliente ? $vendedores->get(trim((string) $cliente->CiVend), '') : ''),
                 'cliente' => trim((string) ($cliente->Nombres ?? ($d->cliente ?? ''))),
                 'pago' => (float) $a->monto,
+                'efectivo' => (float) $a->monto_efectivo,
+                'qr' => (float) $a->monto_qr,
                 'comanda' => $comanda,
                 'factura' => $a->origen === 'factura' && $d && ($d->tipo_comprobante ?? '') === 'FACTURA' ? 'SI' : 'NO',
             ];
@@ -308,22 +310,26 @@ class CreditoController extends Controller
             $fila += 2;
 
             foreach ($delDia->groupBy('deposito') as $deposito => $grupo) {
-                $hoja->fromArray(['vendedor', 'cliente', 'pago', 'comanda', 'factura'], null, 'A' . $fila);
-                $hoja->getStyle("A{$fila}:E{$fila}")->applyFromArray($borde);
+                $hoja->fromArray(['vendedor', 'cliente', 'pago', 'efectivo', 'qr', 'comanda', 'factura'], null, 'A' . $fila);
+                $hoja->getStyle("A{$fila}:G{$fila}")->applyFromArray($borde);
                 $desdeFila = ++$fila;
                 foreach ($grupo as $f) {
                     $hoja->setCellValueExplicit('A' . $fila, $f['vendedor'], \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
                     $hoja->setCellValueExplicit('B' . $fila, $f['cliente'], \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
                     $hoja->setCellValue('C' . $fila, $f['pago']);
-                    $hoja->setCellValue('D' . $fila, $f['comanda']);
-                    $hoja->setCellValue('E' . $fila, $f['factura']);
+                    $hoja->setCellValue('D' . $fila, $f['efectivo']);
+                    $hoja->setCellValue('E' . $fila, $f['qr']);
+                    $hoja->setCellValue('F' . $fila, $f['comanda']);
+                    $hoja->setCellValue('G' . $fila, $f['factura']);
                     $fila++;
                 }
-                $hoja->getStyle('A' . $desdeFila . ':E' . ($fila - 1))->applyFromArray($borde);
-                // Total del deposito bajo la columna pago y, al lado, la boleta.
-                $hoja->setCellValue('C' . $fila, '=SUM(C' . $desdeFila . ':C' . ($fila - 1) . ')');
-                $hoja->getStyle('C' . $fila)->applyFromArray($borde)->getFont()->setBold(true);
-                $hoja->setCellValue('E' . $fila, $deposito);
+                $hoja->getStyle('A' . $desdeFila . ':G' . ($fila - 1))->applyFromArray($borde);
+                // Total del deposito bajo pago, efectivo y qr y, al lado, la boleta.
+                foreach (['C', 'D', 'E'] as $col) {
+                    $hoja->setCellValue($col . $fila, '=SUM(' . $col . $desdeFila . ':' . $col . ($fila - 1) . ')');
+                    $hoja->getStyle($col . $fila)->applyFromArray($borde)->getFont()->setBold(true);
+                }
+                $hoja->setCellValue('G' . $fila, $deposito);
                 $fila += 3;
             }
         }
@@ -335,14 +341,19 @@ class CreditoController extends Controller
             // Total de todo el rango, por si se sacan varios dias juntos.
             $hoja->setCellValue('B' . $fila, 'TOTAL COBRADO');
             $hoja->setCellValue('C' . $fila, round($filas->sum('pago'), 2));
-            $hoja->getStyle("B{$fila}:C{$fila}")->getFont()->setBold(true);
+            $hoja->setCellValue('D' . $fila, round($filas->sum('efectivo'), 2));
+            $hoja->setCellValue('E' . $fila, round($filas->sum('qr'), 2));
+            $hoja->getStyle("B{$fila}:E{$fila}")->getFont()->setBold(true);
+            $hoja->setCellValue('C' . ($fila - 1), 'pago');
+            $hoja->setCellValue('D' . ($fila - 1), 'efectivo');
+            $hoja->setCellValue('E' . ($fila - 1), 'qr');
             $fila += 2;
         }
         $usuario = $request->user();
         $hoja->setCellValue('A' . $fila, 'ELABORADO POR ' . strtoupper(trim(($usuario->Nombre1 ?? '') . ' ' . ($usuario->App1 ?? ''))));
 
-        $hoja->getStyle('C1:C' . $fila)->getNumberFormat()->setFormatCode('#,##0.00');
-        foreach (['A' => 32, 'B' => 40, 'C' => 12, 'D' => 12, 'E' => 18] as $col => $ancho) {
+        $hoja->getStyle('C1:E' . $fila)->getNumberFormat()->setFormatCode('#,##0.00');
+        foreach (['A' => 32, 'B' => 40, 'C' => 12, 'D' => 12, 'E' => 12, 'F' => 12, 'G' => 18] as $col => $ancho) {
             $hoja->getColumnDimension($col)->setWidth($ancho);
         }
         $hoja->getPageSetup()->setPaperSize(\PhpOffice\PhpSpreadsheet\Worksheet\PageSetup::PAPERSIZE_LETTER)
@@ -427,7 +438,7 @@ class CreditoController extends Controller
                 ->leftJoin('personal as p', 'p.CodAut', '=', 'a.user_id')
                 ->leftJoin('personal as anu', 'anu.CodAut', '=', 'a.anulado_por')
                 ->where('a.cliente_id', $id)->orderByDesc('a.created_at')->orderByDesc('a.id')
-                ->get(['a.id', 'a.origen', 'a.deuda_id', 'a.monto', 'a.forma_pago', 'a.referencia', 'a.created_at',
+                ->get(['a.id', 'a.origen', 'a.deuda_id', 'a.monto', 'a.monto_efectivo', 'a.monto_qr', 'a.forma_pago', 'a.referencia', 'a.created_at',
                     'a.anulado_at', 'a.motivo_anulacion',
                     DB::raw("TRIM(CONCAT(COALESCE(p.Nombre1, ''), ' ', COALESCE(p.App1, ''))) as cobrador"),
                     DB::raw("TRIM(CONCAT(COALESCE(anu.Nombre1, ''), ' ', COALESCE(anu.App1, ''))) as anulado_por")]),
@@ -537,7 +548,7 @@ class CreditoController extends Controller
         abort_unless(in_array($origen, ['factura', 'manual'], true), 404);
         return DB::table('creditos_abonos as a')->leftJoin('personal as p', 'p.CodAut', '=', 'a.user_id')
             ->where('a.origen', $origen)->where('a.deuda_id', $id)->whereNull('a.anulado_at')->orderByDesc('a.id')
-            ->get(['a.id', 'a.monto', 'a.forma_pago', 'a.referencia', 'a.created_at',
+            ->get(['a.id', 'a.monto', 'a.monto_efectivo', 'a.monto_qr', 'a.forma_pago', 'a.referencia', 'a.created_at',
                 DB::raw("TRIM(CONCAT(COALESCE(p.Nombre1, ''), ' ', COALESCE(p.App1, ''))) as cobrador")]);
     }
 
@@ -546,9 +557,27 @@ class CreditoController extends Controller
         abort_unless(in_array($origen, ['factura', 'manual'], true), 404);
         $datos = $request->validate([
             'monto' => ['required', 'numeric', 'min:0.01', 'max:9999999999.99', 'regex:/^\d+(\.\d{1,2})?$/'],
-            'forma_pago' => 'required|in:EFECTIVO,QR,TRANSFERENCIA',
+            'forma_pago' => 'required|in:EFECTIVO,QR,MIXTO',
+            'monto_efectivo' => 'nullable|numeric|min:0',
+            'monto_qr' => 'nullable|numeric|min:0',
             'referencia' => 'nullable|string|max:100', 'solicitud_id' => 'required|uuid',
         ]);
+        // Cuanto entro por cada lado: en efectivo o QR va todo a uno; en el
+        // mixto tienen que venir los dos y sumar el abono.
+        $centavos = function ($v) { return (int) round((float) $v * 100); };
+        if ($datos['forma_pago'] === 'MIXTO') {
+            if ($centavos($datos['monto_efectivo'] ?? 0) <= 0 || $centavos($datos['monto_qr'] ?? 0) <= 0) {
+                throw ValidationException::withMessages(['monto_efectivo' => 'En un pago mixto indicá cuánto fue en efectivo y cuánto por QR.']);
+            }
+            if ($centavos($datos['monto_efectivo']) + $centavos($datos['monto_qr']) !== $centavos($datos['monto'])) {
+                throw ValidationException::withMessages(['monto' => 'Efectivo + QR tiene que sumar el monto del abono.']);
+            }
+            $datos['monto_efectivo'] = round((float) $datos['monto_efectivo'], 2);
+            $datos['monto_qr'] = round((float) $datos['monto_qr'], 2);
+        } else {
+            $datos['monto_efectivo'] = $datos['forma_pago'] === 'EFECTIVO' ? round((float) $datos['monto'], 2) : 0;
+            $datos['monto_qr'] = $datos['forma_pago'] === 'QR' ? round((float) $datos['monto'], 2) : 0;
+        }
         return DB::transaction(function () use ($datos, $request, $origen, $id) {
             $deuda = DB::table($origen === 'factura' ? 'facturas' : 'creditos_manuales')->where('id', $id)->lockForUpdate()->first();
             abort_unless($deuda, 404);
@@ -558,6 +587,8 @@ class CreditoController extends Controller
                     && (int) $previo->user_id === (int) $request->user()->CodAut
                     && (float) $previo->monto === (float) $datos['monto']
                     && $previo->forma_pago === $datos['forma_pago']
+                    && (float) $previo->monto_efectivo === (float) $datos['monto_efectivo']
+                    && (float) $previo->monto_qr === (float) $datos['monto_qr']
                     && (string) $previo->referencia === (string) ($datos['referencia'] ?? ''), 409,
                     'Esta solicitud ya fue registrada con otros datos. Cierre el formulario y actualice.');
                 return response()->json(['id' => $previo->id]);

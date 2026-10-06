@@ -369,8 +369,25 @@
         <q-form @submit="guardarAbono">
           <q-card-section><div class="text-h6">Cobrar abono</div>{{ seleccion.cliente }} · {{ seleccion.concepto }}<div>Saldo: <b>Bs {{ money(seleccion.saldo) }}</b></div></q-card-section>
           <q-card-section class="q-gutter-md">
-            <q-input v-model="abono.monto" outlined type="number" step="0.01" min="0.01" :max="seleccion.saldo" label="Monto a cobrar Bs" :rules="[montoValido, v => Number(v) <= seleccion.saldo || 'Supera el saldo']"/>
-            <q-select v-model="abono.forma_pago" outlined label="Forma de pago" :options="['EFECTIVO', 'QR', 'TRANSFERENCIA']"/>
+            <q-select v-model="abono.forma_pago" outlined label="Forma de pago" :options="['EFECTIVO', 'QR', 'MIXTO']"/>
+            <!-- En el mixto se anota cuanto entro por cada lado y el abono es la suma. -->
+            <div v-if="abono.forma_pago === 'MIXTO'" class="row q-col-gutter-sm">
+              <div class="col-6">
+                <q-input v-model="abono.monto_efectivo" outlined type="number" step="0.01" min="0.01" label="Monto efectivo Bs"
+                         :rules="[montoValido]"/>
+              </div>
+              <div class="col-6">
+                <q-input v-model="abono.monto_qr" outlined type="number" step="0.01" min="0.01" label="Monto QR Bs"
+                         :rules="[montoValido]"/>
+              </div>
+              <div class="col-12 text-body2" :class="sumaMixto > seleccion.saldo + 0.001 ? 'text-negative' : 'text-grey-8'">
+                Total del abono: <b>Bs {{ money(sumaMixto) }}</b>
+                <span v-if="sumaMixto > seleccion.saldo + 0.001"> · supera el saldo</span>
+              </div>
+            </div>
+            <q-input v-else v-model="abono.monto" outlined type="number" step="0.01" min="0.01" :max="seleccion.saldo"
+                     :label="abono.forma_pago === 'QR' ? 'Monto QR Bs' : 'Monto efectivo Bs'"
+                     :rules="[montoValido, v => Number(v) <= seleccion.saldo || 'Supera el saldo']"/>
             <q-input v-model="abono.referencia" outlined label="Boleta / referencia" maxlength="100"/>
           </q-card-section>
           <q-card-actions align="right"><q-btn flat label="Cancelar" :disable="guardando" v-close-popup/><q-btn color="positive" type="submit" label="Registrar cobro" :loading="guardando"/></q-card-actions>
@@ -472,6 +489,8 @@ export default {
         { name: 'created_at', label: 'Fecha', field: 'created_at', align: 'left' },
         { name: 'monto', label: 'Monto Bs', field: 'monto', align: 'right', sortable: true, format: v => this.money(v) },
         { name: 'forma_pago', label: 'Pago', field: 'forma_pago' },
+        { name: 'monto_efectivo', label: 'Efectivo Bs', field: 'monto_efectivo', align: 'right', format: v => Number(v) ? this.money(v) : '' },
+        { name: 'monto_qr', label: 'QR Bs', field: 'monto_qr', align: 'right', format: v => Number(v) ? this.money(v) : '' },
         { name: 'referencia', label: 'Boleta / referencia', field: 'referencia' },
         { name: 'cobrador', label: 'Cobrador', field: 'cobrador' },
         { name: 'anular', label: '', field: 'id', align: 'right' }
@@ -479,6 +498,10 @@ export default {
     }
   },
   computed: {
+    // Total de un abono mixto: efectivo + QR.
+    sumaMixto () {
+      return Math.round((Number(this.abono.monto_efectivo || 0) + Number(this.abono.monto_qr || 0)) * 100) / 100
+    },
     abonosPorDeuda () {
       return (this.detalle.abonos || []).reduce((grupos, abono) => {
         const clave = abono.origen + ':' + abono.deuda_id
@@ -660,14 +683,26 @@ export default {
     },
     abrirAbono (fila) {
       this.seleccion = fila
-      this.abono = { monto: '', forma_pago: 'EFECTIVO', referencia: '', solicitud_id: uid() }
+      this.abono = { monto: '', monto_efectivo: '', monto_qr: '', forma_pago: 'EFECTIVO', referencia: '', solicitud_id: uid() }
       this.dialogAbono = true
     },
     async guardarAbono () {
       if (this.guardando) return
+      const mixto = this.abono.forma_pago === 'MIXTO'
+      if (mixto && this.sumaMixto > this.seleccion.saldo + 0.001) {
+        this.$q.notify({ type: 'negative', message: 'Efectivo + QR supera el saldo' })
+        return
+      }
+      // El backend reparte efectivo y QR; en el mixto el abono es la suma.
+      const datos = {
+        ...this.abono,
+        monto: mixto ? this.sumaMixto.toFixed(2) : this.abono.monto,
+        monto_efectivo: mixto ? this.abono.monto_efectivo : null,
+        monto_qr: mixto ? this.abono.monto_qr : null
+      }
       this.guardando = true
       try {
-        await this.$api.post(`creditos/${this.seleccion.origen}/${this.seleccion.id}/abonos`, this.abono)
+        await this.$api.post(`creditos/${this.seleccion.origen}/${this.seleccion.id}/abonos`, datos)
         this.dialogAbono = false
         this.$q.notify({ type: 'positive', message: 'Abono registrado y saldo actualizado' })
         // Se refrescan el detalle abierto y la lista, que muestra la deuda.
