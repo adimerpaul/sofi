@@ -59,6 +59,17 @@ class RecojoDelDia
             $consulta->where('e.placa', trim($placa));
         }
 
+        // Lo de un comprobante anulado (o borrado) no sale: si se volvio a
+        // emitir, la nota nueva trae su propia entrega y saldria repetida; si
+        // se anulo el pedido, ya no hay nada que rendir.
+        $consulta->whereNotExists(function ($sub) {
+            $sub->from('facturas as fa')
+                ->whereColumn('fa.id', 'e.factura_id')
+                ->where(function ($w) {
+                    $w->where('fa.estado', 'ANULADO')->orWhereNotNull('fa.deleted_at');
+                });
+        });
+
         // Un NO ENTREGADO se puede corregir despues entregando: de cada
         // comprobante vale solo su ultima entrega, si no la nota saldria a la
         // vez en anulados y en lo cobrado. Las de la ruta de siempre no tienen
