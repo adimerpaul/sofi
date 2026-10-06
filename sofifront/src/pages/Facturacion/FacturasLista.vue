@@ -188,10 +188,10 @@
            pedidos por facturar; tocando se filtra a ese camion. -->
       <div v-if="camiones.length" class="q-mt-sm rounded-borders camion-caja">
         <div class="row items-center no-wrap q-px-xs bg-grey-3 camion-titulo">
-          <div class="text-weight-bold text-grey-8">PEDIDOS FACTURADOS POR CAMIÓN</div>
+          <div class="text-weight-bold text-grey-8">CARGA VERIFICADA POR CAMIÓN</div>
           <q-space/>
-          <div class="text-weight-bolder" :class="facturadosTotal === pedidosTotal ? 'text-green-9' : 'text-orange-9'">
-            {{ facturadosTotal }}/{{ pedidosTotal }} · {{ porcentajeTotal }}%
+          <div class="text-weight-bolder" :class="verificadosTotal === pedidosTotal ? 'text-green-9' : 'text-orange-9'">
+            {{ verificadosTotal }}/{{ pedidosTotal }} · {{ porcentajeTotal }}%
           </div>
           <q-btn v-if="filtros.camion" flat dense no-caps size="sm" padding="0 4px" class="q-ml-xs" color="primary"
                  icon="clear" label="Todos" @click="alternarCamion(filtros.camion)"/>
@@ -214,7 +214,7 @@
             </div>
           </q-linear-progress>
           <div class="camion-conteo" :class="opcion.completo ? 'text-green-9' : 'text-grey-9'">
-            {{ opcion.facturados }}/{{ opcion.total }}
+            {{ opcion.verificados }}/{{ opcion.total }}
           </div>
         </div>
       </div>
@@ -985,8 +985,8 @@ export default {
     pedidosTotal () {
       return this.camiones.reduce((suma, fila) => suma + fila.total, 0)
     },
-    facturadosTotal () {
-      return this.camiones.reduce((suma, fila) => suma + fila.facturados, 0)
+    verificadosTotal () {
+      return this.camiones.reduce((suma, fila) => suma + fila.verificados, 0)
     },
     seleccionadasPorRevisar () {
       return this.seleccionadas.filter(row => row.estado !== 'ANULADO' && this.puedeRevisar(row))
@@ -996,7 +996,7 @@ export default {
       return this.seleccionadas.filter(row => row.estado !== 'ANULADO')
     },
     porcentajeTotal () {
-      return this.pedidosTotal ? Math.round((this.facturadosTotal / this.pedidosTotal) * 100) : 0
+      return this.pedidosTotal ? Math.round((this.verificadosTotal / this.pedidosTotal) * 100) : 0
     },
     /**
      * El dia que se esta mirando, para lo que es de un solo dia (camiones y
@@ -1341,16 +1341,17 @@ export default {
       this.$api.get('facturacion/camiones', { params: this.paramsFiltro() })
         .then(res => {
           this.camiones = res.data.map(fila => {
-            const progreso = fila.total ? fila.facturados / fila.total : 0
+            const progreso = fila.total ? (fila.verificados || 0) / fila.total : 0
             return {
               value: fila.placa,
               placa: fila.placa === 'SIN' ? 'Sin camion' : fila.placa,
               color: fila.color,
               total: fila.total,
               facturados: fila.facturados,
+              verificados: fila.verificados || 0,
               progreso,
               porcentaje: Math.round(progreso * 100),
-              completo: fila.total > 0 && fila.facturados === fila.total
+              completo: fila.total > 0 && fila.verificados === fila.total
             }
           }).sort((uno, otro) => {
             // Lo que falta facturar arriba; completos y "sin camion" al fondo.

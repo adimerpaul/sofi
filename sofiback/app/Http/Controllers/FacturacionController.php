@@ -401,18 +401,61 @@ class FacturacionController extends Controller
                 $placa = trim($f->placa);
                 return (object) ['placa' => $placa, 'color' => (string) $colores->get($placa, ''), 'factura_id' => $f->id];
             });
+        // Que comprobantes ya tienen la canasta revisada por el caminero. La
+        // venta directa no pasa por el caminero: no tiene nada que revisar.
+        $revisados = $this->cargaRevisada($pedidos->pluck('factura_id')->filter()->all());
+        foreach ($directas as $directa) {
+            $revisados[$directa->factura_id] = true;
+        }
         $pedidos = $pedidos->concat($directas);
 
         return $pedidos->groupBy(function ($pedido) {
             return $pedido->placa !== '' ? $pedido->placa : 'SIN';
-        })->map(function ($grupo, $placa) {
+        })->map(function ($grupo, $placa) use ($revisados) {
             return [
-                'placa'      => $placa,
-                'color'      => (string) optional($grupo->firstWhere('color', '!=', ''))->color,
-                'total'      => $grupo->count(),
-                'facturados' => $grupo->whereNotNull('factura_id')->count(),
+                'placa'       => $placa,
+                'color'       => (string) optional($grupo->firstWhere('color', '!=', ''))->color,
+                'total'       => $grupo->count(),
+                'facturados'  => $grupo->whereNotNull('factura_id')->count(),
+                'verificados' => $grupo->filter(function ($pedido) use ($revisados) {
+                    return $pedido->factura_id && isset($revisados[$pedido->factura_id]);
+                })->count(),
             ];
         })->values();
+    }
+
+    /**
+     * De esos comprobantes, los que tienen la canasta revisada (verificada u
+     * observada) y sin cambios despues: el mismo criterio que la columna
+     * Carga (estadoCarga). Devuelve [factura_id => true].
+     */
+    private function cargaRevisada(array $ids): array
+    {
+        if (!$ids) {
+            return [];
+        }
+
+        $lineas = DB::table('factura_detalles')
+            ->whereIn('factura_id', $ids)
+            ->whereNull('deleted_at')
+            ->groupBy('factura_id')
+            ->pluck(DB::raw('COUNT(*) as n'), 'factura_id');
+
+        return DB::table('carga_verificaciones as v')
+            ->join('facturas as f', 'f.id', '=', 'v.factura_id')
+            ->whereIn('v.factura_id', $ids)
+            ->where('v.verificado', 1)
+            ->get(['v.factura_id', 'v.items_esperados', 'v.total_esperado', 'f.total'])
+            ->filter(function ($marca) use ($lineas) {
+                // Si despues del visto bueno cambiaron la venta, la canasta ya
+                // no es la que se reviso: vuelve a contar como pendiente.
+                return (int) $marca->items_esperados === (int) $lineas->get($marca->factura_id, 0)
+                    && abs((float) $marca->total_esperado - (float) $marca->total) <= 0.01;
+            })
+            ->mapWithKeys(function ($marca) {
+                return [$marca->factura_id => true];
+            })
+            ->all();
     }
 
     /**
