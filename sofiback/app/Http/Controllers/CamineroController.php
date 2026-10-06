@@ -582,7 +582,10 @@ class CamineroController extends Controller
         $fecha = $datos['fecha'] ?? date('Y-m-d');
         $grupo = $datos['grupo'] ?? 'todos';
 
-        if (!in_array($grupo, ['todos', 'tabla'], true) && !isset(RecojoDelDia::HOJAS[$grupo])) {
+        // El caminero solo imprime lo cobrado: contados y QR. Creditos y
+        // anulados no son plata que rinde, se ven desde cobranzas.
+        $hojasCobro = ['contados', 'qr'];
+        if (!in_array($grupo, array_merge(['todos', 'tabla'], $hojasCobro), true)) {
             return response()->json(['message' => 'Esa hoja no existe'], 422);
         }
 
@@ -606,7 +609,7 @@ class CamineroController extends Controller
             return $this->pdf($recojo->tablaHtml($fecha, $caminero, $placa, $cobradas), 'recojo_tabla_' . $fecha);
         }
 
-        $claves = $grupo === 'todos' ? array_keys(RecojoDelDia::HOJAS) : [$grupo];
+        $claves = $grupo === 'todos' ? $hojasCobro : [$grupo];
         $hojas = [];
 
         foreach ($claves as $clave) {

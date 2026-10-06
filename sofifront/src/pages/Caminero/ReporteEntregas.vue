@@ -11,7 +11,7 @@
         </q-btn>
       </div>
       <!-- Cada hoja se imprime y se firma por separado, igual que en papel:
-           el caminero entrega la de contados, la de QR y la de créditos.
+           el caminero entrega la de contados y la de QR (solo lo cobrado).
            No hay hoja de mixtos: esa nota va en las dos hojas de cobro. -->
       <div class="col-auto">
         <q-btn-dropdown
@@ -24,7 +24,7 @@
               <q-item-section avatar><q-icon name="table_view" color="primary"/></q-item-section>
               <q-item-section>
                 <b>Tabla del día</b>
-                <q-item-label caption>Solo la tabla con efectivo, QR y crédito</q-item-label>
+                <q-item-label caption>Solo las notas cobradas (efectivo y QR)</q-item-label>
               </q-item-section>
             </q-item>
 
@@ -35,7 +35,7 @@
               <q-item-section avatar><q-icon name="print" color="grey-7"/></q-item-section>
               <q-item-section>
                 Todas las hojas
-                <q-item-label caption>Una por forma de pago, sin las vacías</q-item-label>
+                <q-item-label caption>Contados y QR, sin las vacías</q-item-label>
               </q-item-section>
             </q-item>
 
@@ -146,9 +146,7 @@ export default {
     secciones () {
       return [
         { clave: 'contados', titulo: 'CONTADOS DEL DÍA', icono: 'payments', color: 'green-8', fondo: 'bg-green-2 text-green-10', filas: this.grupos.contados, total: this.totales.contados },
-        { clave: 'qr', titulo: 'PAGOS QR', icono: 'qr_code_2', color: 'indigo-8', fondo: 'bg-indigo-2 text-indigo-10', filas: this.grupos.qr, total: this.totales.qr },
-        { clave: 'creditos', titulo: 'CRÉDITOS', icono: 'schedule', color: 'blue-grey-8', fondo: 'bg-blue-grey-2 text-blue-grey-10', filas: this.grupos.creditos, total: this.totales.creditos },
-        { clave: 'anulados', titulo: 'ANULADOS', icono: 'cancel', color: 'red-8', fondo: 'bg-red-2 text-red-10', filas: this.grupos.anulados, total: this.totales.anulados }
+        { clave: 'qr', titulo: 'PAGOS QR', icono: 'qr_code_2', color: 'indigo-8', fondo: 'bg-indigo-2 text-indigo-10', filas: this.grupos.qr, total: this.totales.qr }
       ]
     },
     fechaLarga () {
