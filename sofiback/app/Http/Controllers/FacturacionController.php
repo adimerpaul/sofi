@@ -261,6 +261,12 @@ class FacturacionController extends Controller
         if ($estado = $request->input('estado')) {
             $query->where('estado', $estado);
         }
+        // Tipo del pedido (embutidos, pollo, cerdo, res, podium y huevo). La
+        // venta directa no tiene pedido y no entra al filtrar por tipo.
+        $pedidoTipo = strtoupper(trim((string) $request->input('pedido_tipo', '')));
+        if (in_array($pedidoTipo, TipoPedido::TIPOS, true)) {
+            $query->whereRaw('UPPER(TRIM(facturas.pedido_tipo)) = ?', [$pedidoTipo]);
+        }
 
         // El camion se filtra por los pedidos que salieron en esa placa. La
         // subconsulta se queda dentro de tbpedidos a proposito: cruzar textos
@@ -408,7 +414,9 @@ class FacturacionController extends Controller
             'camion' => 'required|string|max:100',
         ]);
 
-        return (new CargaCamion())->estado($datos['fecha'], trim($datos['camion']));
+        return (new CargaCamion())->estado($datos['fecha'], trim($datos['camion']))
+            // La pantalla avisa distinto si la carga sin verificar frena o no.
+            + ['bloquea_impresion' => (bool) config('facturacion.exigir_carga_verificada')];
     }
 
     /**
@@ -576,6 +584,11 @@ class FacturacionController extends Controller
      */
     private function bloqueoCarga(Factura $factura)
     {
+        // Mientras la verificacion esta a prueba no frena la impresion.
+        if (!config('facturacion.exigir_carga_verificada')) {
+            return null;
+        }
+
         $placa = $this->camionDeFactura($factura);
         if ($placa === '') {
             return null;
@@ -598,6 +611,11 @@ class FacturacionController extends Controller
     /** Placas del lote cuya carga sigue sin revisar, sin repetirse. */
     private function camionesSinVerificar($facturas)
     {
+        // Mientras la verificacion esta a prueba no frena la impresion.
+        if (!config('facturacion.exigir_carga_verificada')) {
+            return [];
+        }
+
         $carga = new CargaCamion();
         $estados = [];
 

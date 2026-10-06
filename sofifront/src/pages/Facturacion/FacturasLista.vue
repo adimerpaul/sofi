@@ -155,6 +155,12 @@
         </div>
         <div class="col-6 col-md-2">
           <q-select
+            v-model="filtros.pedidoTipo" dense outlined clearable emit-value map-options
+            label="Tipo de pedido" :options="tiposPedido" @update:model-value="recargar"
+          />
+        </div>
+        <div class="col-6 col-md-2">
+          <q-select
             v-model="filtros.estado" dense outlined clearable
             label="Estado" :options="['ACTIVO', 'ANULADO']"
           />
@@ -211,7 +217,10 @@
         :class="carga.completo ? 'bg-green-1 text-green-10' : 'bg-orange-1 text-orange-10'"
       >
         <template v-slot:avatar>
-          <q-icon :name="carga.completo ? 'verified' : 'lock'" :color="carga.completo ? 'green-8' : 'orange-9'"/>
+          <q-icon
+            :name="carga.completo ? 'verified' : (carga.bloquea_impresion ? 'lock' : 'pending_actions')"
+            :color="carga.completo ? 'green-8' : 'orange-9'"
+          />
         </template>
         <template v-if="carga.completo">
           Carga del camión {{ carga.placa }} verificada por {{ carga.verificado_por || 'el caminero' }}
@@ -223,8 +232,9 @@
         </template>
         <template v-else>
           El camión {{ carga.placa }} todavía no verificó su carga
-          ({{ carga.verificados }}/{{ carga.comprobantes }} canastas): sus facturas y vouchers
-          no se pueden imprimir hasta que el caminero termine de revisarla.
+          ({{ carga.verificados }}/{{ carga.comprobantes }} canastas)<template v-if="carga.bloquea_impresion">: sus facturas y vouchers
+          no se pueden imprimir hasta que el caminero termine de revisarla.</template><template v-else>.
+          La verificación está a prueba: se puede imprimir igual.</template>
         </template>
         <!-- Atajo de caja: aprueba todas las canastas del camion de una vez. -->
         <template v-if="!carga.completo && can('facturacionAprobarCarga')" v-slot:action>
@@ -848,7 +858,7 @@ import { imprimirPdfDirecto } from 'src/utils/impresion.js'
 
 function filtrosPorDefecto () {
   const hoy = date.formatDate(new Date(), 'YYYY-MM-DD')
-  return { desde: hoy, hasta: hoy, buscar: '', tipo: null, estado: null, camion: null }
+  return { desde: hoy, hasta: hoy, buscar: '', tipo: null, pedidoTipo: null, estado: null, camion: null }
 }
 
 /**
@@ -900,6 +910,14 @@ export default {
         { label: 'Todos', valor: null, clave: 'TODOS', icono: 'list', color: 'primary' },
         { label: 'Facturas', valor: 'FACTURA', clave: 'FACTURA', icono: 'verified', color: 'green-7' },
         { label: 'Vouchers', valor: 'VENTA', clave: 'VENTA', icono: 'receipt', color: 'blue-grey-6' }
+      ],
+      // Los mismos tipos que en pedidos por facturar (TipoPedido en el backend).
+      tiposPedido: [
+        { label: 'Embutidos', value: 'NORMAL' },
+        { label: 'Pollo', value: 'POLLO' },
+        { label: 'Cerdo', value: 'CERDO' },
+        { label: 'Res', value: 'RES' },
+        { label: 'Podium y Huevo', value: 'PODIUM' }
       ],
       // Cuantos comprobantes de cada tipo hay con los filtros puestos; el
       // backend los cuenta ignorando el chip elegido.
@@ -1166,6 +1184,7 @@ export default {
         hasta: this.filtros.hasta || '',
         buscar: this.filtros.buscar || '',
         tipo: this.filtros.tipo || '',
+        pedido_tipo: this.filtros.pedidoTipo || '',
         estado: this.filtros.estado || '',
         camion: this.filtros.camion || ''
       }
