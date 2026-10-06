@@ -20,8 +20,8 @@
 
     <q-banner v-if="pedidoOrigen" dense rounded class="bg-blue-1 text-blue-9 q-mb-md">
       <template v-slot:avatar><q-icon name="assignment_turned_in"/></template>
-      Pedido {{ ({ NORMAL: 'EMBUTIDOS', PODIUM: 'PODIUM Y HUEVO' })[pedidoOrigen.tipo] || pedidoOrigen.tipo }} del
-      {{ String(pedidoOrigen.fecha || '').substr(0, 10) }} · Preventista {{ pedidoOrigen.vendedor || pedidoOrigen.vendedor_ci || '—' }}.
+      Pedido {{ ({ NORMAL: 'EMBUTIDOS', PODIUM: 'PODIUM Y HUEVO' })[pedidoOrigen.tipo] || pedidoOrigen.tipo }} para entregar el
+      {{ String(pedidoOrigen.fecha_entrega || pedidoOrigen.fecha || '').substr(0, 10) }} · Preventista {{ pedidoOrigen.vendedor || pedidoOrigen.vendedor_ci || '—' }}.
       Puedes quitar productos, agregar otros del catálogo y cambiar cantidades o precios.
     </q-banner>
 
@@ -845,7 +845,7 @@ export default {
           setTimeout(() => this.$router.push({
             path: '/facturacion/pedidos',
             query: {
-              fecha: String(this.pedidoOrigen.fecha || '').substr(0, 10),
+              fecha: String(this.pedidoOrigen.fecha_entrega || this.pedidoOrigen.fecha || '').substr(0, 10),
               tipo: this.pedidoOrigen.tipo
             }
           }), 1000)
