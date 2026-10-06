@@ -399,7 +399,7 @@ class CreditoController extends Controller
         $titulos = [];
         foreach ($grupos as $cobrador => $cobros) {
             // Una hoja con lo cobrado en efectivo y otra con lo cobrado por
-            // QR. Un pago mixto sale en las dos, cada una con su parte.
+            // QR. Un pago mixto suma en las dos, cada una con su parte.
             $secciones = ['efectivo' => 'EFECTIVO', 'qr' => 'QR'];
             foreach ($secciones as $campo => $nombreSeccion) {
                 // Con un solo cajero las hojas se llaman EFECTIVO y QR; con
@@ -416,55 +416,28 @@ class CreditoController extends Controller
                 $hoja->setTitle($titulo);
 
                 $hoja->setCellValue('A1', 'CIERRE DE CAJA - COBROS ' . ($campo === 'qr' ? 'POR QR' : 'EN EFECTIVO'));
-                $hoja->mergeCells('A1:E1');
+                $hoja->mergeCells('A1:B1');
                 $hoja->getStyle('A1')->getFont()->setBold(true)->setSize(15);
                 $hoja->getStyle('A1')->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
-                $hoja->setCellValue('A3', 'Fecha:');
-                $hoja->setCellValue('B3', $rango);
-                $hoja->setCellValue('D3', 'Cajero: ' . $cobrador);
-                $hoja->getStyle('A3:E3')->getFont()->setBold(true);
+                $hoja->fromArray([['Fecha:', $rango], ['Cajero:', $cobrador]], null, 'A3');
+                $hoja->getStyle('A3:A4')->getFont()->setBold(true);
 
-                $hoja->fromArray(['Hora', 'Coman', 'Cliente', 'Descripción', 'Monto'], null, 'A5');
-                $hoja->getStyle('A5:E5')->applyFromArray($borde + ['font' => ['bold' => true], 'fill' => $gris]);
-
-                $fila = 6;
+                // Solo el total, sin el detalle de cada cobro ni los clientes.
                 $deLaSeccion = $cobros->filter(function ($c) use ($campo) { return $c[$campo] > 0; });
-                foreach ($deLaSeccion as $c) {
-                    $mixto = $c['efectivo'] > 0 && $c['qr'] > 0;
-                    $hoja->setCellValue('A' . $fila, $c['hora']);
-                    $hoja->setCellValue('B' . $fila, $c['comanda']);
-                    $hoja->setCellValueExplicit('C' . $fila, $c['cliente'], \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
-                    $hoja->setCellValueExplicit('D' . $fila, trim('ABONO A CUENTA ' . $c['concepto']
-                        . ($c['referencia'] !== '' ? ' · ' . $c['referencia'] : '')
-                        . ($mixto ? ' (pago mixto, total ' . number_format($c['pago'], 2) . ')' : '')),
-                        \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
-                    $hoja->setCellValue('E' . $fila, $c[$campo]);
-                    $fila++;
-                }
-                if ($deLaSeccion->isEmpty()) {
-                    $hoja->setCellValue('C' . $fila, 'Sin cobros en este rango');
-                    $fila++;
-                }
-                $hoja->getStyle('A6:E' . ($fila - 1))->applyFromArray($borde);
+                $hoja->fromArray([['Cobros:', $deLaSeccion->count()],
+                    ['TOTAL ' . $nombreSeccion . ':', round($deLaSeccion->sum($campo), 2)]], null, 'A6', true);
+                $hoja->getStyle('B6')->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_LEFT);
+                $hoja->getStyle('A7:B7')->applyFromArray($borde + ['font' => ['bold' => true, 'size' => 13], 'fill' => $gris]);
+                $hoja->getStyle('B7')->getNumberFormat()->setFormatCode('#,##0.00');
+                $hoja->getStyle('B7')->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_LEFT);
 
-                $hoja->setCellValue('D' . $fila, 'TOTAL ' . $nombreSeccion . ':');
-                $hoja->setCellValue('E' . $fila, $deLaSeccion->isEmpty() ? 0 : '=SUM(E6:E' . ($fila - 1) . ')');
-                $hoja->getStyle("D{$fila}:E{$fila}")->applyFromArray($borde + ['font' => ['bold' => true], 'fill' => $gris]);
-                $hoja->getStyle('D' . $fila)->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_RIGHT);
-                $hoja->getStyle('E6:E' . $fila)->getNumberFormat()->setFormatCode('#,##0.00');
+                $hoja->setCellValue('A11', '________________________');
+                $hoja->setCellValue('A12', 'Firma ' . $cobrador);
 
-                $fila += 2;
-                $hoja->setCellValue('A' . $fila, 'Cobros: ' . $deLaSeccion->count());
-                $hoja->setCellValue('A' . ($fila + 3), '________________________');
-                $hoja->setCellValue('A' . ($fila + 4), 'Firma ' . $cobrador);
-
-                foreach (['A' => 7, 'B' => 10, 'C' => 34, 'D' => 42, 'E' => 13] as $col => $ancho) {
-                    $hoja->getColumnDimension($col)->setWidth($ancho);
-                }
-                $hoja->freezePane('A6');
+                $hoja->getColumnDimension('A')->setWidth(22);
+                $hoja->getColumnDimension('B')->setWidth(40);
                 $hoja->getPageSetup()->setOrientation(\PhpOffice\PhpSpreadsheet\Worksheet\PageSetup::ORIENTATION_PORTRAIT)
-                    ->setPaperSize(\PhpOffice\PhpSpreadsheet\Worksheet\PageSetup::PAPERSIZE_LETTER)
-                    ->setFitToWidth(1)->setFitToHeight(0);
+                    ->setPaperSize(\PhpOffice\PhpSpreadsheet\Worksheet\PageSetup::PAPERSIZE_LETTER);
             }
         }
 
