@@ -52,7 +52,7 @@ class CamineroController extends Controller
                 ->whereIn('factura_id', $facturas->pluck('factura_id')->all())
                 ->orderBy('id')
                 ->get(['id', 'factura_id', 'estado', 'tipago', 'monto', 'monto_efectivo',
-                    'monto_qr', 'pago', 'observacion', 'retorno_detalle', 'hora'])
+                    'monto_qr', 'pago', 'observacion', 'retorno_detalle', 'hora', 'fecha'])
                 ->keyBy('factura_id');
         }
 
@@ -112,6 +112,8 @@ class CamineroController extends Controller
                 ? json_decode($entrega->retorno_detalle, true)
                 : null;
             $factura->cobrada = $entrega && in_array($entrega->estado, RecojoDelDia::ESTADOS_COBRADOS, true);
+            // Lo ya registrado se puede corregir solo el mismo dia.
+            $factura->rectificable = self::rectificable($entrega);
             return $factura;
         });
 
@@ -264,9 +266,10 @@ class CamineroController extends Controller
             'observacion' => 'nullable|string|max:90',
             'lat' => 'nullable|numeric',
             'lng' => 'nullable|numeric',
+            'rectificar' => 'nullable|boolean',
         ]);
 
-        [$factura, $placa, $error] = $this->facturaDelCamion($request, $datos['factura_id']);
+        [$factura, $placa, $error] = $this->facturaDelCamion($request, $datos['factura_id'], $request->boolean('rectificar'));
         if ($error) {
             return $error;
         }
@@ -320,9 +323,10 @@ class CamineroController extends Controller
             'observacion' => 'nullable|string|max:90',
             'lat' => 'nullable|numeric',
             'lng' => 'nullable|numeric',
+            'rectificar' => 'nullable|boolean',
         ]);
 
-        [$factura, $placa, $error] = $this->facturaDelCamion($request, $datos['factura_id']);
+        [$factura, $placa, $error] = $this->facturaDelCamion($request, $datos['factura_id'], $request->boolean('rectificar'));
         if ($error) {
             return $error;
         }
@@ -422,7 +426,7 @@ class CamineroController extends Controller
      * El comprobante que se quiere cerrar, siempre que viaje en el camion del
      * usuario y todavia este abierto. Devuelve [factura, placa, error].
      */
-    private function facturaDelCamion(Request $request, $facturaId)
+    private function facturaDelCamion(Request $request, $facturaId, $rectificar = false)
     {
         $placa = $this->placa($request);
         if ($placa === '') {
@@ -460,12 +464,22 @@ class CamineroController extends Controller
             return [null, $placa, response()->json(['message' => 'Ese pedido no va en tu camión'], 403)];
         }
 
-        // Cobrada entera o con retorno parcial, la nota ya esta cerrada.
-        $yaCobrada = DB::table('entregas')
+        // La ultima entrega es la que vale. Cobrada entera o con retorno
+        // parcial la nota ya esta cerrada, salvo que se este rectificando: el
+        // caminero la vuelve a registrar de cero y la nueva reemplaza a la
+        // anterior, que queda como historial.
+        $ultima = DB::table('entregas')
             ->where('factura_id', $factura->id)
-            ->whereIn('estado', RecojoDelDia::ESTADOS_COBRADOS)
-            ->exists();
-        if ($yaCobrada) {
+            ->orderByDesc('id')
+            ->first(['id', 'estado', 'fecha']);
+        if ($rectificar) {
+            if (!$ultima) {
+                return [null, $placa, response()->json(['message' => 'Esa nota todavía no tiene entrega para rectificar'], 422)];
+            }
+            if (!self::rectificable($ultima)) {
+                return [null, $placa, response()->json(['message' => 'Solo se puede rectificar el mismo día en que se registró la entrega'], 422)];
+            }
+        } elseif ($ultima && in_array($ultima->estado, RecojoDelDia::ESTADOS_COBRADOS, true)) {
             return [null, $placa, response()->json(['message' => 'Esa entrega ya fue cobrada'], 422)];
         }
 
@@ -571,6 +585,15 @@ class CamineroController extends Controller
                 $cliente->Latitud ?? null, $cliente->longitud ?? null
             ),
         ]);
+    }
+
+    /**
+     * Una entrega cerrada se puede rectificar solo el mismo dia en que se
+     * registro: despues ya es lo que el caminero rindio en caja.
+     */
+    private static function rectificable($entrega)
+    {
+        return $entrega && substr((string) $entrega->fecha, 0, 10) === date('Y-m-d');
     }
 
     /**

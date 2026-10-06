@@ -390,7 +390,12 @@
                     · se puede volver a entregar
                   </div>
 
-                  <div v-if="props.row.cobrada" class="text-caption text-green-9">
+                  <div v-if="esRectificacion(props.row)" class="text-caption text-primary text-weight-medium">
+                    <q-icon name="edit_note" size="14px"/>
+                    Rectificando · antes: {{ props.row.entrega_estado }}<span v-if="props.row.tipago"> {{ props.row.tipago }}</span>
+                  </div>
+
+                  <div v-if="props.row.cobrada && !esRectificacion(props.row)" class="text-caption text-green-9">
                     <q-icon name="task_alt" size="14px"/>
                     {{ props.row.tipago }} · cobrado Bs {{ money(cobrado(props.row)) }}
                     <span v-if="falto(props.row) > 0.009" class="text-red-9 text-weight-bold">
@@ -446,6 +451,11 @@
                       </div>
                     </div>
                   </template>
+
+                  <q-btn
+                    v-if="puedeRectificar(props.row)" class="full-width q-mt-xs" outline dense no-caps
+                    color="primary" icon="edit_note" label="Rectificar" @click="rectificar(props.row)"
+                  />
 
                   <!-- Las cuatro acciones de la puerta, grandes y con su
                        nombre (de a dos por fila): se tocan con el celular en
@@ -530,7 +540,12 @@
                     · se puede volver a entregar
                   </div>
 
-                  <div v-if="props.row.cobrada" class="text-caption text-green-9">
+                  <div v-if="esRectificacion(props.row)" class="text-caption text-primary text-weight-medium">
+                    <q-icon name="edit_note" size="14px"/>
+                    Rectificando · antes: {{ props.row.entrega_estado }}<span v-if="props.row.tipago"> {{ props.row.tipago }}</span>
+                  </div>
+
+                  <div v-if="props.row.cobrada && !esRectificacion(props.row)" class="text-caption text-green-9">
                     {{ props.row.tipago }} · cobrado Bs {{ money(cobrado(props.row)) }}
                     <span v-if="falto(props.row) > 0.009" class="text-red-9 text-weight-bold">
                       · faltó Bs {{ money(falto(props.row)) }}
@@ -606,7 +621,13 @@
                       :disable="!cobroValido(props.row)" @click="cobrar(props.row)"
                     />
                   </div>
-                  <q-icon v-else-if="props.row.cobrada" name="task_alt" color="positive" size="24px"/>
+                  <div v-else class="row no-wrap items-center q-gutter-xs justify-end">
+                    <q-btn
+                      v-if="puedeRectificar(props.row)" class="boton-accion" outline no-caps stack
+                      color="primary" icon="edit_note" label="Rectificar" @click="rectificar(props.row)"
+                    />
+                    <q-icon v-if="props.row.cobrada" name="task_alt" color="positive" size="24px"/>
+                  </div>
                 </q-td>
               </q-tr>
             </template>
@@ -887,6 +908,9 @@ export default {
       puntoIds: [],
       // Lo que se esta por cobrar en cada fila, por factura_id.
       cobros: {},
+      // Notas ya registradas que el caminero reabrio para rectificar, por
+      // factura_id: se registran de nuevo y reemplazan a la entrega anterior.
+      rectificando: {},
       // Qué notas tienen el detalle de productos desplegado, por factura_id.
       detalleAbierto: {},
       // Sin crédito: no lo elige el caminero, ya viene decidido en la venta.
@@ -1136,7 +1160,34 @@ export default {
     /** Una nota cerrada: ya se cobró o quedó como no entregada. */
     // No entregado no cierra: el caminero puede volver mas tarde y entregar.
     cerrada (entrega) {
+      if (this.rectificando[entrega.factura_id]) return false
       return !!(entrega.cobrada || (entrega.entrega_estado && !this.esNoEntregado(entrega)))
+    },
+    /** Lo cerrado se puede corregir solo el mismo dia en que se registro. */
+    puedeRectificar (entrega) {
+      return this.cerrada(entrega) && !!entrega.rectificable
+    },
+    /**
+     * Reabre una nota ya registrada para cargarla de nuevo desde cero. La
+     * entrega anterior no se borra: la nueva la reemplaza al guardarse.
+     */
+    rectificar (entrega) {
+      this.$q.dialog({
+        title: 'Rectificar entrega',
+        message: 'Se vuelve a registrar la nota de ' + this.clienteDe(entrega) +
+          ' (Bs ' + this.money(entrega.total) + ') desde cero. Lo que guardes reemplaza a lo registrado.',
+        cancel: { label: 'Cancelar', flat: true },
+        ok: { label: 'Rectificar', color: 'primary', unelevated: true },
+        persistent: true
+      }).onOk(() => {
+        this.rectificando = { ...this.rectificando, [entrega.factura_id]: true }
+        this.cobros[entrega.factura_id] = this.esCredito(entrega)
+          ? { forma: 'CRÉDITO', efectivo: null, qr: null }
+          : { forma: 'CONTADO', efectivo: null, qr: null }
+      })
+    },
+    esRectificacion (entrega) {
+      return !!this.rectificando[entrega.factura_id]
     },
     esNoEntregado (entrega) {
       return !entrega.cobrada && entrega.entrega_estado === 'NO ENTREGADO'
@@ -1228,6 +1279,7 @@ export default {
     },
     abrirPunto (punto) {
       this.puntoIds = punto.entregas.map(entrega => entrega.factura_id)
+      this.rectificando = {}
       // Cada fila arranca en efectivo por el total de la nota, que es lo que
       // pasa casi siempre; el caminero solo corrige cuando le dan de menos.
       this.cobros = {}
@@ -1258,15 +1310,14 @@ export default {
         this.cargandoFotos = false
       }
     },
-    // Desde la lista se abre el mismo punto que desde el mapa: si el cliente
-    // tiene otro pedido en la misma puerta aparecen los dos juntos. Las
-    // entregas sin coordenada no estan en el mapa y se abren solas.
+    // Desde la lista se abren todas las notas de ese cliente, y solo las
+    // suyas: en un mercado varios clientes caen en el mismo punto del mapa y
+    // no tienen que aparecer mezclados al tocar uno.
     abrirPuntoDe (entrega) {
-      const punto = this.marcadores.find(marca => marca.entregas.some(
-        fila => fila.factura_id === entrega.factura_id
-      ))
+      const clave = fila => fila.cliente_id ? 'id:' + fila.cliente_id : 'nombre:' + this.clienteDe(fila)
+      const entregas = this.filtradas.filter(fila => clave(fila) === clave(entrega))
 
-      this.abrirPunto(punto || { entregas: [entrega] })
+      this.abrirPunto({ entregas: entregas.length ? entregas : [entrega] })
     },
     cambiarMapa (valor) {
       this.tipoMapa = valor
@@ -1613,6 +1664,7 @@ export default {
             monto_efectivo: cobro.efectivo || 0,
             monto_qr: cobro.qr || 0,
             observacion: null,
+            rectificar: this.esRectificacion(entrega),
             lat: this.posicion?.latitude || null,
             lng: this.posicion?.longitude || null
           })
@@ -1671,6 +1723,7 @@ export default {
         monto_efectivo: this.retornoCobro.efectivo || 0,
         monto_qr: this.retornoCobro.qr || 0,
         observacion: this.retornoMotivo || null,
+        rectificar: this.esRectificacion(entrega),
         lat: this.posicion?.latitude || null,
         lng: this.posicion?.longitude || null
       }).then(res => {
@@ -1708,10 +1761,14 @@ export default {
 
       this.$api.post('caminero/cobrar', Object.assign({
         factura_id: entrega.factura_id,
+        rectificar: this.esRectificacion(entrega),
         lat: this.posicion?.latitude || null,
         lng: this.posicion?.longitude || null
       }, cuerpo)).then(() => {
-        this.$q.notify({ type: 'positive', position: 'top', message: 'Entrega registrada' })
+        this.$q.notify({
+          type: 'positive', position: 'top',
+          message: this.esRectificacion(entrega) ? 'Entrega rectificada' : 'Entrega registrada'
+        })
         // Cobrada o anulada, la nota ya esta cerrada: se vuelve a la lista.
         this.dialogoPunto = false
         if (alTerminar) alTerminar()
