@@ -306,6 +306,19 @@
               />
             </div>
           </div>
+
+          <!-- Las fotos del cliente (las que se cargan en Clientes): sirven
+               para reconocer la puerta. Tocando una se ve grande. -->
+          <div v-if="cargandoFotos" class="q-mt-sm text-caption text-grey-7">
+            <q-spinner size="14px" class="q-mr-xs"/> Cargando fotos…
+          </div>
+          <div v-else-if="fotosPunto.length" class="row no-wrap q-gutter-xs q-mt-sm fotos-punto">
+            <q-img
+              v-for="foto in fotosPunto" :key="foto.id"
+              :src="foto.url" ratio="1" class="foto-punto cursor-pointer rounded-borders"
+              @click="fotoGrande = foto.url"
+            />
+          </div>
         </q-card-section>
 
         <q-separator/>
@@ -804,6 +817,16 @@
         </q-card-actions>
       </q-card>
     </q-dialog>
+
+    <!-- Foto del cliente en grande. -->
+    <q-dialog :model-value="!!fotoGrande" @update:model-value="v => { if (!v) fotoGrande = null }">
+      <q-card style="width: 640px; max-width: 96vw">
+        <q-img :src="fotoGrande" fit="contain" style="max-height: 80vh"/>
+        <q-card-actions align="right" class="q-pa-xs">
+          <q-btn flat dense no-caps label="Cerrar" v-close-popup/>
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
   </q-page>
 </template>
 
@@ -838,6 +861,10 @@ export default {
       // El punto abierto se guarda por id y no por copia: asi al recargar
       // despues de cobrar la lista del dialogo se actualiza sola.
       dialogoPunto: false,
+      // Fotos del cliente del punto abierto y la que se esta viendo grande.
+      fotosPunto: [],
+      cargandoFotos: false,
+      fotoGrande: null,
       puntoIds: [],
       // Lo que se esta por cobrar en cada fila, por factura_id.
       cobros: {},
@@ -1195,6 +1222,22 @@ export default {
           : { forma: 'CONTADO', efectivo: null, qr: null }
       })
       this.dialogoPunto = true
+      this.cargarFotos(punto)
+    },
+    // Fotos de los clientes del punto; si falla, la entrega sigue igual.
+    async cargarFotos (punto) {
+      const ids = [...new Set(punto.entregas.map(entrega => entrega.cliente_id).filter(Boolean))]
+      this.fotosPunto = []
+      if (!ids.length) return
+      this.cargandoFotos = true
+      try {
+        const listas = await Promise.all(ids.map(id =>
+          this.$api.get('cliente-photos', { params: { cliente_id: id } }).then(res => res.data || []).catch(() => [])
+        ))
+        this.fotosPunto = listas.flat()
+      } finally {
+        this.cargandoFotos = false
+      }
     },
     // Desde la lista se abre el mismo punto que desde el mapa: si el cliente
     // tiene otro pedido en la misma puerta aparecen los dos juntos. Las
@@ -1667,6 +1710,14 @@ export default {
 </script>
 
 <style scoped>
+.fotos-punto {
+  overflow-x: auto;
+}
+.foto-punto {
+  width: 72px;
+  min-width: 72px;
+  border: 1px solid rgba(0, 0, 0, .12);
+}
 /* El nombre del cliente puede ser largo: en el celular se parte en varias
    lineas en vez de cortarse con puntos suspensivos. */
 .nombre-punto {
