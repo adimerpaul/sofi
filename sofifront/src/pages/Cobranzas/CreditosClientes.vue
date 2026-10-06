@@ -4,7 +4,7 @@
       <div class="text-h6">Créditos de clientes</div>
       <q-space/>
       <!-- Lo que cobranzas usa: deudores y los cobros del dia para el deposito. -->
-      <q-btn-dropdown unelevated dense no-caps color="teal-8" icon="payments" label="Excel cobros">
+      <q-btn-dropdown unelevated dense no-caps color="teal-8" icon="payments" label="Excel cobros QR">
         <div class="q-pa-sm column q-gutter-sm" style="min-width: 240px">
           <div class="text-caption text-grey-8">Cobros registrados entre:</div>
           <q-input v-model="rangoCobros.desde" type="date" dense outlined label="Desde"/>
@@ -628,7 +628,7 @@ export default {
         const url = URL.createObjectURL(data)
         const a = document.createElement('a')
         a.href = url
-        a.download = 'COBROS ' + desde + (hasta !== desde ? ' AL ' + hasta : '') + '.xlsx'
+        a.download = 'COBROS QR ' + desde + (hasta !== desde ? ' AL ' + hasta : '') + '.xlsx'
         a.click()
         URL.revokeObjectURL(url)
       } catch (e) {

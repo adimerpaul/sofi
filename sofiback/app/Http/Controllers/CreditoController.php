@@ -533,11 +533,11 @@ class CreditoController extends Controller
     }
 
     /**
-     * Cobros del rango (formato de la hoja de deposito de cobranzas): por cada
-     * dia un titulo "DEPOSITO dd/mm/yy" y un bloque por deposito -los cobros
-     * con la misma forma de pago y boleta- con vendedor, cliente, pago,
-     * comanda y si era factura, y el total del bloque. Al pie, quien lo saco.
-     * Los cobros anulados no entran.
+     * Cobros por QR del rango (formato de la hoja de deposito de cobranzas):
+     * por cada dia un titulo "DEPOSITO QR dd/mm/yy" y un bloque por deposito
+     * -los cobros con la misma forma de pago y boleta- con vendedor, cliente,
+     * monto QR, comanda y si era factura, y el total del bloque. Al pie, quien
+     * lo saco. El efectivo y los cobros anulados no entran.
      */
     public function excelCobros(Request $request)
     {
@@ -553,69 +553,62 @@ class CreditoController extends Controller
             ->orderBy('created_at')->orderBy('id')
             ->get(['id', 'origen', 'deuda_id', 'cliente_id', 'monto', 'monto_efectivo', 'monto_qr', 'forma_pago', 'referencia', 'created_at', 'user_id']);
 
-        $filas = $this->filasDeAbonos($abonos);
+        // Solo lo que entro por QR: los cobros en efectivo no salen y de un
+        // pago mixto solo cuenta la parte QR.
+        $filas = $this->filasDeAbonos($abonos)->filter(function ($f) { return $f['qr'] > 0; })->values();
         $libro = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
         $hoja = $libro->getActiveSheet();
-        $hoja->setTitle('Cobros');
+        $hoja->setTitle('Cobros QR');
         $borde = ['borders' => ['allBorders' => ['borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN]]];
 
         $fila = 1;
         foreach ($filas->groupBy('dia') as $dia => $delDia) {
-            $hoja->setCellValue('B' . $fila, 'DEPOSITO ' . date('d/m/y', strtotime($dia)));
+            $hoja->setCellValue('B' . $fila, 'DEPOSITO QR ' . date('d/m/y', strtotime($dia)));
             $hoja->getStyle('B' . $fila)->getFont()->setBold(true);
             $fila += 2;
 
             foreach ($delDia->groupBy('deposito') as $deposito => $grupo) {
-                $hoja->fromArray(['vendedor', 'cliente', 'pago', 'efectivo', 'qr', 'comanda', 'factura'], null, 'A' . $fila);
-                $hoja->getStyle("A{$fila}:G{$fila}")->applyFromArray($borde);
+                $hoja->fromArray(['vendedor', 'cliente', 'qr', 'comanda', 'factura'], null, 'A' . $fila);
+                $hoja->getStyle("A{$fila}:E{$fila}")->applyFromArray($borde);
                 $desdeFila = ++$fila;
                 foreach ($grupo as $f) {
                     $hoja->setCellValueExplicit('A' . $fila, $f['vendedor'], \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
                     $hoja->setCellValueExplicit('B' . $fila, $f['cliente'], \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
-                    $hoja->setCellValue('C' . $fila, $f['pago']);
-                    $hoja->setCellValue('D' . $fila, $f['efectivo']);
-                    $hoja->setCellValue('E' . $fila, $f['qr']);
-                    $hoja->setCellValue('F' . $fila, $f['comanda']);
-                    $hoja->setCellValue('G' . $fila, $f['factura']);
+                    $hoja->setCellValue('C' . $fila, $f['qr']);
+                    $hoja->setCellValue('D' . $fila, $f['comanda']);
+                    $hoja->setCellValue('E' . $fila, $f['factura']);
                     $fila++;
                 }
-                $hoja->getStyle('A' . $desdeFila . ':G' . ($fila - 1))->applyFromArray($borde);
-                // Total del deposito bajo pago, efectivo y qr y, al lado, la boleta.
-                foreach (['C', 'D', 'E'] as $col) {
-                    $hoja->setCellValue($col . $fila, '=SUM(' . $col . $desdeFila . ':' . $col . ($fila - 1) . ')');
-                    $hoja->getStyle($col . $fila)->applyFromArray($borde)->getFont()->setBold(true);
-                }
-                $hoja->setCellValue('G' . $fila, $deposito);
+                $hoja->getStyle('A' . $desdeFila . ':E' . ($fila - 1))->applyFromArray($borde);
+                // Total del deposito bajo qr y, al lado, la boleta.
+                $hoja->setCellValue('C' . $fila, '=SUM(C' . $desdeFila . ':C' . ($fila - 1) . ')');
+                $hoja->getStyle('C' . $fila)->applyFromArray($borde)->getFont()->setBold(true);
+                $hoja->setCellValue('E' . $fila, $deposito);
                 $fila += 3;
             }
         }
 
         if ($filas->isEmpty()) {
-            $hoja->setCellValue('B1', 'Sin cobros del ' . $desde . ' al ' . $hasta);
+            $hoja->setCellValue('B1', 'Sin cobros por QR del ' . $desde . ' al ' . $hasta);
             $fila = 3;
         } else {
             // Total de todo el rango, por si se sacan varios dias juntos.
-            $hoja->setCellValue('B' . $fila, 'TOTAL COBRADO');
-            $hoja->setCellValue('C' . $fila, round($filas->sum('pago'), 2));
-            $hoja->setCellValue('D' . $fila, round($filas->sum('efectivo'), 2));
-            $hoja->setCellValue('E' . $fila, round($filas->sum('qr'), 2));
-            $hoja->getStyle("B{$fila}:E{$fila}")->getFont()->setBold(true);
-            $hoja->setCellValue('C' . ($fila - 1), 'pago');
-            $hoja->setCellValue('D' . ($fila - 1), 'efectivo');
-            $hoja->setCellValue('E' . ($fila - 1), 'qr');
+            $hoja->setCellValue('B' . $fila, 'TOTAL COBRADO POR QR');
+            $hoja->setCellValue('C' . $fila, round($filas->sum('qr'), 2));
+            $hoja->getStyle("B{$fila}:C{$fila}")->getFont()->setBold(true);
             $fila += 2;
         }
         $usuario = $request->user();
         $hoja->setCellValue('A' . $fila, 'ELABORADO POR ' . strtoupper(trim(($usuario->Nombre1 ?? '') . ' ' . ($usuario->App1 ?? ''))));
 
-        $hoja->getStyle('C1:E' . $fila)->getNumberFormat()->setFormatCode('#,##0.00');
-        foreach (['A' => 32, 'B' => 40, 'C' => 12, 'D' => 12, 'E' => 12, 'F' => 12, 'G' => 18] as $col => $ancho) {
+        $hoja->getStyle('C1:C' . $fila)->getNumberFormat()->setFormatCode('#,##0.00');
+        foreach (['A' => 32, 'B' => 40, 'C' => 12, 'D' => 12, 'E' => 18] as $col => $ancho) {
             $hoja->getColumnDimension($col)->setWidth($ancho);
         }
         $hoja->getPageSetup()->setPaperSize(\PhpOffice\PhpSpreadsheet\Worksheet\PageSetup::PAPERSIZE_LETTER)
             ->setFitToWidth(1)->setFitToHeight(0);
 
-        $nombre = 'COBROS ' . $desde . ($hasta !== $desde ? ' AL ' . $hasta : '') . '.xlsx';
+        $nombre = 'COBROS QR ' . $desde . ($hasta !== $desde ? ' AL ' . $hasta : '') . '.xlsx';
         return response()->streamDownload(function () use ($libro) {
             (new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($libro))->save('php://output');
         }, $nombre, ['Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet']);
