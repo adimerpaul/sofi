@@ -901,7 +901,7 @@ export default {
         this.clientes2 = []
         res.data.forEach(r => {
           let d = r
-          if (parseFloat(r.Latitud) != NaN && parseFloat(r.longitud) != NaN && r.Latitud != '' && r.longitud != '') {
+          if (this.coordValida(r.Latitud, r.longitud)) {
             d.Latitud = parseFloat(r.Latitud)
             d.longitud = parseFloat(r.longitud)
           } else {
@@ -942,7 +942,7 @@ export default {
           let d = r
           // if (r.Latitud)
           // console.log(r.Latitud)
-          if (parseFloat(r.Latitud) != NaN && parseFloat(r.longitud) != NaN && r.Latitud != '' && r.longitud != '') {
+          if (this.coordValida(r.Latitud, r.longitud)) {
             // console.log( 'id='+r.Cod_Aut+'  '+(r.Latitud!='' && r.longitud!='' )+' R='+parseFloat(r.Latitud)+'---'+parseFloat(r.longitud))
             d.Latitud = parseFloat(r.Latitud)
             d.longitud = parseFloat(r.longitud)
@@ -978,7 +978,7 @@ export default {
           let d = r
           // if (r.Latitud)
           // console.log(r.Latitud)
-          if (parseFloat(r.Latitud) != NaN && parseFloat(r.longitud) != NaN && r.Latitud != '' && r.longitud != '') {
+          if (this.coordValida(r.Latitud, r.longitud)) {
             // console.log( 'id='+r.Cod_Aut+'  '+(r.Latitud!='' && r.longitud!='' )+' R='+parseFloat(r.Latitud)+'---'+parseFloat(r.longitud))
             d.Latitud = parseFloat(r.Latitud)
             d.longitud = parseFloat(r.longitud)
