@@ -168,8 +168,8 @@ class FacturacionController extends Controller
      */
     private function estadoEntrega(Factura $factura, $entrega)
     {
-        // La venta directa con camion no pasa por el caminero: no aplica.
-        if (!$factura->pedido_nro || !trim((string) $factura->placa) || $factura->estado === 'ANULADO') {
+        // Sin camion (venta de mostrador) no pasa por el caminero: no aplica.
+        if (!trim((string) $factura->placa) || $factura->estado === 'ANULADO') {
             return 'NO_APLICA';
         }
 
@@ -191,7 +191,7 @@ class FacturacionController extends Controller
      */
     private function estadoCarga(Factura $factura, $marca)
     {
-        if (!$factura->pedido_nro || !trim((string) $factura->placa) || $factura->estado === 'ANULADO') {
+        if (!trim((string) $factura->placa) || $factura->estado === 'ANULADO') {
             return 'NO_APLICA';
         }
 
@@ -411,12 +411,9 @@ class FacturacionController extends Controller
                 return (object) ['placa' => $placa, 'color' => (string) $colores->get($placa, ''), 'factura_id' => $f->id];
             });
         // Que comprobantes ya tienen la canasta revisada por el caminero. La
-        // venta directa no pasa por el caminero: no tiene nada que revisar.
-        $revisados = $this->cargaRevisada($pedidos->pluck('factura_id')->filter()->all());
-        foreach ($directas as $directa) {
-            $revisados[$directa->factura_id] = true;
-        }
+        // venta directa con camion tambien la revisa el caminero.
         $pedidos = $pedidos->concat($directas);
+        $revisados = $this->cargaRevisada($pedidos->pluck('factura_id')->filter()->all());
 
         return $pedidos->groupBy(function ($pedido) {
             return $pedido->placa !== '' ? $pedido->placa : 'SIN';
@@ -713,8 +710,9 @@ class FacturacionController extends Controller
     /** Camion en el que sale la factura; vacio si no salio en ninguno. */
     private function camionDeFactura(Factura $factura)
     {
+        // La venta directa sale en el camion que caja le eligio.
         if (!$factura->pedido_nro) {
-            return '';
+            return trim((string) $factura->getRawOriginal('placa'));
         }
 
         $pedido = DB::table('tbpedidos')

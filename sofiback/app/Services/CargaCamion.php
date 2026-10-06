@@ -13,9 +13,9 @@ use Illuminate\Support\Facades\DB;
  * canasta —una por comprobante, con el pedido que la origino— y mientras quede
  * una sin revisar caja no imprime los papeles de ese camion.
  *
- * El camion de un comprobante sale del pedido que lo origino (tbpedidos.placa),
- * que es la unica relacion que existe entre una venta y un camion; la venta
- * directa de mostrador no viaja en ninguno y por eso no aparece aca.
+ * El camion de un comprobante sale del pedido que lo origino (tbpedidos.placa);
+ * la venta directa sale en el camion que caja le eligio (facturas.placa) y, si
+ * no se le eligio ninguno, es de mostrador y no aparece aca.
  *
  * Nota de rendimiento: los filtros por fecha van como rango (>= dia y < dia
  * siguiente) y no con whereDate: envolver la columna en DATE() deja sin usar el
@@ -368,9 +368,9 @@ class CargaCamion
             ->when($facturaId, function ($consulta) use ($facturaId) {
                 return $consulta->where('f.id', $facturaId);
             })
-            // El camion vive en el pedido: sin pedido (venta de mostrador) el
-            // comprobante no viaja en ningun camion.
-            ->join('tbpedidos as p', function ($join) {
+            // El camion de lo que sale de un pedido vive en el pedido; la venta
+            // directa a la que caja le eligio camion lo trae en facturas.placa.
+            ->leftJoin('tbpedidos as p', function ($join) {
                 $join->on('p.NroPed', '=', 'f.pedido_nro')
                     ->on(DB::raw(TipoPedido::sql('p')), '=', DB::raw('UPPER(TRIM(f.pedido_tipo))'))
                     ->whereNull('p.deleted_at')
@@ -382,7 +382,13 @@ class CargaCamion
             })
             ->whereNull('f.deleted_at')
             ->where('f.estado', '<>', 'ANULADO')
-            ->whereRaw("TRIM(COALESCE(p.placa, '')) = ?", [$placa])
+            ->where(function ($camion) use ($placa) {
+                $camion->where(function ($pedido) use ($placa) {
+                    $pedido->whereNotNull('p.NroPed')->whereRaw("TRIM(COALESCE(p.placa, '')) = ?", [$placa]);
+                })->orWhere(function ($directa) use ($placa) {
+                    $directa->whereNull('f.pedido_nro')->whereRaw("TRIM(COALESCE(f.placa, '')) = ?", [$placa]);
+                });
+            })
             // Un pedido tiene muchas lineas: sin agrupar, el comprobante
             // saldria repetido una vez por cada una.
             // MariaDB con ONLY_FULL_GROUP_BY no deduce la dependencia
@@ -401,8 +407,11 @@ class CargaCamion
                 DB::raw("TRIM(COALESCE(f.nombre, '')) as nombre"),
                 DB::raw("TRIM(COALESCE(MIN(c.Nombres), '')) as cliente"),
                 DB::raw("TRIM(COALESCE(MIN(c.zona), '')) as zona"),
-                DB::raw("TRIM(COALESCE(MIN(p.placa), '')) as placa"),
-            ]);
+            ])
+            // Todos salen en ese camion, vengan de un pedido o sean venta directa.
+            ->each(function ($factura) use ($placa) {
+                $factura->placa = $placa;
+            });
     }
 
     /** El detalle de cada comprobante: lo que de verdad va en la canasta. */

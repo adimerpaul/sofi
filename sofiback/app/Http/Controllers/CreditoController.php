@@ -185,7 +185,21 @@ class CreditoController extends Controller
                     ? $d->vendedor
                     : ($cliente ? $vendedores->get(trim((string) $cliente->CiVend), '') : ''),
             ];
-        })->sortBy('comanda')->values();
+        })->sort(function ($a, $b) {
+            // Primero las deudas y despues las ventas, cada grupo por su numero
+            // de boleta de menor a mayor: lo mas nuevo queda abajo. Las deudas
+            // agregadas a mano (M...) van al final de las deudas.
+            $orden = function ($f) {
+                $manual = is_string($f['comanda']);
+                return [
+                    $f['tipo'] === 'VENTA' ? 1 : 0,
+                    $manual ? 1 : 0,
+                    $manual ? (int) substr($f['comanda'], 1) : (int) $f['comanda'],
+                    (int) $f['nro_venta'],
+                ];
+            };
+            return $orden($a) <=> $orden($b);
+        })->values();
 
         $libro = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
         $hoja = $libro->getActiveSheet();

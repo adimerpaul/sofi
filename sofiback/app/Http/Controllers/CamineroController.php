@@ -158,12 +158,18 @@ class CamineroController extends Controller
             ->tap(function ($consulta) use ($fecha) {
                 CargaCamion::enJornada($consulta, $fecha);
             })
-            ->whereIn('f.pedido_nro', function ($pedidos) use ($placa) {
-                $pedidos->from('tbpedidos')
-                    ->whereNull('deleted_at')
-                    ->where('bonificacion', 0)
-                    ->whereRaw("TRIM(COALESCE(placa, '')) = ?", [$placa])
-                    ->select('NroPed');
+            // Lo que sale de un pedido de ese camion, o la venta directa a la
+            // que caja le eligio ese camion.
+            ->where(function ($camion) use ($placa) {
+                $camion->whereIn('f.pedido_nro', function ($pedidos) use ($placa) {
+                    $pedidos->from('tbpedidos')
+                        ->whereNull('deleted_at')
+                        ->where('bonificacion', 0)
+                        ->whereRaw("TRIM(COALESCE(placa, '')) = ?", [$placa])
+                        ->select('NroPed');
+                })->orWhere(function ($directa) use ($placa) {
+                    $directa->whereNull('f.pedido_nro')->whereRaw("TRIM(COALESCE(f.placa, '')) = ?", [$placa]);
+                });
             })
             ->orderBy('f.hora')
             ->get([
@@ -184,10 +190,11 @@ class CamineroController extends Controller
         // obligaba a agrupar tbpedidos entera y ademas dejaba fuera lo de ayer
         // que se factura hoy.
         $pedidos = collect();
-        if ($facturas->isNotEmpty()) {
+        $nros = $facturas->pluck('nro_pedido')->filter()->unique()->all();
+        if ($nros) {
             $pedidos = DB::table('tbpedidos')
                 ->whereNull('tbpedidos.deleted_at')
-                ->whereIn('NroPed', $facturas->pluck('nro_pedido')->unique()->all())
+                ->whereIn('NroPed', $nros)
                 ->where('bonificacion', 0)
                 ->groupBy('NroPed', DB::raw(TipoPedido::sql('')))
                 ->get([
@@ -205,7 +212,27 @@ class CamineroController extends Controller
                 });
         }
 
-        $facturas = $facturas->filter(function ($factura) use ($pedidos, $placa) {
+        // La venta directa no tiene pedido: sus productos y total son los del
+        // comprobante y se entrega el dia de la jornada en que se vendio.
+        $directas = $facturas->whereNull('nro_pedido')->pluck('factura_id')->all();
+        $productosDirecta = $directas
+            ? DB::table('factura_detalles')->whereIn('factura_id', $directas)->whereNull('deleted_at')
+                ->groupBy('factura_id')->pluck(DB::raw('COUNT(*) as n'), 'factura_id')
+            : collect();
+        $colorCamion = $directas
+            ? trim((string) DB::table('vehiculo')->whereRaw('TRIM(placa) = ?', [$placa])->value('colorStyle'))
+            : '';
+
+        $facturas = $facturas->filter(function ($factura) use ($pedidos, $placa, $productosDirecta, $colorCamion) {
+            if (!$factura->nro_pedido) {
+                $factura->placa = $placa;
+                $factura->placa_color = $colorCamion;
+                $factura->pedido_fecha = $factura->factura_fecha;
+                $factura->fecha_entrega = self::diaDeReparto($factura->factura_fecha, $factura->hora);
+                $factura->productos = (int) $productosDirecta->get($factura->factura_id, 0);
+                $factura->total_pedido = round((float) $factura->total, 2);
+                return true;
+            }
             $pedido = $pedidos->get($factura->nro_pedido . '-' . $factura->tipo);
             if (!$pedido || $pedido->placa !== $placa) {
                 return false;
@@ -406,7 +433,7 @@ class CamineroController extends Controller
             ->whereNull('deleted_at')
             ->where('id', $facturaId)
             ->first(['id', 'cliente_id', 'nit', 'total', 'estado', 'tipo_pago',
-                'pedido_nro', 'pedido_tipo', 'fecha']);
+                'pedido_nro', 'pedido_tipo', 'fecha', 'hora', 'placa']);
 
         if (!$factura) {
             return [null, $placa, response()->json(['message' => 'El comprobante no existe'], 404)];
@@ -415,12 +442,19 @@ class CamineroController extends Controller
             return [null, $placa, response()->json(['message' => 'El comprobante está anulado'], 422)];
         }
 
-        $pedido = DB::table('tbpedidos')
-            ->whereNull('tbpedidos.deleted_at')
-            ->where('NroPed', $factura->pedido_nro)
-            ->whereRaw(TipoPedido::sql('') . ' = ?', [strtoupper(trim((string) $factura->pedido_tipo))])
-            ->where('bonificacion', 0)
-            ->first([DB::raw("TRIM(COALESCE(placa, '')) as placa"), 'fecha', 'fecha_entrega']);
+        if ($factura->pedido_nro) {
+            $pedido = DB::table('tbpedidos')
+                ->whereNull('tbpedidos.deleted_at')
+                ->where('NroPed', $factura->pedido_nro)
+                ->whereRaw(TipoPedido::sql('') . ' = ?', [strtoupper(trim((string) $factura->pedido_tipo))])
+                ->where('bonificacion', 0)
+                ->first([DB::raw("TRIM(COALESCE(placa, '')) as placa"), 'fecha', 'fecha_entrega']);
+        } else {
+            // Venta directa: el camion es el que caja le eligio al venderla.
+            $pedido = trim((string) $factura->placa) !== ''
+                ? (object) ['placa' => trim($factura->placa), 'fecha_entrega' => self::diaDeReparto($factura->fecha, $factura->hora)]
+                : null;
+        }
 
         if (!$pedido || $pedido->placa !== $placa) {
             return [null, $placa, response()->json(['message' => 'Ese pedido no va en tu camión'], 403)];
@@ -537,6 +571,19 @@ class CamineroController extends Controller
                 $cliente->Latitud ?? null, $cliente->longitud ?? null
             ),
         ]);
+    }
+
+    /**
+     * Dia de reparto de una venta directa con camion: lo vendido despues del
+     * corte de la jornada (18:00) sale al dia siguiente, igual que la carga.
+     */
+    private static function diaDeReparto($fecha, $hora)
+    {
+        $dia = substr((string) $fecha, 0, 10);
+
+        return (string) $hora >= CargaCamion::CORTE_JORNADA
+            ? date('Y-m-d', strtotime($dia . ' +1 day'))
+            : $dia;
     }
 
     /** 3.000 -> 3, 2.500 -> 2.5: como se escribe una cantidad a mano. */
