@@ -960,7 +960,7 @@ export default {
         // console.log(err.response)
         // this.$q.loading.hide()
         this.$q.notify({
-          message: err.response.data.message,
+          message: err.response?.data?.message || err.message,
           color: 'red',
           icon: 'error'
         })
@@ -1553,6 +1553,14 @@ export default {
     },
     log(a) {
       console.log(a);
+    },
+    /** Lat/lng numericas y dentro de rango; con NaN o fuera de rango Leaflet se rompe. */
+    coordValida(lat, lng) {
+      if (lat === null || lat === undefined || lng === null || lng === undefined) return false
+      if (String(lat).trim() === '' || String(lng).trim() === '') return false
+      const la = Number(String(lat).trim())
+      const lo = Number(String(lng).trim())
+      return Number.isFinite(la) && Number.isFinite(lo) && Math.abs(la) <= 90 && Math.abs(lo) <= 180
     },
     changeIcon() {
       this.iconWidth += 2;

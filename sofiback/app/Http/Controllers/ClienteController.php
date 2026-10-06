@@ -245,7 +245,7 @@ class ClienteController extends Controller{
             // Última visita
             'tipo' => MisVisita::select('estado')
                 ->whereColumn('cliente_id', 'tbclientes.Cod_Aut')
-                ->whereDate('fecha', $fecha_hoy)
+                ->where('fecha', $fecha_hoy)
                 ->orderByDesc('id')
                 ->limit(1),
             // totdeuda / fechaminima / cantdeuda se agregan despues desde cobranzas/creditos
