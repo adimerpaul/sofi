@@ -83,9 +83,13 @@ class RecojoDelDia
 
         return $consulta
             ->orderBy('e.placa')
+            ->orderBy('e.factura_id')
             ->orderBy('e.comanda')
             ->get([
-                'e.id', 'e.comanda as nota', 'e.estado', 'e.tipago', 'e.hora',
+                // El numero que se ve es el del comprobante (el Nro de la
+                // boleta), no el del pedido. Las de la ruta del sistema
+                // anterior no tienen comprobante y siguen con su comanda.
+                'e.id', DB::raw('COALESCE(e.factura_id, e.comanda) as nota'), 'e.comanda', 'e.estado', 'e.tipago', 'e.hora',
                 DB::raw("TRIM(COALESCE(e.placa, '')) as placa"),
                 DB::raw('COALESCE(e.monto, 0) as monto'),
                 DB::raw('COALESCE(e.monto_efectivo, 0) as monto_efectivo'),
@@ -271,7 +275,7 @@ class RecojoDelDia
         <table class='detalle'>
             <thead><tr>
                 <th style='width:22px'>N°</th>
-                <th style='width:52px'>Nota</th>
+                <th style='width:52px'>Nro</th>
                 <th style='text-align:left'>Cliente</th>
                 <th style='width:62px' class='r'>Total</th>
                 <th style='width:62px' class='r'>Efectivo</th>
@@ -399,7 +403,7 @@ class RecojoDelDia
         <table class='detalle'>
             <thead><tr>
                 <th style='width:28px'>N°</th>
-                <th style='width:64px'>Nota</th>
+                <th style='width:64px'>Nro</th>
                 <th style='text-align:left'>Nombre del cliente</th>"
                 . ($anulados ? "<th style='width:170px;text-align:left'>Motivo</th>" : '') . "
                 <th style='width:78px' class='r'>Monto Bs.</th>

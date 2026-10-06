@@ -7,7 +7,7 @@
       <thead>
         <tr>
           <th class="col-n">N°</th>
-          <th class="col-nota">NOTA</th>
+          <th class="col-nota">NRO</th>
           <th>CLIENTE</th>
           <th class="col-monto">TOTAL</th>
           <th class="col-monto text-green-9">EFECTIVO</th>
