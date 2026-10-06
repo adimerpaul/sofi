@@ -3,8 +3,16 @@
     <div class="row items-center q-gutter-sm q-mb-sm">
       <div class="text-h6">Créditos de clientes</div>
       <q-space/>
-      <span class="text-caption">Total general</span>
-      <acciones-reporte-credito alcance="total general" :disable="cargando || !!error || !clientes.length || reportando" @reporte="reporteTotal($event)"/>
+      <!-- Lo que cobranzas usa: deudores y los cobros del dia para el deposito. -->
+      <q-btn-dropdown unelevated dense no-caps color="teal-8" icon="payments" label="Excel cobros">
+        <div class="q-pa-sm column q-gutter-sm" style="min-width: 240px">
+          <div class="text-caption text-grey-8">Cobros registrados entre:</div>
+          <q-input v-model="rangoCobros.desde" type="date" dense outlined label="Desde"/>
+          <q-input v-model="rangoCobros.hasta" type="date" dense outlined label="Hasta"/>
+          <q-btn unelevated dense no-caps color="teal-8" icon="download" label="Descargar"
+                 :loading="descargandoCobros" @click="excelCobros"/>
+        </div>
+      </q-btn-dropdown>
       <q-btn unelevated dense no-caps color="green-8" icon="grid_on" label="Excel deudores"
              :loading="descargandoExcel" @click="excelDeudores">
         <q-tooltip>Cuentas por cobrar (formato debito sumado): una fila por deuda, con filtros y totales</q-tooltip>
@@ -422,6 +430,8 @@ export default {
       clientes: [],
       reportando: false,
       descargandoExcel: false,
+      descargandoCobros: false,
+      rangoCobros: { desde: date.formatDate(new Date(), 'YYYY-MM-DD'), hasta: date.formatDate(new Date(), 'YYYY-MM-DD') },
       totales: { clientes: 0, con_deuda: 0, saldo: 0, deudas: 0 },
       buscar: '',
       // Arranca en los que deben: es lo que cobranzas viene a mirar.
@@ -545,6 +555,28 @@ export default {
         this.$q.notify({ type: 'negative', message: 'No se pudo generar el Excel de deudores' })
       } finally {
         this.descargandoExcel = false
+      }
+    },
+    // Hoja de deposito: cobros del rango por dia y por boleta, con totales.
+    async excelCobros () {
+      const { desde, hasta } = this.rangoCobros
+      if (!desde || !hasta || desde > hasta) {
+        this.$q.notify({ type: 'warning', message: 'Revisa el rango de fechas' })
+        return
+      }
+      this.descargandoCobros = true
+      try {
+        const { data } = await this.$api.get('creditos/excel-cobros', { params: { desde, hasta }, responseType: 'blob' })
+        const url = URL.createObjectURL(data)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = 'COBROS ' + desde + (hasta !== desde ? ' AL ' + hasta : '') + '.xlsx'
+        a.click()
+        URL.revokeObjectURL(url)
+      } catch (e) {
+        this.$q.notify({ type: 'negative', message: 'No se pudo generar el Excel de cobros' })
+      } finally {
+        this.descargandoCobros = false
       }
     },
     money (v) { return Number(v || 0).toFixed(2) },

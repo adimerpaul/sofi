@@ -138,6 +138,7 @@ Route::group(['middleware'=>'auth:sanctum'],function (){
     // Todos los clientes con su deuda, y el detalle de uno (deudas y ventas a credito).
     Route::get('/creditos/resumen',[\App\Http\Controllers\CreditoController::class,'resumen']);
     Route::get('/creditos/excel-deudores',[\App\Http\Controllers\CreditoController::class,'excelDeudores']);
+    Route::get('/creditos/excel-cobros',[\App\Http\Controllers\CreditoController::class,'excelCobros']);
     Route::get('/creditos/clientes/{id}',[\App\Http\Controllers\CreditoController::class,'detalle'])->where('id', '[0-9]+');
     Route::get('/creditos',[\App\Http\Controllers\CreditoController::class,'index']);
     Route::post('/creditos',[\App\Http\Controllers\CreditoController::class,'store']);

@@ -241,6 +241,120 @@ class CreditoController extends Controller
     }
 
     /**
+     * Cobros del rango (formato de la hoja de deposito de cobranzas): por cada
+     * dia un titulo "DEPOSITO dd/mm/yy" y un bloque por deposito -los cobros
+     * con la misma forma de pago y boleta- con vendedor, cliente, pago,
+     * comanda y si era factura, y el total del bloque. Al pie, quien lo saco.
+     * Los cobros anulados no entran.
+     */
+    public function excelCobros(Request $request)
+    {
+        $datos = $request->validate([
+            'desde' => 'nullable|date_format:Y-m-d',
+            'hasta' => 'nullable|date_format:Y-m-d',
+        ]);
+        $desde = $datos['desde'] ?? date('Y-m-d');
+        $hasta = $datos['hasta'] ?? $desde;
+
+        $abonos = DB::table('creditos_abonos')->whereNull('anulado_at')
+            ->whereDate('created_at', '>=', $desde)->whereDate('created_at', '<=', $hasta)
+            ->orderBy('created_at')->orderBy('id')
+            ->get(['id', 'origen', 'deuda_id', 'cliente_id', 'monto', 'forma_pago', 'referencia', 'created_at']);
+
+        // De la deuda salen la comanda, el vendedor y si era factura, con el
+        // mismo criterio que el Excel de deudores.
+        $deudas = $this->deudas(null)->keyBy('clave');
+        $vendedores = DB::table('personal')->whereRaw("TRIM(COALESCE(ci, '')) <> ''")
+            ->get(['ci', 'Nombre1', 'App1'])
+            ->mapWithKeys(function ($p) {
+                return [trim($p->ci) => trim(trim((string) $p->Nombre1) . ' ' . trim((string) $p->App1))];
+            });
+        $clientes = DB::table('tbclientes')->whereIn('Cod_Aut', $abonos->pluck('cliente_id')->unique()->all())
+            ->get(['Cod_Aut', 'Nombres', 'CiVend'])->keyBy('Cod_Aut');
+
+        $filas = $abonos->map(function ($a) use ($deudas, $vendedores, $clientes) {
+            $d = $deudas->get($a->origen . ':' . $a->deuda_id);
+            $cliente = $clientes->get($a->cliente_id);
+            $esSaldo = $d && $d->origen === 'manual' && !empty($d->comanda);
+            if ($esSaldo) {
+                $comanda = (int) $d->comanda;
+            } elseif ($a->origen === 'factura') {
+                $comanda = (int) (($d->pedido_nro ?? null) ?: $a->deuda_id);
+            } else {
+                $comanda = 'M' . $a->deuda_id;
+            }
+            return [
+                'dia' => substr((string) $a->created_at, 0, 10),
+                'deposito' => trim(strtoupper((string) $a->forma_pago) . ' ' . trim((string) $a->referencia)),
+                'vendedor' => $esSaldo && $d->vendedor
+                    ? $d->vendedor
+                    : ($cliente ? $vendedores->get(trim((string) $cliente->CiVend), '') : ''),
+                'cliente' => trim((string) ($cliente->Nombres ?? ($d->cliente ?? ''))),
+                'pago' => (float) $a->monto,
+                'comanda' => $comanda,
+                'factura' => $a->origen === 'factura' && $d && ($d->tipo_comprobante ?? '') === 'FACTURA' ? 'SI' : 'NO',
+            ];
+        });
+
+        $libro = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
+        $hoja = $libro->getActiveSheet();
+        $hoja->setTitle('Cobros');
+        $borde = ['borders' => ['allBorders' => ['borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN]]];
+
+        $fila = 1;
+        foreach ($filas->groupBy('dia') as $dia => $delDia) {
+            $hoja->setCellValue('B' . $fila, 'DEPOSITO ' . date('d/m/y', strtotime($dia)));
+            $hoja->getStyle('B' . $fila)->getFont()->setBold(true);
+            $fila += 2;
+
+            foreach ($delDia->groupBy('deposito') as $deposito => $grupo) {
+                $hoja->fromArray(['vendedor', 'cliente', 'pago', 'comanda', 'factura'], null, 'A' . $fila);
+                $hoja->getStyle("A{$fila}:E{$fila}")->applyFromArray($borde);
+                $desdeFila = ++$fila;
+                foreach ($grupo as $f) {
+                    $hoja->setCellValueExplicit('A' . $fila, $f['vendedor'], \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
+                    $hoja->setCellValueExplicit('B' . $fila, $f['cliente'], \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
+                    $hoja->setCellValue('C' . $fila, $f['pago']);
+                    $hoja->setCellValue('D' . $fila, $f['comanda']);
+                    $hoja->setCellValue('E' . $fila, $f['factura']);
+                    $fila++;
+                }
+                $hoja->getStyle('A' . $desdeFila . ':E' . ($fila - 1))->applyFromArray($borde);
+                // Total del deposito bajo la columna pago y, al lado, la boleta.
+                $hoja->setCellValue('C' . $fila, '=SUM(C' . $desdeFila . ':C' . ($fila - 1) . ')');
+                $hoja->getStyle('C' . $fila)->applyFromArray($borde)->getFont()->setBold(true);
+                $hoja->setCellValue('E' . $fila, $deposito);
+                $fila += 3;
+            }
+        }
+
+        if ($filas->isEmpty()) {
+            $hoja->setCellValue('B1', 'Sin cobros del ' . $desde . ' al ' . $hasta);
+            $fila = 3;
+        } else {
+            // Total de todo el rango, por si se sacan varios dias juntos.
+            $hoja->setCellValue('B' . $fila, 'TOTAL COBRADO');
+            $hoja->setCellValue('C' . $fila, round($filas->sum('pago'), 2));
+            $hoja->getStyle("B{$fila}:C{$fila}")->getFont()->setBold(true);
+            $fila += 2;
+        }
+        $usuario = $request->user();
+        $hoja->setCellValue('A' . $fila, 'ELABORADO POR ' . strtoupper(trim(($usuario->Nombre1 ?? '') . ' ' . ($usuario->App1 ?? ''))));
+
+        $hoja->getStyle('C1:C' . $fila)->getNumberFormat()->setFormatCode('#,##0.00');
+        foreach (['A' => 32, 'B' => 40, 'C' => 12, 'D' => 12, 'E' => 18] as $col => $ancho) {
+            $hoja->getColumnDimension($col)->setWidth($ancho);
+        }
+        $hoja->getPageSetup()->setPaperSize(\PhpOffice\PhpSpreadsheet\Worksheet\PageSetup::PAPERSIZE_LETTER)
+            ->setFitToWidth(1)->setFitToHeight(0);
+
+        $nombre = 'COBROS ' . $desde . ($hasta !== $desde ? ' AL ' . $hasta : '') . '.xlsx';
+        return response()->streamDownload(function () use ($libro) {
+            (new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($libro))->save('php://output');
+        }, $nombre, ['Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet']);
+    }
+
+    /**
      * El detalle de un cliente: sus datos, todas sus deudas (pendientes y
      * pagadas) y las ventas que se le hicieron a credito con sus productos.
      */
