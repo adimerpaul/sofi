@@ -188,6 +188,7 @@ export default {
           icon: 'payments',
           children: [
             { label: 'Cobrar', caption: 'Recojo y reportes de los camineros', icon: 'payments', to: 'cobranzas/recojo', show: can('cobranzasrecojo') },
+            { label: 'Actualizar precios', caption: 'Los 13 precios y el de compra', icon: 'price_change', to: 'precios', show: can('preciosActualizar') },
             { label: 'Créditos y deudas', caption: 'Deudas y abonos de clientes', icon: 'account_balance_wallet', to: 'cobranzas/creditos', show: can('cobranzasrecojo') },
             { label: 'Verificar facturación', caption: 'Facturación del día contra lo que trajo el camión', icon: 'fact_check', to: 'cobranzas/verificacion', show: can('cobranzasverificar') },
             { label: 'Verificar por cliente', caption: 'Buscar cliente y verificar sus compras', icon: 'person_search', to: 'cobranzas/verificacion/clientes', show: can('cobranzasverificar') },

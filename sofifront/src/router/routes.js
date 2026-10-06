@@ -51,6 +51,7 @@ const routes = [
       { path: '/ruta', component: Ruta ,meta: {requiresAuth: true}},
       { path: '/reporte', component: Reporte ,meta: {requiresAuth: true}},
       { path: '/productos', component: Productos ,meta: {requiresAuth: true}},
+      { path: '/precios', component: () => import('pages/Precios.vue'), meta: { requiresAuth: true } },
       { path: '/nopedido', component: Nopedido ,meta: {requiresAuth: true}},
       { path: '/almacen', component: AlmacenPage ,meta: {requiresAuth: true}},
       { path: '/almacenVerificar', component: AlmacenVerificar ,meta: {requiresAuth: true}},

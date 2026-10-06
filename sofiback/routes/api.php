@@ -67,6 +67,9 @@ Route::group(['middleware'=>'auth:sanctum'],function (){
     Route::get('/productos/excel',[\App\Http\Controllers\ProductoController::class,'exportarExcel']);
     Route::get('/productos/pdf',[\App\Http\Controllers\ProductoController::class,'exportarPdf']);
     Route::post('/productos/actualizarPollos',[\App\Http\Controllers\ProductoController::class,'actualizarPollos']);
+    // Cambio de precios: los 13 precios y el de compra de todos los productos en una grilla.
+    Route::get('/precios',[\App\Http\Controllers\PrecioController::class,'index']);
+    Route::put('/precios',[\App\Http\Controllers\PrecioController::class,'guardar']);
     Route::post('/productos',[\App\Http\Controllers\ProductoController::class,'crear']);
     Route::put('/productos/{codProd}',[\App\Http\Controllers\ProductoController::class,'actualizar']);
     Route::delete('/productos/{codProd}',[\App\Http\Controllers\ProductoController::class,'eliminar']);

@@ -138,6 +138,11 @@ class CreditoController extends Controller
      * sistema anterior (COMANDA ... DIAS), una fila por deuda pendiente. Solo
      * deudores. Lleva autofiltro y una fila de totales con SUBTOTAL, que suma
      * solo lo que queda visible al filtrar.
+     *
+     * Cada fila dice si es una VENTA a credito (un comprobante de facturacion,
+     * con su numero de venta) o una DEUDA (saldo del sistema anterior o
+     * agregada a mano). La hoja "Por cliente" suma las dos: lo que debe cada
+     * cliente por deudas, por ventas y en total.
      */
     public function excelDeudores()
     {
@@ -157,12 +162,17 @@ class CreditoController extends Controller
         $filas = $this->deudas(null)->where('saldo', '>', 0)->map(function ($d) use ($clientes, $vendedores, $ultimosAbonos) {
             $cliente = $clientes->get($d->cliente_id);
             $esSaldo = $d->origen === 'manual' && !empty($d->comanda);
+            $esVenta = $d->origen === 'factura';
             $fechaPago = $ultimosAbonos->get($d->clave)
                 ?: ($esSaldo && $d->ultimo_pago ? $d->ultimo_pago : $d->fecha);
 
             return [
+                'cliente_id' => (int) $d->cliente_id,
                 'comanda' => $esSaldo ? (int) $d->comanda
-                    : ($d->origen === 'factura' ? (int) ($d->pedido_nro ?: $d->id) : 'M' . $d->id),
+                    : ($esVenta ? (int) ($d->pedido_nro ?: $d->id) : 'M' . $d->id),
+                // El numero con el que se ve la venta en facturacion (#id).
+                'nro_venta' => $esVenta ? (int) $d->id : null,
+                'tipo' => $esVenta ? 'VENTA' : 'DEUDA',
                 'cliente' => trim((string) ($cliente->Nombres ?? $d->cliente)),
                 'empresa' => $esSaldo ? (string) $d->empresa : '',
                 // Del saldo anterior se respeta su importe y lo que ya traia a cuenta.
@@ -182,12 +192,12 @@ class CreditoController extends Controller
         $hoja->setTitle('Hoja1');
 
         $hoja->setCellValue('B1', 'C U E N T A S  P O R   C O B R A R  D E B I T O  S U M A D O');
-        $hoja->mergeCells('B1:J1');
+        $hoja->mergeCells('B1:L1');
         $hoja->getStyle('B1')->getFont()->setBold(true)->setSize(14);
         $hoja->getStyle('B1')->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
         $hoja->setCellValue('B2', 'Al ' . date('d/m/Y H:i'));
 
-        $hoja->fromArray(['COMANDA', 'NOMBRE DE CLIENTE', 'EMPRESA', 'IMPORTE', 'A CUENTA', 'DEUDA',
+        $hoja->fromArray(['COMANDA', 'NRO VENTA', 'TIPO', 'NOMBRE DE CLIENTE', 'EMPRESA', 'IMPORTE', 'A CUENTA', 'DEUDA',
             'FECHA DE PAGO', 'VENDEDOR', 'DIAS'], null, 'B3');
 
         $hoy = new \DateTime(date('Y-m-d'));
@@ -195,49 +205,123 @@ class CreditoController extends Controller
         foreach ($filas as $f) {
             $fecha = $f['fecha_pago'] ? new \DateTime((string) $f['fecha_pago']) : null;
             $hoja->setCellValue('B' . $fila, $f['comanda']);
-            $hoja->setCellValueExplicit('C' . $fila, $f['cliente'], \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
-            $hoja->setCellValueExplicit('D' . $fila, $f['empresa'], \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
-            $hoja->setCellValue('E' . $fila, $f['importe']);
-            $hoja->setCellValue('F' . $fila, $f['a_cuenta']);
-            $hoja->setCellValue('G' . $fila, $f['deuda']);
+            $hoja->setCellValue('C' . $fila, $f['nro_venta']);
+            $hoja->setCellValue('D' . $fila, $f['tipo']);
+            $hoja->setCellValueExplicit('E' . $fila, $f['cliente'], \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
+            $hoja->setCellValueExplicit('F' . $fila, $f['empresa'], \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
+            $hoja->setCellValue('G' . $fila, $f['importe']);
+            $hoja->setCellValue('H' . $fila, $f['a_cuenta']);
+            $hoja->setCellValue('I' . $fila, $f['deuda']);
             if ($fecha) {
-                $hoja->setCellValue('H' . $fila, \PhpOffice\PhpSpreadsheet\Shared\Date::PHPToExcel($fecha));
-                $hoja->setCellValue('J' . $fila, (int) (new \DateTime($fecha->format('Y-m-d')))->diff($hoy)->format('%r%a'));
+                $hoja->setCellValue('J' . $fila, \PhpOffice\PhpSpreadsheet\Shared\Date::PHPToExcel($fecha));
+                $hoja->setCellValue('L' . $fila, (int) (new \DateTime($fecha->format('Y-m-d')))->diff($hoy)->format('%r%a'));
             }
-            $hoja->setCellValueExplicit('I' . $fila, $f['vendedor'], \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
+            $hoja->setCellValueExplicit('K' . $fila, $f['vendedor'], \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
+            if ($f['tipo'] === 'VENTA') {
+                $hoja->getStyle('D' . $fila)->getFont()->getColor()->setRGB('1F4E79');
+            }
             $fila++;
         }
         $ultima = max($fila - 1, 3);
 
         // Totales: SUBTOTAL(9) suma solo las filas visibles con el filtro puesto.
         $total = $ultima + 1;
-        $hoja->setCellValue('C' . $total, 'TOTAL');
-        foreach (['E', 'F', 'G'] as $col) {
+        $hoja->setCellValue('E' . $total, 'TOTAL');
+        foreach (['G', 'H', 'I'] as $col) {
             $hoja->setCellValue($col . $total, $ultima >= 4 ? "=SUBTOTAL(9,{$col}4:{$col}{$ultima})" : 0);
         }
         $hoja->setCellValue('B' . $total, $ultima >= 4 ? "=SUBTOTAL(3,B4:B{$ultima})" : 0);
-
-        $hoja->getStyle('B3:J3')->getFont()->setBold(true);
-        $hoja->getStyle('B4:B' . $ultima)->getFont()->setBold(true);
-        $hoja->getStyle("B{$total}:J{$total}")->applyFromArray([
+        $hoja->getStyle("B{$total}:L{$total}")->applyFromArray([
             'font' => ['bold' => true],
             'fill' => ['fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID, 'startColor' => ['rgb' => 'FCE4D6']],
             'borders' => ['top' => ['borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_DOUBLE]],
         ]);
-        $hoja->getStyle("E4:G{$total}")->getNumberFormat()->setFormatCode('#,##0.00');
-        $hoja->getStyle("H4:H{$ultima}")->getNumberFormat()->setFormatCode('d/m/yyyy h:mm');
-        $hoja->setAutoFilter("B3:J{$ultima}");
+        // Debajo del total, lo que se debe por cada tipo: ventas + deudas = total.
+        foreach (['VENTA' => 'TOTAL VENTAS', 'DEUDA' => 'TOTAL DEUDAS'] as $tipo => $rotulo) {
+            $total++;
+            $hoja->setCellValue('E' . $total, $rotulo);
+            $hoja->setCellValue('I' . $total, $ultima >= 4 ? "=SUMIF(D4:D{$ultima},\"{$tipo}\",I4:I{$ultima})" : 0);
+            $hoja->getStyle("E{$total}:I{$total}")->getFont()->setBold(true);
+        }
+
+        $hoja->getStyle('B3:L3')->getFont()->setBold(true);
+        $hoja->getStyle('B4:B' . $ultima)->getFont()->setBold(true);
+        $hoja->getStyle("G4:I{$total}")->getNumberFormat()->setFormatCode('#,##0.00');
+        $hoja->getStyle("J4:J{$ultima}")->getNumberFormat()->setFormatCode('d/m/yyyy h:mm');
+        $hoja->setAutoFilter("B3:L{$ultima}");
         $hoja->freezePane('B4');
 
-        foreach (['A' => 8.71, 'B' => 9.71, 'C' => 40.71, 'D' => 25.71, 'E' => 12.71, 'F' => 12.71,
-            'G' => 12.71, 'H' => 15.71, 'I' => 32.71, 'J' => 8.71] as $col => $ancho) {
+        foreach (['A' => 8.71, 'B' => 9.71, 'C' => 10.71, 'D' => 8.71, 'E' => 40.71, 'F' => 25.71, 'G' => 12.71,
+            'H' => 12.71, 'I' => 12.71, 'J' => 15.71, 'K' => 32.71, 'L' => 8.71] as $col => $ancho) {
             $hoja->getColumnDimension($col)->setWidth($ancho);
         }
+
+        $this->hojaDeudoresPorCliente($libro->createSheet(), $filas);
+        $libro->setActiveSheetIndex(0);
 
         $nombre = 'CUENTAS POR COBRAR ' . date('Y-m-d') . '.xlsx';
         return response()->streamDownload(function () use ($libro) {
             (new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($libro))->save('php://output');
         }, $nombre, ['Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet']);
+    }
+
+    /**
+     * Lo que debe cada cliente, sumando sus dos tipos de deuda: las deudas
+     * (saldo anterior o a mano) y las ventas a credito, con los numeros de
+     * esas ventas. De mayor a menor deuda.
+     */
+    private function hojaDeudoresPorCliente($hoja, $filas)
+    {
+        $hoja->setTitle('Por cliente');
+        $hoja->setCellValue('A1', 'DEUDA POR CLIENTE (DEUDAS + VENTAS)');
+        $hoja->getStyle('A1')->getFont()->setBold(true)->setSize(13);
+        $hoja->setCellValue('A2', 'Al ' . date('d/m/Y H:i'));
+        $hoja->fromArray(['CLIENTE', 'VENDEDOR', 'DEUDAS', 'VENTAS', 'TOTAL', 'NRO VENTAS'], null, 'A3');
+        $hoja->getStyle('A3:F3')->applyFromArray([
+            'font' => ['bold' => true],
+            'fill' => ['fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID, 'startColor' => ['rgb' => 'D9D9D9']],
+        ]);
+
+        $porCliente = $filas->groupBy(function ($f) {
+            return $f['cliente_id'] ?: $f['cliente'];
+        })->map(function ($grupo) {
+            $ventas = $grupo->where('tipo', 'VENTA');
+            return [
+                'cliente' => $grupo->first()['cliente'],
+                'vendedor' => (string) $grupo->pluck('vendedor')->filter()->first(),
+                'deudas' => round($grupo->where('tipo', 'DEUDA')->sum('deuda'), 2),
+                'ventas' => round($ventas->sum('deuda'), 2),
+                'nros' => $ventas->pluck('nro_venta')->filter()->sort()->map(function ($n) { return '#' . $n; })->implode(', '),
+            ];
+        })->sortByDesc(function ($c) { return $c['deudas'] + $c['ventas']; })->values();
+
+        $fila = 4;
+        foreach ($porCliente as $c) {
+            $hoja->setCellValueExplicit('A' . $fila, $c['cliente'], \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
+            $hoja->setCellValueExplicit('B' . $fila, $c['vendedor'], \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
+            $hoja->setCellValue('C' . $fila, $c['deudas']);
+            $hoja->setCellValue('D' . $fila, $c['ventas']);
+            $hoja->setCellValue('E' . $fila, "=C{$fila}+D{$fila}");
+            $hoja->setCellValue('F' . $fila, $c['nros']);
+            $fila++;
+        }
+        $ultima = max($fila - 1, 3);
+        $hoja->setCellValue('A' . $fila, 'TOTAL (' . $porCliente->count() . ' clientes)');
+        foreach (['C', 'D', 'E'] as $col) {
+            $hoja->setCellValue($col . $fila, $ultima >= 4 ? "=SUBTOTAL(9,{$col}4:{$col}{$ultima})" : 0);
+        }
+        $hoja->getStyle("A{$fila}:F{$fila}")->applyFromArray([
+            'font' => ['bold' => true],
+            'fill' => ['fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID, 'startColor' => ['rgb' => 'FCE4D6']],
+            'borders' => ['top' => ['borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_DOUBLE]],
+        ]);
+        $hoja->getStyle("C4:E{$fila}")->getNumberFormat()->setFormatCode('#,##0.00');
+        $hoja->getStyle("E4:E{$fila}")->getFont()->setBold(true);
+        $hoja->setAutoFilter("A3:F{$ultima}");
+        $hoja->freezePane('A4');
+        foreach (['A' => 40, 'B' => 28, 'C' => 13, 'D' => 13, 'E' => 13, 'F' => 40] as $col => $ancho) {
+            $hoja->getColumnDimension($col)->setWidth($ancho);
+        }
     }
 
     /**
