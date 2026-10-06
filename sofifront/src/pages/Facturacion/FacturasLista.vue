@@ -127,22 +127,30 @@
       </div>
     </div>
 
-    <q-card flat bordered class="q-pa-sm q-mb-md">
-      <div class="row q-col-gutter-sm" @keyup.enter="recargar">
-        <div class="col-6 col-md-2">
-          <q-input v-model="filtros.desde" type="date" dense outlined label="Desde"/>
+    <q-card flat bordered class="q-pa-xs q-mb-sm filtros">
+      <div class="row q-col-gutter-xs items-center" @keyup.enter="recargar">
+        <!-- El turno de caja va de las 18:00 de ayer a las 18:00 de hoy; la
+             hora se puede vaciar para mirar dias enteros. -->
+        <div class="col-auto">
+          <q-input v-model="filtros.desde" type="date" dense outlined label="Desde" class="campo-fecha"/>
         </div>
-        <div class="col-6 col-md-2">
-          <q-input v-model="filtros.hasta" type="date" dense outlined label="Hasta"/>
+        <div class="col-auto">
+          <q-input v-model="filtros.horaDesde" type="time" dense outlined label="Hora" class="campo-hora"/>
         </div>
-        <div class="col-12 col-md-3">
+        <div class="col-auto">
+          <q-input v-model="filtros.hasta" type="date" dense outlined label="Hasta" class="campo-fecha"/>
+        </div>
+        <div class="col-auto">
+          <q-input v-model="filtros.horaHasta" type="time" dense outlined label="Hora" class="campo-hora"/>
+        </div>
+        <div class="col-12 col-md">
           <q-input v-model="filtros.buscar" dense outlined clearable label="Cliente, NIT, número o pedido">
             <template v-slot:append><q-icon name="search"/></template>
           </q-input>
         </div>
         <!-- El cajero casi siempre mira un solo tipo de comprobante: los chips
              lo cambian de un toque, sin abrir un desplegable. -->
-        <div class="col-12 col-md-3 row items-center q-gutter-xs">
+        <div class="col-12 col-md-auto row items-center q-gutter-xs">
           <q-chip
             v-for="opcion in tiposComprobante" :key="opcion.label"
             clickable dense
@@ -169,8 +177,10 @@
              col-md (ancho base 0) se metia en la misma linea sin ancho y los
              botones desaparecian. -->
         <div class="col-12 col-md-auto row items-center q-gutter-sm">
-          <q-btn :loading="loading" color="primary" icon="search" no-caps label="Buscar" @click="recargar"/>
-          <q-btn flat color="grey-7" icon="layers_clear" no-caps label="Limpiar" @click="limpiar"/>
+          <q-btn :loading="loading" color="primary" icon="search" no-caps dense padding="2px 10px" label="Buscar"
+                 @click="recargar"/>
+          <q-btn flat color="grey-7" icon="layers_clear" no-caps dense padding="2px 8px" label="Limpiar"
+                 @click="limpiar"/>
         </div>
       </div>
 
@@ -178,7 +188,7 @@
            pedidos por facturar; tocando se filtra a ese camion. -->
       <div v-if="camiones.length" class="q-mt-sm rounded-borders camion-caja">
         <div class="row items-center no-wrap q-px-xs bg-grey-3 camion-titulo">
-          <div class="text-weight-bold text-grey-8">CARGA POR CAMION</div>
+          <div class="text-weight-bold text-grey-8">PEDIDOS FACTURADOS POR CAMIÓN</div>
           <q-space/>
           <div class="text-weight-bolder" :class="facturadosTotal === pedidosTotal ? 'text-green-9' : 'text-orange-9'">
             {{ facturadosTotal }}/{{ pedidosTotal }} · {{ porcentajeTotal }}%
@@ -856,9 +866,25 @@ import { date } from 'quasar'
 import xlsx from 'json-as-xlsx'
 import { imprimirPdfDirecto } from 'src/utils/impresion.js'
 
+/** Hora de cierre de caja: el turno de hoy empezo ayer a esta hora. */
+// Caja empieza a facturar el reparto del dia siguiente desde la tarde (el
+// 05/10 arranco a las 20:51): con corte a las 18:00 entra toda esa carga.
+const CIERRE = '18:00'
+
 function filtrosPorDefecto () {
   const hoy = date.formatDate(new Date(), 'YYYY-MM-DD')
-  return { desde: hoy, hasta: hoy, buscar: '', tipo: null, pedidoTipo: null, estado: null, camion: null }
+  const ayer = date.formatDate(date.subtractFromDate(new Date(), { days: 1 }), 'YYYY-MM-DD')
+  return {
+    desde: ayer,
+    horaDesde: CIERRE,
+    hasta: hoy,
+    horaHasta: CIERRE,
+    buscar: '',
+    tipo: null,
+    pedidoTipo: null,
+    estado: null,
+    camion: null
+  }
 }
 
 /**
@@ -971,15 +997,31 @@ export default {
     },
     porcentajeTotal () {
       return this.pedidosTotal ? Math.round((this.facturadosTotal / this.pedidosTotal) * 100) : 0
+    },
+    /**
+     * El dia que se esta mirando, para lo que es de un solo dia (camiones y
+     * carga): el mismo dia sin hora, o un turno de caja (de ayer a cierta
+     * hora a hoy a la misma hora), que cuenta como el dia de hoy.
+     */
+    diaUnico () {
+      const { desde, hasta, horaDesde, horaHasta } = this.filtros
+      if (!desde || !hasta) return null
+      if (desde === hasta) return desde
+      const siguiente = date.formatDate(date.addToDate(new Date(desde + 'T12:00:00'), { days: 1 }), 'YYYY-MM-DD')
+      return horaDesde && horaDesde === horaHasta && siguiente === hasta ? hasta : null
     }
   },
   created () {
     if (this.$route.query.buscar) {
       this.filtros.buscar = String(this.$route.query.buscar)
     }
+    // Cuando se llega buscando un comprobante de una fecha, se mira el dia
+    // entero: con el turno de caja se perderia lo cobrado despues de las 18:00.
     if (this.$route.query.fecha) {
       this.filtros.desde = String(this.$route.query.fecha)
       this.filtros.hasta = String(this.$route.query.fecha)
+      this.filtros.horaDesde = null
+      this.filtros.horaHasta = null
     }
     this.onRequest({ pagination: this.pagination })
   },
@@ -1181,7 +1223,9 @@ export default {
     paramsFiltro () {
       return {
         desde: this.filtros.desde || '',
+        hora_desde: this.filtros.horaDesde || '',
         hasta: this.filtros.hasta || '',
+        hora_hasta: this.filtros.horaHasta || '',
         buscar: this.filtros.buscar || '',
         tipo: this.filtros.tipo || '',
         pedido_tipo: this.filtros.pedidoTipo || '',
@@ -1199,13 +1243,12 @@ export default {
      */
     cargarCarga () {
       const camion = this.filtros.camion
-      if (!camion || camion === 'SIN' || !this.filtros.desde ||
-        this.filtros.desde !== this.filtros.hasta) {
+      if (!camion || camion === 'SIN' || !this.diaUnico) {
         this.carga = null
         return
       }
 
-      this.$api.get('facturacion/carga', { params: { fecha: this.filtros.desde, camion } })
+      this.$api.get('facturacion/carga', { params: { fecha: this.diaUnico, camion } })
         .then(res => { this.carga = res.data })
         .catch(() => { this.carga = null })
     },
@@ -1273,13 +1316,13 @@ export default {
       this.$q.dialog({
         title: 'Aprobar camión ' + placa,
         message: 'Se darán por verificadas las ' + pendientes + ' canastas pendientes del ' +
-          this.fechaCorta(this.filtros.desde) + ' y ya se podrán imprimir sus comprobantes.',
+          this.fechaCorta(this.diaUnico) + ' y ya se podrán imprimir sus comprobantes.',
         cancel: { flat: true, label: 'Cancelar', noCaps: true },
         ok: { color: 'green-8', label: 'Aprobar', noCaps: true, unelevated: true },
         persistent: true
       }).onOk(() => {
         this.aprobandoCarga = true
-        this.$api.post('facturacion/carga/aprobar', { fecha: this.filtros.desde, camion: placa })
+        this.$api.post('facturacion/carga/aprobar', { fecha: this.diaUnico, camion: placa })
           .then(res => {
             this.$q.notify({ type: 'positive', position: 'top', message: res.data.message })
             this.recargar()
@@ -1292,6 +1335,9 @@ export default {
     // Los camiones con pedidos enviados en el rango, cada uno con cuanto lleva
     // facturado; se recargan con la lista porque dependen de las fechas.
     cargarCamiones () {
+      // Los mismos filtros que la lista, con hora incluida: el backend cuenta
+      // lo cobrado en esa ventana y, en un turno de caja, los pedidos que
+      // salen hoy. Asi el panel habla de los mismos comprobantes que la tabla.
       this.$api.get('facturacion/camiones', { params: this.paramsFiltro() })
         .then(res => {
           this.camiones = res.data.map(fila => {
@@ -1607,6 +1653,36 @@ export default {
 </script>
 
 <style lang="scss" scoped>
+/* Filtros bajos: la fila compite con la grilla por la pantalla. */
+.filtros :deep(.q-field--dense .q-field__control),
+.filtros :deep(.q-field--dense .q-field__marginal) {
+  height: 30px;
+  min-height: 30px;
+}
+.filtros :deep(.q-field--dense .q-field__label) {
+  top: 6px;
+  font-size: 12px;
+}
+.filtros :deep(.q-field--dense.q-field--float .q-field__label) {
+  transform: translateY(-85%) scale(0.75);
+}
+.filtros :deep(.q-field__native),
+.filtros :deep(.q-field__input) {
+  font-size: 12px;
+  padding: 0;
+  min-height: 28px;
+}
+.filtros .campo-fecha {
+  width: 132px;
+}
+.filtros .campo-hora {
+  width: 96px;
+}
+.filtros :deep(.q-chip) {
+  margin: 0 2px;
+  font-size: 12px;
+}
+
 /*
   El cajero mira esta grilla todo el dia y necesita ver muchas ventas de una:
   se le quita el aire a las celdas y se achica la letra para que entren mas

@@ -249,12 +249,7 @@ class FacturacionController extends Controller
             return $query->whereIn('id', $ids);
         }
 
-        if ($desde = $request->input('desde')) {
-            $query->whereDate('fecha', '>=', $desde);
-        }
-        if ($hasta = $request->input('hasta')) {
-            $query->whereDate('fecha', '<=', $hasta);
-        }
+        $this->enVentana($query, $request);
         if ($tipo = $request->input('tipo')) {
             $query->where('tipo_comprobante', $tipo);
         }
@@ -342,16 +337,21 @@ class FacturacionController extends Controller
         $pedidoTipo = strtoupper(trim((string) $request->input('pedido_tipo', '')));
         $pedidoTipo = in_array($pedidoTipo, TipoPedido::TIPOS, true) ? $pedidoTipo : null;
 
-        // El comprobante lleva la fecha del dia en que se cobro y el pedido la
-        // del dia en que se tomo (normalmente el anterior): ademas del rango se
-        // suman los dias de los pedidos cobrados en el rango, o filtrando por
-        // hoy no saldria ningun camion.
-        $cobrados = Factura::whereDate('fecha', '>=', $desde)->whereDate('fecha', '<=', $hasta)
-            ->whereNotNull('pedido_nro')->distinct()->pluck('pedido_nro');
-        $dias = $cobrados->isEmpty() ? collect() : DB::table('tbpedidos')
-            ->whereNull('tbpedidos.deleted_at')
-            ->whereIn('NroPed', $cobrados)
-            ->distinct()->pluck(DB::raw('DATE(fecha) as dia'));
+        // Los pedidos de cada camion son los que se cobraron en la misma
+        // ventana que muestra la lista (dia, o turno de caja con hora), mas los
+        // que salen esos dias y todavia no tienen comprobante. Solo esos
+        // pedidos, no su dia entero: un pedido viejo cobrado hoy metia todos
+        // los de su dia, que ya no estaban por facturar.
+        // Por comprobante y no por numero de pedido: un pedido con embutidos y
+        // podium tiene dos, y puede que solo uno se haya cobrado en la ventana.
+        $cobrados = $this->enVentana(Factura::query(), $request)
+            ->where('estado', '<>', 'ANULADO')
+            ->whereNotNull('pedido_nro')->pluck('id');
+        // Lo cobrado despues de la hora de cierre ya es del reparto de manana:
+        // en un turno (ayer 18:00 a hoy 18:00) salen los pedidos de hoy.
+        $entregaDesde = $this->hora($request->input('hora_desde'))
+            ? date('Y-m-d', strtotime($desde . ' +1 day'))
+            : $desde;
 
         // Una fila por pedido (numero y tipo), marcada si ya se cobro.
         $pedidos = DB::table('tbpedidos as p')
@@ -362,12 +362,15 @@ class FacturacionController extends Controller
                     ->whereNull('f.deleted_at')
                     ->where('f.estado', '<>', 'ANULADO');
             })
-            ->where(function ($w) use ($desde, $hasta, $dias) {
-                $w->where(function ($rango) use ($desde, $hasta) {
-                    $rango->whereDate('p.fecha', '>=', $desde)->whereDate('p.fecha', '<=', $hasta);
+            ->where(function ($w) use ($entregaDesde, $hasta, $cobrados) {
+                // De los que salen esos dias, solo lo que falta facturar: lo que
+                // ya se cobro antes de la ventana no esta en la lista y no cuenta.
+                $w->where(function ($rango) use ($entregaDesde, $hasta) {
+                    $rango->where('p.fecha_entrega', '>=', $entregaDesde)->where('p.fecha_entrega', '<=', $hasta)
+                        ->whereNull('f.id');
                 });
-                if ($dias->isNotEmpty()) {
-                    $w->orWhereIn(DB::raw('DATE(p.fecha)'), $dias->all());
+                if ($cobrados->isNotEmpty()) {
+                    $w->orWhereIn('f.id', $cobrados->all());
                 }
             })
             ->whereRaw("UPPER(TRIM(p.estado)) = 'ENVIADO'")
@@ -386,9 +389,8 @@ class FacturacionController extends Controller
         // pedido mas de ese camion, ya cobrado.
         $colores = DB::table('vehiculo')->get(['placa', 'colorStyle'])
             ->mapWithKeys(function ($v) { return [trim((string) $v->placa) => trim((string) $v->colorStyle)]; });
-        $directas = Factura::whereNull('pedido_nro')
+        $directas = $this->enVentana(Factura::whereNull('pedido_nro'), $request)
             ->where('estado', '<>', 'ANULADO')
-            ->whereDate('fecha', '>=', $desde)->whereDate('fecha', '<=', $hasta)
             ->whereRaw("TRIM(COALESCE(placa, '')) <> ''")
             // La venta directa no tiene tipo de pedido: filtrando por tipo no entra.
             ->when($pedidoTipo, function ($q) {
@@ -1848,6 +1850,44 @@ class FacturacionController extends Controller
         }
     }
 
+    /** 'HH:MM' valida o null; asi lo que llega del filtro no entra crudo al SQL. */
+    /**
+     * Corta los comprobantes por el rango de la lista. Con hora el corte es
+     * por fecha y hora juntas: el turno de caja va de las 18:00 de ayer a las
+     * 18:00 de hoy, no de medianoche a medianoche. La lista, los conteos y el
+     * resumen por camion usan este mismo corte.
+     */
+    private function enVentana($query, Request $request)
+    {
+        $horaDesde = $this->hora($request->input('hora_desde'));
+        $horaHasta = $this->hora($request->input('hora_hasta'));
+        if ($desde = $request->input('desde')) {
+            if ($horaDesde) {
+                $query->whereRaw('TIMESTAMP(DATE(fecha), hora) >= ?', [$desde . ' ' . $horaDesde . ':00']);
+            } else {
+                $query->whereDate('fecha', '>=', $desde);
+            }
+        }
+        if ($hasta = $request->input('hasta')) {
+            if ($horaHasta) {
+                // Hasta las 18:00 es hasta las 17:59:59; lo de las 18:00 en
+                // punto ya es del turno siguiente.
+                $query->whereRaw('TIMESTAMP(DATE(fecha), hora) < ?', [$hasta . ' ' . $horaHasta . ':00']);
+            } else {
+                $query->whereDate('fecha', '<=', $hasta);
+            }
+        }
+
+        return $query;
+    }
+
+    private function hora($valor)
+    {
+        $valor = trim((string) $valor);
+
+        return preg_match('/^([01]\d|2[0-3]):[0-5]\d$/', $valor) ? $valor : null;
+    }
+
     /** Forma de pago para el impreso; el mixto lleva cuanto fue de cada lado. */
     private function textoPago($factura)
     {
@@ -2962,10 +3002,13 @@ class FacturacionController extends Controller
         $desde = $request->input('desde');
         $hasta = $request->input('hasta');
 
-        $rango = $desde && $hasta && $desde === $hasta
+        $horaDesde = $this->hora($request->input('hora_desde'));
+        $horaHasta = $this->hora($request->input('hora_hasta'));
+
+        $rango = $desde && $hasta && $desde === $hasta && !$horaDesde && !$horaHasta
             ? date('d/m/Y', strtotime($desde))
-            : trim(($desde ? 'del ' . date('d/m/Y', strtotime($desde)) : '')
-                . ($hasta ? ' al ' . date('d/m/Y', strtotime($hasta)) : ''));
+            : trim(($desde ? 'del ' . date('d/m/Y', strtotime($desde)) . ($horaDesde ? ' ' . $horaDesde : '') : '')
+                . ($hasta ? ' al ' . date('d/m/Y', strtotime($hasta)) . ($horaHasta ? ' ' . $horaHasta : '') : ''));
 
         return [
             $contenido === 'cambios' ? 'CAMBIOS EN LOS PEDIDOS' : 'REPORTE DE VENTAS',
