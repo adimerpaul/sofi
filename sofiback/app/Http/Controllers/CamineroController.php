@@ -42,66 +42,7 @@ class CamineroController extends Controller
             ], 422);
         }
 
-        // La fecha es la del comprobante, no la del pedido: el pedido se toma
-        // un dia y se cobra al siguiente, y el caminero sale con lo que caja
-        // facturo hoy.
-        $facturas = DB::table('facturas as f')
-            ->leftJoin('tbclientes as c', 'c.Cod_Aut', '=', 'f.cliente_id')
-            ->whereNull('f.deleted_at')
-            ->where('f.estado', '<>', 'ANULADO')
-            ->where('f.fecha', $fecha)
-            ->whereNotNull('f.pedido_nro')
-            ->orderBy('f.hora')
-            ->get([
-                'f.id as factura_id', 'f.fecha as factura_fecha', 'f.hora',
-                'f.tipo_comprobante', 'f.tipo_pago', 'f.total', 'f.estado',
-                DB::raw('TRIM(COALESCE(f.nit, "")) as nit'),
-                DB::raw('TRIM(COALESCE(f.nombre, "")) as nombre'),
-                'f.cliente_id', 'f.pedido_nro as nro_pedido',
-                DB::raw('UPPER(TRIM(f.pedido_tipo)) as tipo'),
-                DB::raw('TRIM(COALESCE(c.Id, "")) as cliente_nit'),
-                DB::raw('TRIM(COALESCE(c.Nombres, "")) as cliente'),
-                DB::raw('TRIM(COALESCE(c.Direccion, "")) as direccion'),
-                DB::raw('TRIM(COALESCE(c.Telf, "")) as telefono'),
-                'c.Latitud as latitud', 'c.longitud as longitud',
-            ]);
-
-        // El camion se pregunta solo por esos pedidos: buscarlo por fecha
-        // obligaba a agrupar tbpedidos entera y ademas dejaba fuera lo de ayer
-        // que se factura hoy.
-        $pedidos = collect();
-        if ($facturas->isNotEmpty()) {
-            $pedidos = DB::table('tbpedidos')
-                ->whereNull('tbpedidos.deleted_at')
-                ->whereIn('NroPed', $facturas->pluck('nro_pedido')->unique()->all())
-                ->where('bonificacion', 0)
-                ->groupBy('NroPed', DB::raw(TipoPedido::sql('')))
-                ->get([
-                    'NroPed as nro_pedido',
-                    DB::raw(TipoPedido::sqlAgrupado('') . ' as tipo'),
-                    DB::raw("TRIM(COALESCE(MIN(placa), '')) as placa"),
-                    DB::raw("TRIM(COALESCE(MIN(colorStyle), '')) as placa_color"),
-                    DB::raw('MIN(fecha) as pedido_fecha'),
-                    DB::raw('COUNT(*) as productos'),
-                    DB::raw('ROUND(SUM(COALESCE(Cant, 0) * COALESCE(precio, 0)), 2) as total_pedido'),
-                ])
-                ->keyBy(function ($pedido) {
-                    return $pedido->nro_pedido . '-' . $pedido->tipo;
-                });
-        }
-
-        $facturas = $facturas->filter(function ($factura) use ($pedidos, $placa) {
-            $pedido = $pedidos->get($factura->nro_pedido . '-' . $factura->tipo);
-            if (!$pedido || $pedido->placa !== $placa) {
-                return false;
-            }
-            $factura->placa = $pedido->placa;
-            $factura->placa_color = $pedido->placa_color;
-            $factura->pedido_fecha = $pedido->pedido_fecha;
-            $factura->productos = $pedido->productos;
-            $factura->total_pedido = $pedido->total_pedido;
-            return true;
-        });
+        $facturas = $this->comprobantesDelCamion($fecha, $placa);
 
         // La entrega vigente de cada comprobante: la ultima registrada manda,
         // porque un NO ENTREGADO se puede corregir despues cobrando.
@@ -185,6 +126,77 @@ class CamineroController extends Controller
             'resumen' => $this->resumen($lista),
             'entregas' => $lista->values(),
         ];
+    }
+
+    /**
+     * Los comprobantes que salen en el camion ese dia. Es la base de lo que ve
+     * el caminero: su lista de entregas y el avance del reporte cuentan sobre
+     * lo mismo.
+     */
+    private function comprobantesDelCamion($fecha, $placa)
+    {
+        // La fecha es la del comprobante, no la del pedido: el pedido se toma
+        // un dia y se cobra al siguiente, y el caminero sale con lo que caja
+        // facturo hoy.
+        $facturas = DB::table('facturas as f')
+            ->leftJoin('tbclientes as c', 'c.Cod_Aut', '=', 'f.cliente_id')
+            ->whereNull('f.deleted_at')
+            ->where('f.estado', '<>', 'ANULADO')
+            ->where('f.fecha', $fecha)
+            ->whereNotNull('f.pedido_nro')
+            ->orderBy('f.hora')
+            ->get([
+                'f.id as factura_id', 'f.fecha as factura_fecha', 'f.hora',
+                'f.tipo_comprobante', 'f.tipo_pago', 'f.total', 'f.estado',
+                DB::raw('TRIM(COALESCE(f.nit, "")) as nit'),
+                DB::raw('TRIM(COALESCE(f.nombre, "")) as nombre'),
+                'f.cliente_id', 'f.pedido_nro as nro_pedido',
+                DB::raw('UPPER(TRIM(f.pedido_tipo)) as tipo'),
+                DB::raw('TRIM(COALESCE(c.Id, "")) as cliente_nit'),
+                DB::raw('TRIM(COALESCE(c.Nombres, "")) as cliente'),
+                DB::raw('TRIM(COALESCE(c.Direccion, "")) as direccion'),
+                DB::raw('TRIM(COALESCE(c.Telf, "")) as telefono'),
+                'c.Latitud as latitud', 'c.longitud as longitud',
+            ]);
+
+        // El camion se pregunta solo por esos pedidos: buscarlo por fecha
+        // obligaba a agrupar tbpedidos entera y ademas dejaba fuera lo de ayer
+        // que se factura hoy.
+        $pedidos = collect();
+        if ($facturas->isNotEmpty()) {
+            $pedidos = DB::table('tbpedidos')
+                ->whereNull('tbpedidos.deleted_at')
+                ->whereIn('NroPed', $facturas->pluck('nro_pedido')->unique()->all())
+                ->where('bonificacion', 0)
+                ->groupBy('NroPed', DB::raw(TipoPedido::sql('')))
+                ->get([
+                    'NroPed as nro_pedido',
+                    DB::raw(TipoPedido::sqlAgrupado('') . ' as tipo'),
+                    DB::raw("TRIM(COALESCE(MIN(placa), '')) as placa"),
+                    DB::raw("TRIM(COALESCE(MIN(colorStyle), '')) as placa_color"),
+                    DB::raw('MIN(fecha) as pedido_fecha'),
+                    DB::raw('COUNT(*) as productos'),
+                    DB::raw('ROUND(SUM(COALESCE(Cant, 0) * COALESCE(precio, 0)), 2) as total_pedido'),
+                ])
+                ->keyBy(function ($pedido) {
+                    return $pedido->nro_pedido . '-' . $pedido->tipo;
+                });
+        }
+
+        $facturas = $facturas->filter(function ($factura) use ($pedidos, $placa) {
+            $pedido = $pedidos->get($factura->nro_pedido . '-' . $factura->tipo);
+            if (!$pedido || $pedido->placa !== $placa) {
+                return false;
+            }
+            $factura->placa = $pedido->placa;
+            $factura->placa_color = $pedido->placa_color;
+            $factura->pedido_fecha = $pedido->pedido_fecha;
+            $factura->productos = $pedido->productos;
+            $factura->total_pedido = $pedido->total_pedido;
+            return true;
+        });
+
+        return $facturas->values();
     }
 
     /**
@@ -524,7 +536,7 @@ class CamineroController extends Controller
         // El mismo servicio que usa cobranzas: la hoja que el caminero firma
         // tiene que ser identica a la que despues le reclaman.
         $recojo = new RecojoDelDia();
-        $filas = $recojo->filas($fecha, $placa);
+        $filas = $recojo->filas($fecha, $placa, true);
         $grupos = $recojo->agrupar($filas);
         $entregadas = $filas->whereIn('estado', RecojoDelDia::ESTADOS_COBRADOS);
 
@@ -595,7 +607,7 @@ class CamineroController extends Controller
         }
 
         $recojo = new RecojoDelDia();
-        $filas = $recojo->filas($fecha, $placa);
+        $filas = $recojo->filas($fecha, $placa, true);
         $grupos = $recojo->agrupar($filas);
         $caminero = $this->nombre($request);
 
@@ -635,27 +647,14 @@ class CamineroController extends Controller
     }
 
     /**
-     * Cuanto lleva cerrado y cuanto le falta. Lo que salio en el camion son
-     * las notas del dia (tbctascobrar); si ese dia todavia no hay notas
-     * despachadas se cuentan los pedidos, que es como se ve desde facturacion.
+     * Cuanto lleva cerrado y cuanto le falta, sobre los mismos comprobantes
+     * que ve en su lista de entregas. Las notas de la ruta del sistema
+     * anterior (tbctascobrar) comparten placa pero no son del caminero, y
+     * contarlas daba el reparto por completo con solo un par de cobros.
      */
     private function avance($fecha, $placa, $filas)
     {
-        $salieron = DB::table('tbctascobrar')
-            ->where('FechaEntreg', $fecha)
-            ->whereRaw('TRIM(placa) = ?', [$placa])
-            ->distinct()
-            ->count('comanda');
-
-        if ($salieron === 0) {
-            $salieron = DB::table('tbpedidos')
-                ->whereNull('tbpedidos.deleted_at')
-                ->whereDate('fecha', $fecha)
-                ->where('bonificacion', 0)
-                ->whereRaw("TRIM(COALESCE(placa, '')) = ?", [$placa])
-                ->distinct()
-                ->count('NroPed');
-        }
+        $salieron = $this->comprobantesDelCamion($fecha, $placa)->count();
 
         $cerradas = $filas->pluck('nota')->unique()->count();
         $cobradas = $filas->whereIn('estado', RecojoDelDia::ESTADOS_COBRADOS)->pluck('nota')->unique()->count();

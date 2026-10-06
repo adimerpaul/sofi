@@ -47,29 +47,10 @@
       </q-chip>
     </div>
 
-    <!-- Un chip por cliente con cuantos pedidos tiene en la carga: tocandolo
-         quedan solo los suyos; tocandolo de nuevo se suelta. -->
-    <div v-if="!error && clientesCarga.length" class="row no-wrap q-gutter-xs q-mb-xs chips-scroll">
-      <q-chip
-        v-for="fila in clientesCarga" :key="fila.cliente"
-        clickable dense
-        :color="cliente === fila.cliente ? 'indigo-7' : (fila.revisados === fila.total ? 'green-1' : 'white')"
-        :text-color="cliente === fila.cliente ? 'white' : 'grey-9'"
-        :outline="cliente !== fila.cliente && fila.revisados !== fila.total"
-        :icon="fila.revisados === fila.total ? 'check_circle' : 'person'"
-        @click="cliente = cliente === fila.cliente ? null : fila.cliente"
-      >
-        <span class="chip-cliente ellipsis">{{ fila.cliente }}</span>
-        <q-badge rounded class="q-ml-xs" :color="cliente === fila.cliente ? 'white' : 'indigo-6'"
-                 :text-color="cliente === fila.cliente ? 'indigo-9' : 'white'">
-          {{ fila.total }} {{ fila.total === 1 ? 'pedido' : 'pedidos' }}
-        </q-badge>
-      </q-chip>
-    </div>
-
     <!-- Con muchos pedidos conviene revisar por producto: se elige uno y se
-         ven solo las canastas que lo llevan, con esa linea sola para tildar. -->
-    <div v-if="!error && productosCarga.length" class="q-mb-xs filtros">
+         ven solo las canastas que lo llevan, con esa linea sola para tildar.
+         Dentro de un cliente no hace falta: sus canastas ya estan a la vista. -->
+    <div v-if="!error && !cliente && productosCarga.length" class="q-mb-xs filtros">
       <q-select
         v-model="producto" :options="opcionesProducto" dense outlined clearable
         use-input input-debounce="0" emit-value map-options
@@ -198,14 +179,62 @@
     <div v-if="!error" class="row items-center q-px-xs q-mb-xs">
       <q-toggle v-model="soloPendientes" dense size="sm" label="Solo lo que falta" class="text-caption"/>
       <q-space/>
-      <div class="text-caption text-grey-7">{{ comprobantesFiltrados.length }} canastas</div>
+      <div class="text-caption text-grey-7">
+        <template v-if="vistaClientes">{{ clientesLista.length }} clientes</template>
+        <template v-else>{{ comprobantesFiltrados.length }} canastas</template>
+      </div>
     </div>
 
     <div v-if="cargando" class="flex flex-center q-pa-lg">
       <q-spinner color="primary" size="42px"/>
     </div>
 
-    <q-card v-else-if="!comprobantesFiltrados.length && !error" flat bordered class="text-center text-grey-7 q-pa-md">
+    <!-- La carga se revisa cliente por cliente, como se arma en el camion: se
+         entra a uno, se tilda lo suyo producto por producto y se vuelve. -->
+    <q-list
+      v-else-if="vistaClientes && clientesLista.length && !error"
+      bordered separator class="rounded-borders bg-white"
+    >
+      <q-item
+        v-for="fila in clientesLista" :key="fila.cliente"
+        clickable v-ripple class="q-px-sm cliente-fila"
+        :class="{ 'bg-green-1': fila.completo }"
+        @click="abrirCliente(fila.cliente)"
+      >
+        <q-item-section avatar style="min-width: 0" class="q-pr-sm">
+          <q-icon
+            :name="fila.completo ? 'check_circle' : 'person'" size="30px"
+            :color="fila.completo ? 'positive' : (fila.observadas ? 'deep-orange-7' : 'grey-6')"
+          />
+        </q-item-section>
+        <q-item-section>
+          <q-item-label lines="2" class="text-weight-bold">{{ fila.cliente }}</q-item-label>
+          <q-item-label caption>
+            {{ fila.canastas }} canasta{{ fila.canastas === 1 ? '' : 's' }}
+            · {{ fila.revisados }}/{{ fila.productos }} productos
+            <span v-if="fila.observadas" class="text-deep-orange-9 text-weight-bold">
+              · {{ fila.observadas }} observada{{ fila.observadas === 1 ? '' : 's' }}
+            </span>
+          </q-item-label>
+          <q-linear-progress
+            :value="fila.productos ? fila.revisados / fila.productos : 0" class="q-mt-xs"
+            size="4px" :color="fila.completo ? 'positive' : 'orange-7'" track-color="grey-3"
+          />
+        </q-item-section>
+        <q-item-section side class="text-right">
+          <q-badge :color="fila.completo ? 'positive' : 'orange-8'">
+            {{ fila.verificadas }}/{{ fila.canastas }}
+          </q-badge>
+          <q-item-label caption class="q-mt-xs">Bs {{ money(fila.total) }}</q-item-label>
+        </q-item-section>
+        <q-item-section side style="padding-left: 4px">
+          <q-icon name="chevron_right" color="grey-6"/>
+        </q-item-section>
+      </q-item>
+    </q-list>
+
+    <q-card v-else-if="!(vistaClientes ? clientesLista.length : comprobantesFiltrados.length) && !error"
+            flat bordered class="text-center text-grey-7 q-pa-md">
       <q-icon name="shopping_basket" size="36px" class="q-mb-sm"/>
       <div v-if="comprobantes.length">Ya revisaste todas las canastas de este filtro</div>
       <template v-else-if="sinFacturar">
@@ -218,148 +247,176 @@
       <div v-else>Tu camión no tiene comprobantes para esta fecha</div>
     </q-card>
 
-    <div v-else class="row q-col-gutter-xs">
-      <div
-        v-for="comprobante in comprobantesFiltrados" :key="comprobante.factura_id"
-        class="col-12 col-sm-6 col-lg-4"
-      >
-        <q-card
-          flat bordered class="rounded-borders shadow-1"
-          :class="{
-            'bg-green-2': comprobante.verificado && !comprobante.observado,
-            'bg-deep-orange-1': comprobante.observado,
-            'canasta-ocupada': guardando !== null
-          }"
+    <div v-else>
+      <q-card v-if="clienteActual" flat bordered class="q-mb-xs rounded-borders bg-indigo-1">
+        <div class="row items-center no-wrap q-px-xs q-py-xs">
+          <q-btn flat round dense icon="arrow_back" color="indigo-9" @click="volverAClientes">
+            <q-tooltip>Volver a los clientes</q-tooltip>
+          </q-btn>
+          <div class="col q-ml-xs">
+            <div class="text-weight-bold ellipsis-2-lines">{{ clienteActual.cliente }}</div>
+            <div class="text-caption text-indigo-10">
+              {{ clienteActual.canastas }} canasta{{ clienteActual.canastas === 1 ? '' : 's' }}
+              · {{ clienteActual.revisados }}/{{ clienteActual.productos }} productos revisados
+            </div>
+          </div>
+          <q-badge :color="clienteActual.completo ? 'positive' : 'orange-8'" class="q-pa-xs">
+            {{ clienteActual.verificadas }}/{{ clienteActual.canastas }}
+          </q-badge>
+        </div>
+      </q-card>
+
+      <div class="row q-col-gutter-xs">
+        <div
+          v-for="comprobante in comprobantesFiltrados" :key="comprobante.factura_id"
+          class="col-12 col-sm-6 col-lg-4"
         >
-          <q-card-section class="q-pa-xs cursor-pointer" @click="alternar(comprobante)">
-            <div class="row items-center no-wrap">
-              <!-- Tocando la tarjeta el boton de abajo puede quedar fuera de la
-                   pantalla, asi que el aviso de que se esta grabando va aca. -->
-              <q-spinner
-                v-if="guardando === comprobante.factura_id"
-                color="primary" size="30px" class="q-mr-sm"
-              />
-              <q-icon
-                v-else
-                :name="comprobante.verificado ? 'check_circle' : 'radio_button_unchecked'"
-                :color="comprobante.verificado ? 'positive' : 'grey-6'" size="30px" class="q-mr-sm"
-              />
-              <div class="col">
-                <div class="row items-center no-wrap">
-                  <!-- F de factura, R de recibo, igual que en facturacion. -->
-                  <q-badge :color="esFactura(comprobante) ? 'indigo-8' : 'blue-grey-6'" class="q-pa-xs">
-                    {{ esFactura(comprobante) ? 'F' : 'R' }}
-                  </q-badge>
-                  <div class="text-caption q-ml-xs text-grey-8 ellipsis">
-                    #{{ comprobante.nro_factura || comprobante.factura_id }}
-                    <span v-if="comprobante.nro_pedido">· pedido {{ comprobante.nro_pedido }}</span>
-                    <span v-if="comprobante.hora">· {{ String(comprobante.hora).substr(0, 5) }}</span>
+          <q-card
+            flat bordered class="rounded-borders shadow-1"
+            :class="{
+              'bg-green-2': comprobante.verificado && !comprobante.observado,
+              'bg-deep-orange-1': comprobante.observado,
+              'canasta-ocupada': guardando !== null
+            }"
+          >
+            <q-card-section class="q-pa-xs cursor-pointer" @click="alternar(comprobante)">
+              <div class="row items-center no-wrap">
+                <!-- Tocando la tarjeta el boton de abajo puede quedar fuera de la
+                     pantalla, asi que el aviso de que se esta grabando va aca. -->
+                <q-spinner
+                  v-if="guardando === comprobante.factura_id"
+                  color="primary" size="30px" class="q-mr-sm"
+                />
+                <q-icon
+                  v-else
+                  :name="comprobante.verificado ? 'check_circle' : 'radio_button_unchecked'"
+                  :color="comprobante.verificado ? 'positive' : 'grey-6'" size="30px" class="q-mr-sm"
+                />
+                <div class="col">
+                  <div class="row items-center no-wrap">
+                    <!-- F de factura, R de recibo, igual que en facturacion. -->
+                    <q-badge :color="esFactura(comprobante) ? 'indigo-8' : 'blue-grey-6'" class="q-pa-xs">
+                      {{ esFactura(comprobante) ? 'F' : 'R' }}
+                    </q-badge>
+                    <div class="text-caption q-ml-xs text-grey-8 ellipsis">
+                      #{{ comprobante.nro_factura || comprobante.factura_id }}
+                      <span v-if="comprobante.nro_pedido">· pedido {{ comprobante.nro_pedido }}</span>
+                      <span v-if="comprobante.hora">· {{ String(comprobante.hora).substr(0, 5) }}</span>
+                    </div>
+                    <q-space/>
+                    <div class="text-subtitle2 text-weight-bolder text-blue-grey-10">
+                      Bs {{ money(comprobante.total) }}
+                    </div>
                   </div>
-                  <q-space/>
-                  <div class="text-subtitle2 text-weight-bolder text-blue-grey-10">
-                    Bs {{ money(comprobante.total) }}
+                  <div class="text-subtitle2 text-weight-bold ellipsis-2-lines">
+                    {{ comprobante.cliente || 'Sin cliente' }}
                   </div>
-                </div>
-                <div class="text-subtitle2 text-weight-bold ellipsis-2-lines">
-                  {{ comprobante.cliente || 'Sin cliente' }}
-                </div>
-                <div class="text-caption ellipsis" :class="comprobante.verificado ? 'text-green-9' : 'text-grey-7'">
-                  {{ comprobante.productos }} producto{{ comprobante.productos === 1 ? '' : 's' }}
-                  <span v-if="comprobante.zona">· {{ comprobante.zona }}</span>
-                  <span v-if="comprobante.cambio" class="text-orange-9 text-weight-bold">
-                    · cambió la venta, revisar de nuevo
-                  </span>
+                  <div class="text-caption ellipsis" :class="comprobante.verificado ? 'text-green-9' : 'text-grey-7'">
+                    {{ comprobante.productos }} producto{{ comprobante.productos === 1 ? '' : 's' }}
+                    <span v-if="comprobante.zona">· {{ comprobante.zona }}</span>
+                    <span v-if="comprobante.cambio" class="text-orange-9 text-weight-bold">
+                      · cambió la venta, revisar de nuevo
+                    </span>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <!-- Lo que el caminero anoto al revisar: queda a la vista porque es
-                 lo que despues sale en el papel que firma. -->
-            <div v-if="comprobante.observacion" class="text-caption text-weight-bold q-mt-xs"
-                 :class="comprobante.observado ? 'text-deep-orange-9' : 'text-red-9'">
-              <q-icon name="report_problem" size="14px"/>
-              <span v-if="comprobante.observado" class="q-mr-xs">OBSERVADA:</span>{{ comprobante.observacion }}
-            </div>
-          </q-card-section>
+              <!-- Lo que el caminero anoto al revisar: queda a la vista porque es
+                   lo que despues sale en el papel que firma. -->
+              <div v-if="comprobante.observacion" class="text-caption text-weight-bold q-mt-xs"
+                   :class="comprobante.observado ? 'text-deep-orange-9' : 'text-red-9'">
+                <q-icon name="report_problem" size="14px"/>
+                <span v-if="comprobante.observado" class="q-mr-xs">OBSERVADA:</span>{{ comprobante.observacion }}
+              </div>
+            </q-card-section>
 
-          <q-separator/>
-          <!-- Producto por producto: cada uno se tilda al verlo subir. Con
-               todos tildados la canasta queda verificada sola. La verificada
-               se pliega para no ocupar pantalla, pero se puede volver a abrir. -->
-          <div
-            class="row items-center no-wrap q-px-sm q-py-xs cursor-pointer"
-            @click="alternarLista(comprobante)"
-          >
-            <q-icon name="shopping_basket" size="18px" class="q-mr-xs"
-                    :color="comprobante.verificado ? 'green-8' : 'grey-7'"/>
-            <div class="text-caption text-weight-medium">
-              Productos revisados
-              <span :class="comprobante.verificado ? 'text-green-9' : 'text-orange-9'" class="text-weight-bolder">
-                {{ revisadosDe(comprobante) }}/{{ comprobante.items.length }}
-              </span>
+            <q-separator/>
+            <!-- Producto por producto: cada uno se tilda al verlo subir. Con
+                 todos tildados la canasta queda verificada sola. La verificada
+                 se pliega para no ocupar pantalla, pero se puede volver a abrir. -->
+            <div
+              class="row items-center no-wrap q-px-sm q-py-xs cursor-pointer"
+              @click="alternarLista(comprobante)"
+            >
+              <q-icon name="shopping_basket" size="18px" class="q-mr-xs"
+                      :color="comprobante.verificado ? 'green-8' : 'grey-7'"/>
+              <div class="text-caption text-weight-medium">
+                Productos revisados
+                <span :class="comprobante.verificado ? 'text-green-9' : 'text-orange-9'" class="text-weight-bolder">
+                  {{ revisadosDe(comprobante) }}/{{ comprobante.items.length }}
+                </span>
+              </div>
+              <q-space/>
+              <q-icon :name="listaAbierta(comprobante) ? 'expand_less' : 'expand_more'" size="20px" color="grey-7"/>
             </div>
-            <q-space/>
-            <q-icon :name="listaAbierta(comprobante) ? 'expand_less' : 'expand_more'" size="20px" color="grey-7"/>
-          </div>
-          <q-linear-progress
-            :value="comprobante.items.length ? revisadosDe(comprobante) / comprobante.items.length : 0"
-            size="4px" :color="comprobante.verificado ? 'positive' : 'orange-7'" track-color="grey-3"
-          />
-          <q-slide-transition>
-            <q-list v-show="listaAbierta(comprobante)" separator
-                    :class="comprobante.verificado ? 'bg-green-1' : 'bg-grey-1'">
-              <q-item
-                v-for="item in itemsVisibles(comprobante)" :key="item.id"
-                clickable v-ripple class="q-px-xs producto"
-                :class="{ 'producto-revisado': item.revisado }"
-                @click="alternarProducto(comprobante, item)"
-              >
-                <q-item-section avatar class="q-pr-xs" style="min-width: 0">
-                  <q-icon
-                    :name="item.revisado ? 'check_box' : 'check_box_outline_blank'"
-                    :color="item.revisado ? 'positive' : 'grey-6'" size="28px"
-                  />
-                </q-item-section>
-                <q-item-section>
-                  <q-item-label lines="2" class="text-weight-medium">{{ item.nombre }}</q-item-label>
-                  <q-item-label caption>{{ item.cod_prod }}</q-item-label>
-                </q-item-section>
-                <q-item-section side class="text-right">
-                  <q-item-label class="text-weight-bold text-blue-grey-10">
-                    {{ cantidad(item.peso || item.cantidad) }} {{ item.unidad }}
-                  </q-item-label>
-                  <q-item-label caption>Bs {{ money(item.total) }}</q-item-label>
-                </q-item-section>
-              </q-item>
-            </q-list>
-          </q-slide-transition>
-
-          <q-separator/>
-          <q-card-actions class="q-pa-xs">
-            <!-- Revisar una canasta termina de dos maneras: visto bueno, u
-                 observada con el motivo. Las dos la dan por revisada y dejan
-                 salir el camion; la observada llega marcada a facturacion. -->
-            <q-btn
-              dense no-caps size="sm" :outline="!comprobante.observado" unelevated
-              :color="comprobante.observado ? 'deep-orange-7' : 'deep-orange-8'"
-              :text-color="comprobante.observado ? 'white' : undefined"
-              icon="report_problem"
-              :label="comprobante.observado ? 'Ver observación' : 'Observar'"
-              :loading="guardando === comprobante.factura_id"
-              @click="abrirObservacion(comprobante)"
+            <q-linear-progress
+              :value="comprobante.items.length ? revisadosDe(comprobante) / comprobante.items.length : 0"
+              size="4px" :color="comprobante.verificado ? 'positive' : 'orange-7'" track-color="grey-3"
             />
-            <q-space/>
-            <q-btn
-              dense no-caps size="sm" unelevated
-              :color="comprobante.verificado ? 'grey-6' : 'positive'"
-              :icon="comprobante.verificado ? 'undo' : 'check'"
-              :label="comprobante.verificado ? 'Desmarcar' : 'Verificar todo'"
-              :loading="guardando === comprobante.factura_id"
-              @click="alternar(comprobante)"
-            />
-          </q-card-actions>
-        </q-card>
+            <q-slide-transition>
+              <q-list v-show="listaAbierta(comprobante)" separator
+                      :class="comprobante.verificado ? 'bg-green-1' : 'bg-grey-1'">
+                <q-item
+                  v-for="item in itemsVisibles(comprobante)" :key="item.id"
+                  clickable v-ripple class="q-px-xs producto"
+                  :class="{ 'producto-revisado': item.revisado }"
+                  @click="alternarProducto(comprobante, item)"
+                >
+                  <q-item-section avatar class="q-pr-xs" style="min-width: 0">
+                    <q-icon
+                      :name="item.revisado ? 'check_box' : 'check_box_outline_blank'"
+                      :color="item.revisado ? 'positive' : 'grey-6'" size="28px"
+                    />
+                  </q-item-section>
+                  <q-item-section>
+                    <q-item-label lines="2" class="text-weight-medium">{{ item.nombre }}</q-item-label>
+                    <q-item-label caption>{{ item.cod_prod }}</q-item-label>
+                  </q-item-section>
+                  <q-item-section side class="text-right">
+                    <q-item-label class="text-weight-bold text-blue-grey-10">
+                      {{ cantidad(item.peso || item.cantidad) }} {{ item.unidad }}
+                    </q-item-label>
+                    <q-item-label caption>Bs {{ money(item.total) }}</q-item-label>
+                  </q-item-section>
+                </q-item>
+              </q-list>
+            </q-slide-transition>
+
+            <q-separator/>
+            <q-card-actions class="q-pa-xs">
+              <!-- Revisar una canasta termina de dos maneras: visto bueno, u
+                   observada con el motivo. Las dos la dan por revisada y dejan
+                   salir el camion; la observada llega marcada a facturacion. -->
+              <q-btn
+                dense no-caps size="sm" :outline="!comprobante.observado" unelevated
+                :color="comprobante.observado ? 'deep-orange-7' : 'deep-orange-8'"
+                :text-color="comprobante.observado ? 'white' : undefined"
+                icon="report_problem"
+                :label="comprobante.observado ? 'Ver observación' : 'Observar'"
+                :loading="guardando === comprobante.factura_id"
+                @click="abrirObservacion(comprobante)"
+              />
+              <q-space/>
+              <q-btn
+                dense no-caps size="sm" unelevated
+                :color="comprobante.verificado ? 'grey-6' : 'positive'"
+                :icon="comprobante.verificado ? 'undo' : 'check'"
+                :label="comprobante.verificado ? 'Desmarcar' : 'Verificar todo'"
+                :loading="guardando === comprobante.factura_id"
+                @click="alternar(comprobante)"
+              />
+            </q-card-actions>
+          </q-card>
+        </div>
       </div>
+
+      <!-- Terminado el cliente se vuelve a la lista para seguir con el proximo. -->
+      <q-btn
+        v-if="clienteActual" class="full-width q-mt-sm" unelevated no-caps icon="arrow_back"
+        :color="clienteActual.completo ? 'positive' : 'indigo-7'"
+        :label="clienteActual.completo ? 'Listo, volver a los clientes' : 'Volver a los clientes'"
+        @click="volverAClientes"
+      />
     </div>
 
     <!-- La observacion es donde queda escrito lo que no cuadraba: producto que
@@ -411,9 +468,8 @@ export default {
       fecha: this.$route.query.fecha || date.formatDate(new Date(), 'YYYY-MM-DD'),
       buscar: '',
       soloPendientes: false,
-      // Filtros por chip: tipo de pedido (POLLO, NORMAL...) y cliente.
+      // Filtro por chip: tipo de pedido (POLLO, NORMAL...).
       tipo: this.$route.query.tipo || null,
-      cliente: null,
       cargando: false,
       imprimiendo: false,
       // Id del comprobante que se esta grabando, o 'todo'.
@@ -482,17 +538,46 @@ export default {
         ? this.comprobantes.filter(comprobante => (comprobante.pedido_tipo || 'NORMAL') === this.tipo)
         : this.comprobantes
     },
+    // El cliente que se esta revisando viaja en la URL: asi el "atras" del
+    // celular devuelve a la lista de clientes en vez de salir de la pagina.
+    cliente () {
+      return this.$route.query.cliente || null
+    },
+    // Sin cliente ni producto elegido se ve la lista de clientes; con
+    // producto se sigue revisando ese producto en todas las canastas.
+    vistaClientes () {
+      return !this.cliente && !this.producto
+    },
     clientesCarga () {
       const porCliente = {}
       this.comprobantesDelTipo.forEach(comprobante => {
         const nombre = comprobante.cliente || 'Sin cliente'
-        const fila = porCliente[nombre] || (porCliente[nombre] = { cliente: nombre, total: 0, revisados: 0 })
-        fila.total++
-        if (comprobante.verificado) fila.revisados++
+        const fila = porCliente[nombre] || (porCliente[nombre] = {
+          cliente: nombre, canastas: 0, verificadas: 0, observadas: 0, productos: 0, revisados: 0, total: 0, comprobantes: []
+        })
+        fila.canastas++
+        if (comprobante.verificado) fila.verificadas++
+        if (comprobante.observado) fila.observadas++
+        fila.productos += comprobante.items.length
+        fila.revisados += comprobante.items.filter(item => item.revisado).length
+        fila.total += Number(comprobante.total || 0)
+        fila.comprobantes.push(comprobante)
       })
-      // Los que tienen mas pedidos primero: son los que mas cuesta armar.
-      return Object.values(porCliente)
-        .sort((a, b) => b.total - a.total || a.cliente.localeCompare(b.cliente))
+      return Object.values(porCliente).map(fila => {
+        fila.completo = fila.verificadas === fila.canastas
+        return fila
+      })
+    },
+    // Lo que falta primero, igual que las canastas: lo terminado se hunde.
+    clientesLista () {
+      const texto = (this.buscar || '').toLowerCase()
+      return this.clientesCarga
+        .filter(fila => !(this.soloPendientes && fila.completo))
+        .filter(fila => !texto || fila.comprobantes.some(comprobante => this.coincide(comprobante, texto)))
+        .sort((a, b) => Number(a.completo) - Number(b.completo) || a.cliente.localeCompare(b.cliente))
+    },
+    clienteActual () {
+      return this.cliente ? this.clientesCarga.find(fila => fila.cliente === this.cliente) || null : null
     },
     productosCarga () {
       const porCodigo = {}
@@ -539,13 +624,7 @@ export default {
             if (this.lineasDelProducto(comprobante).every(item => item.revisado)) return false
           } else if (comprobante.verificado) return false
         }
-        if (!texto) return true
-        return String(comprobante.nro_pedido || '').includes(texto) ||
-          String(comprobante.nro_factura || comprobante.factura_id).includes(texto) ||
-          (comprobante.cliente || '').toLowerCase().includes(texto) ||
-          // Tambien se encuentra la canasta por lo que lleva.
-          comprobante.items.some(item => (item.nombre || '').toLowerCase().includes(texto) ||
-            String(item.cod_prod).includes(texto))
+        return !texto || this.coincide(comprobante, texto)
       })
 
       // Lo que falta revisar va primero: el caminero trabaja de arriba hacia
@@ -618,6 +697,32 @@ export default {
         observacion: ''
       })
     },
+    coincide (comprobante, texto) {
+      return String(comprobante.nro_pedido || '').includes(texto) ||
+        String(comprobante.nro_factura || comprobante.factura_id).includes(texto) ||
+        (comprobante.cliente || '').toLowerCase().includes(texto) ||
+        // Tambien se encuentra la canasta por lo que lleva.
+        comprobante.items.some(item => (item.nombre || '').toLowerCase().includes(texto) ||
+          String(item.cod_prod).includes(texto))
+    },
+    // Entrar a un cliente es un paso mas en el historial; volver lo deshace.
+    abrirCliente (nombre) {
+      this.producto = null
+      this.buscar = ''
+      this.$router.push({ path: '/caminero/carga', query: Object.assign({}, this.$route.query, { cliente: nombre }) })
+      window.scrollTo(0, 0)
+    },
+    volverAClientes () {
+      // Si se entro desde la lista, atras; si se abrio con el cliente ya en
+      // la URL (recargando), no hay a donde volver y se quita a mano.
+      if (window.history.state && window.history.state.back) {
+        this.$router.back()
+      } else {
+        const query = Object.assign({}, this.$route.query)
+        delete query.cliente
+        this.$router.replace({ path: '/caminero/carga', query })
+      }
+    },
     revisadosDe (comprobante) {
       return comprobante.items.filter(item => item.revisado).length
     },
@@ -634,9 +739,9 @@ export default {
     // en el otro grupo. Queda en la URL para volver al mismo tipo.
     elegirTipo (valor) {
       this.tipo = valor
-      this.cliente = null
       this.producto = null
       const query = Object.assign({}, this.$route.query)
+      delete query.cliente
       if (valor) query.tipo = valor
       else delete query.tipo
       this.$router.replace({ path: '/caminero/carga', query })
@@ -822,10 +927,8 @@ export default {
 .chips-scroll > .q-chip {
   flex: 0 0 auto;
 }
-.chip-cliente {
-  max-width: 150px;
-  display: inline-block;
-  vertical-align: middle;
+.cliente-fila {
+  min-height: 60px;
 }
 /* Filas de producto altas, faciles de tocar con el pulgar. */
 .producto {
