@@ -108,7 +108,8 @@
       </q-card>
 
       <q-card flat bordered class="rounded-borders">
-        <TablaRecojo :tabla="tabla"/>
+        <!-- El caminero solo ve lo cobrado: las notas donde entro efectivo o QR. -->
+        <TablaRecojo :tabla="tabla" solo-recogido/>
       </q-card>
     </div>
   </q-page>

@@ -597,8 +597,13 @@ class CamineroController extends Controller
         $caminero = $this->nombre($request);
 
         // La tabla del dia va sola en su hoja, sin las hojas por forma de pago.
+        // Igual que en pantalla: solo las notas cobradas (entro efectivo o QR).
         if ($grupo === 'tabla') {
-            return $this->pdf($recojo->tablaHtml($fecha, $caminero, $placa, $filas), 'recojo_tabla_' . $fecha);
+            $cobradas = $filas->whereIn('estado', RecojoDelDia::ESTADOS_COBRADOS)
+                ->filter(function ($fila) {
+                    return $fila->monto_efectivo > 0 || $fila->monto_qr > 0;
+                })->values();
+            return $this->pdf($recojo->tablaHtml($fecha, $caminero, $placa, $cobradas), 'recojo_tabla_' . $fecha);
         }
 
         $claves = $grupo === 'todos' ? array_keys(RecojoDelDia::HOJAS) : [$grupo];
