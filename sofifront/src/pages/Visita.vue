@@ -1314,23 +1314,23 @@ export default {
     },
     // tbproductos guarda 13 precios de venta: Precio es el 1 y Precio_Costo el
     // 2 (el nombre es heredado, no es el costo), despues Precio3..Precio13.
-    // Se descartan los que estan en cero y los repetidos para que la lista solo
-    // muestre precios que de verdad se pueden cobrar.
+    // Se descartan los que estan en cero; los que tienen el mismo valor salen
+    // en una sola opcion con todos sus numeros ("Precio 3 / 8 / 11") para que
+    // ninguno desaparezca de la lista.
     listaPrecios(producto) {
       const campos = ['Precio', 'Precio_Costo', 'Precio3', 'Precio4', 'Precio5',
         'Precio6', 'Precio7', 'Precio8', 'Precio9', 'Precio10', 'Precio11',
         'Precio12', 'Precio13']
-      const vistos = []
       const opciones = []
       campos.forEach((campo, indice) => {
         const valor = parseFloat(producto[campo])
         if (!valor || isNaN(valor)) return
         const texto = valor.toFixed(2)
-        if (vistos.indexOf(texto) !== -1) return
-        vistos.push(texto)
-        opciones.push({etiqueta: 'Precio ' + (indice + 1), valor: texto})
+        const repetida = opciones.find(o => o.valor === texto)
+        if (repetida) repetida.numeros.push(indice + 1)
+        else opciones.push({numeros: [indice + 1], valor: texto})
       })
-      return opciones
+      return opciones.map(o => ({etiqueta: 'Precio ' + o.numeros.join(' / '), valor: o.valor}))
     },
     elegirPrecio(fila, valor) {
       fila.precio = valor
