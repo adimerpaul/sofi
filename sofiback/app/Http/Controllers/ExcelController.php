@@ -1182,23 +1182,25 @@ class ExcelController extends Controller
                     TRIM(pr.codUnid) AS unidad, p.precio AS precio_pedido,
                     pr.Precio, pr.Precio_Costo, pr.Precio3, pr.Precio4, pr.Precio5, pr.Precio6, pr.Precio7,
                     pr.Precio8, pr.Precio9, pr.Precio10, pr.Precio11, pr.Precio12, pr.Precio13,
-                    TRIM(CONCAT_WS(' ', NULLIF(TRIM(pe.Nombre1), ''), NULLIF(TRIM(pe.App1), ''))) AS preventista
+                    TRIM(CONCAT_WS(' ', NULLIF(TRIM(pe.Nombre1), ''), NULLIF(TRIM(pe.App1), ''))) AS preventista,
+                    COALESCE(TRIM(z.zona), 'SIN ZONA') AS zona
              FROM tbpedidos p
              INNER JOIN tbproductos pr ON pr.cod_prod = p.cod_prod
              INNER JOIN tbclientes c ON p.idCli = c.Cod_Aut
              LEFT JOIN personal pe ON pe.CodAut = p.CIfunc
+             LEFT JOIN colores z ON z.color = p.color
              WHERE p.deleted_at IS NULL AND DATE(p.fecha) = ? AND p.estado = 'ENVIADO'
                AND " . $filtro . "
                AND TRIM(p.cod_prod) NOT IN ('501607', '100005')
-             ORDER BY preventista, p.NroPed, p.codAut",
+             ORDER BY COALESCE(z.id, 999), p.NroPed, p.codAut",
             array_merge([$fecha], $codigos)
         );
 
-        // Preventista -> pedidos -> lineas, respetando el orden de la consulta.
-        $preventistas = [];
+        // Zona -> pedidos -> lineas, respetando el orden de la consulta (el de
+        // la tabla colores). La zona sale del color del pedido.
+        $zonas = [];
         foreach ($lineas as $l) {
-            $prev = $l->preventista !== '' ? $l->preventista : 'SIN PREVENTISTA';
-            $preventistas[$prev][$l->NroPed][] = $l;
+            $zonas[$l->zona][$l->NroPed][] = $l;
         }
 
         $mapaColores = [
@@ -1256,10 +1258,10 @@ class ExcelController extends Controller
         $finPedido = [];
         $filasCliente = [];
         $nPedido = 0;
-        foreach ($preventistas as $preventista => $pedidos) {
-            // Fila del preventista en gris oscuro, para no confundirla con la
-            // fila de cada cliente que va debajo.
-            $sheet->setCellValue('F' . $c, 'PREVENTISTA: ' . $preventista);
+        foreach ($zonas as $zona => $pedidos) {
+            // Fila de la zona en gris oscuro, para no confundirla con la fila
+            // de cada cliente que va debajo.
+            $sheet->setCellValue('F' . $c, 'ZONA: ' . $zona);
             $sheet->getStyle("A{$c}:M{$c}")->applyFromArray([
                 'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
                 'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => '595959']],
