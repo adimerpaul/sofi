@@ -343,14 +343,14 @@
               <div class="text-caption text-weight-medium">
                 Productos revisados
                 <span :class="comprobante.verificado ? 'text-green-9' : 'text-orange-9'" class="text-weight-bolder">
-                  {{ revisadosDe(comprobante) }}/{{ comprobante.items.length }}
+                  {{ revisadosDe(comprobante) }}/{{ lineasDelTipo(comprobante).length }}
                 </span>
               </div>
               <q-space/>
               <q-icon :name="listaAbierta(comprobante) ? 'expand_less' : 'expand_more'" size="20px" color="grey-7"/>
             </div>
             <q-linear-progress
-              :value="comprobante.items.length ? revisadosDe(comprobante) / comprobante.items.length : 0"
+              :value="lineasDelTipo(comprobante).length ? revisadosDe(comprobante) / lineasDelTipo(comprobante).length : 0"
               size="4px" :color="comprobante.verificado ? 'positive' : 'orange-7'" track-color="grey-3"
             />
             <q-slide-transition>
@@ -523,22 +523,25 @@ export default {
     // el filtro por producto.
     // Los tipos de pedido que trae la carga, con cuantos pedidos y cuantos
     // ya revisados tiene cada uno.
+    // Podium y huevo vienen en el mismo comprobante pero se cargan aparte:
+    // cada uno tiene su chip y una canasta con los dos cuenta en ambos.
     tiposCarga () {
       const porTipo = {}
       this.comprobantes.forEach(comprobante => {
-        const valor = comprobante.pedido_tipo || 'NORMAL'
-        const fila = porTipo[valor] || (porTipo[valor] = { valor, nombre: this.nombreTipo(valor), total: 0, revisados: 0 })
-        fila.total++
-        if (comprobante.verificado) fila.revisados++
+        this.tiposDe(comprobante).forEach(valor => {
+          const fila = porTipo[valor] || (porTipo[valor] = { valor, nombre: this.nombreTipo(valor), total: 0, revisados: 0 })
+          fila.total++
+          if (this.revisadoEnTipo(comprobante, valor)) fila.revisados++
+        })
       })
-      const orden = ['POLLO', 'NORMAL', 'CERDO', 'RES', 'PODIUM']
+      const orden = ['POLLO', 'NORMAL', 'CERDO', 'RES', 'PODIUM', 'HUEVO']
       return Object.values(porTipo).sort((a, b) => orden.indexOf(a.valor) - orden.indexOf(b.valor))
     },
     // La carga del tipo elegido: de ahi salen los chips de cliente y la
     // lista de productos, para que todo hable del mismo grupo.
     comprobantesDelTipo () {
       return this.tipo
-        ? this.comprobantes.filter(comprobante => (comprobante.pedido_tipo || 'NORMAL') === this.tipo)
+        ? this.comprobantes.filter(comprobante => this.tiposDe(comprobante).includes(this.tipo))
         : this.comprobantes
     },
     // El cliente que se esta revisando viaja en la URL: asi el "atras" del
@@ -558,11 +561,12 @@ export default {
         const fila = porCliente[nombre] || (porCliente[nombre] = {
           cliente: nombre, canastas: 0, verificadas: 0, observadas: 0, productos: 0, revisados: 0, total: 0, comprobantes: []
         })
+        const lineas = this.lineasDelTipo(comprobante)
         fila.canastas++
-        if (comprobante.verificado) fila.verificadas++
+        if (this.revisadoEnTipo(comprobante, this.tipo)) fila.verificadas++
         if (comprobante.observado) fila.observadas++
-        fila.productos += comprobante.items.length
-        fila.revisados += comprobante.items.filter(item => item.revisado).length
+        fila.productos += lineas.length
+        fila.revisados += lineas.filter(item => item.revisado).length
         fila.total += Number(comprobante.total || 0)
         fila.comprobantes.push(comprobante)
       })
@@ -586,7 +590,7 @@ export default {
       const porCodigo = {}
       this.comprobantesDelTipo.forEach(comprobante => {
         const contados = new Set()
-        comprobante.items.forEach(item => {
+        this.lineasDelTipo(comprobante).forEach(item => {
           const codigo = String(item.cod_prod).trim()
           const fila = porCodigo[codigo] || (porCodigo[codigo] = {
             cod_prod: codigo, nombre: item.nombre, unidad: item.unidad, canastas: 0, revisados: 0, total: 0, _pendiente: {}
@@ -618,14 +622,14 @@ export default {
     comprobantesFiltrados () {
       const texto = (this.buscar || '').toLowerCase()
       const visibles = this.comprobantes.filter(comprobante => {
-        if (this.tipo && (comprobante.pedido_tipo || 'NORMAL') !== this.tipo) return false
+        if (this.tipo && !this.tiposDe(comprobante).includes(this.tipo)) return false
         if (this.cliente && (comprobante.cliente || 'Sin cliente') !== this.cliente) return false
         if (this.producto && !this.lineasDelProducto(comprobante).length) return false
         // Con producto elegido, "lo que falta" es ese producto sin tildar.
         if (this.soloPendientes) {
           if (this.producto) {
             if (this.lineasDelProducto(comprobante).every(item => item.revisado)) return false
-          } else if (comprobante.verificado) return false
+          } else if (this.revisadoEnTipo(comprobante, this.tipo)) return false
         }
         return !texto || this.coincide(comprobante, texto)
       })
@@ -635,7 +639,8 @@ export default {
       // entre las canastas que todavia tiene que mirar. El orden dentro de
       // cada grupo es el que vino del backend (por comprobante), y sort es
       // estable, asi que no se altera.
-      return visibles.slice().sort((a, b) => Number(a.verificado) - Number(b.verificado))
+      return visibles.slice().sort((a, b) =>
+        Number(this.revisadoEnTipo(a, this.tipo)) - Number(this.revisadoEnTipo(b, this.tipo)))
     }
   },
   methods: {
@@ -727,13 +732,38 @@ export default {
       }
     },
     revisadosDe (comprobante) {
-      return comprobante.items.filter(item => item.revisado).length
+      return this.lineasDelTipo(comprobante).filter(item => item.revisado).length
     },
     nombreTipo (valor) {
-      return { POLLO: 'Pollo', NORMAL: 'Embutidos', CERDO: 'Cerdo', RES: 'Res', PODIUM: 'Podium y Huevo' }[valor] || valor
+      return { POLLO: 'Pollo', NORMAL: 'Embutidos', CERDO: 'Cerdo', RES: 'Res', PODIUM: 'Podium', HUEVO: 'Huevo' }[valor] || valor
     },
     iconoTipo (valor) {
-      return { POLLO: 'egg', NORMAL: 'lunch_dining', CERDO: 'savings', RES: 'kebab_dining', PODIUM: 'pets' }[valor] || 'local_shipping'
+      return { POLLO: 'egg', NORMAL: 'lunch_dining', CERDO: 'savings', RES: 'kebab_dining', PODIUM: 'pets', HUEVO: 'egg_alt' }[valor] || 'local_shipping'
+    },
+    // Los chips en los que entra una canasta. La de podium se parte segun
+    // sus lineas: podium, huevo o las dos.
+    tiposDe (comprobante) {
+      const valor = comprobante.pedido_tipo || 'NORMAL'
+      if (valor !== 'PODIUM') return [valor]
+      const tipos = []
+      if (comprobante.items.some(item => !item.huevo)) tipos.push('PODIUM')
+      if (comprobante.items.some(item => item.huevo)) tipos.push('HUEVO')
+      return tipos.length ? tipos : ['PODIUM']
+    },
+    // Las lineas de la canasta que tocan al chip elegido: en podium y huevo
+    // solo las suyas, en el resto todas.
+    lineasDelTipo (comprobante, tipo = this.tipo) {
+      if (tipo === 'HUEVO') return comprobante.items.filter(item => item.huevo)
+      if (tipo === 'PODIUM') return comprobante.items.filter(item => !item.huevo)
+      return comprobante.items
+    },
+    // Para podium y huevo la canasta esta lista en ese chip cuando sus lineas
+    // estan tildadas; para el resto vale el visto bueno de la canasta.
+    revisadoEnTipo (comprobante, tipo) {
+      if (tipo !== 'HUEVO' && tipo !== 'PODIUM') return comprobante.verificado
+      if (comprobante.verificado) return true
+      const lineas = this.lineasDelTipo(comprobante, tipo)
+      return lineas.length > 0 && lineas.every(item => item.revisado)
     },
     verificadosDe (lista) {
       return lista.filter(comprobante => comprobante.verificado).length
@@ -750,11 +780,12 @@ export default {
       this.$router.replace({ path: '/caminero/carga', query })
     },
     lineasDelProducto (comprobante) {
-      return comprobante.items.filter(item => String(item.cod_prod).trim() === this.producto)
+      return this.lineasDelTipo(comprobante).filter(item => String(item.cod_prod).trim() === this.producto)
     },
-    // Con un producto elegido, en cada canasta se ve solo esa linea.
+    // Con un producto elegido, en cada canasta se ve solo esa linea; con
+    // podium o huevo elegido, solo las lineas de ese chip.
     itemsVisibles (comprobante) {
-      return this.producto ? this.lineasDelProducto(comprobante) : comprobante.items
+      return this.producto ? this.lineasDelProducto(comprobante) : this.lineasDelTipo(comprobante)
     },
     filtrarOpciones (texto, actualizar) {
       actualizar(() => { this.textoProducto = texto || '' })

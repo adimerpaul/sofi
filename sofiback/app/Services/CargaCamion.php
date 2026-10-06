@@ -392,6 +392,9 @@ class CargaCamion
                     // para saber si la canasta esta completa.
                     'peso' => $detalle->peso !== null ? (float) $detalle->peso : null,
                     'total' => round((float) $detalle->subtotal, 2),
+                    // Podium y huevo salen en el mismo comprobante, pero se
+                    // cargan por separado: el caminero los revisa aparte.
+                    'huevo' => in_array(trim((string) $detalle->cod_prod), TipoPedido::HUEVO, true),
                 ];
             })
             ->groupBy('factura_id');
