@@ -1397,6 +1397,13 @@ generarpollo(){
 
         this.misclientes()
 
+      }).catch(err=>{
+        this.$q.loading.hide()
+        this.$q.notify({
+          color:'red',
+          message:err.response.data.message,
+          icon:'error'
+        })
       })
     },
     

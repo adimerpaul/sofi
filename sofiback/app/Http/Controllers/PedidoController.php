@@ -290,6 +290,7 @@ class PedidoController extends Controller{
         $fecha = $request->fecha;
         $pedidosCreados = Pedido::where('CIfunc', $user->CodAut)
             ->where('estado', 'CREADO')
+            ->where('bonificacion', 0)
             ->whereDate('fecha', $fecha)
             ->get();
         $pedidosCondeuda = [];
@@ -1717,6 +1718,10 @@ $resPedido = $rows->groupBy('NroPed')->map(function ($g) use ($bonis) {
     public function envped(Request $request)
     {
         //DB::select("UPDATE tbpedidos SET  estado='ENVIADO' WHERE NroPed='".$request->NroPed."'");
+        // Una bonificacion solo se envia al aprobarla en /bonificaciones.
+        if (Pedido::where('NroPed', $request->NroPed)->where('bonificacion', 1)->exists()) {
+            return response()->json(['message' => 'No se puede enviar un pedido de bonificacion sin aprobar'], 500);
+        }
         $this->marcarEnviados(Pedido::where('NroPed', $request->NroPed)->get());
     }
 
