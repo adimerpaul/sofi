@@ -191,6 +191,29 @@ export default {
         })
         .finally(() => { this.imprimiendo = false })
     },
+    // El Excel lo arma el backend: una pestaña por hoja, con sus totales.
+    async excel () {
+      this.exportando = true
+      try {
+        const { data } = await this.$api.get('caminero/reporte/excel', {
+          params: { fecha: this.fecha }, responseType: 'blob'
+        })
+        const url = URL.createObjectURL(data)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = 'recojo_' + this.fecha + '.xlsx'
+        a.click()
+        URL.revokeObjectURL(url)
+      } catch (err) {
+        let mensaje = 'No se pudo generar el Excel'
+        try {
+          mensaje = JSON.parse(await err.response.data.text()).message || mensaje
+        } catch (e) { /* el error no vino en JSON */ }
+        this.$q.notify({ type: 'negative', position: 'top', message: mensaje })
+      } finally {
+        this.exportando = false
+      }
+    },
     cargar () {
       this.cargando = true
       this.$api.get('caminero/reporte', { params: { fecha: this.fecha } })

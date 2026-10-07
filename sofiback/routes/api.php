@@ -128,6 +128,8 @@ Route::group(['middleware'=>'auth:sanctum'],function (){
     Route::put('/facturacion/{factura}/anular',[\App\Http\Controllers\FacturacionController::class,'anular']);
     // Pasa el comprobante (y su pedido) a otro camion.
     Route::put('/facturacion/{factura}/camion',[\App\Http\Controllers\FacturacionController::class,'cambiarCamion']);
+    // Contado (efectivo o QR) <-> credito de un comprobante ya emitido.
+    Route::put('/facturacion/{factura}/pago',[\App\Http\Controllers\FacturacionController::class,'cambiarPago']);
     // Retorno parcial: anula el comprobante y emite otro con lo entregado.
     Route::put('/facturacion/{factura}/retorno-parcial',[\App\Http\Controllers\FacturacionController::class,'retornoParcial']);
 

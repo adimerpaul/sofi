@@ -255,7 +255,7 @@
         </q-table>
       </q-tab-panel>
 
-      <!-- Kardex: se elige un producto y salen todas sus entradas y salidas,
+      <!-- Kardex: sin producto, todos (una fila cada uno); eligiendo uno salen todas sus entradas y salidas,
            con la existencia que iba quedando. Por defecto, el año entero. -->
       <q-tab-panel name="kardex" class="q-pa-none q-pt-sm">
         <div class="row items-center q-gutter-sm">
@@ -274,9 +274,10 @@
           <q-input v-model="kardexHasta" type="date" dense outlined label="Hasta" style="width: 150px"
                    @update:model-value="consultarKardex"/>
           <q-btn color="primary" icon="refresh" label="Actualizar" no-caps unelevated :loading="cargandoKardex"
-                 :disable="!kardexProducto" @click="consultarKardex"/>
-          <q-btn color="green-8" icon="download" label="Excel" no-caps unelevated :loading="descargandoKardex"
-                 :disable="!kardex.movimientos.length" @click="descargarKardex"/>
+                 @click="consultarKardex"/>
+          <q-btn color="green-8" icon="download" no-caps unelevated :loading="descargandoKardex"
+                 :label="kardex.todos ? 'Excel (todos)' : 'Excel'"
+                 :disable="kardex.todos ? !(kardex.productos || []).length : !(kardex.movimientos || []).length" @click="descargarKardex"/>
         </div>
 
         <template v-if="kardex.cod_prod">
@@ -345,9 +346,51 @@
             </tbody>
           </q-markup-table>
         </template>
-        <div v-else class="text-grey-7 q-pa-md">
-          Elige un producto para ver sus entradas y salidas.
-        </div>
+        <!-- Sin producto elegido: todos, una fila por producto. Tocando una se
+             abre su kardex con cada entrada y salida. -->
+        <template v-else>
+          <div class="row items-center q-gutter-sm q-mt-xs">
+            <div class="text-caption text-grey-8">
+              Todos los productos · {{ (kardex.productos || []).length }} con movimientos o saldo ·
+              toca uno para ver su detalle
+            </div>
+            <q-space/>
+            <q-input v-model="buscarKardex" dense outlined clearable placeholder="Buscar código o producto" style="min-width: 260px">
+              <template v-slot:append><q-icon name="search"/></template>
+            </q-input>
+          </div>
+          <q-markup-table flat bordered dense separator="horizontal" class="q-mt-sm tabla-quiebre">
+            <thead>
+            <tr class="bg-grey-3">
+              <th class="text-left">Código</th>
+              <th class="text-left">Producto</th>
+              <th class="text-right">Saldo anterior</th>
+              <th class="text-right">Entradas</th>
+              <th class="text-right">Salidas</th>
+              <th class="text-right">Existencia final</th>
+              <th class="text-right">Movim.</th>
+              <th class="text-right">Stock sistema</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr v-if="!productosKardexVisibles.length">
+              <td colspan="8" class="text-center text-grey-7 q-pa-md">
+                {{ cargandoKardex ? 'Cargando…' : 'Sin movimientos en este rango' }}
+              </td>
+            </tr>
+            <tr v-for="p in productosKardexVisibles" :key="p.cod_prod" class="cursor-pointer" @click="elegirProductoKardex(p)">
+              <td>{{ p.cod_prod }}</td>
+              <td>{{ p.producto }}</td>
+              <td class="text-right">{{ numero(p.saldo_anterior) }}</td>
+              <td class="text-right text-green-9">{{ numero(p.entradas) }}</td>
+              <td class="text-right text-negative">{{ numero(p.salidas) }}</td>
+              <td class="text-right text-weight-bold text-blue-9">{{ numero(p.saldo_final) }}</td>
+              <td class="text-right">{{ p.movimientos }}</td>
+              <td class="text-right">{{ numero(p.stock_sistema) }}</td>
+            </tr>
+            </tbody>
+          </q-markup-table>
+        </template>
       </q-tab-panel>
     </q-tab-panels>
   </q-page>
@@ -399,7 +442,10 @@ export default {
         { name: 'direccion', label: 'Dirección', field: 'direccion', align: 'left' },
         { name: 'peso_promedio', label: 'Peso prom.', field: 'peso_promedio', align: 'right', format: v => v === null ? '—' : this.numero(v) },
         { name: 'doc_cliente', label: 'Doc. cliente', field: 'doc_cliente', align: 'left', sortable: true },
-        { name: 'nro_factura', label: 'Nro. fact.', field: 'nro_factura', align: 'right', sortable: true }
+        { name: 'cliente', label: 'Cliente', field: 'cliente', align: 'left', sortable: true },
+        { name: 'nro_factura', label: 'Nro. fact.', field: 'nro_factura', align: 'right', sortable: true },
+        // El Nro impreso en la boleta (el del comprobante).
+        { name: 'nro_boleta', label: 'Nro. boleta', field: 'nro_boleta', align: 'right', sortable: true }
       ],
       // Kardex: por defecto el año en curso.
       kardexProducto: null,
@@ -417,13 +463,22 @@ export default {
     reporte (valor) {
       if (valor === 'pollo' && !this.pollo.columnas.length) this.consultarPollo()
       if (valor === 'detalle' && !this.detalle.filas.length) this.consultarDetalle()
+      // Sin producto elegido arranca con todos los productos.
+      if (valor === 'kardex' && !this.kardex.todos && !this.kardex.cod_prod) this.consultarKardex()
     }
   },
   computed: {
+    productosKardexVisibles () {
+      const texto = (this.buscarKardex || '').toLowerCase()
+      const lista = this.kardex.productos || []
+      if (!texto) return lista
+      return lista.filter(p => p.cod_prod.toLowerCase().includes(texto) || p.producto.toLowerCase().includes(texto))
+    },
     kardexVisibles () {
       const texto = (this.buscarKardex || '').toLowerCase()
-      if (!texto) return this.kardex.movimientos
-      return this.kardex.movimientos.filter(m =>
+      const lista = this.kardex.movimientos || []
+      if (!texto) return lista
+      return lista.filter(m =>
         [m.motivo, m.motivo_stock, m.comanda, m.factura].some(v => String(v || '').toLowerCase().includes(texto)))
     },
     // Filtradas, y marcando en que fila cambia estado, vendedor o cliente.
@@ -458,11 +513,8 @@ export default {
         .then(res => actualizar(() => { this.kardexOpciones = res.data }))
         .catch(() => actualizar(() => { this.kardexOpciones = [] }))
     },
+    // Sin producto elegido se traen todos (una fila por producto).
     consultarKardex () {
-      if (!this.kardexProducto) {
-        this.kardex = { movimientos: [] }
-        return
-      }
       this.cargandoKardex = true
       this.$api.get('reportes/kardex', { params: this.paramsKardex() }).then(res => {
         this.kardex = res.data
@@ -473,7 +525,14 @@ export default {
       })
     },
     paramsKardex () {
-      return { cod_prod: this.kardexProducto.cod_prod, desde: this.kardexDesde, hasta: this.kardexHasta }
+      return { cod_prod: this.kardexProducto ? this.kardexProducto.cod_prod : '', desde: this.kardexDesde, hasta: this.kardexHasta }
+    },
+    elegirProductoKardex (p) {
+      this.kardexProducto = { cod_prod: p.cod_prod, producto: p.producto }
+      // El detalle arranca arriba, no donde estaba la fila tocada.
+      window.scrollTo(0, 0)
+      this.buscarKardex = ''
+      this.consultarKardex()
     },
     async descargarKardex () {
       this.descargandoKardex = true
@@ -482,7 +541,7 @@ export default {
         const url = window.URL.createObjectURL(res.data)
         const enlace = document.createElement('a')
         enlace.href = url
-        enlace.download = 'kardex_' + this.kardexProducto.cod_prod + '.xlsx'
+        enlace.download = 'kardex_' + (this.kardexProducto ? this.kardexProducto.cod_prod : 'todos') + '.xlsx'
         enlace.click()
         window.URL.revokeObjectURL(url)
       } catch (e) {

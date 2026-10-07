@@ -57,6 +57,8 @@ const routes = [
       { path: '/almacenVerificar', component: AlmacenVerificar ,meta: {requiresAuth: true}},
       { path: '/almacenVerificado', component: AlmacenVerificado ,meta: {requiresAuth: true}},
       { path: '/entrega', component: Entregas ,meta: {requiresAuth: true}},
+      // Entregas del dia sobre facturacion (reemplaza a /entrega).
+      { path: '/entregafactura', component: () => import('pages/EntregaFactura.vue'), meta: { requiresAuth: true } },
       { path: '/despacho', component: Despacho ,meta: {requiresAuth: true}},
       { path: '/clientevisita', component: Clientevisita ,meta: {requiresAuth: true}},
       { path: '/clientepedido', component: Pedidoresumen ,meta: {requiresAuth: true}},

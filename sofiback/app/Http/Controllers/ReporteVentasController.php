@@ -478,10 +478,76 @@ class ReporteVentasController extends Controller
             ]);
     }
 
-    /** Kardex de un producto en pantalla. */
+    /** Kardex de un producto en pantalla; sin producto, el resumen de todos. */
     public function kardex(Request $request)
     {
+        if (trim((string) $request->input('cod_prod', '')) === '') {
+            return $this->resumenKardex($request);
+        }
+
         return $this->datosKardex($request);
+    }
+
+    /**
+     * Kardex de todos los productos: una fila por producto con lo que tenia
+     * antes del rango, lo que entro y salio en el rango y con cuanto quedo.
+     * Mismo criterio que el kardex de uno (tbstock, stock = cant - saldo).
+     * Solo los que tienen movimientos en el rango o saldo distinto de cero.
+     */
+    private function resumenKardex(Request $request): array
+    {
+        $datos = $request->validate([
+            'desde' => 'nullable|date',
+            'hasta' => 'nullable|date',
+        ]);
+        $desde = ($datos['desde'] ?? date('Y') . '-01-01') . ' 00:00:00';
+        $hasta = ($datos['hasta'] ?? date('Y') . '-12-31') . ' 23:59:59';
+
+        // SQL directo: los ? de las columnas van antes que el del WHERE.
+        $movidos = DB::select(
+            'SELECT TRIM(cod_prod) as cod_prod,
+                SUM(CASE WHEN fecha < ? THEN cant - saldo ELSE 0 END) as anterior,
+                SUM(CASE WHEN fecha >= ? THEN cant ELSE 0 END) as entradas,
+                SUM(CASE WHEN fecha >= ? THEN saldo ELSE 0 END) as salidas,
+                SUM(CASE WHEN fecha >= ? THEN 1 ELSE 0 END) as movimientos
+            FROM tbstock WHERE fecha <= ? GROUP BY TRIM(cod_prod)',
+            [$desde, $desde, $desde, $desde, $hasta]
+        );
+
+        $productos = DB::table('tbproductos')
+            ->get([DB::raw('TRIM(cod_prod) as cod_prod'), DB::raw('TRIM(Producto) as producto'),
+                DB::raw('COALESCE(stock_actual, 0) as stock_actual')])
+            ->keyBy('cod_prod');
+
+        $filas = collect($movidos)->map(function ($m) use ($productos) {
+            $anterior = round((float) $m->anterior, 3);
+            $entradas = round((float) $m->entradas, 3);
+            $salidas = round((float) $m->salidas, 3);
+            $producto = $productos->get($m->cod_prod);
+            return [
+                'cod_prod' => $m->cod_prod,
+                'producto' => $producto->producto ?? 'Producto ' . $m->cod_prod,
+                'saldo_anterior' => $anterior,
+                'entradas' => $entradas,
+                'salidas' => $salidas,
+                'saldo_final' => round($anterior + $entradas - $salidas, 3),
+                'movimientos' => (int) $m->movimientos,
+                'stock_sistema' => round((float) ($producto->stock_actual ?? 0), 3),
+            ];
+        })->filter(function ($f) {
+            return $f['movimientos'] > 0 || abs($f['saldo_final']) > 0.0005;
+        })->sortBy('producto')->values();
+
+        return [
+            'todos' => true,
+            'desde' => substr($desde, 0, 10),
+            'hasta' => substr($hasta, 0, 10),
+            'productos' => $filas,
+            'totales' => [
+                'productos' => $filas->count(),
+                'movimientos' => $filas->sum('movimientos'),
+            ],
+        ];
     }
 
     /**
@@ -580,6 +646,10 @@ class ReporteVentasController extends Controller
     /** El kardex en Excel, con las columnas de la planilla de siempre. */
     public function kardexExcel(Request $request)
     {
+        if (trim((string) $request->input('cod_prod', '')) === '') {
+            return $this->resumenKardexExcel($this->resumenKardex($request));
+        }
+
         $datos = $this->datosKardex($request);
 
         $libro = new Spreadsheet();
@@ -643,6 +713,53 @@ class ReporteVentasController extends Controller
         ]);
     }
 
+    /**
+     * El kardex de todos los productos en Excel: una fila por producto. El
+     * detalle movimiento por movimiento sale eligiendo el producto (todos
+     * juntos son decenas de miles de filas).
+     */
+    private function resumenKardexExcel(array $datos)
+    {
+        $libro = new Spreadsheet();
+        $hoja = $libro->getActiveSheet();
+        $hoja->setTitle('Kardex');
+
+        $hoja->setCellValue('A1', 'KARDEX - TODOS LOS PRODUCTOS');
+        $hoja->mergeCells('A1:H1');
+        $hoja->getStyle('A1')->getFont()->setBold(true)->setSize(13);
+        $hoja->setCellValue('A2', 'Del ' . date('d/m/Y', strtotime($datos['desde'])) . ' al ' . date('d/m/Y', strtotime($datos['hasta']))
+            . '   ·   ' . $datos['totales']['productos'] . ' productos');
+
+        $hoja->fromArray(['CODIGO', 'PRODUCTO', 'SALDO ANTERIOR', 'ENTRADAS', 'SALIDAS', 'EXISTENCIA FINAL',
+            'MOVIMIENTOS', 'STOCK SISTEMA'], null, 'A4');
+        $hoja->getStyle('A4:H4')->applyFromArray([
+            'font' => ['bold' => true, 'size' => 9],
+            'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'D9D9D9']],
+        ]);
+
+        $fila = 5;
+        foreach ($datos['productos'] as $p) {
+            $hoja->setCellValueExplicit('A' . $fila, $p['cod_prod'], DataType::TYPE_STRING);
+            $hoja->fromArray([$p['producto'], $p['saldo_anterior'], $p['entradas'], $p['salidas'],
+                $p['saldo_final'], $p['movimientos'], $p['stock_sistema']], null, 'B' . $fila, true);
+            $fila++;
+        }
+        $hoja->getStyle('C5:F' . $fila)->getNumberFormat()->setFormatCode('#,##0.00');
+        $hoja->getStyle('H5:H' . $fila)->getNumberFormat()->setFormatCode('#,##0.00');
+        $hoja->getStyle('A4:H' . max($fila - 1, 4))->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_HAIR);
+        foreach (['A' => 10, 'B' => 42, 'C' => 14, 'D' => 12, 'E' => 12, 'F' => 15, 'G' => 12, 'H' => 14] as $col => $ancho) {
+            $hoja->getColumnDimension($col)->setWidth($ancho);
+        }
+        $hoja->freezePane('A5');
+        $hoja->setAutoFilter('A4:H' . max($fila - 1, 4));
+
+        return response()->streamDownload(function () use ($libro) {
+            (new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($libro))->save('php://output');
+        }, 'kardex_todos_' . $datos['desde'] . '_' . $datos['hasta'] . '.xlsx', [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        ]);
+    }
+
     /** Columnas del detalle de ventas, en el orden de la planilla que ya usaban. */
     private const COLUMNAS_DETALLE = [
         'vendedor'     => 'VENDEDOR',
@@ -658,7 +775,10 @@ class ReporteVentasController extends Controller
         'direccion'    => 'DIRECCION',
         'peso_promedio' => 'PESO PROMED',
         'doc_cliente'  => 'DOC CLIENTE',
+        'cliente'      => 'CLIENTE',
         'nro_factura'  => 'NRO FACT',
+        // El numero del comprobante: el Nro que sale impreso en la boleta.
+        'nro_boleta'   => 'NRO BOLETA',
     ];
 
     /** Detalle de ventas en pantalla. */
@@ -693,7 +813,9 @@ class ReporteVentasController extends Controller
      *   Vacio mientras el producto no tenga precio de compra cargado.
      * - CANTIDAD: las piezas; en lo que va a granel sin piezas contadas, 0.
      * - CAJAS: los canastillos con que se peso en caja.
+     * - CLIENTE: el nombre del comprobante (el de la ficha si no tiene).
      * - NRO FACT: el numero de factura; 0 en un voucher.
+     * - NRO BOLETA: el numero del comprobante, el Nro de la boleta impresa.
      */
     private function detalle($desde, $hasta)
     {
@@ -723,6 +845,7 @@ class ReporteVentasController extends Controller
                     NULLIF(TRIM(pe.App1), ''), NULLIF(TRIM(pe.Apm), '')))
                     FROM personal pe WHERE pe.ci = f.vendedor_ci LIMIT 1) as vendedor"),
                 DB::raw('TRIM(c.Direccion) as direccion'),
+                DB::raw("COALESCE(NULLIF(TRIM(f.nombre), ''), TRIM(c.Nombres)) as cliente"),
                 DB::raw('TRIM(d.cod_prod) as cod_prod'), 'd.nombre', 'd.unidad', 'd.cantidad', 'd.peso',
                 'd.canastillos', 'd.subtotal',
                 'pr.CantPren', 'pr.precio_compra',
@@ -764,7 +887,9 @@ class ReporteVentasController extends Controller
                 'direccion'     => (string) $l->direccion,
                 'peso_promedio' => $pesoPromedio !== null ? round($pesoPromedio, 3) : null,
                 'doc_cliente'   => trim((string) $l->nit),
+                'cliente'       => trim((string) $l->cliente),
                 'nro_factura'   => $l->tipo_comprobante === 'FACTURA' ? (int) $l->nro_factura : 0,
+                'nro_boleta'    => (int) $l->factura_id,
             ];
         }
 
@@ -821,7 +946,7 @@ class ReporteVentasController extends Controller
         $hoja->getStyle('L2:L' . $fila)->getNumberFormat()->setFormatCode('#,##0.00');
         $hoja->getStyle("A1:{$ultimaCol}{$fila}")->getFont()->setSize(9);
         foreach (['A' => 34, 'B' => 10, 'C' => 46, 'D' => 9, 'E' => 11, 'F' => 11, 'G' => 18, 'H' => 11,
-                     'I' => 9, 'J' => 7, 'K' => 40, 'L' => 10, 'M' => 13, 'N' => 9] as $col => $ancho) {
+                     'I' => 9, 'J' => 7, 'K' => 40, 'L' => 10, 'M' => 13, 'N' => 34, 'O' => 9, 'P' => 10] as $col => $ancho) {
             $hoja->getColumnDimension($col)->setWidth($ancho);
         }
         $hoja->freezePane('A2');

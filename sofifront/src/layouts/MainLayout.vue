@@ -180,6 +180,7 @@ export default {
             { label: 'Reporte Entrega', icon: 'description', to: 'despacho', show: can('despacho') },
             { label: 'Pedidos / Entregas', caption: 'Resumen', icon: 'summarize', to: 'avance', show: can('avance') },
             { label: 'Reporte Entrega', icon: 'dvr', to: 'entrega', show: can('entrega') },
+            { label: 'Entrega Factura', caption: 'Entregas del día con facturación', icon: 'fact_check', to: 'entregafactura', show: can('entregaFactura') },
             { label: 'Reporte Entrega', caption: 'Clientes entregas', icon: 'list', to: 'reporte', show: can('reporte') }
           ]
         },

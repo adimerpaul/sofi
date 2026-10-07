@@ -196,6 +196,7 @@ export default {
         misentregasreporte: 'Mi reporte de entregas (caminero)',
         misentregas: 'Mis entregas (caminero)',
         cargacamion: 'Verificar carga (caminero)',
+        entregaFactura: 'Entrega factura — entregas del día con facturación',
         facturacionPrecio: 'Cambiar precio al facturar pedidos',
         facturacionAprobarCarga: 'Aprobar la carga de un camión (facturación)'
       }

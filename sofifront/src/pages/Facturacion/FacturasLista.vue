@@ -697,6 +697,14 @@
                     </q-item-label>
                   </q-item-section>
                 </q-item>
+                <!-- Contado <-> credito: con eso entra o sale de cuentas por cobrar. -->
+                <q-item clickable v-close-popup @click="abrirCambioPago(props.row)">
+                  <q-item-section avatar><q-icon name="currency_exchange" color="orange-8"/></q-item-section>
+                  <q-item-section>
+                    Cambiar contado / crédito
+                    <q-item-label caption>Ahora es {{ props.row.tipo_pago || 'sin forma de pago' }}</q-item-label>
+                  </q-item-section>
+                </q-item>
               </template>
 
               <!-- Un comprobante emitido no se corrige: se anula y el pedido
@@ -889,6 +897,33 @@
       </q-card>
     </q-dialog>
 
+    <q-dialog v-model="dialogPago">
+      <q-card v-if="filaPago" style="min-width: 320px">
+        <q-card-section class="q-pb-xs">
+          <div class="text-subtitle1 text-weight-bold">Cambiar contado / crédito</div>
+          <div class="text-caption text-grey-7">
+            #{{ filaPago.id }} · {{ filaPago.nombre || 'Sin cliente' }} · Bs {{ Number(filaPago.total || 0).toFixed(2) }}
+            · ahora es <b>{{ filaPago.tipo_pago || 'sin forma de pago' }}</b>
+          </div>
+        </q-card-section>
+        <q-card-section class="q-pt-sm">
+          <q-btn-toggle
+            v-model="pagoNuevo" spread no-caps unelevated toggle-color="orange-8" color="grey-3" text-color="grey-9"
+            :options="opcionesPago.filter(o => o.value !== pagoActual(filaPago))"
+          />
+          <div class="text-caption text-grey-7 q-mt-sm">
+            A crédito el comprobante pasa a cuentas por cobrar del cliente; a contado sale de ahí.
+            Un crédito que ya tiene abonos no se puede pasar a contado: primero se anulan los abonos en cobranzas.
+          </div>
+        </q-card-section>
+        <q-card-actions align="right">
+          <q-btn flat no-caps label="Cancelar" v-close-popup/>
+          <q-btn unelevated no-caps color="orange-8" icon="currency_exchange" label="Cambiar"
+                 :disable="!pagoNuevo" :loading="cambiandoPago" @click="cambiarPago"/>
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
+
     <q-dialog v-model="dialogAnular">
       <q-card style="min-width: 340px">
         <q-card-section class="q-py-sm">
@@ -999,6 +1034,16 @@ export default {
       colores: [],
       vehiculos: [],
       cambiandoCamion: false,
+      // Cambio de contado a credito (o al reves) de un comprobante.
+      dialogPago: false,
+      filaPago: null,
+      pagoNuevo: null,
+      cambiandoPago: false,
+      opcionesPago: [
+        { label: 'Efectivo', value: 'EFECTIVO' },
+        { label: 'QR', value: 'QR' },
+        { label: 'Crédito', value: 'CRÉDITO' }
+      ],
       codigoMotivoAnulacion: null,
       motivosAnulacion: [
         { label: '1 - Factura mal emitida', value: 1 },
@@ -1720,6 +1765,27 @@ export default {
         })
         .catch(err => { this.avisar(err, 'No se pudo cambiar el camión o el color') })
         .finally(() => { this.cambiandoCamion = false })
+    },
+    pagoActual (row) {
+      const actual = String(row.tipo_pago || '').toUpperCase()
+      return actual === 'CREDITO' ? 'CRÉDITO' : actual
+    },
+    abrirCambioPago (row) {
+      this.filaPago = row
+      // Lo comun es pasar de contado a credito o de credito a efectivo.
+      this.pagoNuevo = this.pagoActual(row) === 'CRÉDITO' ? 'EFECTIVO' : 'CRÉDITO'
+      this.dialogPago = true
+    },
+    cambiarPago () {
+      this.cambiandoPago = true
+      this.$api.put('facturacion/' + this.filaPago.id + '/pago', { tipo_pago: this.pagoNuevo })
+        .then(res => {
+          this.$q.notify({ type: 'positive', position: 'top', message: res.data.message })
+          this.dialogPago = false
+          this.recargar()
+        })
+        .catch(err => { this.avisar(err, 'No se pudo cambiar la forma de pago') })
+        .finally(() => { this.cambiandoPago = false })
     },
     pedirEdicion (row) {
       this.sel = row

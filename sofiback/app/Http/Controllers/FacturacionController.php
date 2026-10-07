@@ -2311,6 +2311,60 @@ class FacturacionController extends Controller
      * pendiente para que el caminero nuevo la revise, y el numero de canasta
      * se borra (esa canasta quedo en el otro camion).
      */
+    /**
+     * Pasa un comprobante de contado (efectivo o QR) a credito o al reves.
+     *
+     * Las deudas salen de facturas.tipo_pago, asi que con esto solo el
+     * credito aparece o desaparece de cuentas por cobrar. No se pasa a contado
+     * lo que ya tiene abonos vigentes: primero se anulan en cobranzas, para no
+     * perder plata registrada. A credito tiene que haber un cliente que deba.
+     */
+    public function cambiarPago(Request $request, $id)
+    {
+        $datos = $request->validate([
+            'tipo_pago' => 'required|in:EFECTIVO,QR,CRÉDITO',
+        ]);
+        $nuevo = $datos['tipo_pago'];
+
+        $factura = Factura::findOrFail($id);
+        if ($factura->estado === 'ANULADO') {
+            return response()->json(['message' => 'El comprobante está anulado'], 422);
+        }
+
+        $actual = mb_strtoupper(trim((string) $factura->tipo_pago), 'UTF-8');
+        $eraCredito = in_array($actual, ['CRÉDITO', 'CREDITO'], true);
+        if ($actual === $nuevo || ($eraCredito && $nuevo === 'CRÉDITO')) {
+            return response()->json(['message' => 'El comprobante ya es ' . $nuevo], 422);
+        }
+
+        if ($nuevo === 'CRÉDITO' && !$factura->cliente_id) {
+            return response()->json(['message' => 'A crédito hace falta un cliente registrado: este comprobante no tiene'], 422);
+        }
+
+        if ($eraCredito) {
+            $abonado = (float) DB::table('creditos_abonos')
+                ->where('origen', 'factura')->where('deuda_id', $factura->id)
+                ->whereNull('anulado_at')->sum('monto');
+            if ($abonado > 0) {
+                return response()->json([
+                    'message' => 'Este crédito ya tiene abonos por Bs ' . number_format($abonado, 2)
+                        . ': anulalos primero en cobranzas para pasarlo a contado',
+                ], 422);
+            }
+        }
+
+        $total = round((float) $factura->total, 2);
+        $factura->tipo_pago = $nuevo;
+        $factura->monto_efectivo = $nuevo === 'EFECTIVO' ? $total : null;
+        $factura->monto_qr = $nuevo === 'QR' ? $total : null;
+        $factura->save();
+
+        return response()->json([
+            'message' => 'Comprobante #' . $factura->id . ': pasado de ' . ($actual ?: 'sin forma de pago') . ' a ' . $nuevo
+                . ($nuevo === 'CRÉDITO' ? ' (ya figura en cuentas por cobrar)' : ($eraCredito ? ' (salió de cuentas por cobrar)' : '')),
+        ]);
+    }
+
     public function cambiarCamion(Request $request, $id)
     {
         $datos = $request->validate([
