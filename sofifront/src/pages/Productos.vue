@@ -237,12 +237,24 @@
           />
           <q-input v-model.trim="edicion.Nomcomer" outlined dense class="col-12" label="Nombre comercial"/>
 
-          <q-select
-            v-model="edicion.cod_grup" outlined dense clearable emit-value map-options
-            use-input fill-input hide-selected input-debounce="0"
-            class="col-12 col-sm-6" :label="creando ? 'Grupo *' : 'Grupo'"
-            :options="gruposFiltrados" @filter="filtrarGrupos"
-          />
+          <div class="col-12 col-sm-6 row no-wrap items-start">
+            <q-select
+              v-model="edicion.cod_grup" outlined dense clearable emit-value map-options
+              use-input fill-input hide-selected input-debounce="0"
+              class="col" :label="creando ? 'Grupo *' : 'Grupo'"
+              :options="gruposFiltrados" @filter="filtrarGrupos" @new-value="nuevoGrupo"
+            >
+              <template #option="scope">
+                <q-item v-bind="scope.itemProps" dense>
+                  <q-item-section>{{ scope.opt.label }}</q-item-section>
+                  <q-item-section side class="text-caption">{{ scope.opt.value }}</q-item-section>
+                </q-item>
+              </template>
+            </q-select>
+            <q-btn unelevated color="primary" icon="add" class="q-ml-xs" style="height: 40px" @click="abrirNuevoGrupo('')">
+              <q-tooltip>Agregar grupo</q-tooltip>
+            </q-btn>
+          </div>
           <q-select
             v-model="edicion.codUnid" outlined dense clearable
             class="col-6 col-sm-3" :label="creando ? 'Unidad *' : 'Unidad'" :options="unidades"
@@ -291,6 +303,36 @@
         </q-card-actions>
       </q-card>
     </q-dialog>
+
+    <!-- Grupo nuevo: el codigo lo arma el backend con el del grupo padre. -->
+    <q-dialog v-model="dialogGrupo">
+      <q-card style="width: 360px; max-width: 92vw">
+        <q-card-section class="row items-center q-pb-none">
+          <div class="text-h6">Agregar grupo</div>
+          <q-space/>
+          <q-btn icon="close" flat round dense v-close-popup/>
+        </q-card-section>
+        <q-form @submit="crearGrupo">
+          <q-card-section class="q-gutter-sm">
+            <q-input
+              v-model="nuevo.descripcion" outlined dense autofocus label="Nombre del grupo *" maxlength="50"
+              :rules="[v => !!(v || '').trim() || 'Escribí el nombre']" hide-bottom-space
+              @update:model-value="v => { nuevo.descripcion = (v || '').toUpperCase() }"
+            />
+            <q-select
+              v-model="nuevo.padre" outlined dense emit-value map-options label="Grupo padre *"
+              :options="padres" :option-label="p => p.label + ' (' + p.value + ')'"
+              :rules="[v => !!v || 'Elegí el grupo padre']" hide-bottom-space
+            />
+            <div class="text-caption text-grey-7">El código sale del grupo padre (ej. del 3 con 31 y 32 → 33).</div>
+          </q-card-section>
+          <q-card-actions align="right">
+            <q-btn flat no-caps label="Cancelar" v-close-popup/>
+            <q-btn unelevated no-caps color="primary" icon="add" label="Agregar" type="submit" :loading="creandoGrupo"/>
+          </q-card-actions>
+        </q-form>
+      </q-card>
+    </q-dialog>
   </q-page>
 </template>
 
@@ -301,6 +343,10 @@ export default {
     return {
       productos: [],
       grupos: [],
+      padres: [],
+      dialogGrupo: false,
+      creandoGrupo: false,
+      nuevo: { descripcion: '', padre: null },
       unidades: [],
       loading: false,
       filtros: {
@@ -617,6 +663,41 @@ export default {
       })
     },
 
+    // Un nombre que no esta en la lista crea un grupo: se elige de que grupo
+    // padre cuelga y el codigo lo arma el backend.
+    nuevoGrupo (texto, done) {
+      const descripcion = (texto || '').trim().toUpperCase()
+      done()
+      if (!descripcion) return
+      const existente = this.grupos.find(g => String(g.label).toUpperCase() === descripcion)
+      if (existente) {
+        this.edicion.cod_grup = existente.value
+        return
+      }
+      this.abrirNuevoGrupo(descripcion)
+    },
+    abrirNuevoGrupo (descripcion) {
+      this.nuevo = { descripcion: (descripcion || '').toUpperCase(), padre: null }
+      this.dialogGrupo = true
+    },
+    crearGrupo () {
+      this.creandoGrupo = true
+      this.$api.post('productos/grupos', { descripcion: this.nuevo.descripcion.trim(), cod_pdr: this.nuevo.padre })
+        .then(res => {
+          const grupo = res.data.grupo
+          if (!this.grupos.some(g => g.value === grupo.value)) {
+            this.grupos = [...this.grupos, grupo].sort((a, b) => String(a.label).localeCompare(String(b.label)))
+          }
+          this.gruposFiltrados = this.grupos
+          // Queda elegido en el producto que se esta editando.
+          this.edicion.cod_grup = grupo.value
+          this.dialogGrupo = false
+          this.$q.notify({ message: res.data.message, color: 'positive', icon: 'check_circle', position: 'top' })
+        })
+        .catch(err => { this.avisarError(err, 'No se pudo crear el grupo') })
+        .finally(() => { this.creandoGrupo = false })
+    },
+
     guardarEdicion () {
       this.guardando = true
 
@@ -682,6 +763,7 @@ export default {
     cargarFiltros () {
       this.$api.get('filtrosProducto').then(res => {
         this.grupos = res.data.grupos || []
+        this.padres = res.data.padres || []
         this.unidades = res.data.unidades || []
       }).catch(() => {
         // Los selects quedan vacíos; la tabla sigue siendo usable con la búsqueda.

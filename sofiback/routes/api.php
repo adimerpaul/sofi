@@ -67,6 +67,7 @@ Route::group(['middleware'=>'auth:sanctum'],function (){
     Route::get('/productos/excel',[\App\Http\Controllers\ProductoController::class,'exportarExcel']);
     Route::get('/productos/pdf',[\App\Http\Controllers\ProductoController::class,'exportarPdf']);
     Route::post('/productos/actualizarPollos',[\App\Http\Controllers\ProductoController::class,'actualizarPollos']);
+    Route::post('/productos/grupos',[\App\Http\Controllers\ProductoController::class,'crearGrupo']);
     // Cambio de precios: los 13 precios y el de compra de todos los productos en una grilla.
     Route::get('/precios',[\App\Http\Controllers\PrecioController::class,'index']);
     Route::put('/precios',[\App\Http\Controllers\PrecioController::class,'guardar']);
@@ -101,6 +102,8 @@ Route::group(['middleware'=>'auth:sanctum'],function (){
     Route::get('/facturacion/camiones',[\App\Http\Controllers\FacturacionController::class,'camiones']);
     // Entregas del dia sobre facturacion (reemplaza al reporte de /entrega).
     Route::get('/entrega-factura',[\App\Http\Controllers\EntregaFacturaController::class,'index']);
+    // Solo las ventas del vendedor que entra, para /avance.
+    Route::get('/entrega-factura/vendedor',[\App\Http\Controllers\EntregaFacturaController::class,'vendedor']);
     // Color de zona de la ultima asignacion de cada camion (venta directa).
     Route::get('/facturacion/camiones-color',[\App\Http\Controllers\FacturacionController::class,'coloresCamion']);
     // Zonas (colores) para cambiar el color de un comprobante.

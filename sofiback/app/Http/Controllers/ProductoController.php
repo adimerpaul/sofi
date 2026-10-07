@@ -29,6 +29,8 @@ class ProductoController extends Controller{
             'precioAprox',
             DB::raw('TRIM(codUnid) as codUnid'),
             'tipo',
+            // El grupo decide en que unidades se puede pedir (el FRIAL, solo U).
+            DB::raw('TRIM(cod_grup) as cod_grup'),
             'trozado',
             // Miniatura para el buscador de productos del pedido.
             'imagen',
@@ -582,17 +584,76 @@ class ProductoController extends Controller{
             ->values();
 
         return response()->json([
-            'grupos' => DB::table('tbproductos as p')
-                ->join('tbgrupos as g', DB::raw('TRIM(g.Cod_grup)'), '=', DB::raw('TRIM(p.cod_grup)'))
+            // Todos los grupos, aunque todavia no tengan productos: uno recien
+            // creado tiene que poder elegirse.
+            'grupos' => DB::table('tbgrupos')
                 ->select([
-                    DB::raw('TRIM(p.cod_grup) as value'),
-                    DB::raw('TRIM(g.Descripcion) as label'),
+                    DB::raw('TRIM(Cod_grup) as value'),
+                    DB::raw('TRIM(Descripcion) as label'),
                 ])
-                ->distinct()
+                ->orderBy('label')
+                ->get(),
+            // Los grupos padre, para colgar de alguno un grupo nuevo.
+            'padres' => DB::table('tbgrupopadre')
+                ->select([
+                    DB::raw('TRIM(cod_grup) as value'),
+                    DB::raw('TRIM(Descripcion) as label'),
+                ])
                 ->orderBy('label')
                 ->get(),
             'unidades' => $unidades,
         ]);
+    }
+
+    /**
+     * Crea un grupo de productos dentro de un grupo padre. El codigo sigue el
+     * del padre: el padre mas el primer numero libre (del padre
+     * 3 con 31 y 32 sale 33). Si ya hay un grupo con ese nombre, devuelve ese.
+     */
+    public function crearGrupo(Request $request)
+    {
+        $datos = $request->validate([
+            'descripcion' => 'required|string|max:50',
+            'cod_pdr' => 'required|string|max:10',
+        ]);
+        $descripcion = mb_strtoupper(trim(preg_replace('/\s+/', ' ', $datos['descripcion'])));
+        $padre = trim($datos['cod_pdr']);
+
+        $existente = DB::table('tbgrupos')->whereRaw('TRIM(Descripcion) = ?', [$descripcion])->first();
+        if ($existente) {
+            return response()->json([
+                'message' => 'El grupo ' . $descripcion . ' ya existía',
+                'grupo' => ['value' => trim($existente->Cod_grup), 'label' => trim($existente->Descripcion)],
+            ]);
+        }
+        if (!DB::table('tbgrupopadre')->whereRaw('TRIM(cod_grup) = ?', [$padre])->exists()) {
+            return response()->json(['message' => 'El grupo padre ' . $padre . ' no existe'], 422);
+        }
+
+        return DB::transaction(function () use ($descripcion, $padre) {
+            // El primer numero libre despues del padre (del 7 con 71, 72 y 73
+            // sale 74), sin pisar un codigo que ya use otro grupo.
+            $usados = DB::table('tbgrupos')->lockForUpdate()->pluck('Cod_grup')
+                ->map(function ($codigo) { return trim($codigo); })->flip();
+            for ($siguiente = 1; $usados->has($padre . $siguiente); $siguiente++) {
+            }
+            $codigo = $padre . $siguiente;
+            if (strlen($codigo) > 10) {
+                return response()->json(['message' => 'No se pudo generar un código para el grupo'], 422);
+            }
+
+            DB::table('tbgrupos')->insert([
+                'Cod_grup' => $codigo,
+                'Cod_pdr' => $padre,
+                'Descripcion' => $descripcion,
+                'Imprimec' => '',
+            ]);
+
+            return response()->json([
+                'message' => 'Grupo ' . $descripcion . ' creado con el código ' . $codigo,
+                'grupo' => ['value' => $codigo, 'label' => $descripcion],
+            ]);
+        });
     }
 
     public function listProducto(){

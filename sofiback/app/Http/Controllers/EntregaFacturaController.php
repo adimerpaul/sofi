@@ -60,6 +60,32 @@ class EntregaFacturaController extends Controller
         ];
     }
 
+    /**
+     * Lo mismo pero solo de las ventas del vendedor que entra (pantalla
+     * /avance): sus comprobantes de la jornada, en que camion van y si ya se
+     * entregaron, para seguirlos en el mapa y bajar la boleta.
+     */
+    public function vendedor(Request $request)
+    {
+        $datos = $request->validate([
+            'fecha' => 'nullable|date_format:Y-m-d',
+        ]);
+        $fecha = $datos['fecha'] ?? date('Y-m-d');
+        $ci = trim((string) $request->user()->ci);
+
+        $comprobantes = $ci === '' ? collect() : $this->comprobantes($fecha, null, $ci);
+
+        return [
+            'fecha' => $fecha,
+            'jornada' => CargaCamion::textoJornada($fecha),
+            'totales' => $this->resumir($comprobantes),
+            'camiones' => $comprobantes->groupBy('placa')->map(function ($delCamion, $placa) {
+                return ['placa' => $placa] + $this->resumir($delCamion);
+            })->sortBy('placa')->values(),
+            'comprobantes' => $comprobantes->values(),
+        ];
+    }
+
     /** Conteos por estado, avance y plata de un grupo de comprobantes. */
     private function resumir($comprobantes): array
     {
@@ -86,8 +112,11 @@ class EntregaFacturaController extends Controller
         ];
     }
 
-    /** Los comprobantes de la jornada que salieron en algun camion. */
-    private function comprobantes($fecha, $tipo)
+    /**
+     * Los comprobantes de la jornada que salieron en algun camion; con
+     * $vendedorCi, solo los de ese vendedor.
+     */
+    private function comprobantes($fecha, $tipo, $vendedorCi = null)
     {
         $facturas = DB::table('facturas as f')
             ->leftJoin('tbclientes as c', 'c.Cod_Aut', '=', 'f.cliente_id')
@@ -99,6 +128,9 @@ class EntregaFacturaController extends Controller
             // Con un tipo elegido la venta directa (sin tipo) no entra.
             ->when($tipo, function ($q) use ($tipo) {
                 $q->whereRaw('UPPER(TRIM(f.pedido_tipo)) = ?', [$tipo]);
+            })
+            ->when($vendedorCi, function ($q) use ($vendedorCi) {
+                $q->where('f.vendedor_ci', $vendedorCi);
             })
             ->orderBy('f.id')
             ->get([

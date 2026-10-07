@@ -1101,14 +1101,14 @@ $resPedido = $rows->groupBy('NroPed')->map(function ($g) use ($bonis) {
                 $corte = isset($p['corte']) ? $p['corte'] : 0;
                 $kilo = isset($p['kilo']) ? $p['kilo'] : 0;
                 $sumTotal = $total + $entero + $desmembre + $corte + $kilo;
-                if ($sumTotal == 0) {
-                    return response()->json(['message' => 'Debes ingresar al menos un producto frial cerdo'], 500);
-                    exit();
-                }
-                if ($pfrial == 0) {
-                    return response()->json(['message' => 'Debes ingresar el total de bs en cerdo'], 500);
-                    exit();
-                }
+//                if ($sumTotal == 0) {
+//                    return response()->json(['message' => 'Debes ingresar al menos un producto frial cerdo'], 500);
+//                    exit();
+//                }
+//                if ($pfrial == 0) {
+//                    return response()->json(['message' => 'Debes ingresar el total de bs en cerdo'], 500);
+//                    exit();
+//                }
             }
         }
 //        return response()->json(['message' => 'DEVERIA INSERTAR'], 500);

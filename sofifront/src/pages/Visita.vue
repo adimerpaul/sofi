@@ -419,9 +419,7 @@
                            carguen por piezas. -->
                       <select v-if="props.row.codUnid == 'CAJA'" v-model="props.row.caja"
                               class="entrada-pedido entrada-caja q-ml-xs">
-                        <option value="U">U</option>
-                        <option value="CAJA">CAJA</option>
-                        <option value="KG">KG</option>
+                        <option v-for="u in unidadesCaja(props.row)" :key="u" :value="u">{{ u }}</option>
                       </select>
                        <q-btn flat dense @click="quitar(props.row,props.rowIndex)" class="q-ma-none q-pa-none"
                              color="negative" icon="remove_circle"/>
@@ -497,6 +495,9 @@
         </q-card-section>
         <q-card-section class="q-pt-none">
           <div class="row">
+            <!-- Del pollo solo se pide la observacion: las cajas/unidades por
+                 calibre, el rango, las piezas con su unidad y BS/BS2 quedan
+                 comentados.
             <div class="col-6">
               <q-input type="number" dense outlined label="Cja b5" v-model="miproducto.cbrasa5"/>
             </div>
@@ -619,6 +620,7 @@
             <div class="col-6">
               <q-input type="number" dense outlined label="BS2" v-model="miproducto.bs2"/>
             </div>
+            -->
             <div class="col-12">
               <q-input type="text" dense outlined label="OBSERVACION" v-model="miproducto.observacion"/>
             </div>
@@ -797,6 +799,8 @@ import "leaflet/dist/leaflet.css";
 import {date} from "quasar";
 
 const {addToDate} = date
+// Grupo de productos FRIAL (tbgrupos.Cod_grup): se pide solo por unidad.
+const GRUPO_FRIAL = '31'
 
 
 export default {
@@ -1232,6 +1236,22 @@ export default {
         })
       })
     },
+    /**
+     * Unidades en que se puede pedir un producto que se vende por caja (se
+     * guarda en tbpedidos.caja): el FRIAL solo por unidad, el cerdo por unidad
+     * o kilo y lo demas tambien por caja. Los que no son por caja no eligen.
+     */
+    unidadesCaja(p) {
+      if (p.codUnid != 'CAJA') return []
+      if (String(p.cod_grup || '').trim() == GRUPO_FRIAL) return ['U']
+      if (p.tipo == 'CERDO') return ['U', 'KG']
+      return ['U', 'CAJA', 'KG']
+    },
+    unidadPorDefecto(p) {
+      const unidades = this.unidadesCaja(p)
+      if (!unidades.length) return null
+      return unidades.includes('CAJA') ? 'KG' : 'U'
+    },
     seleccionartipo(m) {
       console.log(m)
       this.miproducto = m
@@ -1429,8 +1449,10 @@ export default {
         nombre: this.producto.Producto,
         cod_prod: this.producto.cod_prod,
         codUnid: this.producto.codUnid,
-        // Solo los productos por caja eligen unidad; por defecto se piden en kilos.
-        caja: this.producto.codUnid == 'CAJA' ? 'KG' : null,
+        cod_grup: this.producto.cod_grup,
+        // Solo los productos por caja eligen unidad; por defecto se piden en
+        // kilos, salvo el cerdo y el frial, que se piden por unidad.
+        caja: this.unidadPorDefecto(this.producto),
         precio: parseFloat(this.producto.Precio).toFixed(2),
         precios: this.listaPrecios(this.producto),
         // Si el producto lo trae, el subtotal sale de este monto y no del
