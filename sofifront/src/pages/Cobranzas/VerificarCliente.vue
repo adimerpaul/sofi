@@ -6,6 +6,36 @@
         <div class="text-caption text-grey-7">Buscá un cliente y verificá las compras que hizo</div>
       </div>
       <q-space/>
+      <!-- Lo que verifico cada usuario entre fecha y hora, como el cierre de caja de creditos. -->
+      <q-btn-dropdown unelevated dense no-caps color="green-8" icon="grid_on" label="Excel verificaciones"
+                      @show="cargarVerificadores">
+        <div class="q-pa-sm column q-gutter-sm" style="min-width: 280px">
+          <div class="text-caption text-grey-8">Verificado entre:</div>
+          <div class="row q-col-gutter-xs">
+            <div class="col-7"><q-input v-model="reporte.desde" type="date" dense outlined label="Desde" @update:model-value="cargarVerificadores"/></div>
+            <div class="col-5"><q-input v-model="reporte.horaDesde" type="time" dense outlined label="Hora" @update:model-value="cargarVerificadores"/></div>
+            <div class="col-7"><q-input v-model="reporte.hasta" type="date" dense outlined label="Hasta" @update:model-value="cargarVerificadores"/></div>
+            <div class="col-5"><q-input v-model="reporte.horaHasta" type="time" dense outlined label="Hora" @update:model-value="cargarVerificadores"/></div>
+          </div>
+          <q-select
+            v-model="reporte.usuario" :options="verificadores" dense outlined clearable emit-value map-options
+            option-value="user_id" :option-label="v => v.nombre + ' · ' + v.verificados + ' verif. · Bs ' + money(v.total)"
+            label="Usuario que verificó (vacío = todos)" :loading="cargandoVerificadores"
+          >
+            <template #no-option>
+              <q-item><q-item-section class="text-grey">Nadie verificó en ese rango</q-item-section></q-item>
+            </template>
+          </q-select>
+          <q-btn unelevated dense no-caps color="teal-8" icon="qr_code_2" label="Excel QR verificados"
+                 :loading="descargandoReporte === 'qr'" :disable="descargandoReporte !== null" @click="descargarReporte('qr')">
+            <q-tooltip>Solo lo verificado por QR, con el formato de cobros QR de créditos</q-tooltip>
+          </q-btn>
+          <q-btn unelevated dense no-caps color="indigo-7" icon="point_of_sale" label="Total verificados"
+                 :loading="descargandoReporte === 'total'" :disable="descargandoReporte !== null" @click="descargarReporte('total')">
+            <q-tooltip>Total de lo verificado por usuario (QR, efectivo y crédito), con el formato del cierre de caja</q-tooltip>
+          </q-btn>
+        </div>
+      </q-btn-dropdown>
       <q-btn flat dense no-caps color="primary" icon="fact_check" label="Verificación del día" to="/cobranzas/verificacion"/>
     </div>
 
@@ -205,6 +235,8 @@
 </template>
 
 <script>
+import { date } from 'quasar'
+
 export default {
   name: 'VerificarCliente',
   data () {
@@ -225,6 +257,17 @@ export default {
       filas: [],
       montos: {},
       totales: { comprobantes: 0, verificados: 0, facturado: 0, verificado: 0, por_verificar: 0 },
+      // Reporte por usuario: por defecto hoy de 00:00 a 23:59, todos los usuarios.
+      reporte: {
+        desde: date.formatDate(new Date(), 'YYYY-MM-DD'),
+        horaDesde: '00:00',
+        hasta: date.formatDate(new Date(), 'YYYY-MM-DD'),
+        horaHasta: '23:59',
+        usuario: null
+      },
+      verificadores: [],
+      cargandoVerificadores: false,
+      descargandoReporte: null,
       columnas: [
         { name: 'fecha', label: 'Fecha', field: 'fecha', align: 'left' },
         { name: 'comprobante', label: 'Comprobante', field: 'factura_id', align: 'left' },
@@ -337,6 +380,52 @@ export default {
         t.por_verificar -= ahora.facturado
       }
       this.totales = t
+    },
+    paramsReporte () {
+      const { desde, hasta, horaDesde, horaHasta } = this.reporte
+      return { desde, hasta, hora_desde: horaDesde || '00:00', hora_hasta: horaHasta || '23:59' }
+    },
+    // Quienes verificaron en el rango, para elegir el usuario del reporte.
+    async cargarVerificadores () {
+      if (!this.reporte.desde || !this.reporte.hasta) return
+      this.cargandoVerificadores = true
+      try {
+        const { data } = await this.$api.get('cobranzas/verificacion/verificadores', { params: this.paramsReporte() })
+        this.verificadores = data
+        // Si el usuario elegido no verifico en el rango nuevo, se suelta.
+        const usuario = this.reporte.usuario
+        if (usuario && !data.some(v => v.user_id === usuario)) this.reporte.usuario = null
+      } catch (e) {
+        this.verificadores = []
+      } finally {
+        this.cargandoVerificadores = false
+      }
+    },
+    // 'qr': lo verificado por QR como el Excel de cobros QR; 'total': el cierre por usuario.
+    async descargarReporte (tipo) {
+      const { desde, hasta, horaDesde, horaHasta, usuario } = this.reporte
+      if (!desde || !hasta || (desde + ' ' + (horaDesde || '00:00')) > (hasta + ' ' + (horaHasta || '23:59'))) {
+        this.$q.notify({ type: 'warning', position: 'top', message: 'Revisá el rango de fechas y horas' })
+        return
+      }
+      this.descargandoReporte = tipo
+      try {
+        const params = this.paramsReporte()
+        if (usuario) params.user_id = usuario
+        const { data } = await this.$api.get('cobranzas/verificacion/excel-' + tipo, { params, responseType: 'blob' })
+        const url = URL.createObjectURL(data)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = tipo === 'qr'
+          ? 'VERIFICADOS QR ' + desde + (hasta !== desde ? ' AL ' + hasta : '') + '.xlsx'
+          : 'CIERRE VERIFICACIONES ' + desde + '.xlsx'
+        a.click()
+        URL.revokeObjectURL(url)
+      } catch (e) {
+        this.$q.notify({ type: 'negative', position: 'top', message: 'No se pudo generar el Excel' })
+      } finally {
+        this.descargandoReporte = null
+      }
     },
     corregirMonto (fila) {
       if (fila.verificado) this.marcar(fila, true)

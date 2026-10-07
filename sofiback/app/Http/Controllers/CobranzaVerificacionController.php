@@ -8,9 +8,12 @@ use App\Services\TipoPedido;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\DB;
+use PhpOffice\PhpSpreadsheet\Cell\DataType;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Style\Alignment;
 use PhpOffice\PhpSpreadsheet\Style\Border;
 use PhpOffice\PhpSpreadsheet\Style\Fill;
+use PhpOffice\PhpSpreadsheet\Worksheet\PageSetup;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 
 /**
@@ -352,6 +355,307 @@ class CobranzaVerificacionController extends Controller
         $pdf->loadHTML($html);
 
         return $pdf->stream('verificacion_' . $fecha . '.pdf', ['Attachment' => false]);
+    }
+
+    /**
+     * Rango de fecha y hora en que se verifico (por defecto hoy, de 00:00 a
+     * 23:59) y opcionalmente quien verifico. Devuelve [inicio, fin, usuario].
+     */
+    private function rangoVerificados(Request $request): array
+    {
+        $datos = $request->validate([
+            'desde' => 'nullable|date_format:Y-m-d',
+            'hasta' => 'nullable|date_format:Y-m-d',
+            'hora_desde' => ['nullable', 'regex:/^([01]\d|2[0-3]):[0-5]\d$/'],
+            'hora_hasta' => ['nullable', 'regex:/^([01]\d|2[0-3]):[0-5]\d$/'],
+            'user_id' => 'nullable|integer',
+        ]);
+        $desde = $datos['desde'] ?? date('Y-m-d');
+        $hasta = $datos['hasta'] ?? $desde;
+
+        return [
+            $desde . ' ' . ($datos['hora_desde'] ?? '00:00') . ':00',
+            // Hasta las 23:59 incluye ese minuto entero.
+            $hasta . ' ' . ($datos['hora_hasta'] ?? '23:59') . ':59',
+            isset($datos['user_id']) ? (int) $datos['user_id'] : null,
+        ];
+    }
+
+    /** Quienes verificaron en el rango, con cuanto: para elegir el usuario del reporte. */
+    public function verificadores(Request $request)
+    {
+        [$inicio, $fin] = $this->rangoVerificados($request);
+
+        return DB::table('cobranza_verificaciones')
+            ->where('verificado', 1)
+            ->whereBetween('verificado_en', [$inicio, $fin])
+            ->groupBy('user_id')
+            ->orderByRaw('MAX(verificado_por)')
+            ->get([
+                'user_id',
+                DB::raw("UPPER(TRIM(COALESCE(MAX(verificado_por), ''))) as nombre"),
+                DB::raw('COUNT(*) as verificados'),
+                DB::raw('ROUND(SUM(monto_verificado), 2) as total'),
+            ])
+            ->map(function ($v) {
+                return [
+                    'user_id' => $v->user_id === null ? null : (int) $v->user_id,
+                    'nombre' => $v->nombre !== '' ? preg_replace('/\s+/', ' ', $v->nombre) : 'SIN USUARIO',
+                    'verificados' => (int) $v->verificados,
+                    'total' => (float) $v->total,
+                ];
+            });
+    }
+
+    /**
+     * Los comprobantes verificados en el rango (por la fecha y hora en que se
+     * tildaron), opcionalmente de un solo usuario, en el orden en que se
+     * verificaron. Cada fila trae ademas quien verifico, el vendedor, la
+     * comanda y como se reparte lo verificado entre QR, efectivo y credito.
+     */
+    private function verificadosDelRango($inicio, $fin, $usuario)
+    {
+        $verificaciones = DB::table('cobranza_verificaciones')
+            ->where('verificado', 1)
+            ->whereBetween('verificado_en', [$inicio, $fin])
+            ->when($usuario, function ($q) use ($usuario) { $q->where('user_id', $usuario); })
+            ->orderBy('verificado_en')->orderBy('id')
+            ->get(['factura_id', 'verificado_por']);
+        if ($verificaciones->isEmpty()) {
+            return collect();
+        }
+
+        $ids = $verificaciones->pluck('factura_id')->all();
+        $filas = $this->filas(null, null, $ids)->keyBy('factura_id');
+        $facturas = DB::table('facturas as f')->leftJoin('tbclientes as c', 'c.Cod_Aut', '=', 'f.cliente_id')
+            ->whereIn('f.id', $ids)
+            ->get(['f.id', 'f.vendedor_ci', 'f.monto_efectivo', 'f.monto_qr', 'c.CiVend'])->keyBy('id');
+        // La ultima entrega registrada es la que vale, igual que en filas().
+        $entregas = DB::table('entregas')->whereIn('factura_id', $ids)->orderBy('id')
+            ->get(['factura_id', 'estado', 'tipago', 'monto_efectivo', 'monto_qr'])->keyBy('factura_id');
+        $vendedores = DB::table('personal')->whereRaw("TRIM(COALESCE(ci, '')) <> ''")
+            ->get(['ci', 'Nombre1', 'App1'])
+            ->mapWithKeys(function ($p) {
+                return [trim($p->ci) => trim(trim((string) $p->Nombre1) . ' ' . trim((string) $p->App1))];
+            });
+
+        return $verificaciones->map(function ($v) use ($filas, $facturas, $entregas, $vendedores) {
+            $fila = $filas->get((int) $v->factura_id);
+            if (!$fila) {
+                return null;
+            }
+            $factura = $facturas->get((int) $v->factura_id);
+            $entrega = $entregas->get((int) $v->factura_id);
+            $monto = round((float) $fila['monto_verificado'], 2);
+
+            // Como se pago: lo que marco el camion si ya cobro; si no, lo
+            // que dice el comprobante.
+            if ($entrega && in_array($entrega->estado, RecojoDelDia::ESTADOS_COBRADOS, true)) {
+                $forma = strtoupper((string) $entrega->tipago);
+                $qr = (float) $entrega->monto_qr;
+                $efectivo = (float) $entrega->monto_efectivo;
+            } else {
+                $forma = strtoupper((string) $fila['tipo_pago']);
+                $qr = (float) ($factura->monto_qr ?? 0);
+                $efectivo = (float) ($factura->monto_efectivo ?? 0);
+            }
+            $reparto = ['qr' => 0.0, 'efectivo' => 0.0, 'credito' => 0.0];
+            if (strpos($forma, 'DITO') !== false) {
+                $reparto['credito'] = $monto;
+            } elseif ($qr > 0 && $efectivo > 0) {
+                // Pago mixto: la parte QR es la del pago y el resto, efectivo.
+                $reparto['qr'] = min(round($qr, 2), $monto);
+                $reparto['efectivo'] = round($monto - $reparto['qr'], 2);
+            } elseif ($qr > 0 || strpos($forma, 'QR') !== false) {
+                $reparto['qr'] = $monto;
+            } else {
+                $reparto['efectivo'] = $monto;
+            }
+
+            $ci = trim((string) (($factura->vendedor_ci ?? '') ?: ($factura->CiVend ?? '')));
+
+            return $fila + $reparto + [
+                'verificador' => mb_strtoupper(preg_replace('/\s+/', ' ', trim((string) $v->verificado_por))) ?: 'SIN USUARIO',
+                'vendedor' => $vendedores->get($ci, ''),
+                'comanda' => $fila['pedido'] ? (int) $fila['pedido'] : $fila['factura_id'],
+                'factura' => $fila['tipo_comprobante'] === 'FACTURA' ? 'SI' : 'NO',
+            ];
+        })->filter()->values();
+    }
+
+    /**
+     * Lo verificado por QR en el rango, con el mismo formato del Excel de
+     * cobros QR de creditos: un bloque por cliente con fecha, vendedor, monto
+     * QR, comanda, si era factura y referencia, el total del cliente y al
+     * final el total del rango. El efectivo y el credito no entran; de un
+     * pago mixto solo cuenta la parte QR.
+     */
+    public function excelQr(Request $request)
+    {
+        [$inicio, $fin, $usuario] = $this->rangoVerificados($request);
+        $filas = $this->verificadosDelRango($inicio, $fin, $usuario)->filter(function ($f) { return $f['qr'] > 0; })->values();
+        $desde = substr($inicio, 0, 10);
+        $hasta = substr($fin, 0, 10);
+
+        $libro = new Spreadsheet();
+        $hoja = $libro->getActiveSheet();
+        $hoja->setTitle('Verificados QR');
+        $borde = ['borders' => ['allBorders' => ['borderStyle' => Border::BORDER_THIN]]];
+
+        $fila = 1;
+        if ($filas->isNotEmpty()) {
+            $hoja->setCellValue('B' . $fila, 'VERIFICADOS POR QR ' . date('d/m/y', strtotime($desde))
+                . ($hasta !== $desde ? ' AL ' . date('d/m/y', strtotime($hasta)) : ''));
+            $hoja->getStyle('B' . $fila)->getFont()->setBold(true);
+            if ($usuario) {
+                $fila++;
+                $hoja->setCellValue('B' . $fila, 'VERIFICÓ ' . $filas->first()['verificador']);
+            }
+            $fila += 2;
+        }
+        // Un bloque por cliente, en orden alfabetico, con el total de cada uno.
+        foreach ($filas->sortBy('cliente')->groupBy('cliente') as $grupo) {
+            $hoja->fromArray(['fecha', 'vendedor', 'cliente', 'qr', 'comanda', 'factura', 'referencia'], null, 'A' . $fila);
+            $hoja->getStyle("A{$fila}:G{$fila}")->applyFromArray($borde);
+            $desdeFila = ++$fila;
+            foreach ($grupo->sortBy('factura_id') as $f) {
+                $hoja->setCellValue('A' . $fila, date('d/m/y', strtotime($f['fecha'])));
+                $hoja->setCellValueExplicit('B' . $fila, $f['vendedor'], DataType::TYPE_STRING);
+                $hoja->setCellValueExplicit('C' . $fila, $f['cliente'], DataType::TYPE_STRING);
+                $hoja->setCellValue('D' . $fila, $f['qr']);
+                $hoja->setCellValue('E' . $fila, $f['comanda']);
+                $hoja->setCellValue('F' . $fila, $f['factura']);
+                $hoja->setCellValueExplicit('G' . $fila, (string) ($f['observacion'] ?? ''), DataType::TYPE_STRING);
+                $fila++;
+            }
+            $hoja->getStyle('A' . $desdeFila . ':G' . ($fila - 1))->applyFromArray($borde);
+            // Total del cliente bajo qr.
+            $hoja->setCellValue('C' . $fila, 'TOTAL');
+            $hoja->getStyle('C' . $fila)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
+            $hoja->setCellValue('D' . $fila, '=SUM(D' . $desdeFila . ':D' . ($fila - 1) . ')');
+            $hoja->getStyle('D' . $fila)->applyFromArray($borde);
+            $hoja->getStyle("C{$fila}:D{$fila}")->getFont()->setBold(true);
+            $fila += 3;
+        }
+
+        if ($filas->isEmpty()) {
+            $hoja->setCellValue('B1', 'Sin verificados por QR del ' . $desde . ' al ' . $hasta);
+            $fila = 3;
+        } else {
+            // Total de todo el rango.
+            $hoja->setCellValue('C' . $fila, 'TOTAL VERIFICADO POR QR');
+            $hoja->setCellValue('D' . $fila, round($filas->sum('qr'), 2));
+            $hoja->getStyle("C{$fila}:D{$fila}")->getFont()->setBold(true);
+            $fila += 2;
+        }
+        $yo = $request->user();
+        $hoja->setCellValue('A' . $fila, 'ELABORADO POR ' . strtoupper(trim(($yo->Nombre1 ?? '') . ' ' . ($yo->App1 ?? ''))));
+
+        $hoja->getStyle('D1:D' . $fila)->getNumberFormat()->setFormatCode('#,##0.00');
+        foreach (['A' => 10, 'B' => 28, 'C' => 40, 'D' => 12, 'E' => 12, 'F' => 9, 'G' => 18] as $col => $ancho) {
+            $hoja->getColumnDimension($col)->setWidth($ancho);
+        }
+        $hoja->getPageSetup()->setPaperSize(PageSetup::PAPERSIZE_LETTER)->setFitToWidth(1)->setFitToHeight(0);
+
+        return $this->descargar($libro, 'VERIFICADOS QR ' . $desde . ($hasta !== $desde ? ' AL ' . $hasta : '') . '.xlsx');
+    }
+
+    /**
+     * Total de lo verificado por cada usuario en el rango, con el formato del
+     * cierre de caja de creditos: una hoja por usuario con cuantos comprobantes
+     * verifico y cuanto, separado en QR, efectivo y credito, y su firma. Con
+     * varios usuarios, una hoja de resumen al principio.
+     */
+    public function excelTotal(Request $request)
+    {
+        [$inicio, $fin, $usuario] = $this->rangoVerificados($request);
+        $filas = $this->verificadosDelRango($inicio, $fin, $usuario);
+
+        $libro = new Spreadsheet();
+        $libro->removeSheetByIndex(0);
+        $borde = ['borders' => ['allBorders' => ['borderStyle' => Border::BORDER_THIN]]];
+        $gris = ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'D9D9D9']];
+        $rango = date('d/m/Y H:i', strtotime($inicio)) . ' a ' . date('d/m/Y H:i', strtotime($fin));
+        $formas = ['qr' => 'QR', 'efectivo' => 'EFECTIVO', 'credito' => 'CRÉDITO'];
+
+        $grupos = $filas->isEmpty() ? collect(['SIN VERIFICACIONES' => collect()]) : $filas->groupBy('verificador')->sortKeys();
+        $titulos = [];
+        foreach ($grupos as $verificador => $grupo) {
+            // Sin caracteres prohibidos y hasta 31; sin repetir.
+            $titulo = mb_substr(trim(preg_replace('/[\\\\\/\?\*\[\]:]/', ' ', (string) $verificador)), 0, 31) ?: 'Hoja';
+            for ($n = 2; in_array(mb_strtoupper($titulo), $titulos, true); $n++) {
+                $titulo = mb_substr($titulo, 0, 28) . ' ' . $n;
+            }
+            $titulos[] = mb_strtoupper($titulo);
+            $hoja = $libro->createSheet();
+            $hoja->setTitle($titulo);
+
+            $hoja->setCellValue('A1', 'CIERRE DE VERIFICACIONES');
+            $hoja->mergeCells('A1:C1');
+            $hoja->getStyle('A1')->getFont()->setBold(true)->setSize(15);
+            $hoja->getStyle('A1')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+            $hoja->fromArray([['Fecha:', $rango], ['Verificó:', $verificador]], null, 'A3');
+            $hoja->getStyle('A3:A4')->getFont()->setBold(true);
+
+            $hoja->fromArray(['Forma de pago', 'Comprobantes', 'Monto'], null, 'A6');
+            $hoja->getStyle('A6:C6')->applyFromArray($borde + ['font' => ['bold' => true], 'fill' => $gris]);
+            $r = 7;
+            foreach ($formas as $campo => $nombreForma) {
+                $deLaForma = $grupo->filter(function ($f) use ($campo) { return $f[$campo] > 0; });
+                $hoja->fromArray([$nombreForma, $deLaForma->count(), round($deLaForma->sum($campo), 2)], null, 'A' . $r, true);
+                $r++;
+            }
+            $hoja->fromArray(['TOTAL VERIFICADO:', $grupo->count(), round($grupo->sum('monto_verificado'), 2)], null, 'A' . $r, true);
+            $hoja->getStyle("A7:C{$r}")->applyFromArray($borde);
+            $hoja->getStyle("A{$r}:C{$r}")->applyFromArray(['font' => ['bold' => true, 'size' => 13], 'fill' => $gris]);
+            $hoja->getStyle("C7:C{$r}")->getNumberFormat()->setFormatCode('#,##0.00');
+            $hoja->getStyle("B7:B{$r}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+
+            $hoja->setCellValue('A' . ($r + 4), '________________________');
+            $hoja->setCellValue('A' . ($r + 5), 'Firma ' . $verificador);
+
+            foreach (['A' => 24, 'B' => 15, 'C' => 18] as $col => $ancho) {
+                $hoja->getColumnDimension($col)->setWidth($ancho);
+            }
+            $hoja->getPageSetup()->setOrientation(PageSetup::ORIENTATION_PORTRAIT)->setPaperSize(PageSetup::PAPERSIZE_LETTER);
+        }
+
+        // Con varios usuarios, una hoja de resumen al principio.
+        if ($grupos->count() > 1) {
+            $resumen = $libro->createSheet(0);
+            $resumen->setTitle('Resumen');
+            $resumen->setCellValue('A1', 'CIERRE DE VERIFICACIONES');
+            $resumen->getStyle('A1')->getFont()->setBold(true)->setSize(15);
+            $resumen->setCellValue('A2', $rango);
+            $resumen->fromArray(['Verificó', 'Comprobantes', 'QR', 'Efectivo', 'Crédito', 'Total'], null, 'A4');
+            $resumen->getStyle('A4:F4')->applyFromArray($borde + ['font' => ['bold' => true], 'fill' => $gris]);
+            $fila = 5;
+            foreach ($grupos as $verificador => $grupo) {
+                $resumen->fromArray([$verificador, $grupo->count(), round($grupo->sum('qr'), 2), round($grupo->sum('efectivo'), 2),
+                    round($grupo->sum('credito'), 2), round($grupo->sum('monto_verificado'), 2)], null, 'A' . $fila, true);
+                $fila++;
+            }
+            $resumen->setCellValue('A' . $fila, 'TOTAL');
+            foreach (['B', 'C', 'D', 'E', 'F'] as $col) {
+                $resumen->setCellValue($col . $fila, "=SUM({$col}5:{$col}" . ($fila - 1) . ')');
+            }
+            $resumen->getStyle("A5:F{$fila}")->applyFromArray($borde);
+            $resumen->getStyle("A{$fila}:F{$fila}")->applyFromArray(['font' => ['bold' => true], 'fill' => $gris]);
+            $resumen->getStyle("C5:F{$fila}")->getNumberFormat()->setFormatCode('#,##0.00');
+            foreach (['A' => 34, 'B' => 14, 'C' => 13, 'D' => 13, 'E' => 13, 'F' => 13] as $col => $ancho) {
+                $resumen->getColumnDimension($col)->setWidth($ancho);
+            }
+        }
+        $libro->setActiveSheetIndex(0);
+
+        return $this->descargar($libro, 'CIERRE VERIFICACIONES ' . substr($inicio, 0, 10) . '.xlsx');
+    }
+
+    private function descargar(Spreadsheet $libro, $nombre)
+    {
+        return response()->streamDownload(function () use ($libro) {
+            (new Xlsx($libro))->save('php://output');
+        }, $nombre, ['Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet']);
     }
 
     private function filtros(Request $request)
