@@ -806,6 +806,10 @@ import {date} from "quasar";
 const {addToDate} = date
 // Grupo de productos FRIAL (tbgrupos.Cod_grup): se pide solo por unidad.
 const GRUPO_FRIAL = '31'
+// Los 13 precios del producto en orden: el numero de precio es la posicion + 1.
+const CAMPOS_PRECIO = ['Precio', 'Precio_Costo', 'Precio3', 'Precio4', 'Precio5',
+  'Precio6', 'Precio7', 'Precio8', 'Precio9', 'Precio10', 'Precio11',
+  'Precio12', 'Precio13']
 
 
 export default {
@@ -834,6 +838,8 @@ export default {
       filteproducto: '',
       modalopciones: false,
       modalpedido: false,
+      // Precio (1 a 13) del cliente por grupo de productos: { cod_grup: numero }.
+      preciosCliente: {},
       modalnormal: false,
       modalpollo: false,
       modalcerdo: false,
@@ -1344,11 +1350,8 @@ export default {
     // en una sola opcion con todos sus numeros ("Precio 3 / 8 / 11") para que
     // ninguno desaparezca de la lista.
     listaPrecios(producto) {
-      const campos = ['Precio', 'Precio_Costo', 'Precio3', 'Precio4', 'Precio5',
-        'Precio6', 'Precio7', 'Precio8', 'Precio9', 'Precio10', 'Precio11',
-        'Precio12', 'Precio13']
       const opciones = []
-      campos.forEach((campo, indice) => {
+      CAMPOS_PRECIO.forEach((campo, indice) => {
         const valor = parseFloat(producto[campo])
         if (!valor || isNaN(valor)) return
         const texto = valor.toFixed(2)
@@ -1459,7 +1462,9 @@ export default {
         // Solo los productos por caja eligen unidad; por defecto se piden en
         // kilos, salvo el cerdo y el frial, que se piden por unidad.
         caja: this.unidadPorDefecto(this.producto),
-        precio: parseFloat(this.producto.Precio).toFixed(2),
+        // Arranca con el precio que el cliente tiene para el grupo del
+        // producto (Clientes > Precios); se puede cambiar por otro de la lista.
+        precio: this.precioDelCliente(this.producto),
         precios: this.listaPrecios(this.producto),
         // Si el producto lo trae, el subtotal sale de este monto y no del
         // precio por kilo.
@@ -1478,6 +1483,7 @@ export default {
       this.modalopciones = false
       this.modalpedido = true
       this.misproductos = []
+      this.cargarPreciosCliente()
       if (this.cliente.Id == '61839000' || this.cliente.Id == '0023456') {
         this.pago = 'CREDITO'
         this.fact = 'NO'
@@ -1486,6 +1492,29 @@ export default {
         this.fact = ''
       }
 
+    },
+    // Que precio (1 a 13) le toca al cliente en cada grupo; sin cargar, el 1.
+    cargarPreciosCliente() {
+      this.preciosCliente = {}
+      const cliente = this.cliente.Cod_Aut
+      if (!cliente) return
+      this.$api.get('cliente/' + cliente + '/precios').then(res => {
+        if (cliente !== this.cliente.Cod_Aut) return
+        const mapa = {}
+        ;(res.data || []).forEach(p => { mapa[String(p.cod_grup).trim()] = Number(p.precio) || 1 })
+        this.preciosCliente = mapa
+      }).catch(() => {
+        // Sin los precios del cliente el pedido sigue con el precio 1.
+      })
+    },
+    /**
+     * El precio del producto que corresponde al cliente segun el grupo. Si
+     * ese precio esta vacio o en cero en el producto, el precio 1.
+     */
+    precioDelCliente(producto) {
+      const numero = this.preciosCliente[String(producto.cod_grup || '').trim()] || 1
+      const valor = parseFloat(producto[CAMPOS_PRECIO[numero - 1]])
+      return (valor > 0 ? valor : parseFloat(producto.Precio) || 0).toFixed(2)
     },
     clickopciones(cliente) {
       this.modalopciones = true

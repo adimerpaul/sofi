@@ -445,6 +445,8 @@ class ClienteController extends Controller{
         $datos = $this->datosCliente($request);
         if (empty($datos['venta'])) $datos['venta'] = 'ACTIVO';
         $codAut = DB::table('tbclientes')->insertGetId($datos, 'Cod_Aut');
+        // Todo cliente nuevo arranca con todos los grupos en el precio 1.
+        \App\Models\ClientePrecio::completarCliente($codAut, optional($request->user())->CodAut);
         return DB::table('tbclientes')->where('Cod_Aut', $codAut)->first();
     }
 

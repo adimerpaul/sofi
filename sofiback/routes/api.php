@@ -337,6 +337,9 @@ Route::group(['middleware'=>'auth:sanctum'],function (){
     Route::get('/cliente-photos', [\App\Http\Controllers\ClientePhotoController::class, 'index']);
     Route::post('/cliente-photos', [\App\Http\Controllers\ClientePhotoController::class, 'store']);
     Route::delete('/cliente-photos/{id}', [\App\Http\Controllers\ClientePhotoController::class, 'destroy']);
+    // Precio (1 a 13) del cliente por grupo de productos: pestaña Precios de Clientes.
+    Route::get('/cliente/{cliente}/precios', [\App\Http\Controllers\ClientePrecioController::class, 'index'])->where('cliente', '[0-9]+');
+    Route::put('/cliente/{cliente}/precios', [\App\Http\Controllers\ClientePrecioController::class, 'guardar'])->where('cliente', '[0-9]+');
 });
 Route::get('/facturaV/{comanda}', [FacturaController::class, 'generarPDF']);
 Route::get('/generarXlsPollo/{fecha}',[\App\Http\Controllers\ExcelController::class,'generarXlsPollo']);

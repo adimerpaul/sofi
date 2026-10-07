@@ -648,6 +648,8 @@ class ProductoController extends Controller{
                 'Descripcion' => $descripcion,
                 'Imprimec' => '',
             ]);
+            // Todos los clientes lo tienen desde ya, con el precio 1.
+            \App\Models\ClientePrecio::completarGrupo($codigo, optional(request()->user())->CodAut);
 
             return response()->json([
                 'message' => 'Grupo ' . $descripcion . ' creado con el código ' . $codigo,

@@ -126,6 +126,7 @@
               <q-tab name="visita" label="Visita"/>
               <q-tab name="ubicacion" label="Ubicación"/>
               <q-tab name="fotos" label="Fotos"/>
+              <q-tab name="precios" label="Precios"/>
             </q-tabs>
             <q-separator class="q-my-sm"/>
 
@@ -240,6 +241,60 @@
                   </div>
                 </div>
               </q-tab-panel>
+
+              <!-- Que precio (1 a 13) se le cobra en cada grupo de productos.
+                   Cada cambio se guarda al momento, con el usuario. -->
+              <q-tab-panel name="precios">
+                <div v-if="!cliente.Cod_Aut" class="text-grey-7">Guarda primero el cliente: al crearlo arranca con todos los grupos en el precio 1.</div>
+                <template v-else>
+                  <div class="row items-center q-gutter-sm q-mb-sm">
+                    <div class="text-caption text-grey-7">Precio por grupo de productos (por defecto, precio 1).</div>
+                    <q-space/>
+                    <q-select v-model="precioTodos" :options="opcionesPrecio" emit-value map-options dense outlined
+                              label="Todos los grupos a" style="min-width: 150px"/>
+                    <q-btn unelevated dense no-caps color="primary" icon="done_all" label="Aplicar a todos"
+                           :disable="!precioTodos" :loading="guardandoPrecio === 'todos'" @click="aplicarPrecioTodos"/>
+                    <q-btn flat dense round icon="refresh" color="primary" :loading="cargandoPrecios" @click="cargarPrecios"/>
+                  </div>
+                  <q-table
+                    flat bordered dense :rows="precios" row-key="cod_grup" :loading="cargandoPrecios"
+                    :pagination="{rowsPerPage: 0}" hide-bottom no-data-label="No hay grupos"
+                    :columns="[
+                      {name: 'padre', label: 'Familia', field: 'padre', align: 'left'},
+                      {name: 'grupo', label: 'Grupo', field: 'grupo', align: 'left'},
+                      {name: 'precio', label: 'Precio', field: 'precio', align: 'left'},
+                      {name: 'modificado', label: 'Modificado', field: 'modificado_en', align: 'left'},
+                      {name: 'creado', label: 'Creado', field: 'creado_en', align: 'left'}
+                    ]"
+                  >
+                    <template #body-cell-grupo="props">
+                      <q-td :props="props">
+                        {{ props.row.grupo }} <span class="text-caption text-grey-6">({{ props.row.cod_grup }})</span>
+                      </q-td>
+                    </template>
+                    <template #body-cell-precio="props">
+                      <q-td :props="props" style="width: 150px">
+                        <q-select
+                          :model-value="props.row.precio" :options="opcionesPrecio" emit-value map-options dense outlined
+                          :bg-color="props.row.precio !== 1 ? 'amber-1' : 'white'"
+                          :loading="guardandoPrecio === props.row.cod_grup" :disable="guardandoPrecio !== null"
+                          @update:model-value="v => guardarPrecios([{cod_grup: props.row.cod_grup, precio: v}], props.row.cod_grup)"
+                        />
+                      </q-td>
+                    </template>
+                    <template #body-cell-modificado="props">
+                      <q-td :props="props" class="text-caption">
+                        {{ props.row.modificado_por }}<div class="text-grey-6">{{ props.row.modificado_en }}</div>
+                      </q-td>
+                    </template>
+                    <template #body-cell-creado="props">
+                      <q-td :props="props" class="text-caption">
+                        {{ props.row.creado_por }}<div class="text-grey-6">{{ props.row.creado_en }}</div>
+                      </q-td>
+                    </template>
+                  </q-table>
+                </template>
+              </q-tab-panel>
             </q-tab-panels>
 
             <div class="text-right q-mt-md">
@@ -304,6 +359,12 @@ export default {
       cambiandoExcepcion: null,
       map: null,
       marker: null,
+      // Pestaña Precios: un precio (1 a 13) por grupo de productos.
+      precios: [],
+      cargandoPrecios: false,
+      guardandoPrecio: null,
+      precioTodos: null,
+      opcionesPrecio: Array.from({length: 13}, (_, i) => ({label: 'Precio ' + (i + 1), value: i + 1})),
       dias: [
         {campo: 'lu', letra: 'L', largo: 'Lun'}, {campo: 'Ma', letra: 'M', largo: 'Mar'},
         {campo: 'Mi', letra: 'X', largo: 'Mié'}, {campo: 'Ju', letra: 'J', largo: 'Jue'},
@@ -395,6 +456,7 @@ export default {
     },
     tab (val) {
       if (val === 'ubicacion' && this.dialog) this.$nextTick(() => this.iniciarMapa())
+      if (val === 'precios' && this.dialog) this.cargarPrecios()
     },
     'cliente.Latitud' () { this.moverMarcador() },
     'cliente.longitud' () { this.moverMarcador() }
@@ -468,6 +530,8 @@ export default {
     nuevoCliente () {
       this.cliente = clienteVacio()
       this.fotos = []
+      this.precios = []
+      this.precioTodos = null
       this.tab = 'basico'
       this.dialog = true
     },
@@ -480,10 +544,13 @@ export default {
       c.Cod_Aut = row.Cod_Aut
       this.cliente = c
       this.fotos = []
+      this.precios = []
+      this.precioTodos = null
       this.tab = tab
       this.dialog = true
       this.cargarFotos()
       if (tab === 'ubicacion') this.$nextTick(() => this.iniciarMapa())
+      if (tab === 'precios') this.cargarPrecios()
     },
     guardarCliente () {
       this.guardando = true
@@ -503,6 +570,39 @@ export default {
         this.$q.notify({type: 'negative', message: e.response?.data?.message || 'No se pudo guardar el cliente'})
       }).finally(() => {
         this.guardando = false
+      })
+    },
+    cargarPrecios () {
+      if (!this.cliente.Cod_Aut) return
+      const cliente = this.cliente.Cod_Aut
+      this.cargandoPrecios = true
+      this.$api.get('cliente/' + cliente + '/precios').then(res => {
+        if (cliente === this.cliente.Cod_Aut) this.precios = res.data || []
+      }).catch(e => {
+        this.$q.notify({type: 'negative', message: e.response?.data?.message || 'No se pudieron cargar los precios'})
+      }).finally(() => {
+        this.cargandoPrecios = false
+      })
+    },
+    guardarPrecios (cambios, cual) {
+      this.guardandoPrecio = cual
+      this.$api.put('cliente/' + this.cliente.Cod_Aut + '/precios', {precios: cambios}).then(res => {
+        this.precios = res.data.precios || []
+        this.$q.notify({type: 'positive', message: res.data.message, timeout: 1200})
+      }).catch(e => {
+        this.$q.notify({type: 'negative', message: e.response?.data?.message || 'No se pudo guardar el precio'})
+      }).finally(() => {
+        this.guardandoPrecio = null
+      })
+    },
+    aplicarPrecioTodos () {
+      const precio = this.precioTodos
+      this.$q.dialog({
+        title: 'Aplicar a todos',
+        message: '¿Poner todos los grupos de este cliente en el precio ' + precio + '?',
+        cancel: true
+      }).onOk(() => {
+        this.guardarPrecios(this.precios.map(p => ({cod_grup: p.cod_grup, precio})), 'todos')
       })
     },
     cargarFotos () {
