@@ -151,34 +151,34 @@
               </template>
               <span v-else class="text-grey-5">—</span>
             </q-td>
-            <q-td key="efectivo" :props="props" class="celda-monto">
-              <q-input
-                v-model.number="montos[props.row.factura_id].efectivo" type="number" step="0.01" min="0" dense outlined
-                hide-bottom-space input-class="text-right" class="monto" :class="{ apagado: !usa(props.row, 'efectivo') }"
-                :bg-color="props.row.verificado ? 'green-1' : 'white'" @change="corregirMonto(props.row)"
-              >
-                <template #prepend><q-icon name="payments" color="green-8" size="16px"/></template>
-              </q-input>
-            </q-td>
-            <q-td key="qr" :props="props" class="celda-monto">
-              <q-input
-                v-model.number="montos[props.row.factura_id].qr" type="number" step="0.01" min="0" dense outlined
-                hide-bottom-space input-class="text-right" class="monto" :class="{ apagado: !usa(props.row, 'qr') }"
-                :bg-color="props.row.verificado ? 'green-1' : 'white'" @change="corregirMonto(props.row)"
-              >
-                <template #prepend><q-icon name="qr_code_2" color="deep-purple-6" size="16px"/></template>
-              </q-input>
+            <q-td v-for="lado in LADOS" :key="lado.key" :props="props" class="celda-monto">
+              <div v-if="props.row.lados.includes(lado.key)" class="row items-center no-wrap">
+                <q-input
+                  v-model.number="montos[props.row.factura_id][lado.key]" type="number" step="0.01" min="0" dense outlined
+                  hide-bottom-space input-class="text-right" class="monto col"
+                  :bg-color="props.row[lado.key + '_ok'] ? 'green-1' : 'white'" @change="corregirMonto(props.row, lado.key)"
+                >
+                  <template #prepend><q-icon :name="lado.icon" :color="lado.color" size="16px"/></template>
+                </q-input>
+                <q-checkbox
+                  :model-value="props.row[lado.key + '_ok']" dense color="positive" class="q-ml-xs"
+                  :disable="guardando === props.row.factura_id" @update:model-value="v => marcar(props.row, lado.key, v)"
+                >
+                  <q-tooltip>
+                    {{ props.row[lado.key + '_ok'] ? lado.label + ' verificado · ' + props.row[lado.key + '_por'] + ' · ' + props.row[lado.key + '_en'] : 'Verificar ' + lado.label }}
+                  </q-tooltip>
+                </q-checkbox>
+              </div>
             </q-td>
             <q-td key="diferencia" :props="props">
               <span :class="claseDiferencia(props.row)">{{ money(diferencia(props.row)) }}</span>
             </q-td>
-            <q-td key="cancela" :props="props" class="text-center">
-              <q-checkbox
-                :model-value="props.row.verificado" dense color="positive"
-                :disable="guardando === props.row.factura_id" @update:model-value="v => marcar(props.row, v)"
-              >
-                <q-tooltip v-if="props.row.verificado">{{ props.row.verificado_por }} · {{ props.row.verificado_en }}</q-tooltip>
-              </q-checkbox>
+            <q-td key="estado" :props="props" class="text-center">
+              <q-icon v-if="props.row.verificado" name="check_circle" color="positive" size="20px">
+                <q-tooltip>Verificado · {{ props.row.verificado_por }} · {{ props.row.verificado_en }}</q-tooltip>
+              </q-icon>
+              <q-badge v-else-if="props.row.efectivo_ok || props.row.qr_ok" color="orange-8" :label="'Falta ' + (props.row.qr_ok ? 'efectivo' : 'QR')"/>
+              <q-icon v-else name="radio_button_unchecked" color="grey-5" size="20px"/>
             </q-td>
           </q-tr>
         </template>
@@ -194,10 +194,8 @@
                     <span class="text-caption text-grey-7"> · {{ props.row.fecha }} {{ props.row.hora }} · P{{ props.row.pedido || '—' }}</span>
                   </div>
                   <q-icon v-for="i in iconosPago(props.row.forma_pago)" :key="i.icon" :name="i.icon" :color="i.color" size="18px"/>
-                  <q-checkbox
-                    :model-value="props.row.verificado" color="positive"
-                    :disable="guardando === props.row.factura_id" @update:model-value="v => marcar(props.row, v)"
-                  />
+                  <q-icon v-if="props.row.verificado" name="check_circle" color="positive" size="20px" class="q-ml-xs"/>
+                  <q-badge v-else-if="props.row.efectivo_ok || props.row.qr_ok" class="q-ml-xs" color="orange-8" :label="'Falta ' + (props.row.qr_ok ? 'efectivo' : 'QR')"/>
                 </div>
                 <div class="row items-center q-gutter-x-xs text-caption">
                   <span class="chip-placa" :style="estiloColor(props.row.placa_color)">{{ nombrePlaca(props.row.placa) }}</span>
@@ -207,23 +205,21 @@
                   <span class="text-indigo-9">Rec. <b>{{ props.row.recogido !== null ? money(props.row.recogido) : '—' }}</b></span>
                 </div>
                 <div class="row q-col-gutter-xs items-center q-mt-xs">
-                  <div class="col-5">
-                    <q-input
-                      v-model.number="montos[props.row.factura_id].efectivo" type="number" step="0.01" min="0" dense outlined
-                      hide-bottom-space input-class="text-right" class="monto" :class="{ apagado: !usa(props.row, 'efectivo') }"
-                      @change="corregirMonto(props.row)"
-                    >
-                      <template #prepend><q-icon name="payments" color="green-8" size="16px"/></template>
-                    </q-input>
-                  </div>
-                  <div class="col-5">
-                    <q-input
-                      v-model.number="montos[props.row.factura_id].qr" type="number" step="0.01" min="0" dense outlined
-                      hide-bottom-space input-class="text-right" class="monto" :class="{ apagado: !usa(props.row, 'qr') }"
-                      @change="corregirMonto(props.row)"
-                    >
-                      <template #prepend><q-icon name="qr_code_2" color="deep-purple-6" size="16px"/></template>
-                    </q-input>
+                  <div v-for="lado in LADOS.filter(l => props.row.lados.includes(l.key))" :key="lado.key"
+                       :class="props.row.lados.length > 1 ? 'col-5' : 'col-10'">
+                    <div class="row items-center no-wrap">
+                      <q-input
+                        v-model.number="montos[props.row.factura_id][lado.key]" type="number" step="0.01" min="0" dense outlined
+                        hide-bottom-space input-class="text-right" class="monto col"
+                        :bg-color="props.row[lado.key + '_ok'] ? 'green-1' : 'white'" @change="corregirMonto(props.row, lado.key)"
+                      >
+                        <template #prepend><q-icon :name="lado.icon" :color="lado.color" size="16px"/></template>
+                      </q-input>
+                      <q-checkbox
+                        :model-value="props.row[lado.key + '_ok']" color="positive"
+                        :disable="guardando === props.row.factura_id" @update:model-value="v => marcar(props.row, lado.key, v)"
+                      />
+                    </div>
                   </div>
                   <div class="col-2 text-right text-caption" :class="claseDiferencia(props.row)">{{ money(diferencia(props.row)) }}</div>
                 </div>
@@ -295,12 +291,18 @@ export default {
         { name: 'pago', label: 'Pago / Entrega', field: 'forma_pago', align: 'left' },
         { name: 'facturado', label: 'Importe', field: 'facturado', align: 'right' },
         { name: 'recogido', label: 'Recogido', field: 'recogido', align: 'right' },
-        { name: 'efectivo', label: 'Efectivo', field: 'verificado_efectivo', align: 'right' },
-        { name: 'qr', label: 'QR', field: 'verificado_qr', align: 'right' },
+        { name: 'efectivo', label: 'Verificar efectivo', field: 'verificado_efectivo', align: 'left' },
+        { name: 'qr', label: 'Verificar QR', field: 'verificado_qr', align: 'left' },
         { name: 'diferencia', label: 'Dif.', field: 'diferencia', align: 'right' },
-        { name: 'cancela', label: '✔', field: 'verificado', align: 'center' }
+        { name: 'estado', label: 'Estado', field: 'verificado', align: 'center' }
       ]
     }
+  },
+  created () {
+    this.LADOS = [
+      { key: 'efectivo', ...ICONOS.efectivo },
+      { key: 'qr', ...ICONOS.qr }
+    ]
   },
   computed: {
     ocupado () { return this.cargando || this.guardando !== null },
@@ -354,34 +356,26 @@ export default {
         if (solicitud === this.solicitud) this.cargando = false
       }
     },
-    // Lo ya verificado; si no, lo esperado: lo que trajo el camion o, si
-    // todavia no hay entrega, el importe segun como se pago.
+    // De cada lado, lo ya escrito; si no, lo esperado: lo que trajo el
+    // camion o, si todavia no hay entrega, el importe segun como se pago.
     montosIniciales (fila) {
-      if (fila.verificado_efectivo !== null) return { efectivo: fila.verificado_efectivo, qr: fila.verificado_qr }
-      return { efectivo: fila.esperado_efectivo, qr: fila.esperado_qr }
+      return {
+        efectivo: fila.verificado_efectivo ?? fila.esperado_efectivo,
+        qr: fila.verificado_qr ?? fila.esperado_qr
+      }
     },
-    async marcar (fila, verificado) {
+    // Tilda o destilda un lado: el efectivo o el QR, con su monto.
+    async marcar (fila, lado, verificado) {
       if (this.ocupado || this.error) return
-      const m = this.montos[fila.factura_id]
-      const vacio = v => v === '' || v === null || v === undefined
-      if (verificado) {
-        // Un pago mixto se verifica por los dos lados.
-        if (fila.forma_pago === 'MIXTO' && (vacio(m.efectivo) || vacio(m.qr))) {
-          this.$q.notify({ type: 'warning', position: 'top', message: 'Es un pago mixto: escribí el efectivo y el QR' })
-          return
-        }
-        if ((vacio(m.efectivo) && vacio(m.qr)) || Number(m.efectivo) < 0 || Number(m.qr) < 0) {
-          this.$q.notify({ type: 'warning', position: 'top', message: 'Escribí el monto recibido' })
-          return
-        }
+      const monto = this.montos[fila.factura_id][lado]
+      if (verificado && (monto === '' || monto === null || monto === undefined || !(Number(monto) >= 0))) {
+        this.$q.notify({ type: 'warning', position: 'top', message: 'Escribí el monto recibido en ' + (lado === 'qr' ? 'QR' : 'efectivo') })
+        return
       }
       this.guardando = fila.factura_id
       try {
         const { data } = await this.$api.post('cobranzas/verificacion', {
-          factura_id: fila.factura_id,
-          verificado,
-          monto_efectivo: verificado ? Number(m.efectivo) || 0 : null,
-          monto_qr: verificado ? Number(m.qr) || 0 : null
+          factura_id: fila.factura_id, verificado, lado, monto: Number(monto) || 0
         })
         const indice = this.filas.findIndex(f => f.factura_id === fila.factura_id)
         if (indice >= 0 && data.fila) {
@@ -458,8 +452,9 @@ export default {
         this.descargandoReporte = null
       }
     },
-    corregirMonto (fila) {
-      if (fila.verificado) this.marcar(fila, true)
+    // Si ese lado ya estaba tildado y se corrige el monto, se guarda de nuevo.
+    corregirMonto (fila, lado) {
+      if (fila[lado + '_ok']) this.marcar(fila, lado, true)
     },
     iconosPago (forma) {
       if (forma === 'MIXTO') return [ICONOS.efectivo, ICONOS.qr]
@@ -467,17 +462,12 @@ export default {
       if (forma === 'CRÉDITO') return [ICONOS.credito]
       return [ICONOS.efectivo]
     },
-    // El lado que no corresponde a la forma de pago se ve atenuado (pero se puede escribir).
-    usa (fila, lado) {
-      if (Number(this.montos[fila.factura_id]?.[lado]) > 0) return true
-      if (fila.forma_pago === 'MIXTO') return true
-      return lado === 'qr' ? fila.forma_pago === 'QR' : fila.forma_pago !== 'QR'
-    },
     money (v) { return Number(v || 0).toFixed(2) },
     nombrePlaca (placa) { return placa === 'SIN' ? 'Sin camión' : placa },
+    // Lo escrito en los lados que se verifican, contra el importe.
     diferencia (fila) {
       const m = this.montos[fila.factura_id] || {}
-      return (Number(m.efectivo) || 0) + (Number(m.qr) || 0) - fila.facturado
+      return fila.lados.reduce((suma, lado) => suma + (Number(m[lado]) || 0), 0) - fila.facturado
     },
     claseDiferencia (fila) {
       const dif = this.diferencia(fila)
@@ -512,12 +502,11 @@ export default {
 .filtro :deep(.q-field__control), .filtro :deep(.q-field__marginal) { height: 34px; min-height: 34px; }
 .tabla :deep(th) { font-size: 11px; padding: 2px 6px; }
 .tabla :deep(td) { font-size: 12px; padding: 1px 6px; height: 30px; white-space: nowrap; }
-.celda-monto { width: 104px; }
+.celda-monto { width: 132px; }
 .monto :deep(.q-field__control), .monto :deep(.q-field__marginal) { height: 26px; min-height: 26px; }
 .monto :deep(.q-field__control) { padding: 0 4px; }
 .monto :deep(.q-field__prepend) { padding-right: 2px; }
 .monto :deep(input) { font-size: 12px; padding: 0; }
-.monto.apagado { opacity: 0.5; }
 .fila-ok { background: #e8f5e9; }
 .chip-placa {
   display: inline-block;

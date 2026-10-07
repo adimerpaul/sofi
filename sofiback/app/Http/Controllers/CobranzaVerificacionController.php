@@ -175,15 +175,20 @@ class CobranzaVerificacionController extends Controller
     }
 
     /**
-     * Tilda (o destilda) un comprobante con lo que se recibio en efectivo y
-     * por QR. Si solo llega 'monto' (la verificacion del dia), se reparte
-     * segun como se pago el comprobante.
+     * Tilda (o destilda) un lado del comprobante: 'efectivo' o 'qr', con el
+     * monto recibido de ese lado. Un pago mixto queda verificado cuando estan
+     * los dos lados; los demas, con su lado.
+     *
+     * Sin 'lado' (la verificacion del dia) se tilda el comprobante entero:
+     * con 'monto_efectivo'/'monto_qr', o con 'monto' repartido segun como se
+     * pago, y se marca cada lado que tenga monto.
      */
     public function verificar(Request $request)
     {
         $datos = $request->validate([
             'factura_id' => 'required|integer',
             'verificado' => 'required|boolean',
+            'lado' => 'nullable|in:efectivo,qr',
             'monto' => 'nullable|numeric|min:0|max:9999999999.99',
             'monto_efectivo' => 'nullable|numeric|min:0|max:9999999999.99',
             'monto_qr' => 'nullable|numeric|min:0|max:9999999999.99',
@@ -196,44 +201,81 @@ class CobranzaVerificacionController extends Controller
         }
 
         $usuario = $request->user();
+        $nombre = trim($usuario->Nombre1 . ' ' . $usuario->App1);
         $verificado = $request->boolean('verificado');
-        $conReparto = isset($datos['monto_efectivo']) || isset($datos['monto_qr']);
-        // Un pago mixto se verifica por los dos lados.
-        if ($verificado && $conReparto && $fila['forma_pago'] === 'MIXTO'
-            && (!isset($datos['monto_efectivo']) || !isset($datos['monto_qr']))) {
-            return response()->json(['message' => 'Es un pago mixto: escribí el efectivo y el QR'], 422);
-        }
-        if ($conReparto) {
-            $efectivo = round((float) ($datos['monto_efectivo'] ?? 0), 2);
-            $qr = round((float) ($datos['monto_qr'] ?? 0), 2);
-        } elseif (isset($datos['monto'])) {
-            [$efectivo, $qr] = $this->repartir(round((float) $datos['monto'], 2), $fila);
-        } else {
-            // Sin monto escrito, lo esperado: lo que trajo el camion o el importe.
-            [$efectivo, $qr] = [$fila['esperado_efectivo'], $fila['esperado_qr']];
-        }
-        $monto = round($efectivo + $qr, 2);
+        $lado = $datos['lado'] ?? null;
         $ahora = date('Y-m-d H:i:s');
+        $actual = DB::table('cobranza_verificaciones')->where('factura_id', $fila['factura_id'])->first();
+        $marcarLado = function ($lado, $ok) use ($usuario, $nombre, $ahora) {
+            return [
+                $lado . '_ok' => $ok,
+                $lado . '_user_id' => $ok ? $usuario->CodAut : null,
+                $lado . '_por' => $ok ? $nombre : null,
+                $lado . '_en' => $ok ? $ahora : null,
+            ];
+        };
 
-        DB::table('cobranza_verificaciones')->updateOrInsert(['factura_id' => $fila['factura_id']], [
+        if ($lado) {
+            if (!in_array($lado, $fila['lados'], true)) {
+                return response()->json(['message' => 'Este comprobante no se pagó por ' . ($lado === 'qr' ? 'QR' : 'efectivo')], 422);
+            }
+            // Sin monto escrito, lo que ya habia o lo esperado de ese lado.
+            $monto = isset($datos['monto'])
+                ? round((float) $datos['monto'], 2)
+                : ($fila['verificado_' . $lado] ?? $fila['esperado_' . $lado]);
+            $cambios = ['monto_' . $lado => $monto] + $marcarLado($lado, $verificado);
+        } else {
+            $conReparto = isset($datos['monto_efectivo']) || isset($datos['monto_qr']);
+            if ($conReparto) {
+                $efectivo = round((float) ($datos['monto_efectivo'] ?? 0), 2);
+                $qr = round((float) ($datos['monto_qr'] ?? 0), 2);
+            } elseif (isset($datos['monto'])) {
+                [$efectivo, $qr] = $this->repartir(round((float) $datos['monto'], 2), $fila);
+            } else {
+                // Sin monto escrito, lo esperado: lo que trajo el camion o el importe.
+                [$efectivo, $qr] = [$fila['esperado_efectivo'], $fila['esperado_qr']];
+            }
+            $cambios = ['monto_efectivo' => $efectivo, 'monto_qr' => $qr]
+                + $marcarLado('efectivo', $verificado && ($efectivo > 0 || $qr <= 0 || $fila['forma_pago'] === 'MIXTO'))
+                + $marcarLado('qr', $verificado && ($qr > 0 || $fila['forma_pago'] === 'MIXTO'));
+        }
+
+        // Como queda el comprobante con el cambio.
+        $quedan = function ($campo) use ($cambios, $actual) {
+            return array_key_exists($campo, $cambios) ? $cambios[$campo] : ($actual->$campo ?? null);
+        };
+        $efectivoOk = (bool) $quedan('efectivo_ok');
+        $qrOk = (bool) $quedan('qr_ok');
+        $completo = $fila['forma_pago'] === 'MIXTO' ? $efectivoOk && $qrOk : $efectivoOk || $qrOk;
+        $yaEstaba = $actual && $actual->verificado;
+
+        DB::table('cobranza_verificaciones')->updateOrInsert(['factura_id' => $fila['factura_id']], $cambios + [
             'fecha' => $fila['fecha'],
             'placa' => $fila['placa'] === 'SIN' ? null : $fila['placa'],
             'monto_facturado' => $fila['facturado'],
             'monto_recogido' => (float) $fila['recogido'],
-            'monto_verificado' => $monto,
-            'monto_efectivo' => $efectivo,
-            'monto_qr' => $qr,
-            'verificado' => $verificado,
-            'observacion' => $datos['observacion'] ?? null,
-            'user_id' => $usuario->CodAut,
-            'verificado_por' => trim($usuario->Nombre1 . ' ' . $usuario->App1),
-            'verificado_en' => $verificado ? $ahora : null,
+            'monto_verificado' => round(($efectivoOk ? (float) $quedan('monto_efectivo') : 0) + ($qrOk ? (float) $quedan('monto_qr') : 0), 2),
+            'verificado' => $completo,
+            'observacion' => $datos['observacion'] ?? ($actual->observacion ?? null),
+            // Quien y cuando queda verificado el comprobante entero.
+            'user_id' => $completo && $yaEstaba ? $actual->user_id : $usuario->CodAut,
+            'verificado_por' => $completo && $yaEstaba ? $actual->verificado_por : $nombre,
+            'verificado_en' => $completo ? ($yaEstaba ? $actual->verificado_en : $ahora) : null,
             'updated_at' => $ahora,
-            'created_at' => $ahora,
+            'created_at' => $actual->created_at ?? $ahora,
         ]);
 
+        if ($lado) {
+            $mensaje = ($lado === 'qr' ? 'QR' : 'Efectivo') . ' de #' . $fila['factura_id'] . ($verificado ? ' verificado' : ': verificación quitada');
+            if ($verificado && !$completo) {
+                $mensaje .= ' · falta verificar el ' . ($lado === 'qr' ? 'efectivo' : 'QR');
+            }
+        } else {
+            $mensaje = $verificado ? 'Comprobante #' . $fila['factura_id'] . ' verificado' : 'Verificación quitada';
+        }
+
         return [
-            'message' => $verificado ? 'Comprobante #' . $fila['factura_id'] . ' verificado' : 'Verificación quitada',
+            'message' => $mensaje,
             'fila' => $this->filas(null, null, (int) $fila['factura_id'])->first(),
         ];
     }
@@ -401,51 +443,57 @@ class CobranzaVerificacionController extends Controller
         ];
     }
 
+    /**
+     * Los lados (efectivo y QR) tildados en el rango, cada uno por la fecha y
+     * hora en que se tildo y con quien lo tildo, en ese orden. Opcionalmente
+     * de un solo usuario o de un solo lado.
+     */
+    private function ladosDelRango($inicio, $fin, $usuario, $soloLado = null)
+    {
+        return collect($soloLado ? [$soloLado] : ['efectivo', 'qr'])->flatMap(function ($lado) use ($inicio, $fin, $usuario) {
+            return DB::table('cobranza_verificaciones')
+                ->where($lado . '_ok', 1)
+                ->whereBetween($lado . '_en', [$inicio, $fin])
+                ->when($usuario, function ($q) use ($usuario, $lado) { $q->where($lado . '_user_id', $usuario); })
+                ->get(['id', 'factura_id', $lado . '_user_id as user_id', $lado . '_por as por', $lado . '_en as en', 'monto_' . $lado . ' as monto'])
+                ->map(function ($v) use ($lado) {
+                    $v->lado = $lado;
+                    $v->por = mb_strtoupper(preg_replace('/\s+/', ' ', trim((string) $v->por))) ?: 'SIN USUARIO';
+                    return $v;
+                });
+        })->sortBy(function ($v) { return $v->en . '-' . str_pad($v->id, 10, '0', STR_PAD_LEFT); })->values();
+    }
+
     /** Quienes verificaron en el rango, con cuanto: para elegir el usuario del reporte. */
     public function verificadores(Request $request)
     {
         [$inicio, $fin] = $this->rangoVerificados($request);
 
-        return DB::table('cobranza_verificaciones')
-            ->where('verificado', 1)
-            ->whereBetween('verificado_en', [$inicio, $fin])
-            ->groupBy('user_id')
-            ->orderByRaw('MAX(verificado_por)')
-            ->get([
-                'user_id',
-                DB::raw("UPPER(TRIM(COALESCE(MAX(verificado_por), ''))) as nombre"),
-                DB::raw('COUNT(*) as verificados'),
-                DB::raw('ROUND(SUM(monto_verificado), 2) as total'),
-            ])
-            ->map(function ($v) {
+        return $this->ladosDelRango($inicio, $fin, null)->groupBy(function ($v) { return (int) $v->user_id; })
+            ->map(function ($grupo) {
                 return [
-                    'user_id' => $v->user_id === null ? null : (int) $v->user_id,
-                    'nombre' => $v->nombre !== '' ? preg_replace('/\s+/', ' ', $v->nombre) : 'SIN USUARIO',
-                    'verificados' => (int) $v->verificados,
-                    'total' => (float) $v->total,
+                    'user_id' => $grupo->first()->user_id === null ? null : (int) $grupo->first()->user_id,
+                    'nombre' => $grupo->first()->por,
+                    'verificados' => $grupo->pluck('factura_id')->unique()->count(),
+                    'total' => round($grupo->sum('monto'), 2),
                 ];
-            });
+            })->sortBy('nombre')->values();
     }
 
     /**
-     * Los comprobantes verificados en el rango (por la fecha y hora en que se
-     * tildaron), opcionalmente de un solo usuario, en el orden en que se
-     * verificaron. Cada fila trae ademas quien verifico, el vendedor, la
-     * comanda y como se reparte lo verificado entre QR, efectivo y credito.
+     * Cada lado verificado en el rango (opcionalmente de un usuario o de un
+     * solo lado) con los datos del comprobante, quien lo verifico, el
+     * vendedor, la comanda y cuanto va a QR, efectivo o credito: el efectivo
+     * de una venta a credito cuenta como credito.
      */
-    private function verificadosDelRango($inicio, $fin, $usuario)
+    private function verificadosDelRango($inicio, $fin, $usuario, $soloLado = null)
     {
-        $verificaciones = DB::table('cobranza_verificaciones')
-            ->where('verificado', 1)
-            ->whereBetween('verificado_en', [$inicio, $fin])
-            ->when($usuario, function ($q) use ($usuario) { $q->where('user_id', $usuario); })
-            ->orderBy('verificado_en')->orderBy('id')
-            ->get(['factura_id', 'verificado_por']);
-        if ($verificaciones->isEmpty()) {
+        $lados = $this->ladosDelRango($inicio, $fin, $usuario, $soloLado);
+        if ($lados->isEmpty()) {
             return collect();
         }
 
-        $ids = $verificaciones->pluck('factura_id')->all();
+        $ids = $lados->pluck('factura_id')->unique()->values()->all();
         $filas = $this->filas(null, null, $ids)->keyBy('factura_id');
         $facturas = DB::table('facturas as f')->leftJoin('tbclientes as c', 'c.Cod_Aut', '=', 'f.cliente_id')
             ->whereIn('f.id', $ids)
@@ -456,26 +504,27 @@ class CobranzaVerificacionController extends Controller
                 return [trim($p->ci) => trim(trim((string) $p->Nombre1) . ' ' . trim((string) $p->App1))];
             });
 
-        return $verificaciones->map(function ($v) use ($filas, $facturas, $vendedores) {
+        return $lados->map(function ($v) use ($filas, $facturas, $vendedores) {
             $fila = $filas->get((int) $v->factura_id);
             if (!$fila) {
                 return null;
             }
             $factura = $facturas->get((int) $v->factura_id);
-
-            // Lo verificado de cada lado; una venta a credito va entera a credito.
-            $reparto = $fila['forma_pago'] === 'CRÉDITO'
-                ? ['qr' => 0.0, 'efectivo' => 0.0, 'credito' => round((float) $fila['monto_verificado'], 2)]
-                : ['qr' => (float) $fila['verificado_qr'], 'efectivo' => (float) $fila['verificado_efectivo'], 'credito' => 0.0];
-
+            $monto = round((float) $v->monto, 2);
+            $credito = $v->lado === 'efectivo' && $fila['forma_pago'] === 'CRÉDITO';
             $ci = trim((string) (($factura->vendedor_ci ?? '') ?: ($factura->CiVend ?? '')));
 
-            return $fila + $reparto + [
-                'verificador' => mb_strtoupper(preg_replace('/\s+/', ' ', trim((string) $v->verificado_por))) ?: 'SIN USUARIO',
+            return [
+                'lado' => $v->lado,
+                'monto' => $monto,
+                'qr' => $v->lado === 'qr' ? $monto : 0.0,
+                'efectivo' => $v->lado === 'efectivo' && !$credito ? $monto : 0.0,
+                'credito' => $credito ? $monto : 0.0,
+                'verificador' => $v->por,
                 'vendedor' => $vendedores->get($ci, ''),
                 'comanda' => $fila['pedido'] ? (int) $fila['pedido'] : $fila['factura_id'],
                 'factura' => $fila['tipo_comprobante'] === 'FACTURA' ? 'SI' : 'NO',
-            ];
+            ] + $fila;
         })->filter()->values();
     }
 
@@ -489,7 +538,7 @@ class CobranzaVerificacionController extends Controller
     public function excelQr(Request $request)
     {
         [$inicio, $fin, $usuario] = $this->rangoVerificados($request);
-        $filas = $this->verificadosDelRango($inicio, $fin, $usuario)->filter(function ($f) { return $f['qr'] > 0; })->values();
+        $filas = $this->verificadosDelRango($inicio, $fin, $usuario, 'qr')->filter(function ($f) { return $f['qr'] > 0; })->values();
         $desde = substr($inicio, 0, 10);
         $hasta = substr($fin, 0, 10);
 
@@ -601,7 +650,7 @@ class CobranzaVerificacionController extends Controller
                 $hoja->fromArray([$nombreForma, $deLaForma->count(), round($deLaForma->sum($campo), 2)], null, 'A' . $r, true);
                 $r++;
             }
-            $hoja->fromArray(['TOTAL VERIFICADO:', $grupo->count(), round($grupo->sum('monto_verificado'), 2)], null, 'A' . $r, true);
+            $hoja->fromArray(['TOTAL VERIFICADO:', $grupo->pluck('factura_id')->unique()->count(), round($grupo->sum('monto'), 2)], null, 'A' . $r, true);
             $hoja->getStyle("A7:C{$r}")->applyFromArray($borde);
             $hoja->getStyle("A{$r}:C{$r}")->applyFromArray(['font' => ['bold' => true, 'size' => 13], 'fill' => $gris]);
             $hoja->getStyle("C7:C{$r}")->getNumberFormat()->setFormatCode('#,##0.00');
@@ -627,8 +676,8 @@ class CobranzaVerificacionController extends Controller
             $resumen->getStyle('A4:F4')->applyFromArray($borde + ['font' => ['bold' => true], 'fill' => $gris]);
             $fila = 5;
             foreach ($grupos as $verificador => $grupo) {
-                $resumen->fromArray([$verificador, $grupo->count(), round($grupo->sum('qr'), 2), round($grupo->sum('efectivo'), 2),
-                    round($grupo->sum('credito'), 2), round($grupo->sum('monto_verificado'), 2)], null, 'A' . $fila, true);
+                $resumen->fromArray([$verificador, $grupo->pluck('factura_id')->unique()->count(), round($grupo->sum('qr'), 2), round($grupo->sum('efectivo'), 2),
+                    round($grupo->sum('credito'), 2), round($grupo->sum('monto'), 2)], null, 'A' . $fila, true);
                 $fila++;
             }
             $resumen->setCellValue('A' . $fila, 'TOTAL');
@@ -740,13 +789,14 @@ class CobranzaVerificacionController extends Controller
             } else {
                 $esperado = $forma === 'QR' ? [0.0, $facturado] : [$facturado, 0.0];
             }
-            // Las verificaciones de antes del reparto solo tienen el total.
-            $reparto = null;
-            if ($v) {
-                $reparto = $v->monto_efectivo !== null
-                    ? [(float) $v->monto_efectivo, (float) $v->monto_qr]
-                    : $this->repartir($montoVerificado, ['forma_pago' => $forma, 'esperado_qr' => $esperado[1]]);
-            }
+            // Lo escrito por cobranzas de cada lado (null si todavia nada).
+            $reparto = [
+                $v && $v->monto_efectivo !== null ? (float) $v->monto_efectivo : null,
+                $v && $v->monto_qr !== null ? (float) $v->monto_qr : null,
+            ];
+            // Que lado se verifica: el mixto los dos, el QR solo QR y lo demas
+            // (efectivo y credito) solo efectivo.
+            $lados = $forma === 'MIXTO' ? ['efectivo', 'qr'] : ($forma === 'QR' ? ['qr'] : ['efectivo']);
 
             return [
                 'factura_id' => (int) $f->id,
@@ -771,8 +821,15 @@ class CobranzaVerificacionController extends Controller
                 'esperado_qr' => $esperado[1],
                 'verificado' => $verificado,
                 'monto_verificado' => $montoVerificado,
-                'verificado_efectivo' => $reparto ? $reparto[0] : null,
-                'verificado_qr' => $reparto ? $reparto[1] : null,
+                'verificado_efectivo' => $reparto[0],
+                'verificado_qr' => $reparto[1],
+                'lados' => $lados,
+                'efectivo_ok' => $v ? (bool) $v->efectivo_ok : false,
+                'efectivo_por' => $v && $v->efectivo_ok ? $v->efectivo_por : null,
+                'efectivo_en' => $v && $v->efectivo_ok ? substr((string) $v->efectivo_en, 0, 16) : null,
+                'qr_ok' => $v ? (bool) $v->qr_ok : false,
+                'qr_por' => $v && $v->qr_ok ? $v->qr_por : null,
+                'qr_en' => $v && $v->qr_ok ? substr((string) $v->qr_en, 0, 16) : null,
                 'diferencia' => $verificado ? round($montoVerificado - $facturado, 2) : null,
                 'observacion' => $v->observacion ?? null,
                 'verificado_por' => $verificado ? $v->verificado_por : null,
