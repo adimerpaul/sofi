@@ -903,7 +903,7 @@ class FacturacionController extends Controller
                 'p.imagen',
                 'p.Precio as precio',
                 // Lo usa la pantalla de compras para proponer el costo.
-                'p.Precio_Costo as costo',
+                'p.precio_compra as costo',
                 'p.Precio3', 'p.Precio4', 'p.Precio5', 'p.Precio6', 'p.Precio7', 'p.Precio8',
                 'p.Precio9', 'p.Precio10', 'p.Precio11', 'p.Precio12', 'p.Precio13',
                 // El alias no puede llamarse "stock": tbproductos ya tiene una

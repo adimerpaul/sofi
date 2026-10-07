@@ -122,19 +122,31 @@
               </q-item-section>
 
               <q-item-section>
-                <div class="carrito-nombre ellipsis">{{ item.nombre }}</div>
+                <div class="row items-start no-wrap">
+                  <div class="carrito-nombre col">{{ item.nombre }}</div>
+                  <q-badge
+                    v-if="margen(item) !== null" class="col-auto q-ml-xs"
+                    :color="colorMargen(margen(item))"
+                    :label="margen(item).toFixed(1) + '%'"
+                  >
+                    <q-tooltip>
+                      Ganancia sobre el costo con precio de venta Bs {{ money(precioVenta(item)) }}
+                    </q-tooltip>
+                  </q-badge>
+                </div>
 
                 <div class="row q-col-gutter-xs items-center no-wrap">
                   <q-input
                     v-model.number="item.cantidad"
                     dense outlined type="number" class="col"
                     :label="item.unidad === 'KG' ? 'Kilos' : 'Cant.'"
-                    :step="paso(item)" :min="paso(item)"
-                    @update:model-value="normalizar(item)"
+                    step="any" min="0"
+                    @update:model-value="sincronizarTotal(item)"
+                    @blur="normalizar(item)"
                   />
                   <q-input
                     v-model.number="item.precio"
-                    dense outlined type="number" class="col" label="Costo" step="0.01" min="0"
+                    dense outlined type="number" class="col" label="Costo" step="any" min="0"
                     @update:model-value="sincronizarTotal(item)"
                   />
                   <!-- El total tambien se escribe: cuando la factura del
@@ -142,13 +154,14 @@
                        se teclea aqui y el costo sale por division. -->
                   <q-input
                     v-model.number="item.total"
-                    dense outlined type="number" class="col" label="Total" step="0.01" min="0"
+                    dense outlined type="number" class="col" label="Total" step="any" min="0"
                     @blur="aplicarTotal(item)"
                     @keyup.enter="aplicarTotal(item)"
                   />
                   <q-input
                     v-model.number="item.precio_venta"
-                    dense outlined type="number" class="col" label="P. venta" step="0.01" min="0"
+                    dense outlined type="number" class="col" label="P. venta" step="any" min="0"
+                    :placeholder="money(item.precio_actual)"
                   />
                   <q-input
                     v-model.trim="item.lote" dense outlined class="col" label="Lote" placeholder="Opcional"
@@ -180,7 +193,7 @@
               <span>Descuento</span><q-space/>
               <q-input
                 v-model.number="descuento" dense borderless input-class="text-right"
-                type="number" min="0" :max="subtotal" step="0.01" style="max-width: 90px"
+                type="number" min="0" :max="subtotal" step="any" style="max-width: 90px"
               />
             </div>
             <q-separator class="q-my-xs"/>
@@ -206,7 +219,7 @@
       <q-card class="dialogo-linea" style="width: 380px; max-width: 94vw">
         <q-form @submit.prevent="agregarItem">
           <q-card-section class="bg-primary text-white q-py-xs">
-            <div class="text-weight-bold dialogo-titulo ellipsis">{{ elegido.producto }}</div>
+            <div class="text-weight-bold dialogo-titulo">{{ elegido.producto }}</div>
             <div class="dialogo-sub">
               {{ elegido.cod_prod }} · Stock {{ cantidad(elegido.stock, elegido.unidad) }} {{ elegido.unidad }}
             </div>
@@ -219,11 +232,11 @@
               v-model.number="linea.cantidad"
               outlined dense autofocus type="number" class="col-6"
               :label="elegido.unidad === 'KG' ? 'Kilos' : 'Cantidad'"
-              :step="paso(elegido)" :min="paso(elegido)"
+              step="any" min="0"
               @focus="$event.target.select()"
             />
             <q-input
-              v-model.number="linea.precio" outlined dense type="number" step="0.01" min="0"
+              v-model.number="linea.precio" outlined dense type="number" step="any" min="0"
               class="col-6" label="Precio unitario" prefix="Bs"
             />
 
@@ -309,6 +322,7 @@
               <th class="text-right">Cant.</th>
               <th class="text-right">Costo</th>
               <th class="text-right">P. venta</th>
+              <th class="text-right">Ganancia</th>
               <th class="text-left">Lote</th>
               <th class="text-left">Vence</th>
               <th class="text-right">Total</th>
@@ -322,6 +336,12 @@
               <!-- Sin precio de venta el del producto no se toca. -->
               <td class="text-right">
                 <span v-if="item.precio_venta">{{ money(item.precio_venta) }}</span>
+                <span v-else class="text-grey-6">—</span>
+              </td>
+              <td class="text-right">
+                <span v-if="margen(item) !== null" :class="'text-' + colorMargen(margen(item))">
+                  {{ margen(item).toFixed(1) }}%
+                </span>
                 <span v-else class="text-grey-6">—</span>
               </td>
               <td class="text-left">{{ item.lote || '—' }}</td>
@@ -439,8 +459,30 @@ export default {
     paso (p) {
       return p && p.unidad === 'KG' ? 0.001 : 1
     },
+    // Las unidades tambien pueden ir con decimales (media caja, etc.):
+    // se muestran sin ceros de relleno.
     cantidad (v, unidad) {
-      return Number(v || 0).toFixed(unidad === 'KG' ? 3 : 0)
+      const n = Number(v || 0)
+      return unidad === 'KG' ? n.toFixed(3) : String(Math.round(n * 1000) / 1000)
+    },
+    // Sin precio de venta escrito, el margen se calcula con el actual.
+    precioVenta (item) {
+      return Number(item.precio_venta) || Number(item.precio_actual) || 0
+    },
+    // Ganancia sobre el costo, en %. null si no hay con qué calcularla.
+    margen (item) {
+      const costo = Number(item.precio)
+      const venta = this.precioVenta(item)
+      if (!(costo > 0) || !(venta > 0)) {
+        return null
+      }
+      return (venta - costo) / costo * 100
+    },
+    colorMargen (m) {
+      if (m < 0) {
+        return 'negative'
+      }
+      return m < 10 ? 'orange-8' : 'positive'
     },
     // El input date da 'YYYY-MM-DD'; en la tabla se lee mejor al revés.
     fechaCorta (v) {
@@ -549,9 +591,8 @@ export default {
       this.dialogProducto = true
     },
     normalizar (item) {
-      const minimo = this.paso(item)
-      if (!item.cantidad || item.cantidad < minimo) {
-        item.cantidad = minimo
+      if (!(Number(item.cantidad) > 0)) {
+        item.cantidad = this.paso(item)
       }
       this.sincronizarTotal(item)
     },
@@ -585,6 +626,8 @@ export default {
         nombre: this.elegido.producto,
         unidad: this.elegido.unidad,
         imagen: this.elegido.imagen,
+        // Precio de venta vigente: base del % de ganancia si no se cambia.
+        precio_actual: Number(this.elegido.precio) || 0,
         cantidad: cant,
         precio,
         total: Math.round(cant * precio * 100) / 100,
@@ -691,11 +734,8 @@ export default {
 .producto-nombre {
   font-size: 10px;
   line-height: 1.15;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
   min-height: 2.3em;
+  word-break: break-word;
 }
 .producto-codigo {
   font-size: 9px;

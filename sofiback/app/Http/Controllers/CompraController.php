@@ -202,16 +202,22 @@ class CompraController extends Controller
 
             $this->moverStock($lineas, $compra->id, $ci, $ahora, 'INGRESO');
 
-            // El precio de venta solo se toca si lo mandaron: comprar mas caro
-            // no significa que se quiera revender mas caro automaticamente.
+            // El precio de compra del producto queda con el de la ultima compra.
+            // El de venta solo se toca si lo mandaron: comprar mas caro no
+            // significa que se quiera revender mas caro automaticamente.
+            // Precio_Costo no se toca: pese al nombre es la lista "2do precio".
             foreach ($lineas as $linea) {
+                $cambios = [];
+                if ($linea['precio'] > 0) {
+                    $cambios['precio_compra'] = $linea['precio'];
+                }
                 if ($linea['precio_venta'] !== null && $linea['precio_venta'] > 0) {
+                    $cambios['Precio'] = $linea['precio_venta'];
+                }
+                if ($cambios) {
                     DB::table('tbproductos')
                         ->whereRaw('TRIM(cod_prod) = ?', [$linea['cod_prod']])
-                        ->update([
-                            'Precio'       => $linea['precio_venta'],
-                            'Precio_Costo' => $linea['precio'],
-                        ]);
+                        ->update($cambios);
                 }
             }
 
