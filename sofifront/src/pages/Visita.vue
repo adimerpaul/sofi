@@ -1,13 +1,14 @@
 <template>
   <div style="height: 350px; width: 100%;">
+    <!-- Igual que el mapa de Avance: v-model:zoom (con v-model a secas el zoom
+         podia quedar sin valor y Leaflet tiraba "infinite number of tiles"),
+         Leaflet global y mapa de Google. -->
     <l-map
       @ready="onReady"
       @locationfound="onLocationFound"
-      v-model="zoom"
-      :zoom="zoom"
+      v-model:zoom="zoom"
       :center="center"
-      @move="log('move')"
-
+      :use-global-leaflet="true"
     >
       <div class="q-pa-xs text-caption text-bold"
            style="position: absolute; right: 8px; top: 8px; z-index: 999; background: white; border-radius: 6px;">
@@ -23,7 +24,8 @@
       </div>
       <!--      @click="ubicacion"-->
       <l-tile-layer
-        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+        url="https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}" :subdomains="['mt0', 'mt1', 'mt2', 'mt3']"
+        :max-zoom="20" attribution="Google"
       ></l-tile-layer>
       <l-polygon
         v-for="zona in zonasFondo"
@@ -783,6 +785,9 @@
   </div>
 </template>
 <script>
+import { markRaw } from 'vue'
+// Leaflet global, como en Avance: el mapa usa :use-global-leaflet.
+import 'leaflet'
 import {
   LMap,
   LIcon,
@@ -836,6 +841,7 @@ export default {
       center: [-17.970371, -67.112303],
       filter: '',
       zoom: 16,
+      mapa: null,
       iconWidth: 25,
       iconHeight: 40,
       zonasFondo: [],
@@ -1527,8 +1533,8 @@ export default {
       this.loading = false
     },
     clickclientes(c) {
-      console.log(c)
-      this.center = [c.Latitud, c.longitud]
+      // Un cliente con coordenadas mal cargadas no mueve el mapa.
+      if (this.coordValida(c.Latitud, c.longitud)) this.center = [Number(c.Latitud), Number(c.longitud)]
     },
     filterFn(val, update) {
       const texto = this.normalizar(val).trim()
@@ -1567,11 +1573,17 @@ export default {
       return String(this.$url || '').replace(/api\/?$/, '') + ruta
     },
     onReady(mapObject) {
-      mapObject.locate();
+      this.mapa = markRaw(mapObject)
+      // El contenedor puede no tener su tamaño final al montar: sin esto
+      // Leaflet calcula las teselas con un mapa de 0 px.
+      setTimeout(() => {
+        mapObject.invalidateSize()
+        mapObject.locate()
+      }, 200)
     },
     onLocationFound(location) {
-      // console.log(location)
-      this.center = [location.latlng.lat, location.latlng.lng]
+      const { lat, lng } = location.latlng || {}
+      if (this.coordValida(lat, lng)) this.center = [lat, lng]
     },
     log(a) {
       console.log(a);
