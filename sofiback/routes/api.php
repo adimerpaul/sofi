@@ -162,6 +162,7 @@ Route::group(['middleware'=>'auth:sanctum'],function (){
     Route::get('/cobranzas/verificacion/verificadores',[\App\Http\Controllers\CobranzaVerificacionController::class,'verificadores']);
     Route::get('/cobranzas/verificacion/excel-qr',[\App\Http\Controllers\CobranzaVerificacionController::class,'excelQr']);
     Route::get('/cobranzas/verificacion/excel-total',[\App\Http\Controllers\CobranzaVerificacionController::class,'excelTotal']);
+    Route::get('/cobranzas/verificacion/excel-detalle',[\App\Http\Controllers\CobranzaVerificacionController::class,'excelDetalle']);
     Route::get('/creditos/clientes',[\App\Http\Controllers\CreditoController::class,'clientes']);
     Route::get('/vendedor/creditos/clientes',[\App\Http\Controllers\CreditoController::class,'clientesVendedor']);
     Route::get('/vendedor/creditos/clientes/{cliente}',[\App\Http\Controllers\CreditoController::class,'deudasVendedor'])->where('cliente', '[0-9]+');

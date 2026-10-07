@@ -27,9 +27,13 @@
                  :loading="descargandoReporte === 'qr'" :disable="descargandoReporte !== null" @click="descargarReporte('qr')">
             <q-tooltip>Solo lo verificado por QR, con el formato de cobros QR de créditos</q-tooltip>
           </q-btn>
-          <q-btn unelevated dense no-caps color="indigo-7" icon="point_of_sale" label="Total verificados"
+          <q-btn unelevated dense no-caps color="indigo-7" icon="point_of_sale" label="Total efectivo verificado"
                  :loading="descargandoReporte === 'total'" :disable="descargandoReporte !== null" @click="descargarReporte('total')">
-            <q-tooltip>Total de lo verificado por usuario (QR, efectivo y crédito), con el formato del cierre de caja</q-tooltip>
+            <q-tooltip>Total del efectivo verificado por usuario, con el formato del cierre de caja</q-tooltip>
+          </q-btn>
+          <q-btn unelevated dense no-caps color="blue-grey-7" icon="list_alt" label="Detalle efectivo verificado"
+                 :loading="descargandoReporte === 'detalle'" :disable="descargandoReporte !== null" @click="descargarReporte('detalle')">
+            <q-tooltip>Cada comprobante verificado en efectivo con su cliente y monto, para cuadrar el total</q-tooltip>
           </q-btn>
         </div>
       </q-btn-dropdown>
@@ -441,9 +445,11 @@ export default {
         const url = URL.createObjectURL(data)
         const a = document.createElement('a')
         a.href = url
-        a.download = tipo === 'qr'
-          ? 'VERIFICADOS QR ' + desde + (hasta !== desde ? ' AL ' + hasta : '') + '.xlsx'
-          : 'CIERRE VERIFICACIONES ' + desde + '.xlsx'
+        a.download = {
+          qr: 'VERIFICADOS QR ' + desde + (hasta !== desde ? ' AL ' + hasta : ''),
+          total: 'CIERRE EFECTIVO ' + desde,
+          detalle: 'DETALLE EFECTIVO ' + desde
+        }[tipo] + '.xlsx'
         a.click()
         URL.revokeObjectURL(url)
       } catch (e) {

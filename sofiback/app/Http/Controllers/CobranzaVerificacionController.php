@@ -606,22 +606,39 @@ class CobranzaVerificacionController extends Controller
     }
 
     /**
-     * Total de lo verificado por cada usuario en el rango, con el formato del
-     * cierre de caja de creditos: una hoja por usuario con cuantos comprobantes
-     * verifico y cuanto, separado en QR, efectivo y credito, y su firma. Con
-     * varios usuarios, una hoja de resumen al principio.
+     * Total del efectivo verificado por cada usuario en el rango, con el
+     * formato del cierre de caja de creditos: una hoja por usuario con cuantos
+     * comprobantes verifico en efectivo, el total y su firma. El QR y el
+     * credito no entran.
      */
     public function excelTotal(Request $request)
     {
+        return $this->cierreEfectivo($request, false);
+    }
+
+    /**
+     * Lo mismo que el total, pero con el detalle: cada comprobante verificado
+     * en efectivo con su cliente, el importe, el efectivo verificado y la
+     * diferencia, para cuadrar el total.
+     */
+    public function excelDetalle(Request $request)
+    {
+        return $this->cierreEfectivo($request, true);
+    }
+
+    private function cierreEfectivo(Request $request, $detalle)
+    {
         [$inicio, $fin, $usuario] = $this->rangoVerificados($request);
-        $filas = $this->verificadosDelRango($inicio, $fin, $usuario);
+        // Solo el lado efectivo; el efectivo de una venta a credito no es plata.
+        $filas = $this->verificadosDelRango($inicio, $fin, $usuario, 'efectivo')
+            ->filter(function ($f) { return $f['credito'] <= 0; })->values();
 
         $libro = new Spreadsheet();
         $libro->removeSheetByIndex(0);
         $borde = ['borders' => ['allBorders' => ['borderStyle' => Border::BORDER_THIN]]];
         $gris = ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'D9D9D9']];
         $rango = date('d/m/Y H:i', strtotime($inicio)) . ' a ' . date('d/m/Y H:i', strtotime($fin));
-        $formas = ['qr' => 'QR', 'efectivo' => 'EFECTIVO', 'credito' => 'CRÉDITO'];
+        $titulo1 = $detalle ? 'DETALLE DE EFECTIVO VERIFICADO' : 'CIERRE DE EFECTIVO VERIFICADO';
 
         $grupos = $filas->isEmpty() ? collect(['SIN VERIFICACIONES' => collect()]) : $filas->groupBy('verificador')->sortKeys();
         $titulos = [];
@@ -635,65 +652,96 @@ class CobranzaVerificacionController extends Controller
             $hoja = $libro->createSheet();
             $hoja->setTitle($titulo);
 
-            $hoja->setCellValue('A1', 'CIERRE DE VERIFICACIONES');
-            $hoja->mergeCells('A1:C1');
+            $ultima = $detalle ? 'H' : 'B';
+            $hoja->setCellValue('A1', $titulo1);
+            $hoja->mergeCells("A1:{$ultima}1");
             $hoja->getStyle('A1')->getFont()->setBold(true)->setSize(15);
             $hoja->getStyle('A1')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
             $hoja->fromArray([['Fecha:', $rango], ['Verificó:', $verificador]], null, 'A3');
             $hoja->getStyle('A3:A4')->getFont()->setBold(true);
 
-            $hoja->fromArray(['Forma de pago', 'Comprobantes', 'Monto'], null, 'A6');
-            $hoja->getStyle('A6:C6')->applyFromArray($borde + ['font' => ['bold' => true], 'fill' => $gris]);
-            $r = 7;
-            foreach ($formas as $campo => $nombreForma) {
-                $deLaForma = $grupo->filter(function ($f) use ($campo) { return $f[$campo] > 0; });
-                $hoja->fromArray([$nombreForma, $deLaForma->count(), round($deLaForma->sum($campo), 2)], null, 'A' . $r, true);
-                $r++;
+            $total = round($grupo->sum('efectivo'), 2);
+            if ($detalle) {
+                $hoja->fromArray(['N°', 'Verificado el', 'Comprobante', 'Comanda', 'Cliente', 'Importe', 'Efectivo', 'Diferencia'], null, 'A6');
+                $hoja->getStyle('A6:H6')->applyFromArray($borde + ['font' => ['bold' => true], 'fill' => $gris]);
+                $r = 7;
+                foreach ($grupo as $i => $f) {
+                    // En un pago mixto el efectivo es solo una parte del importe.
+                    $importe = $f['forma_pago'] === 'MIXTO' ? (float) $f['esperado_efectivo'] : $f['facturado'];
+                    $hoja->fromArray([
+                        $i + 1,
+                        $f['efectivo_en'] ? date('d/m/Y H:i', strtotime($f['efectivo_en'])) : '',
+                        ($f['tipo_comprobante'] === 'FACTURA' ? 'Factura #' : 'Venta #') . $f['factura_id'] . ($f['forma_pago'] === 'MIXTO' ? ' (mixto)' : ''),
+                        $f['comanda'],
+                        $f['cliente'],
+                        $importe,
+                        $f['efectivo'],
+                        round($f['efectivo'] - $importe, 2),
+                    ], null, 'A' . $r, true);
+                    if (abs($f['efectivo'] - $importe) > 0.009) {
+                        $hoja->getStyle('H' . $r)->getFont()->setBold(true)->getColor()->setRGB('C62828');
+                    }
+                    $r++;
+                }
+                $hoja->setCellValue('E' . $r, 'TOTAL EFECTIVO');
+                $hoja->getStyle('E' . $r)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
+                foreach (['F', 'G', 'H'] as $col) {
+                    $hoja->setCellValue($col . $r, $r > 7 ? "=SUM({$col}7:{$col}" . ($r - 1) . ')' : 0);
+                }
+                $hoja->getStyle("A7:H{$r}")->applyFromArray($borde);
+                $hoja->getStyle("A{$r}:H{$r}")->applyFromArray(['font' => ['bold' => true], 'fill' => $gris]);
+                $hoja->getStyle("F7:H{$r}")->getNumberFormat()->setFormatCode('#,##0.00');
+                foreach (['A' => 5, 'B' => 16, 'C' => 20, 'D' => 10, 'E' => 40, 'F' => 12, 'G' => 12, 'H' => 12] as $col => $ancho) {
+                    $hoja->getColumnDimension($col)->setWidth($ancho);
+                }
+                $hoja->freezePane('A7');
+                $hoja->getPageSetup()->setOrientation(PageSetup::ORIENTATION_LANDSCAPE)
+                    ->setPaperSize(PageSetup::PAPERSIZE_LETTER)->setFitToWidth(1)->setFitToHeight(0);
+            } else {
+                // Solo el total, como el cierre de caja.
+                $hoja->fromArray([['Comprobantes:', $grupo->count()], ['TOTAL EFECTIVO:', $total]], null, 'A6', true);
+                $hoja->getStyle('B6')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_LEFT);
+                $hoja->getStyle('A7:B7')->applyFromArray($borde + ['font' => ['bold' => true, 'size' => 13], 'fill' => $gris]);
+                $hoja->getStyle('B7')->getNumberFormat()->setFormatCode('#,##0.00');
+                $hoja->getStyle('B7')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_LEFT);
+                $r = 7;
+                $hoja->getColumnDimension('A')->setWidth(22);
+                $hoja->getColumnDimension('B')->setWidth(40);
+                $hoja->getPageSetup()->setOrientation(PageSetup::ORIENTATION_PORTRAIT)->setPaperSize(PageSetup::PAPERSIZE_LETTER);
             }
-            $hoja->fromArray(['TOTAL VERIFICADO:', $grupo->pluck('factura_id')->unique()->count(), round($grupo->sum('monto'), 2)], null, 'A' . $r, true);
-            $hoja->getStyle("A7:C{$r}")->applyFromArray($borde);
-            $hoja->getStyle("A{$r}:C{$r}")->applyFromArray(['font' => ['bold' => true, 'size' => 13], 'fill' => $gris]);
-            $hoja->getStyle("C7:C{$r}")->getNumberFormat()->setFormatCode('#,##0.00');
-            $hoja->getStyle("B7:B{$r}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
 
             $hoja->setCellValue('A' . ($r + 4), '________________________');
             $hoja->setCellValue('A' . ($r + 5), 'Firma ' . $verificador);
-
-            foreach (['A' => 24, 'B' => 15, 'C' => 18] as $col => $ancho) {
-                $hoja->getColumnDimension($col)->setWidth($ancho);
-            }
-            $hoja->getPageSetup()->setOrientation(PageSetup::ORIENTATION_PORTRAIT)->setPaperSize(PageSetup::PAPERSIZE_LETTER);
         }
 
         // Con varios usuarios, una hoja de resumen al principio.
         if ($grupos->count() > 1) {
             $resumen = $libro->createSheet(0);
             $resumen->setTitle('Resumen');
-            $resumen->setCellValue('A1', 'CIERRE DE VERIFICACIONES');
+            $resumen->setCellValue('A1', $titulo1);
             $resumen->getStyle('A1')->getFont()->setBold(true)->setSize(15);
             $resumen->setCellValue('A2', $rango);
-            $resumen->fromArray(['Verificó', 'Comprobantes', 'QR', 'Efectivo', 'Crédito', 'Total'], null, 'A4');
-            $resumen->getStyle('A4:F4')->applyFromArray($borde + ['font' => ['bold' => true], 'fill' => $gris]);
+            $resumen->fromArray(['Verificó', 'Comprobantes', 'Efectivo'], null, 'A4');
+            $resumen->getStyle('A4:C4')->applyFromArray($borde + ['font' => ['bold' => true], 'fill' => $gris]);
             $fila = 5;
             foreach ($grupos as $verificador => $grupo) {
-                $resumen->fromArray([$verificador, $grupo->pluck('factura_id')->unique()->count(), round($grupo->sum('qr'), 2), round($grupo->sum('efectivo'), 2),
-                    round($grupo->sum('credito'), 2), round($grupo->sum('monto'), 2)], null, 'A' . $fila, true);
+                $resumen->fromArray([$verificador, $grupo->count(), round($grupo->sum('efectivo'), 2)], null, 'A' . $fila, true);
                 $fila++;
             }
             $resumen->setCellValue('A' . $fila, 'TOTAL');
-            foreach (['B', 'C', 'D', 'E', 'F'] as $col) {
+            foreach (['B', 'C'] as $col) {
                 $resumen->setCellValue($col . $fila, "=SUM({$col}5:{$col}" . ($fila - 1) . ')');
             }
-            $resumen->getStyle("A5:F{$fila}")->applyFromArray($borde);
-            $resumen->getStyle("A{$fila}:F{$fila}")->applyFromArray(['font' => ['bold' => true], 'fill' => $gris]);
-            $resumen->getStyle("C5:F{$fila}")->getNumberFormat()->setFormatCode('#,##0.00');
-            foreach (['A' => 34, 'B' => 14, 'C' => 13, 'D' => 13, 'E' => 13, 'F' => 13] as $col => $ancho) {
+            $resumen->getStyle("A5:C{$fila}")->applyFromArray($borde);
+            $resumen->getStyle("A{$fila}:C{$fila}")->applyFromArray(['font' => ['bold' => true], 'fill' => $gris]);
+            $resumen->getStyle("C5:C{$fila}")->getNumberFormat()->setFormatCode('#,##0.00');
+            foreach (['A' => 34, 'B' => 14, 'C' => 14] as $col => $ancho) {
                 $resumen->getColumnDimension($col)->setWidth($ancho);
             }
         }
         $libro->setActiveSheetIndex(0);
 
-        return $this->descargar($libro, 'CIERRE VERIFICACIONES ' . substr($inicio, 0, 10) . '.xlsx');
+        return $this->descargar($libro, ($detalle ? 'DETALLE EFECTIVO ' : 'CIERRE EFECTIVO ') . substr($inicio, 0, 10) . '.xlsx');
     }
 
     private function descargar(Spreadsheet $libro, $nombre)
