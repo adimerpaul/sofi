@@ -174,13 +174,19 @@ class CobranzaVerificacionController extends Controller
             ]);
     }
 
-    /** Tilda (o destilda) un comprobante con el monto que se recibio. */
+    /**
+     * Tilda (o destilda) un comprobante con lo que se recibio en efectivo y
+     * por QR. Si solo llega 'monto' (la verificacion del dia), se reparte
+     * segun como se pago el comprobante.
+     */
     public function verificar(Request $request)
     {
         $datos = $request->validate([
             'factura_id' => 'required|integer',
             'verificado' => 'required|boolean',
             'monto' => 'nullable|numeric|min:0|max:9999999999.99',
+            'monto_efectivo' => 'nullable|numeric|min:0|max:9999999999.99',
+            'monto_qr' => 'nullable|numeric|min:0|max:9999999999.99',
             'observacion' => 'nullable|string|max:190',
         ]);
 
@@ -191,10 +197,22 @@ class CobranzaVerificacionController extends Controller
 
         $usuario = $request->user();
         $verificado = $request->boolean('verificado');
-        // Sin monto escrito se toma lo que trajo el camion; si no trajo nada, el importe.
-        $monto = isset($datos['monto'])
-            ? round((float) $datos['monto'], 2)
-            : ($fila['recogido'] !== null ? $fila['recogido'] : $fila['facturado']);
+        $conReparto = isset($datos['monto_efectivo']) || isset($datos['monto_qr']);
+        // Un pago mixto se verifica por los dos lados.
+        if ($verificado && $conReparto && $fila['forma_pago'] === 'MIXTO'
+            && (!isset($datos['monto_efectivo']) || !isset($datos['monto_qr']))) {
+            return response()->json(['message' => 'Es un pago mixto: escribí el efectivo y el QR'], 422);
+        }
+        if ($conReparto) {
+            $efectivo = round((float) ($datos['monto_efectivo'] ?? 0), 2);
+            $qr = round((float) ($datos['monto_qr'] ?? 0), 2);
+        } elseif (isset($datos['monto'])) {
+            [$efectivo, $qr] = $this->repartir(round((float) $datos['monto'], 2), $fila);
+        } else {
+            // Sin monto escrito, lo esperado: lo que trajo el camion o el importe.
+            [$efectivo, $qr] = [$fila['esperado_efectivo'], $fila['esperado_qr']];
+        }
+        $monto = round($efectivo + $qr, 2);
         $ahora = date('Y-m-d H:i:s');
 
         DB::table('cobranza_verificaciones')->updateOrInsert(['factura_id' => $fila['factura_id']], [
@@ -203,6 +221,8 @@ class CobranzaVerificacionController extends Controller
             'monto_facturado' => $fila['facturado'],
             'monto_recogido' => (float) $fila['recogido'],
             'monto_verificado' => $monto,
+            'monto_efectivo' => $efectivo,
+            'monto_qr' => $qr,
             'verificado' => $verificado,
             'observacion' => $datos['observacion'] ?? null,
             'user_id' => $usuario->CodAut,
@@ -429,48 +449,24 @@ class CobranzaVerificacionController extends Controller
         $filas = $this->filas(null, null, $ids)->keyBy('factura_id');
         $facturas = DB::table('facturas as f')->leftJoin('tbclientes as c', 'c.Cod_Aut', '=', 'f.cliente_id')
             ->whereIn('f.id', $ids)
-            ->get(['f.id', 'f.vendedor_ci', 'f.monto_efectivo', 'f.monto_qr', 'c.CiVend'])->keyBy('id');
-        // La ultima entrega registrada es la que vale, igual que en filas().
-        $entregas = DB::table('entregas')->whereIn('factura_id', $ids)->orderBy('id')
-            ->get(['factura_id', 'estado', 'tipago', 'monto_efectivo', 'monto_qr'])->keyBy('factura_id');
+            ->get(['f.id', 'f.vendedor_ci', 'c.CiVend'])->keyBy('id');
         $vendedores = DB::table('personal')->whereRaw("TRIM(COALESCE(ci, '')) <> ''")
             ->get(['ci', 'Nombre1', 'App1'])
             ->mapWithKeys(function ($p) {
                 return [trim($p->ci) => trim(trim((string) $p->Nombre1) . ' ' . trim((string) $p->App1))];
             });
 
-        return $verificaciones->map(function ($v) use ($filas, $facturas, $entregas, $vendedores) {
+        return $verificaciones->map(function ($v) use ($filas, $facturas, $vendedores) {
             $fila = $filas->get((int) $v->factura_id);
             if (!$fila) {
                 return null;
             }
             $factura = $facturas->get((int) $v->factura_id);
-            $entrega = $entregas->get((int) $v->factura_id);
-            $monto = round((float) $fila['monto_verificado'], 2);
 
-            // Como se pago: lo que marco el camion si ya cobro; si no, lo
-            // que dice el comprobante.
-            if ($entrega && in_array($entrega->estado, RecojoDelDia::ESTADOS_COBRADOS, true)) {
-                $forma = strtoupper((string) $entrega->tipago);
-                $qr = (float) $entrega->monto_qr;
-                $efectivo = (float) $entrega->monto_efectivo;
-            } else {
-                $forma = strtoupper((string) $fila['tipo_pago']);
-                $qr = (float) ($factura->monto_qr ?? 0);
-                $efectivo = (float) ($factura->monto_efectivo ?? 0);
-            }
-            $reparto = ['qr' => 0.0, 'efectivo' => 0.0, 'credito' => 0.0];
-            if (strpos($forma, 'DITO') !== false) {
-                $reparto['credito'] = $monto;
-            } elseif ($qr > 0 && $efectivo > 0) {
-                // Pago mixto: la parte QR es la del pago y el resto, efectivo.
-                $reparto['qr'] = min(round($qr, 2), $monto);
-                $reparto['efectivo'] = round($monto - $reparto['qr'], 2);
-            } elseif ($qr > 0 || strpos($forma, 'QR') !== false) {
-                $reparto['qr'] = $monto;
-            } else {
-                $reparto['efectivo'] = $monto;
-            }
+            // Lo verificado de cada lado; una venta a credito va entera a credito.
+            $reparto = $fila['forma_pago'] === 'CRÉDITO'
+                ? ['qr' => 0.0, 'efectivo' => 0.0, 'credito' => round((float) $fila['monto_verificado'], 2)]
+                : ['qr' => (float) $fila['verificado_qr'], 'efectivo' => (float) $fila['verificado_efectivo'], 'credito' => 0.0];
 
             $ci = trim((string) (($factura->vendedor_ci ?? '') ?: ($factura->CiVend ?? '')));
 
@@ -684,6 +680,7 @@ class CobranzaVerificacionController extends Controller
             ->orderBy('f.hora')
             ->get([
                 'f.id', 'f.cliente_id', 'f.fecha', 'f.hora', 'f.tipo_comprobante', 'f.tipo_pago', 'f.total', 'f.pedido_nro', 'f.pedido_tipo',
+                'f.monto_efectivo', 'f.monto_qr',
                 DB::raw("TRIM(COALESCE(c.Nombres, f.nombre, '')) as cliente"),
                 DB::raw("TRIM(COALESCE(f.nit, c.Id, '')) as nit"),
             ]);
@@ -719,14 +716,37 @@ class CobranzaVerificacionController extends Controller
             // Lo que trajo el camion: efectivo y QR de la entrega cobrada. A
             // credito o sin entregar no trajo plata; sin entrega todavia, no se sabe.
             $recogido = null;
+            $cobrada = $entrega && in_array($entrega->estado, RecojoDelDia::ESTADOS_COBRADOS, true);
             if ($entrega) {
-                $recogido = in_array($entrega->estado, RecojoDelDia::ESTADOS_COBRADOS, true)
-                    ? round((float) $entrega->monto_efectivo + (float) $entrega->monto_qr, 2)
-                    : 0.0;
+                $recogido = $cobrada ? round((float) $entrega->monto_efectivo + (float) $entrega->monto_qr, 2) : 0.0;
             }
             $facturado = round((float) $f->total, 2);
             $verificado = $v && $v->verificado;
             $montoVerificado = $v ? (float) $v->monto_verificado : null;
+
+            // Como se pago: lo que marco el camion si ya cobro; si no, lo que
+            // dice el comprobante.
+            $origen = $cobrada ? $entrega : $f;
+            $forma = $this->formaPago($cobrada ? $entrega->tipago : $f->tipo_pago,
+                (float) $origen->monto_efectivo, (float) $origen->monto_qr);
+            // Lo que se espera recibir de cada lado: lo que trajo el camion; sin
+            // entrega todavia, el reparto del comprobante o el importe entero.
+            if ($entrega) {
+                $esperado = $cobrada
+                    ? [round((float) $entrega->monto_efectivo, 2), round((float) $entrega->monto_qr, 2)]
+                    : [0.0, 0.0];
+            } elseif ((float) $f->monto_efectivo + (float) $f->monto_qr > 0) {
+                $esperado = [round((float) $f->monto_efectivo, 2), round((float) $f->monto_qr, 2)];
+            } else {
+                $esperado = $forma === 'QR' ? [0.0, $facturado] : [$facturado, 0.0];
+            }
+            // Las verificaciones de antes del reparto solo tienen el total.
+            $reparto = null;
+            if ($v) {
+                $reparto = $v->monto_efectivo !== null
+                    ? [(float) $v->monto_efectivo, (float) $v->monto_qr]
+                    : $this->repartir($montoVerificado, ['forma_pago' => $forma, 'esperado_qr' => $esperado[1]]);
+            }
 
             return [
                 'factura_id' => (int) $f->id,
@@ -744,8 +764,15 @@ class CobranzaVerificacionController extends Controller
                 'entrega' => $entrega ? ($entrega->estado . ($entrega->tipago ? ' · ' . $entrega->tipago : '')) : 'PENDIENTE',
                 'facturado' => $facturado,
                 'recogido' => $recogido,
+                'recogido_efectivo' => $cobrada ? round((float) $entrega->monto_efectivo, 2) : null,
+                'recogido_qr' => $cobrada ? round((float) $entrega->monto_qr, 2) : null,
+                'forma_pago' => $forma,
+                'esperado_efectivo' => $esperado[0],
+                'esperado_qr' => $esperado[1],
                 'verificado' => $verificado,
                 'monto_verificado' => $montoVerificado,
+                'verificado_efectivo' => $reparto ? $reparto[0] : null,
+                'verificado_qr' => $reparto ? $reparto[1] : null,
                 'diferencia' => $verificado ? round($montoVerificado - $facturado, 2) : null,
                 'observacion' => $v->observacion ?? null,
                 'verificado_por' => $verificado ? $v->verificado_por : null,
@@ -754,6 +781,39 @@ class CobranzaVerificacionController extends Controller
         })->filter(function ($fila) use ($camion) {
             return !$camion || $fila['placa'] === $camion;
         })->values();
+    }
+
+    /** EFECTIVO, QR, MIXTO o CRÉDITO segun el tipo de pago y los montos de cada lado. */
+    private function formaPago($tipo, $efectivo, $qr)
+    {
+        $tipo = strtoupper((string) $tipo);
+        if (strpos($tipo, 'DITO') !== false) {
+            return 'CRÉDITO';
+        }
+        if (($efectivo > 0 && $qr > 0) || strpos($tipo, 'MIXTO') !== false) {
+            return 'MIXTO';
+        }
+        if ($qr > 0 || strpos($tipo, 'QR') !== false) {
+            return 'QR';
+        }
+        return 'EFECTIVO';
+    }
+
+    /**
+     * Reparte un monto unico entre [efectivo, qr] segun la forma de pago: el
+     * QR va entero a QR, el mixto lleva a QR hasta lo esperado y el resto es
+     * efectivo, y lo demas es efectivo.
+     */
+    private function repartir($monto, array $fila)
+    {
+        if ($fila['forma_pago'] === 'QR') {
+            return [0.0, $monto];
+        }
+        if ($fila['forma_pago'] === 'MIXTO') {
+            $qr = min(round((float) $fila['esperado_qr'], 2), $monto);
+            return [round($monto - $qr, 2), $qr];
+        }
+        return [$monto, 0.0];
     }
 
     private function totales($filas)

@@ -1,13 +1,10 @@
 <template>
-  <q-page class="q-pa-sm relative-position">
-    <div class="row items-center q-gutter-sm q-mb-sm">
-      <div class="col-auto">
-        <div class="text-h6">Verificar por cliente</div>
-        <div class="text-caption text-grey-7">Buscá un cliente y verificá las compras que hizo</div>
-      </div>
+  <q-page class="q-pa-xs relative-position">
+    <div class="row items-center q-gutter-xs q-mb-xs">
+      <div class="col-auto text-subtitle1 text-weight-bold">Verificar por cliente</div>
       <q-space/>
       <!-- Lo que verifico cada usuario entre fecha y hora, como el cierre de caja de creditos. -->
-      <q-btn-dropdown unelevated dense no-caps color="green-8" icon="grid_on" label="Excel verificaciones"
+      <q-btn-dropdown unelevated dense no-caps size="sm" color="green-8" icon="grid_on" label="Excel verificaciones"
                       @show="cargarVerificadores">
         <div class="q-pa-sm column q-gutter-sm" style="min-width: 280px">
           <div class="text-caption text-grey-8">Verificado entre:</div>
@@ -36,18 +33,18 @@
           </q-btn>
         </div>
       </q-btn-dropdown>
-      <q-btn flat dense no-caps color="primary" icon="fact_check" label="Verificación del día" to="/cobranzas/verificacion"/>
+      <q-btn flat dense no-caps size="sm" color="primary" icon="fact_check" label="Verificación del día" to="/cobranzas/verificacion"/>
     </div>
 
     <q-select
       v-model="cliente" use-input fill-input hide-selected input-debounce="350" dense outlined clearable
       :options="opcionesClientes" option-value="id" option-label="nombre" :loading="buscando"
-      label="Buscar cliente por nombre o NIT" class="q-mb-sm"
+      label="Buscar cliente por nombre o NIT" class="q-mb-xs"
       @filter="buscarClientes" @update:model-value="elegirCliente"
     >
-      <template #prepend><q-icon name="search"/></template>
+      <template #prepend><q-icon name="search" size="xs"/></template>
       <template #option="scope">
-        <q-item v-bind="scope.itemProps">
+        <q-item v-bind="scope.itemProps" dense>
           <q-item-section>
             <q-item-label>{{ scope.opt.nombre }}</q-item-label>
             <q-item-label caption>NIT {{ scope.opt.nit || '—' }} · {{ scope.opt.comprobantes }} compras</q-item-label>
@@ -63,68 +60,58 @@
       </template>
     </q-select>
 
-    <div v-if="!cliente" class="text-center text-grey-6 q-pa-xl">
-      <q-icon name="person_search" size="64px"/>
+    <div v-if="!cliente" class="text-center text-grey-6 q-pa-lg">
+      <q-icon name="person_search" size="48px"/>
       <div>Elegí un cliente para ver sus compras</div>
     </div>
 
     <template v-else>
       <fieldset class="contenido" :disabled="ocupado" :inert="ocupado || undefined">
-      <div class="row q-col-gutter-xs q-mb-sm">
-        <div class="col-6 col-md">
-          <q-card flat bordered class="tarjeta bg-blue-grey-1">
-            <div class="tarjeta-rotulo text-blue-grey-8">FACTURADO</div>
-            <div class="tarjeta-valor text-blue-grey-10">Bs {{ money(totales.facturado) }}</div>
-          </q-card>
+      <!-- Resumen y filtros en una sola franja. -->
+      <div class="row q-col-gutter-xs items-center q-mb-xs">
+        <div class="col-6 col-sm-3 col-md-2">
+          <div class="tarjeta bg-blue-grey-1"><span class="tarjeta-rotulo text-blue-grey-8">FACTURADO</span>
+            <span class="tarjeta-valor text-blue-grey-10">{{ money(totales.facturado) }}</span></div>
+        </div>
+        <div class="col-6 col-sm-3 col-md-2">
+          <div class="tarjeta bg-green-1"><span class="tarjeta-rotulo text-green-8">VERIFICADO</span>
+            <span class="tarjeta-valor text-green-10">{{ money(totales.verificado) }}</span></div>
+        </div>
+        <div class="col-6 col-sm-3 col-md-2">
+          <div class="tarjeta bg-red-1"><span class="tarjeta-rotulo text-red-8">POR VERIFICAR</span>
+            <span class="tarjeta-valor text-red-10">{{ money(totales.por_verificar) }}</span></div>
+        </div>
+        <div class="col-6 col-sm-3 col-md-2">
+          <div class="tarjeta bg-orange-1 row items-center no-wrap">
+            <span class="tarjeta-valor text-orange-10">{{ totales.verificados }}/{{ totales.comprobantes }}</span>
+            <q-linear-progress class="col q-ml-sm" rounded size="8px" :value="avance" color="positive" track-color="orange-2"/>
+          </div>
         </div>
         <div class="col-6 col-md">
-          <q-card flat bordered class="tarjeta bg-green-1">
-            <div class="tarjeta-rotulo text-green-8">VERIFICADO</div>
-            <div class="tarjeta-valor text-green-10">Bs {{ money(totales.verificado) }}</div>
-          </q-card>
+          <q-input v-model="desde" type="date" dense outlined clearable label="Desde" class="filtro" @update:model-value="cargar(1)"/>
         </div>
         <div class="col-6 col-md">
-          <q-card flat bordered class="tarjeta bg-red-1">
-            <div class="tarjeta-rotulo text-red-8">POR VERIFICAR</div>
-            <div class="tarjeta-valor text-red-10">Bs {{ money(totales.por_verificar) }}</div>
-          </q-card>
-        </div>
-        <div class="col-6 col-md">
-          <q-card flat bordered class="tarjeta bg-orange-1">
-            <div class="tarjeta-rotulo text-orange-8">VERIFICADOS</div>
-            <div class="row items-center no-wrap">
-              <div class="tarjeta-valor text-orange-10">{{ totales.verificados }}/{{ totales.comprobantes }}</div>
-              <q-linear-progress class="col q-ml-sm" rounded size="10px" :value="avance" color="positive" track-color="orange-2"/>
-            </div>
-          </q-card>
+          <q-input v-model="hasta" type="date" dense outlined clearable label="Hasta" class="filtro" @update:model-value="cargar(1)"/>
         </div>
       </div>
-
-      <div class="row q-col-gutter-xs items-center q-mb-sm">
-        <div class="col-6 col-md-2">
-          <q-input v-model="desde" type="date" dense outlined clearable label="Desde" @update:model-value="cargar(1)"/>
-        </div>
-        <div class="col-6 col-md-2">
-          <q-input v-model="hasta" type="date" dense outlined clearable label="Hasta" @update:model-value="cargar(1)"/>
-        </div>
-        <div class="col-12 col-md-auto">
-          <q-btn-toggle
-            v-model="estado" no-caps unelevated dense toggle-color="primary" color="grey-3" text-color="grey-9"
-            :options="[
-              { label: 'Por verificar (' + (totales.comprobantes - totales.verificados) + ')', value: 'pendientes' },
-              { label: 'Verificados (' + totales.verificados + ')', value: 'verificados' },
-              { label: 'Todos', value: 'todos' }
-            ]"
-            @update:model-value="cargar(1)"
-          />
-        </div>
+      <div class="row items-center q-mb-xs">
+        <q-btn-toggle
+          v-model="estado" no-caps unelevated dense size="sm" toggle-color="primary" color="grey-3" text-color="grey-9"
+          :options="[
+            { label: 'Por verificar (' + (totales.comprobantes - totales.verificados) + ')', value: 'pendientes' },
+            { label: 'Verificados (' + totales.verificados + ')', value: 'verificados' },
+            { label: 'Todos', value: 'todos' }
+          ]"
+          @update:model-value="cargar(1)"
+        />
         <q-space/>
-        <div class="col-auto">
-          <q-btn flat dense round icon="refresh" color="primary" :loading="cargando" @click="cargar(pagina)"/>
-        </div>
+        <span class="text-caption text-grey-7 q-mr-xs">
+          <q-icon name="payments" color="green-8"/> Efectivo · <q-icon name="qr_code_2" color="deep-purple-6"/> QR
+        </span>
+        <q-btn flat dense round size="sm" icon="refresh" color="primary" :loading="cargando" @click="cargar(pagina)"/>
       </div>
 
-      <q-banner v-if="error" class="bg-red-1 text-negative q-mb-sm">{{ error }}</q-banner>
+      <q-banner v-if="error" dense class="bg-red-1 text-negative q-mb-xs">{{ error }}</q-banner>
 
       <q-table
         flat bordered dense :rows="filas" :columns="columnas" row-key="factura_id" :loading="cargando"
@@ -134,94 +121,120 @@
         <template #body="props">
           <q-tr :props="props" :class="props.row.verificado ? 'fila-ok' : ''">
             <q-td key="fecha" :props="props">
-              <div class="text-weight-bold">{{ props.row.fecha }}</div>
-              <div class="text-caption text-grey-7">{{ props.row.hora }}</div>
+              {{ props.row.fecha }} <span class="text-grey-6">{{ props.row.hora }}</span>
             </q-td>
             <q-td key="comprobante" :props="props">
-              <div class="text-weight-bold">{{ props.row.tipo_comprobante === 'FACTURA' ? 'Factura' : 'Venta' }} #{{ props.row.factura_id }}</div>
-              <div class="text-caption text-grey-7">Pedido #{{ props.row.pedido || '—' }}</div>
+              <b>{{ props.row.tipo_comprobante === 'FACTURA' ? 'F' : 'V' }} #{{ props.row.factura_id }}</b>
+              <span class="text-grey-7"> · P{{ props.row.pedido || '—' }}</span>
             </q-td>
             <q-td key="placa" :props="props">
               <span class="chip-placa" :style="estiloColor(props.row.placa_color)">{{ nombrePlaca(props.row.placa) }}</span>
             </q-td>
             <q-td key="pago" :props="props">
-              <div>{{ props.row.tipo_pago }}</div>
-              <div class="text-caption" :class="colorEntrega(props.row.entrega)">{{ props.row.entrega }}</div>
+              <div class="row items-center no-wrap">
+                <q-icon v-for="i in iconosPago(props.row.forma_pago)" :key="i.icon" :name="i.icon" :color="i.color" size="18px">
+                  <q-tooltip>{{ i.label }}</q-tooltip>
+                </q-icon>
+                <span class="text-caption q-ml-xs ellipsis" :class="colorEntrega(props.row.entrega)" style="max-width: 120px">
+                  {{ props.row.entrega }}
+                  <q-tooltip>{{ props.row.forma_pago }} · {{ props.row.entrega }}</q-tooltip>
+                </span>
+              </div>
             </q-td>
             <q-td key="facturado" :props="props" class="text-weight-bold">{{ money(props.row.facturado) }}</q-td>
             <q-td key="recogido" :props="props">
-              <span v-if="props.row.recogido !== null" :class="props.row.recogido < props.row.facturado ? 'text-orange-9' : 'text-indigo-9'">
-                {{ money(props.row.recogido) }}
-              </span>
+              <template v-if="props.row.recogido !== null">
+                <span :class="props.row.recogido < props.row.facturado ? 'text-orange-9' : 'text-indigo-9'">{{ money(props.row.recogido) }}</span>
+                <q-tooltip v-if="props.row.recogido_efectivo !== null">
+                  Efectivo {{ money(props.row.recogido_efectivo) }} · QR {{ money(props.row.recogido_qr) }}
+                </q-tooltip>
+              </template>
               <span v-else class="text-grey-5">—</span>
             </q-td>
-            <q-td key="monto" :props="props" style="width: 120px">
+            <q-td key="efectivo" :props="props" class="celda-monto">
               <q-input
-                v-model.number="montos[props.row.factura_id]" type="number" step="0.01" min="0" dense outlined
-                input-class="text-right" :bg-color="props.row.verificado ? 'green-1' : 'white'"
-                @change="corregirMonto(props.row)"
-              />
+                v-model.number="montos[props.row.factura_id].efectivo" type="number" step="0.01" min="0" dense outlined
+                hide-bottom-space input-class="text-right" class="monto" :class="{ apagado: !usa(props.row, 'efectivo') }"
+                :bg-color="props.row.verificado ? 'green-1' : 'white'" @change="corregirMonto(props.row)"
+              >
+                <template #prepend><q-icon name="payments" color="green-8" size="16px"/></template>
+              </q-input>
+            </q-td>
+            <q-td key="qr" :props="props" class="celda-monto">
+              <q-input
+                v-model.number="montos[props.row.factura_id].qr" type="number" step="0.01" min="0" dense outlined
+                hide-bottom-space input-class="text-right" class="monto" :class="{ apagado: !usa(props.row, 'qr') }"
+                :bg-color="props.row.verificado ? 'green-1' : 'white'" @change="corregirMonto(props.row)"
+              >
+                <template #prepend><q-icon name="qr_code_2" color="deep-purple-6" size="16px"/></template>
+              </q-input>
             </q-td>
             <q-td key="diferencia" :props="props">
               <span :class="claseDiferencia(props.row)">{{ money(diferencia(props.row)) }}</span>
             </q-td>
             <q-td key="cancela" :props="props" class="text-center">
               <q-checkbox
-                :model-value="props.row.verificado" size="lg" color="positive"
+                :model-value="props.row.verificado" dense color="positive"
                 :disable="guardando === props.row.factura_id" @update:model-value="v => marcar(props.row, v)"
-              />
-              <div v-if="props.row.verificado" class="text-caption text-grey-7 ellipsis" style="max-width: 110px">
-                {{ props.row.verificado_por }}
-              </div>
+              >
+                <q-tooltip v-if="props.row.verificado">{{ props.row.verificado_por }} · {{ props.row.verificado_en }}</q-tooltip>
+              </q-checkbox>
             </q-td>
           </q-tr>
         </template>
 
-        <!-- En el celular: una tarjeta por compra con el tilde grande. -->
+        <!-- En el celular: una tarjeta compacta por compra. -->
         <template #item="props">
           <div class="col-12 q-pa-xs">
             <q-card flat bordered :class="props.row.verificado ? 'fila-ok' : ''">
-              <q-card-section class="q-pa-sm">
-                <div class="row items-start no-wrap">
-                  <div class="col" style="min-width: 0">
-                    <div class="text-weight-bold">
-                      {{ props.row.tipo_comprobante === 'FACTURA' ? 'Factura' : 'Venta' }} #{{ props.row.factura_id }}
-                    </div>
-                    <div class="text-caption text-grey-7">{{ props.row.fecha }} {{ props.row.hora }} · Pedido #{{ props.row.pedido || '—' }}</div>
-                    <div class="q-mt-xs">
-                      <span class="chip-placa" :style="estiloColor(props.row.placa_color)">{{ nombrePlaca(props.row.placa) }}</span>
-                      <span class="text-caption q-ml-xs" :class="colorEntrega(props.row.entrega)">{{ props.row.entrega }}</span>
-                    </div>
+              <div class="q-px-sm q-py-xs">
+                <div class="row items-center no-wrap">
+                  <div class="col ellipsis">
+                    <b>{{ props.row.tipo_comprobante === 'FACTURA' ? 'F' : 'V' }} #{{ props.row.factura_id }}</b>
+                    <span class="text-caption text-grey-7"> · {{ props.row.fecha }} {{ props.row.hora }} · P{{ props.row.pedido || '—' }}</span>
                   </div>
+                  <q-icon v-for="i in iconosPago(props.row.forma_pago)" :key="i.icon" :name="i.icon" :color="i.color" size="18px"/>
                   <q-checkbox
-                    :model-value="props.row.verificado" size="xl" color="positive"
+                    :model-value="props.row.verificado" color="positive"
                     :disable="guardando === props.row.factura_id" @update:model-value="v => marcar(props.row, v)"
                   />
                 </div>
-                <div class="row q-col-gutter-xs items-center q-mt-xs">
-                  <div class="col-4">
-                    <div class="text-caption text-grey-7">Facturado</div>
-                    <div class="text-weight-bold">{{ money(props.row.facturado) }}</div>
-                  </div>
-                  <div class="col-4">
-                    <div class="text-caption text-grey-7">Recogido</div>
-                    <div class="text-weight-bold text-indigo-9">{{ props.row.recogido !== null ? money(props.row.recogido) : '—' }}</div>
-                  </div>
-                  <div class="col-4">
-                    <q-input
-                      v-model.number="montos[props.row.factura_id]" type="number" step="0.01" min="0" dense outlined label="Monto"
-                      input-class="text-right" @change="corregirMonto(props.row)"
-                    />
-                  </div>
+                <div class="row items-center q-gutter-x-xs text-caption">
+                  <span class="chip-placa" :style="estiloColor(props.row.placa_color)">{{ nombrePlaca(props.row.placa) }}</span>
+                  <span :class="colorEntrega(props.row.entrega)">{{ props.row.entrega }}</span>
+                  <q-space/>
+                  <span>Imp. <b>{{ money(props.row.facturado) }}</b></span>
+                  <span class="text-indigo-9">Rec. <b>{{ props.row.recogido !== null ? money(props.row.recogido) : '—' }}</b></span>
                 </div>
-              </q-card-section>
+                <div class="row q-col-gutter-xs items-center q-mt-xs">
+                  <div class="col-5">
+                    <q-input
+                      v-model.number="montos[props.row.factura_id].efectivo" type="number" step="0.01" min="0" dense outlined
+                      hide-bottom-space input-class="text-right" class="monto" :class="{ apagado: !usa(props.row, 'efectivo') }"
+                      @change="corregirMonto(props.row)"
+                    >
+                      <template #prepend><q-icon name="payments" color="green-8" size="16px"/></template>
+                    </q-input>
+                  </div>
+                  <div class="col-5">
+                    <q-input
+                      v-model.number="montos[props.row.factura_id].qr" type="number" step="0.01" min="0" dense outlined
+                      hide-bottom-space input-class="text-right" class="monto" :class="{ apagado: !usa(props.row, 'qr') }"
+                      @change="corregirMonto(props.row)"
+                    >
+                      <template #prepend><q-icon name="qr_code_2" color="deep-purple-6" size="16px"/></template>
+                    </q-input>
+                  </div>
+                  <div class="col-2 text-right text-caption" :class="claseDiferencia(props.row)">{{ money(diferencia(props.row)) }}</div>
+                </div>
+              </div>
             </q-card>
           </div>
         </template>
       </q-table>
 
-      <div class="row items-center justify-center q-mt-sm q-gutter-sm">
-        <q-pagination :model-value="pagina" :max="paginas" :max-pages="6" :disable="ocupado" @update:model-value="cargar"/>
+      <div class="row items-center justify-center q-mt-xs q-gutter-sm">
+        <q-pagination :model-value="pagina" :max="paginas" :max-pages="6" size="sm" :disable="ocupado" @update:model-value="cargar"/>
         <div class="text-caption text-grey-7">{{ total }} compras</div>
       </div>
       </fieldset>
@@ -236,6 +249,12 @@
 
 <script>
 import { date } from 'quasar'
+
+const ICONOS = {
+  efectivo: { icon: 'payments', color: 'green-8', label: 'Efectivo' },
+  qr: { icon: 'qr_code_2', color: 'deep-purple-6', label: 'QR' },
+  credito: { icon: 'credit_score', color: 'orange-9', label: 'Crédito' }
+}
 
 export default {
   name: 'VerificarCliente',
@@ -255,6 +274,7 @@ export default {
       guardando: null,
       error: '',
       filas: [],
+      // Por comprobante: { efectivo, qr } escritos por cobranzas.
       montos: {},
       totales: { comprobantes: 0, verificados: 0, facturado: 0, verificado: 0, por_verificar: 0 },
       // Reporte por usuario: por defecto hoy de 00:00 a 23:59, todos los usuarios.
@@ -272,12 +292,13 @@ export default {
         { name: 'fecha', label: 'Fecha', field: 'fecha', align: 'left' },
         { name: 'comprobante', label: 'Comprobante', field: 'factura_id', align: 'left' },
         { name: 'placa', label: 'Camión', field: 'placa', align: 'left' },
-        { name: 'pago', label: 'Pago / Entrega', field: 'tipo_pago', align: 'left' },
+        { name: 'pago', label: 'Pago / Entrega', field: 'forma_pago', align: 'left' },
         { name: 'facturado', label: 'Importe', field: 'facturado', align: 'right' },
         { name: 'recogido', label: 'Recogido', field: 'recogido', align: 'right' },
-        { name: 'monto', label: 'Monto', field: 'monto_verificado', align: 'right' },
-        { name: 'diferencia', label: 'Diferencia', field: 'diferencia', align: 'right' },
-        { name: 'cancela', label: 'Verificar', field: 'verificado', align: 'center' }
+        { name: 'efectivo', label: 'Efectivo', field: 'verificado_efectivo', align: 'right' },
+        { name: 'qr', label: 'QR', field: 'verificado_qr', align: 'right' },
+        { name: 'diferencia', label: 'Dif.', field: 'diferencia', align: 'right' },
+        { name: 'cancela', label: '✔', field: 'verificado', align: 'center' }
       ]
     }
   },
@@ -320,37 +341,47 @@ export default {
           params: { page: pagina, estado: this.estado, desde: this.desde || undefined, hasta: this.hasta || undefined }
         })
         if (solicitud !== this.solicitud) return
+        const montos = {}
+        data.filas.forEach(f => { montos[f.factura_id] = this.montosIniciales(f) })
+        this.montos = montos
         this.filas = data.filas
         this.totales = data.totales
         this.paginas = data.paginas
         this.total = data.total
-        const montos = {}
-        data.filas.forEach(f => { montos[f.factura_id] = this.montoInicial(f) })
-        this.montos = montos
       } catch (e) {
         if (solicitud === this.solicitud) this.error = this.mensaje(e)
       } finally {
         if (solicitud === this.solicitud) this.cargando = false
       }
     },
-    // Igual que en la verificacion del dia: lo ya verificado, lo que trajo el
-    // camion o, si todavia no hay entrega, el importe del comprobante.
-    montoInicial (fila) {
-      if (fila.monto_verificado !== null) return fila.monto_verificado
-      if (fila.recogido !== null) return fila.recogido
-      return fila.facturado
+    // Lo ya verificado; si no, lo esperado: lo que trajo el camion o, si
+    // todavia no hay entrega, el importe segun como se pago.
+    montosIniciales (fila) {
+      if (fila.verificado_efectivo !== null) return { efectivo: fila.verificado_efectivo, qr: fila.verificado_qr }
+      return { efectivo: fila.esperado_efectivo, qr: fila.esperado_qr }
     },
     async marcar (fila, verificado) {
       if (this.ocupado || this.error) return
-      const monto = Number(this.montos[fila.factura_id])
-      if (verificado && !(monto >= 0)) {
-        this.$q.notify({ type: 'warning', position: 'top', message: 'Escribí el monto recibido' })
-        return
+      const m = this.montos[fila.factura_id]
+      const vacio = v => v === '' || v === null || v === undefined
+      if (verificado) {
+        // Un pago mixto se verifica por los dos lados.
+        if (fila.forma_pago === 'MIXTO' && (vacio(m.efectivo) || vacio(m.qr))) {
+          this.$q.notify({ type: 'warning', position: 'top', message: 'Es un pago mixto: escribí el efectivo y el QR' })
+          return
+        }
+        if ((vacio(m.efectivo) && vacio(m.qr)) || Number(m.efectivo) < 0 || Number(m.qr) < 0) {
+          this.$q.notify({ type: 'warning', position: 'top', message: 'Escribí el monto recibido' })
+          return
+        }
       }
       this.guardando = fila.factura_id
       try {
         const { data } = await this.$api.post('cobranzas/verificacion', {
-          factura_id: fila.factura_id, verificado, monto: verificado ? monto : null
+          factura_id: fila.factura_id,
+          verificado,
+          monto_efectivo: verificado ? Number(m.efectivo) || 0 : null,
+          monto_qr: verificado ? Number(m.qr) || 0 : null
         })
         const indice = this.filas.findIndex(f => f.factura_id === fila.factura_id)
         if (indice >= 0 && data.fila) {
@@ -430,9 +461,24 @@ export default {
     corregirMonto (fila) {
       if (fila.verificado) this.marcar(fila, true)
     },
+    iconosPago (forma) {
+      if (forma === 'MIXTO') return [ICONOS.efectivo, ICONOS.qr]
+      if (forma === 'QR') return [ICONOS.qr]
+      if (forma === 'CRÉDITO') return [ICONOS.credito]
+      return [ICONOS.efectivo]
+    },
+    // El lado que no corresponde a la forma de pago se ve atenuado (pero se puede escribir).
+    usa (fila, lado) {
+      if (Number(this.montos[fila.factura_id]?.[lado]) > 0) return true
+      if (fila.forma_pago === 'MIXTO') return true
+      return lado === 'qr' ? fila.forma_pago === 'QR' : fila.forma_pago !== 'QR'
+    },
     money (v) { return Number(v || 0).toFixed(2) },
     nombrePlaca (placa) { return placa === 'SIN' ? 'Sin camión' : placa },
-    diferencia (fila) { return (Number(this.montos[fila.factura_id]) || 0) - fila.facturado },
+    diferencia (fila) {
+      const m = this.montos[fila.factura_id] || {}
+      return (Number(m.efectivo) || 0) + (Number(m.qr) || 0) - fila.facturado
+    },
     claseDiferencia (fila) {
       const dif = this.diferencia(fila)
       if (Math.abs(dif) < 0.01) return 'text-grey-6'
@@ -460,14 +506,22 @@ export default {
 <style scoped>
 .contenido { border: 0; margin: 0; padding: 0; min-width: 0; }
 .carga-pagina { position: fixed; z-index: 2000; }
-.tarjeta { padding: 6px 10px; }
-.tarjeta-rotulo { font-size: 10px; font-weight: 700; letter-spacing: 0.4px; }
-.tarjeta-valor { font-size: 17px; font-weight: 800; line-height: 1.2; }
-.tabla :deep(td) { font-size: 12px; }
+.tarjeta { padding: 3px 8px; border-radius: 4px; line-height: 1.2; }
+.tarjeta-rotulo { font-size: 9px; font-weight: 700; letter-spacing: 0.4px; display: block; }
+.tarjeta-valor { font-size: 14px; font-weight: 800; }
+.filtro :deep(.q-field__control), .filtro :deep(.q-field__marginal) { height: 34px; min-height: 34px; }
+.tabla :deep(th) { font-size: 11px; padding: 2px 6px; }
+.tabla :deep(td) { font-size: 12px; padding: 1px 6px; height: 30px; white-space: nowrap; }
+.celda-monto { width: 104px; }
+.monto :deep(.q-field__control), .monto :deep(.q-field__marginal) { height: 26px; min-height: 26px; }
+.monto :deep(.q-field__control) { padding: 0 4px; }
+.monto :deep(.q-field__prepend) { padding-right: 2px; }
+.monto :deep(input) { font-size: 12px; padding: 0; }
+.monto.apagado { opacity: 0.5; }
 .fila-ok { background: #e8f5e9; }
 .chip-placa {
   display: inline-block;
-  padding: 1px 6px;
+  padding: 0 5px;
   border-radius: 3px;
   font-size: 11px;
   font-weight: 600;
