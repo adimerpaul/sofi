@@ -9,8 +9,12 @@
       <q-btn-dropdown unelevated dense no-caps size="sm" color="green-8" icon="grid_on" label="Excel verificaciones"
                       @show="cargarVerificadores">
         <div class="q-pa-sm column q-gutter-sm" style="min-width: 280px">
-          <div class="text-caption text-grey-8">Verificado entre:</div>
-          <div class="row q-col-gutter-xs">
+          <q-toggle v-model="reporte.porEntrega" dense size="sm" label="Por día de entrega del camión" @update:model-value="cargarVerificadores"/>
+          <div v-if="reporte.porEntrega" class="text-caption text-grey-8">
+            Lo verificado de lo entregado el <b>{{ fecha.split('-').reverse().join('/') }}</b>, sin importar cuándo se verificó.
+          </div>
+          <div v-else class="text-caption text-grey-8">Verificado entre:</div>
+          <div v-if="!reporte.porEntrega" class="row q-col-gutter-xs">
             <div class="col-7"><q-input v-model="reporte.desde" type="date" dense outlined label="Desde" @update:model-value="cargarVerificadores"/></div>
             <div class="col-5"><q-input v-model="reporte.horaDesde" type="time" dense outlined label="Hora" @update:model-value="cargarVerificadores"/></div>
             <div class="col-7"><q-input v-model="reporte.hasta" type="date" dense outlined label="Hasta" @update:model-value="cargarVerificadores"/></div>
@@ -358,7 +362,9 @@ export default {
         horaDesde: '00:00',
         hasta: hoy,
         horaHasta: '23:59',
-        usuario: null
+        usuario: null,
+        // Por defecto, el dia de entrega elegido arriba (lo que trajo el camion).
+        porEntrega: true
       },
       verificadores: [],
       cargandoVerificadores: false,
@@ -590,13 +596,17 @@ export default {
         verificados: this.filas.filter(f => f.placa === c.placa && f.verificado).length
       }))
     },
+    // Por entrega: lo verificado de lo que el camion entrego el dia elegido
+    // arriba, sin importar cuando se tildo. Si no, por fecha y hora del tilde.
     paramsReporte () {
+      const params = this.camion ? { camion: this.camion } : {}
+      if (this.reporte.porEntrega) return { ...params, dia: this.fecha }
       const { desde, hasta, horaDesde, horaHasta } = this.reporte
-      return { desde, hasta, hora_desde: horaDesde || '00:00', hora_hasta: horaHasta || '23:59' }
+      return { ...params, desde, hasta, hora_desde: horaDesde || '00:00', hora_hasta: horaHasta || '23:59' }
     },
-    // Quienes verificaron en el rango, para elegir el usuario del reporte.
+    // Quienes verificaron, para elegir el usuario del reporte.
     async cargarVerificadores () {
-      if (!this.reporte.desde || !this.reporte.hasta) return
+      if (!this.reporte.porEntrega && (!this.reporte.desde || !this.reporte.hasta)) return
       this.cargandoVerificadores = true
       try {
         const { data } = await this.$api.get('cobranzas/verificacion/verificadores', { params: this.paramsReporte() })
@@ -612,7 +622,9 @@ export default {
     },
     // 'qr': lo verificado por QR; 'total' y 'detalle': el cierre de efectivo. Con camion elegido, solo ese camion.
     async descargarReporte (tipo) {
-      const { desde, hasta, horaDesde, horaHasta, usuario } = this.reporte
+      const { porEntrega, horaDesde, horaHasta, usuario } = this.reporte
+      const desde = porEntrega ? this.fecha : this.reporte.desde
+      const hasta = porEntrega ? this.fecha : this.reporte.hasta
       if (!desde || !hasta || (desde + ' ' + (horaDesde || '00:00')) > (hasta + ' ' + (horaHasta || '23:59'))) {
         this.$q.notify({ type: 'warning', position: 'top', message: 'Revisá el rango de fechas y horas' })
         return
@@ -621,15 +633,14 @@ export default {
       try {
         const params = this.paramsReporte()
         if (usuario) params.user_id = usuario
-        if (this.camion) params.camion = this.camion
         const { data } = await this.$api.get('cobranzas/verificacion/excel-' + tipo, { params, responseType: 'blob' })
         const url = URL.createObjectURL(data)
         const a = document.createElement('a')
         a.href = url
         a.download = {
-          qr: 'VERIFICADOS QR ' + desde + (hasta !== desde ? ' AL ' + hasta : ''),
-          total: 'CIERRE EFECTIVO ' + desde,
-          detalle: 'DETALLE EFECTIVO ' + desde
+          qr: 'VERIFICADOS QR ' + (porEntrega ? 'ENTREGA ' : '') + desde + (hasta !== desde ? ' AL ' + hasta : ''),
+          total: 'CIERRE EFECTIVO ' + (porEntrega ? 'ENTREGA ' : '') + desde,
+          detalle: 'DETALLE EFECTIVO ' + (porEntrega ? 'ENTREGA ' : '') + desde
         }[tipo] + (this.camion ? ' ' + this.nombrePlaca(this.camion) : '') + '.xlsx'
         a.click()
         URL.revokeObjectURL(url)

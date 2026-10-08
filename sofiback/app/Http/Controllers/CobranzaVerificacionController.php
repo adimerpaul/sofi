@@ -435,7 +435,12 @@ class CobranzaVerificacionController extends Controller
 
     /**
      * Rango de fecha y hora en que se verifico (por defecto hoy, de 00:00 a
-     * 23:59) y opcionalmente quien verifico. Devuelve [inicio, fin, usuario].
+     * 23:59) y opcionalmente quien verifico y de que camion. Devuelve
+     * [inicio, fin, usuario, camion, dia].
+     *
+     * Con 'dia' (el dia de entrega del camion, como en la verificacion del
+     * dia) no importa cuando se tildo: entra lo verificado de los
+     * comprobantes que el camion entrego ese dia, y inicio/fin son ese dia.
      */
     private function rangoVerificados(Request $request): array
     {
@@ -446,30 +451,37 @@ class CobranzaVerificacionController extends Controller
             'hora_hasta' => ['nullable', 'regex:/^([01]\d|2[0-3]):[0-5]\d$/'],
             'user_id' => 'nullable|integer',
             'camion' => 'nullable|string|max:100',
+            'dia' => 'nullable|date_format:Y-m-d',
         ]);
-        $desde = $datos['desde'] ?? date('Y-m-d');
-        $hasta = $datos['hasta'] ?? $desde;
+        $dia = $datos['dia'] ?? null;
+        $desde = $dia ?? ($datos['desde'] ?? date('Y-m-d'));
+        $hasta = $dia ?? ($datos['hasta'] ?? $desde);
 
         return [
-            $desde . ' ' . ($datos['hora_desde'] ?? '00:00') . ':00',
+            $desde . ' ' . ($dia ? '00:00' : ($datos['hora_desde'] ?? '00:00')) . ':00',
             // Hasta las 23:59 incluye ese minuto entero.
-            $hasta . ' ' . ($datos['hora_hasta'] ?? '23:59') . ':59',
+            $hasta . ' ' . ($dia ? '23:59' : ($datos['hora_hasta'] ?? '23:59')) . ':59',
             isset($datos['user_id']) ? (int) $datos['user_id'] : null,
             trim((string) ($datos['camion'] ?? '')),
+            $dia,
         ];
     }
 
     /**
      * Los lados (efectivo y QR) tildados en el rango, cada uno por la fecha y
      * hora en que se tildo y con quien lo tildo, en ese orden. Opcionalmente
-     * de un solo usuario o de un solo lado.
+     * de un solo usuario o de un solo lado. Con $dia, en vez del rango, los
+     * de los comprobantes que el camion ($camion, o todos) entrego ese dia.
      */
-    private function ladosDelRango($inicio, $fin, $usuario, $soloLado = null)
+    private function ladosDelRango($inicio, $fin, $usuario, $soloLado = null, $dia = null, $camion = '')
     {
-        return collect($soloLado ? [$soloLado] : ['efectivo', 'qr'])->flatMap(function ($lado) use ($inicio, $fin, $usuario) {
+        $ids = $dia ? $this->filas($dia, $camion !== '' ? $camion : null)->pluck('factura_id')->all() : null;
+
+        return collect($soloLado ? [$soloLado] : ['efectivo', 'qr'])->flatMap(function ($lado) use ($inicio, $fin, $usuario, $ids) {
             return DB::table('cobranza_verificaciones')
                 ->where($lado . '_ok', 1)
-                ->whereBetween($lado . '_en', [$inicio, $fin])
+                ->when($ids === null, function ($q) use ($lado, $inicio, $fin) { $q->whereBetween($lado . '_en', [$inicio, $fin]); })
+                ->when($ids !== null, function ($q) use ($ids) { $q->whereIn('factura_id', $ids ?: [0]); })
                 ->when($usuario, function ($q) use ($usuario, $lado) { $q->where($lado . '_user_id', $usuario); })
                 ->get(['id', 'factura_id', $lado . '_user_id as user_id', $lado . '_por as por', $lado . '_en as en', 'monto_' . $lado . ' as monto'])
                 ->map(function ($v) use ($lado) {
@@ -483,9 +495,9 @@ class CobranzaVerificacionController extends Controller
     /** Quienes verificaron en el rango, con cuanto: para elegir el usuario del reporte. */
     public function verificadores(Request $request)
     {
-        [$inicio, $fin] = $this->rangoVerificados($request);
+        [$inicio, $fin, , $camion, $dia] = $this->rangoVerificados($request);
 
-        return $this->ladosDelRango($inicio, $fin, null)->groupBy(function ($v) { return (int) $v->user_id; })
+        return $this->ladosDelRango($inicio, $fin, null, null, $dia, $camion)->groupBy(function ($v) { return (int) $v->user_id; })
             ->map(function ($grupo) {
                 return [
                     'user_id' => $grupo->first()->user_id === null ? null : (int) $grupo->first()->user_id,
@@ -503,9 +515,9 @@ class CobranzaVerificacionController extends Controller
      * de una venta a credito cuenta como credito. Con $camion, solo los
      * comprobantes de ese camion ('SIN' = sin camion).
      */
-    private function verificadosDelRango($inicio, $fin, $usuario, $soloLado = null, $camion = '')
+    private function verificadosDelRango($inicio, $fin, $usuario, $soloLado = null, $camion = '', $dia = null)
     {
-        $lados = $this->ladosDelRango($inicio, $fin, $usuario, $soloLado);
+        $lados = $this->ladosDelRango($inicio, $fin, $usuario, $soloLado, $dia, $camion);
         if ($lados->isEmpty()) {
             return collect();
         }
@@ -554,8 +566,8 @@ class CobranzaVerificacionController extends Controller
      */
     public function excelQr(Request $request)
     {
-        [$inicio, $fin, $usuario, $camion] = $this->rangoVerificados($request);
-        $filas = $this->verificadosDelRango($inicio, $fin, $usuario, 'qr', $camion)->filter(function ($f) { return $f['qr'] > 0; })->values();
+        [$inicio, $fin, $usuario, $camion, $dia] = $this->rangoVerificados($request);
+        $filas = $this->verificadosDelRango($inicio, $fin, $usuario, 'qr', $camion, $dia)->filter(function ($f) { return $f['qr'] > 0; })->values();
         $desde = substr($inicio, 0, 10);
         $hasta = substr($fin, 0, 10);
 
@@ -566,17 +578,12 @@ class CobranzaVerificacionController extends Controller
 
         $fila = 1;
         if ($filas->isNotEmpty()) {
-            $hoja->setCellValue('B' . $fila, 'VERIFICADOS POR QR ' . date('d/m/y', strtotime($desde))
-                . ($hasta !== $desde ? ' AL ' . date('d/m/y', strtotime($hasta)) : ''));
+            // Todo en el titulo, asi los bloques arrancan en la fila 3 como el Excel de cobros QR.
+            $hoja->setCellValue('B' . $fila, 'VERIFICADOS POR QR ' . ($dia ? 'ENTREGA ' : '') . date('d/m/y', strtotime($desde))
+                . ($hasta !== $desde ? ' AL ' . date('d/m/y', strtotime($hasta)) : '')
+                . ($camion !== '' ? ' · CAMIÓN ' . ($camion === 'SIN' ? 'SIN CAMIÓN' : $camion) : '')
+                . ($usuario ? ' · VERIFICÓ ' . $filas->first()['verificador'] : ''));
             $hoja->getStyle('B' . $fila)->getFont()->setBold(true);
-            if ($usuario) {
-                $fila++;
-                $hoja->setCellValue('B' . $fila, 'VERIFICÓ ' . $filas->first()['verificador']);
-            }
-            if ($camion !== '') {
-                $fila++;
-                $hoja->setCellValue('B' . $fila, 'CAMIÓN ' . ($camion === 'SIN' ? 'SIN CAMIÓN' : $camion));
-            }
             $fila += 2;
         }
         // Un bloque por cliente, en orden alfabetico, con el total de cada uno.
@@ -585,7 +592,8 @@ class CobranzaVerificacionController extends Controller
             $hoja->getStyle("A{$fila}:G{$fila}")->applyFromArray($borde);
             $desdeFila = ++$fila;
             foreach ($grupo->sortBy('factura_id') as $f) {
-                $hoja->setCellValue('A' . $fila, date('d/m/y', strtotime($f['fecha'])));
+                // El dia en que el camion lo entrego (y cobro), no el de la factura.
+                $hoja->setCellValue('A' . $fila, date('d/m/y', strtotime($f['dia_entrega'])));
                 $hoja->setCellValueExplicit('B' . $fila, $f['vendedor'], DataType::TYPE_STRING);
                 $hoja->setCellValueExplicit('C' . $fila, $f['cliente'], DataType::TYPE_STRING);
                 $hoja->setCellValue('D' . $fila, $f['qr']);
@@ -649,16 +657,17 @@ class CobranzaVerificacionController extends Controller
 
     private function cierreEfectivo(Request $request, $detalle)
     {
-        [$inicio, $fin, $usuario, $camion] = $this->rangoVerificados($request);
+        [$inicio, $fin, $usuario, $camion, $dia] = $this->rangoVerificados($request);
         // Solo el lado efectivo; el efectivo de una venta a credito no es plata.
-        $filas = $this->verificadosDelRango($inicio, $fin, $usuario, 'efectivo', $camion)
+        $filas = $this->verificadosDelRango($inicio, $fin, $usuario, 'efectivo', $camion, $dia)
             ->filter(function ($f) { return $f['credito'] <= 0; })->values();
 
         $libro = new Spreadsheet();
         $libro->removeSheetByIndex(0);
         $borde = ['borders' => ['allBorders' => ['borderStyle' => Border::BORDER_THIN]]];
         $gris = ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'D9D9D9']];
-        $rango = date('d/m/Y H:i', strtotime($inicio)) . ' a ' . date('d/m/Y H:i', strtotime($fin))
+        $rango = ($dia ? 'Entrega del ' . date('d/m/Y', strtotime($dia))
+                : date('d/m/Y H:i', strtotime($inicio)) . ' a ' . date('d/m/Y H:i', strtotime($fin)))
             . ($camion !== '' ? ' · Camión ' . ($camion === 'SIN' ? 'sin camión' : $camion) : '');
         $titulo1 = $detalle ? 'DETALLE DE EFECTIVO VERIFICADO' : 'CIERRE DE EFECTIVO VERIFICADO';
 
