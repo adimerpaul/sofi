@@ -129,8 +129,8 @@
 
     <q-card flat bordered class="q-pa-xs q-mb-sm filtros">
       <div class="row q-col-gutter-xs items-center" @keyup.enter="recargar">
-        <!-- El turno de caja va de las 18:00 de ayer a las 18:00 de hoy; la
-             hora se puede vaciar para mirar dias enteros. -->
+        <!-- Por defecto se mira desde las 18:00 de ayer hasta las 19:00 de hoy;
+             la hora se puede vaciar para mirar dias enteros. -->
         <div class="col-auto">
           <q-input v-model="filtros.desde" type="date" dense outlined label="Desde" class="campo-fecha"/>
         </div>
@@ -974,6 +974,8 @@ import { imprimirPdfDirecto } from 'src/utils/impresion.js'
 // Caja empieza a facturar el reparto del dia siguiente desde la tarde (el
 // 05/10 arranco a las 20:51): con corte a las 18:00 entra toda esa carga.
 const CIERRE = '18:00'
+/** Hora fin por defecto: lo que caja rehace pasado el cierre tambien se ve hoy. */
+const FIN = '19:00'
 
 function filtrosPorDefecto () {
   const hoy = date.formatDate(new Date(), 'YYYY-MM-DD')
@@ -982,7 +984,7 @@ function filtrosPorDefecto () {
     desde: ayer,
     horaDesde: CIERRE,
     hasta: hoy,
-    horaHasta: CIERRE,
+    horaHasta: FIN,
     buscar: '',
     tipo: null,
     pedidoTipo: null,
@@ -1140,14 +1142,15 @@ export default {
     /**
      * El dia que se esta mirando, para lo que es de un solo dia (camiones y
      * carga): el mismo dia sin hora, o un turno de caja (de ayer a cierta
-     * hora a hoy a la misma hora), que cuenta como el dia de hoy.
+     * hora a hoy a la misma hora o hasta la hora fin), que cuenta como
+     * el dia de hoy.
      */
     diaUnico () {
       const { desde, hasta, horaDesde, horaHasta } = this.filtros
       if (!desde || !hasta) return null
       if (desde === hasta) return desde
       const siguiente = date.formatDate(date.addToDate(new Date(desde + 'T12:00:00'), { days: 1 }), 'YYYY-MM-DD')
-      return horaDesde && horaDesde === horaHasta && siguiente === hasta ? hasta : null
+      return horaDesde && (horaHasta === horaDesde || horaHasta === FIN) && siguiente === hasta ? hasta : null
     }
   },
   created () {

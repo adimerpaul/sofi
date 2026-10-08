@@ -150,15 +150,22 @@ class CamineroController extends Controller
      */
     private function comprobantesDelCamion($fecha, $placa)
     {
-        // Misma jornada que la carga del camion: lo facturado desde la vispera
-        // a las 18:00 hasta ese dia a las 18:00, asi el caminero entrega
-        // exactamente lo que reviso al cargar.
+        // La jornada de la carga del camion (vispera 18:00 a ese dia 18:00) y
+        // ademas lo facturado ese dia hasta la medianoche: una nota que caja
+        // rehace de noche sobre un pedido que se entrega hoy tiene que seguir
+        // en la lista para que el caminero la cobre. Cual de los dos dias le
+        // toca se decide abajo con el pedido.
+        $vispera = date('Y-m-d', strtotime($fecha . ' -1 day'));
         $facturas = DB::table('facturas as f')
             ->leftJoin('tbclientes as c', 'c.Cod_Aut', '=', 'f.cliente_id')
             ->whereNull('f.deleted_at')
             ->where('f.estado', '<>', 'ANULADO')
-            ->tap(function ($consulta) use ($fecha) {
-                CargaCamion::enJornada($consulta, $fecha);
+            ->where('f.fecha', '>=', $vispera)
+            ->where('f.fecha', '<=', $fecha)
+            ->where(function ($q) use ($vispera, $fecha) {
+                $q->where(function ($q) use ($vispera) {
+                    $q->where('f.fecha', $vispera)->where('f.hora', '>=', CargaCamion::CORTE_JORNADA);
+                })->orWhere('f.fecha', $fecha);
             })
             // Lo que sale de un pedido de ese camion, o la venta directa a la
             // que caja le eligio ese camion.
@@ -227,8 +234,11 @@ class CamineroController extends Controller
             ? (CargaCamion::colorDeZona($placa, $fecha)['colorStyle'] ?? '')
             : '';
 
-        $facturas = $facturas->filter(function ($factura) use ($pedidos, $placa, $productosDirecta, $colorCamion) {
+        $facturas = $facturas->filter(function ($factura) use ($pedidos, $placa, $productosDirecta, $colorCamion, $fecha) {
             if (!$factura->nro_pedido) {
+                if (self::diaDeReparto($factura->factura_fecha, $factura->hora) !== $fecha) {
+                    return false;
+                }
                 $factura->placa = $placa;
                 $factura->placa_color = $colorCamion;
                 $factura->pedido_fecha = $factura->factura_fecha;
@@ -239,6 +249,16 @@ class CamineroController extends Controller
             }
             $pedido = $pedidos->get($factura->nro_pedido . '-' . $factura->tipo);
             if (!$pedido || $pedido->placa !== $placa) {
+                return false;
+            }
+            // Facturada despues del corte va al dia siguiente, salvo que el
+            // pedido se entregue ese mismo dia.
+            $dia = substr((string) $factura->factura_fecha, 0, 10);
+            if ((string) $factura->hora >= CargaCamion::CORTE_JORNADA
+                && substr((string) $pedido->fecha_entrega, 0, 10) !== $dia) {
+                $dia = self::diaDeReparto($dia, $factura->hora);
+            }
+            if ($dia !== $fecha) {
                 return false;
             }
             $factura->placa = $pedido->placa;
