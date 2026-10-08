@@ -254,16 +254,31 @@ class RecojoDelDia
             <tr><td class='et'>Notas</td><td class='r nro'>" . $t['notas'] . "</td></tr>
         </table>";
 
+        // Tiene que entrar en una sola hoja carta: filas apretadas y letra
+        // grande, que baja un poco solo en los dias con muchas notas.
+        $notas = count($tabla['filas']);
+        [$letra, $alto] = $notas <= 34 ? [10.5, 1.5] : ($notas <= 44 ? [9.5, 1] : [8.5, 0.5]);
+
         return '<style>' . $this->estilosImpresion() . "
-            .firma { margin-top: 52px; text-align: center; font-size: 9px; color: #666 }
+            @page { margin: 8mm 10mm 14mm 10mm }
+            .pie { bottom: -10mm }
+            .logo { width: 80px }
+            .datos { margin-top: 4px }
+            .datos td { padding: 2px 6px; font-size: 10px }
+            .detalle { margin-top: 5px }
+            .detalle th { padding: 3px 4px; font-size: 8.5px }
+            .detalle td { padding: {$alto}px 4px; font-size: {$letra}px; line-height: 1.15 }
+            .firma { margin-top: 26px; text-align: center; font-size: 9px; color: #666 }
             .firma-linea { border-top: 1px solid #999; width: 62mm; margin: 0 auto 3px }
             .firma b { color: #222; font-size: 10px }
-            .nota { color: #1a5fb4; font-weight: bold; font-size: 9px }
+            .nota { color: #1a5fb4; font-weight: bold }
             .b { font-weight: bold }
             .falta { color: #c62828 }
             .motivo { color: #bf360c; font-size: 7.5px }
             .detalle tr.sin td { color: #999; background: #f4f4f4 }
-            .detalle tfoot td { background: #37474f; color: #fff; font-weight: bold; padding: 5px 4px }
+            .detalle tfoot td { background: #37474f; color: #fff; font-weight: bold; padding: 3px 4px }
+            .totales td { padding: 2px 8px; font-size: 10px }
+            .totales .final td { font-size: 12px }
         </style>"
         . $this->cabeceraEmisor($caja)
         . "<table class='datos'>
@@ -293,7 +308,7 @@ class RecojoDelDia
                 <td class='r'>" . number_format($t['falta'], 2) . "</td>
             </tr></tfoot>
         </table>
-        <table class='totales' style='margin-top:9px'>
+        <table class='totales' style='margin-top:5px'>
             <tr><td>Efectivo + QR + Crédito + Falta</td><td class='r' style='width:120px'>Bs. "
                 . number_format($t['efectivo'] + $t['qr'] + $t['credito'] + $t['falta'], 2) . "</td></tr>
             <tr class='final'><td>A RENDIR EN CAJA (EFECTIVO + QR)</td><td class='r'>Bs. "

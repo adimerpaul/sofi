@@ -24,7 +24,7 @@
               <q-item-section avatar><q-icon name="table_view" color="primary"/></q-item-section>
               <q-item-section>
                 <b>Tabla del día</b>
-                <q-item-label caption>Solo las notas cobradas (efectivo y QR)</q-item-label>
+                <q-item-label caption>Notas cobradas (efectivo y QR) y créditos</q-item-label>
               </q-item-section>
             </q-item>
 
@@ -117,8 +117,8 @@
       </q-card>
 
       <q-card flat bordered class="rounded-borders">
-        <!-- El caminero solo ve lo cobrado: las notas donde entro efectivo o QR. -->
-        <TablaRecojo :tabla="tabla" solo-recogido/>
+        <!-- El caminero ve todas sus notas, tambien los creditos, igual que en la hoja impresa. -->
+        <TablaRecojo :tabla="tabla"/>
       </q-card>
     </div>
   </q-page>

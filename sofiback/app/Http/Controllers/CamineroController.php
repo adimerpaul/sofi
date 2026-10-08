@@ -734,11 +734,11 @@ class CamineroController extends Controller
         $caminero = $this->nombre($request);
 
         // La tabla del dia va sola en su hoja, sin las hojas por forma de pago.
-        // Igual que en pantalla: solo las notas cobradas (entro efectivo o QR).
+        // Las notas cobradas (entro efectivo o QR) y las que quedaron a credito.
         if ($grupo === 'tabla') {
             $cobradas = $filas->whereIn('estado', RecojoDelDia::ESTADOS_COBRADOS)
                 ->filter(function ($fila) {
-                    return $fila->monto_efectivo > 0 || $fila->monto_qr > 0;
+                    return $fila->monto_efectivo > 0 || $fila->monto_qr > 0 || $fila->tipago === 'CRÉDITO';
                 })->values();
             return $this->pdf($recojo->tablaHtml($fecha, $caminero, $placa, $cobradas), 'recojo_tabla_' . $fecha);
         }
@@ -770,7 +770,7 @@ class CamineroController extends Controller
 
     /**
      * El recojo en Excel, con lo mismo que se imprime: la tabla del dia (solo
-     * las notas cobradas) y las hojas de contados y de QR, cada una en su
+     * las notas cobradas y los creditos) y las hojas de contados y de QR, cada una en su
      * pestaña y con su total.
      */
     public function reporteExcel(Request $request)
@@ -790,7 +790,7 @@ class CamineroController extends Controller
 
         $cobradas = $filas->whereIn('estado', RecojoDelDia::ESTADOS_COBRADOS)
             ->filter(function ($fila) {
-                return $fila->monto_efectivo > 0 || $fila->monto_qr > 0;
+                return $fila->monto_efectivo > 0 || $fila->monto_qr > 0 || $fila->tipago === 'CRÉDITO';
             })->values();
         $tabla = $recojo->tabla($cobradas);
 

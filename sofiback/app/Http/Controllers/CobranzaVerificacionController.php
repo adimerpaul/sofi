@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Controllers\Concerns\PapeleriaSofia;
+use App\Services\CargaCamion;
 use App\Services\RecojoDelDia;
 use App\Services\TipoPedido;
 use Illuminate\Http\Request;
@@ -296,29 +297,40 @@ class CobranzaVerificacionController extends Controller
         $columnas = [
             ['N°', 'n'], ['Comprobante', 'comprobante'], ['Pedido', 'pedido'], ['Cliente', 'cliente'],
             ['NIT', 'nit'], ['Camión', 'placa'], ['Pago', 'tipo_pago'], ['Entrega', 'entrega'],
-            ['Facturado', 'facturado'], ['Recogido', 'recogido'], ['Verificado', 'monto_verificado'],
-            ['Diferencia', 'diferencia'], ['Estado', 'estado_texto'], ['Verificó', 'verificado_por'],
+            ['Facturado', 'facturado'], ['Recogido', 'recogido'], ['Efectivo verif.', 'efectivo_texto'],
+            ['QR verif.', 'qr_texto'], ['Verificado', 'monto_verificado'],
+            ['Diferencia', 'diferencia'], ['Estado', 'estado_texto'], ['Verificó (quién y cuándo)', 'verifico_texto'],
         ];
         foreach ($columnas as $i => [$titulo]) {
             $hoja->setCellValueByColumnAndRow($i + 1, 4, $titulo);
         }
-        $hoja->getStyle('A4:N4')->getFont()->setBold(true)->getColor()->setRGB('FFFFFF');
-        $hoja->getStyle('A4:N4')->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB('37474F');
+        $hoja->getStyle('A4:P4')->getFont()->setBold(true)->getColor()->setRGB('FFFFFF');
+        $hoja->getStyle('A4:P4')->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB('37474F');
 
         $r = 5;
         foreach ($filas->values() as $i => $f) {
             $valores = $f + [
                 'n' => $i + 1,
                 'comprobante' => ($f['tipo_comprobante'] === 'FACTURA' ? 'Factura #' : 'Venta #') . $f['factura_id'],
-                'estado_texto' => $f['verificado'] ? 'VERIFICADO' : 'PENDIENTE',
+                'efectivo_texto' => $f['efectivo_ok'] ? $f['verificado_efectivo'] : null,
+                'qr_texto' => $f['qr_ok'] ? $f['verificado_qr'] : null,
+                'estado_texto' => $f['verificado'] ? 'VERIFICADO'
+                    : ($f['efectivo_ok'] || $f['qr_ok'] ? 'FALTA ' . ($f['qr_ok'] ? 'EFECTIVO' : 'QR') : 'PENDIENTE'),
                 'placa' => $f['placa'] === 'SIN' ? 'Sin camión' : $f['placa'],
+                // Cada lado tildado con quien y a que hora: "Efectivo: JUAN PEREZ 06/10 14:32".
+                'verifico_texto' => collect(['efectivo' => 'Efectivo', 'qr' => 'QR'])
+                    ->filter(function ($rotulo, $lado) use ($f) { return $f[$lado . '_ok']; })
+                    ->map(function ($rotulo, $lado) use ($f) {
+                        return $rotulo . ': ' . preg_replace('/\s+/', ' ', trim((string) $f[$lado . '_por']))
+                            . ' ' . date('d/m H:i', strtotime($f[$lado . '_en']));
+                    })->implode(' · '),
             ];
             foreach ($columnas as $c => [, $clave]) {
                 $valor = $valores[$clave] ?? '';
                 $hoja->setCellValueByColumnAndRow($c + 1, $r, $valor === null ? '' : $valor);
             }
             if ($f['verificado']) {
-                $hoja->getStyle('A' . $r . ':N' . $r)->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB('E8F5E9');
+                $hoja->getStyle('A' . $r . ':P' . $r)->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB('E8F5E9');
             }
             $r++;
         }
@@ -326,13 +338,15 @@ class CobranzaVerificacionController extends Controller
         $hoja->setCellValue('H' . $r, 'TOTALES');
         $hoja->setCellValue('I' . $r, $t['facturado']);
         $hoja->setCellValue('J' . $r, $t['recogido']);
-        $hoja->setCellValue('K' . $r, $t['verificado']);
-        $hoja->setCellValue('L' . $r, $t['diferencia']);
-        $hoja->setCellValue('M' . $r, $t['verificados'] . '/' . $t['comprobantes']);
-        $hoja->getStyle('A' . $r . ':N' . $r)->getFont()->setBold(true);
-        $hoja->getStyle('A4:N' . $r)->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_THIN)->getColor()->setRGB('BDBDBD');
-        $hoja->getStyle('I5:L' . $r)->getNumberFormat()->setFormatCode('#,##0.00');
-        foreach (range('A', 'N') as $letra) {
+        $hoja->setCellValue('K' . $r, round($filas->where('efectivo_ok', true)->sum('verificado_efectivo'), 2));
+        $hoja->setCellValue('L' . $r, round($filas->where('qr_ok', true)->sum('verificado_qr'), 2));
+        $hoja->setCellValue('M' . $r, $t['verificado']);
+        $hoja->setCellValue('N' . $r, $t['diferencia']);
+        $hoja->setCellValue('O' . $r, $t['verificados'] . '/' . $t['comprobantes']);
+        $hoja->getStyle('A' . $r . ':P' . $r)->getFont()->setBold(true);
+        $hoja->getStyle('A4:P' . $r)->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_THIN)->getColor()->setRGB('BDBDBD');
+        $hoja->getStyle('I5:N' . $r)->getNumberFormat()->setFormatCode('#,##0.00');
+        foreach (range('A', 'P') as $letra) {
             $hoja->getColumnDimension($letra)->setAutoSize(true);
         }
         $hoja->freezePane('A5');
@@ -431,6 +445,7 @@ class CobranzaVerificacionController extends Controller
             'hora_desde' => ['nullable', 'regex:/^([01]\d|2[0-3]):[0-5]\d$/'],
             'hora_hasta' => ['nullable', 'regex:/^([01]\d|2[0-3]):[0-5]\d$/'],
             'user_id' => 'nullable|integer',
+            'camion' => 'nullable|string|max:100',
         ]);
         $desde = $datos['desde'] ?? date('Y-m-d');
         $hasta = $datos['hasta'] ?? $desde;
@@ -440,6 +455,7 @@ class CobranzaVerificacionController extends Controller
             // Hasta las 23:59 incluye ese minuto entero.
             $hasta . ' ' . ($datos['hora_hasta'] ?? '23:59') . ':59',
             isset($datos['user_id']) ? (int) $datos['user_id'] : null,
+            trim((string) ($datos['camion'] ?? '')),
         ];
     }
 
@@ -484,9 +500,10 @@ class CobranzaVerificacionController extends Controller
      * Cada lado verificado en el rango (opcionalmente de un usuario o de un
      * solo lado) con los datos del comprobante, quien lo verifico, el
      * vendedor, la comanda y cuanto va a QR, efectivo o credito: el efectivo
-     * de una venta a credito cuenta como credito.
+     * de una venta a credito cuenta como credito. Con $camion, solo los
+     * comprobantes de ese camion ('SIN' = sin camion).
      */
-    private function verificadosDelRango($inicio, $fin, $usuario, $soloLado = null)
+    private function verificadosDelRango($inicio, $fin, $usuario, $soloLado = null, $camion = '')
     {
         $lados = $this->ladosDelRango($inicio, $fin, $usuario, $soloLado);
         if ($lados->isEmpty()) {
@@ -504,9 +521,9 @@ class CobranzaVerificacionController extends Controller
                 return [trim($p->ci) => trim(trim((string) $p->Nombre1) . ' ' . trim((string) $p->App1))];
             });
 
-        return $lados->map(function ($v) use ($filas, $facturas, $vendedores) {
+        return $lados->map(function ($v) use ($filas, $facturas, $vendedores, $camion) {
             $fila = $filas->get((int) $v->factura_id);
-            if (!$fila) {
+            if (!$fila || ($camion !== '' && $fila['placa'] !== $camion)) {
                 return null;
             }
             $factura = $facturas->get((int) $v->factura_id);
@@ -537,8 +554,8 @@ class CobranzaVerificacionController extends Controller
      */
     public function excelQr(Request $request)
     {
-        [$inicio, $fin, $usuario] = $this->rangoVerificados($request);
-        $filas = $this->verificadosDelRango($inicio, $fin, $usuario, 'qr')->filter(function ($f) { return $f['qr'] > 0; })->values();
+        [$inicio, $fin, $usuario, $camion] = $this->rangoVerificados($request);
+        $filas = $this->verificadosDelRango($inicio, $fin, $usuario, 'qr', $camion)->filter(function ($f) { return $f['qr'] > 0; })->values();
         $desde = substr($inicio, 0, 10);
         $hasta = substr($fin, 0, 10);
 
@@ -555,6 +572,10 @@ class CobranzaVerificacionController extends Controller
             if ($usuario) {
                 $fila++;
                 $hoja->setCellValue('B' . $fila, 'VERIFICÓ ' . $filas->first()['verificador']);
+            }
+            if ($camion !== '') {
+                $fila++;
+                $hoja->setCellValue('B' . $fila, 'CAMIÓN ' . ($camion === 'SIN' ? 'SIN CAMIÓN' : $camion));
             }
             $fila += 2;
         }
@@ -628,16 +649,17 @@ class CobranzaVerificacionController extends Controller
 
     private function cierreEfectivo(Request $request, $detalle)
     {
-        [$inicio, $fin, $usuario] = $this->rangoVerificados($request);
+        [$inicio, $fin, $usuario, $camion] = $this->rangoVerificados($request);
         // Solo el lado efectivo; el efectivo de una venta a credito no es plata.
-        $filas = $this->verificadosDelRango($inicio, $fin, $usuario, 'efectivo')
+        $filas = $this->verificadosDelRango($inicio, $fin, $usuario, 'efectivo', $camion)
             ->filter(function ($f) { return $f['credito'] <= 0; })->values();
 
         $libro = new Spreadsheet();
         $libro->removeSheetByIndex(0);
         $borde = ['borders' => ['allBorders' => ['borderStyle' => Border::BORDER_THIN]]];
         $gris = ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'D9D9D9']];
-        $rango = date('d/m/Y H:i', strtotime($inicio)) . ' a ' . date('d/m/Y H:i', strtotime($fin));
+        $rango = date('d/m/Y H:i', strtotime($inicio)) . ' a ' . date('d/m/Y H:i', strtotime($fin))
+            . ($camion !== '' ? ' · Camión ' . ($camion === 'SIN' ? 'sin camión' : $camion) : '');
         $titulo1 = $detalle ? 'DETALLE DE EFECTIVO VERIFICADO' : 'CIERRE DE EFECTIVO VERIFICADO';
 
         $grupos = $filas->isEmpty() ? collect(['SIN VERIFICACIONES' => collect()]) : $filas->groupBy('verificador')->sortKeys();
@@ -762,19 +784,33 @@ class CobranzaVerificacionController extends Controller
     }
 
     /**
-     * Los comprobantes vigentes de un dia, con su camion, lo que marco el
-     * caminero y la verificacion de cobranzas. $facturaId puede ser un id o
-     * una lista de ids (las compras de un cliente).
+     * Los comprobantes vigentes de un dia de entrega, con su camion, lo que
+     * marco el caminero y la verificacion de cobranzas. $facturaId puede ser
+     * un id o una lista de ids (las compras de un cliente).
+     *
+     * El dia es el de la entrega del camion, no el de la factura: caja factura
+     * de noche lo que sale a la manana siguiente, y cobranzas verifica contra
+     * lo que trajo el camion ese dia (la misma hoja que firma el caminero).
      */
     private function filas($fecha, $camion, $facturaId = null)
     {
+        $vispera = $fecha ? date('Y-m-d', strtotime($fecha . ' -1 day')) : null;
         $facturas = DB::table('facturas as f')
             ->leftJoin('tbclientes as c', 'c.Cod_Aut', '=', 'f.cliente_id')
             ->whereNull('f.deleted_at')
             ->where('f.estado', 'ACTIVO')
-            ->when($fecha, function ($q) use ($fecha) { $q->where('f.fecha', $fecha); })
+            // Candidatos: lo facturado la vispera o ese dia, y lo entregado ese
+            // dia aunque se haya facturado antes. Abajo se decide el dia exacto.
+            ->when($fecha, function ($q) use ($fecha, $vispera) {
+                $q->where(function ($w) use ($fecha, $vispera) {
+                    $w->whereBetween('f.fecha', [$vispera, $fecha])
+                        ->orWhereIn('f.id', function ($e) use ($fecha) {
+                            $e->from('entregas')->whereNotNull('factura_id')->where('fechaEntreg', $fecha)->select('factura_id');
+                        });
+                });
+            })
             ->when($facturaId, function ($q) use ($facturaId) { $q->whereIn('f.id', (array) $facturaId); })
-            ->orderBy('f.hora')
+            ->orderBy('f.id')
             ->get([
                 'f.id', 'f.cliente_id', 'f.fecha', 'f.hora', 'f.tipo_comprobante', 'f.tipo_pago', 'f.total', 'f.pedido_nro', 'f.pedido_tipo',
                 'f.monto_efectivo', 'f.monto_qr',
@@ -796,19 +832,31 @@ class CobranzaVerificacionController extends Controller
                 'NroPed', DB::raw(TipoPedido::sqlAgrupado('') . ' as tipo'),
                 DB::raw("TRIM(COALESCE(MIN(placa), '')) as placa"),
                 DB::raw("TRIM(COALESCE(MIN(colorStyle), '')) as color"),
+                DB::raw('MIN(fecha_entrega) as fecha_entrega'),
             ])
             ->keyBy(function ($p) { return $p->NroPed . '-' . $p->tipo; });
 
         $ids = $facturas->pluck('id')->all();
         // La ultima entrega registrada es la que vale.
         $entregas = DB::table('entregas')->whereIn('factura_id', $ids)->orderBy('id')
-            ->get(['factura_id', 'estado', 'tipago', 'monto_efectivo', 'monto_qr'])->keyBy('factura_id');
+            ->get(['factura_id', 'estado', 'tipago', 'monto_efectivo', 'monto_qr', 'fechaEntreg', DB::raw("TRIM(COALESCE(placa, '')) as placa")])
+            ->keyBy('factura_id');
         $verificaciones = DB::table('cobranza_verificaciones')->whereIn('factura_id', $ids)->get()->keyBy('factura_id');
+
+        // Con fecha, solo lo que el camion entrega ese dia.
+        if ($fecha) {
+            $facturas = $facturas->filter(function ($f) use ($fecha, $pedidos, $entregas) {
+                $pedido = $pedidos->get($f->pedido_nro . '-' . strtoupper(trim((string) $f->pedido_tipo)));
+                return $this->diaDeEntrega($f, $pedido, $entregas->get($f->id)) === $fecha;
+            });
+        }
 
         return $facturas->map(function ($f) use ($pedidos, $entregas, $verificaciones) {
             $pedido = $pedidos->get($f->pedido_nro . '-' . strtoupper(trim((string) $f->pedido_tipo)));
             $entrega = $entregas->get($f->id);
             $v = $verificaciones->get($f->id);
+            // El camion que lo llevo: el de la entrega; sin entrega, el del pedido.
+            $placa = $entrega && $entrega->placa !== '' ? $entrega->placa : ($pedido && $pedido->placa !== '' ? $pedido->placa : 'SIN');
 
             // Lo que trajo el camion: efectivo y QR de la entrega cobrada. A
             // credito o sin entregar no trajo plata; sin entrega todavia, no se sabe.
@@ -856,8 +904,9 @@ class CobranzaVerificacionController extends Controller
                 'cliente' => $f->cliente,
                 'cliente_id' => $f->cliente_id,
                 'nit' => $f->nit,
-                'placa' => $pedido && $pedido->placa !== '' ? $pedido->placa : 'SIN',
-                'placa_color' => $pedido->color ?? '',
+                'dia_entrega' => $this->diaDeEntrega($f, $pedido, $entrega),
+                'placa' => $placa,
+                'placa_color' => $pedido && $pedido->placa === $placa ? $pedido->color : '',
                 'entregado' => $entrega && in_array($entrega->estado, RecojoDelDia::ESTADOS_COBRADOS, true),
                 'entrega' => $entrega ? ($entrega->estado . ($entrega->tipago ? ' · ' . $entrega->tipago : '')) : 'PENDIENTE',
                 'facturado' => $facturado,
@@ -886,6 +935,25 @@ class CobranzaVerificacionController extends Controller
         })->filter(function ($fila) use ($camion) {
             return !$camion || $fila['placa'] === $camion;
         })->values();
+    }
+
+    /**
+     * El dia en que el camion entrega el comprobante: el de su ultima entrega
+     * si ya la hay; si no, la misma regla que la lista del caminero: lo
+     * facturado despues del corte (18:00) va al dia siguiente, salvo que el
+     * pedido se entregue ese mismo dia.
+     */
+    private function diaDeEntrega($factura, $pedido, $entrega)
+    {
+        if ($entrega && $entrega->fechaEntreg) {
+            return substr((string) $entrega->fechaEntreg, 0, 10);
+        }
+        $dia = substr((string) $factura->fecha, 0, 10);
+        if ((string) $factura->hora >= CargaCamion::CORTE_JORNADA
+            && !($pedido && substr((string) $pedido->fecha_entrega, 0, 10) === $dia)) {
+            $dia = date('Y-m-d', strtotime($dia . ' +1 day'));
+        }
+        return $dia;
     }
 
     /** EFECTIVO, QR, MIXTO o CRÉDITO segun el tipo de pago y los montos de cada lado. */
