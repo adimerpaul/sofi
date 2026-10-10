@@ -70,9 +70,10 @@ trait PapeleriaSofia
     /**
      * Logo, datos de la empresa y, a la derecha, la caja del documento. La
      * factura fiscal pasa su razon social: el nombre comercial no es el que
-     * esta registrado en Impuestos.
+     * esta registrado en Impuestos. $centro va entre los datos y la caja
+     * (la factura pone ahi el numero de venta).
      */
-    private function cabeceraEmisor($cajaDerecha, $nombre = null)
+    private function cabeceraEmisor($cajaDerecha, $nombre = null, $centro = '')
     {
         $emisor = config('siat.emisor');
         $archivo = public_path($emisor['logo'] ?? 'img/sofia.png');
@@ -91,6 +92,7 @@ trait PapeleriaSofia
                         Telf. " . e($emisor['telefono']) . " &middot; " . e($emisor['ciudad']) . "
                     </div>
                 </td>
+                " . ($centro !== '' ? "<td class='id-venta'>$centro</td>" : '') . "
                 <td style='width:210px'>$cajaDerecha</td>
             </tr>
         </table>";

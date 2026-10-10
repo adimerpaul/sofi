@@ -3008,11 +3008,34 @@ class FacturacionController extends Controller
                 . '</tr>';
         }
 
-        $caja = "<table class='caja-doc'>
+        // El voucher va en negro y sin logo, para que el camionero no lo
+        // confunda con la factura (que sigue en rojo con el logo).
+        $caja = "<table class='caja-doc caja-negra'>
             <tr><td colspan='2' class='tit'>BOLETA DE ENTREGA</td></tr>
             <tr><td class='et'>Nro</td><td class='r nro'>" . $factura->id . "</td></tr>
             <tr><td class='et'>Fecha</td><td class='r'>" . $factura->fecha->format('d/m/Y') . "</td></tr>
             <tr><td class='et'>Hora</td><td class='r'>" . e($factura->hora) . "</td></tr>
+        </table>";
+
+        // Al centro, grande, el id de la venta: es el correlativo con el que
+        // se controla el reparto.
+        $emisor = config('siat.emisor');
+        $cabecera = "<table class='cabecera'>
+            <tr>
+                <td style='width:250px'>
+                    <div class='empresa-negra'>" . e($emisor['nombre']) . "</div>
+                    <div class='empresa-dato'>
+                        " . e($emisor['sucursal']) . " &middot; NIT " . e(config('siat.nit')) . "<br>
+                        " . e($emisor['direccion']) . "<br>
+                        Telf. " . e($emisor['telefono']) . " &middot; " . e($emisor['ciudad']) . "
+                    </div>
+                </td>
+                <td class='id-venta'>
+                    <div class='id-et'>N&ordm; DE VENTA</div>
+                    <div class='id-nro'>" . $factura->id . "</div>
+                </td>
+                <td style='width:210px'>$caja</td>
+            </tr>
         </table>";
 
         $anulado = $factura->estado === 'ANULADO'
@@ -3027,8 +3050,15 @@ class FacturacionController extends Controller
             .firmas { width: 100%; margin-top: 26px }
             .firmas td { padding: 0 14px; font-size: 8.5px; color: #666; text-align: center }
             .firma-linea { border-top: 1px solid #999; padding-top: 3px; margin-top: 34px }
+            .empresa-negra { font-size: 14px; font-weight: bold; color: #000; letter-spacing: .5px }
+            .id-venta { text-align: center; vertical-align: middle }
+            .id-et { font-size: 9px; font-weight: bold; color: #444; letter-spacing: 2px }
+            .id-nro { font-size: 34px; font-weight: bold; color: #000; line-height: 1.1 }
+            .caja-negra { border-color: #000 }
+            .caja-negra .tit { background: #000 }
+            .caja-negra .nro { color: #000 }
         </style>"
-        . $this->cabeceraEmisor($caja)
+        . $cabecera
         . $anulado
         . "<table class='datos'>
             <tr>
@@ -3217,9 +3247,18 @@ class FacturacionController extends Controller
 
         $html = '<style>' . $this->estilosImpresion() . "
             .subtitulo { text-align: center; font-size: 8.5px; color: #666; margin: 6px 0 2px }
+            .id-venta { text-align: center; vertical-align: middle }
+            .id-et { font-size: 9px; font-weight: bold; color: #444; letter-spacing: 2px }
+            .id-nro { font-size: 34px; font-weight: bold; color: #000; line-height: 1.1 }
         </style>"
         // La factura fiscal va con la razon social registrada en Impuestos.
-        . $this->cabeceraEmisor($caja, \App\Models\SiatConfiguracion::activa()->razon_social ?: config('siat.razon_social'))
+        // Al centro, como en el voucher, el id de la venta para el control
+        // del reparto (el numero fiscal sigue en la caja de la derecha).
+        . $this->cabeceraEmisor(
+            $caja,
+            \App\Models\SiatConfiguracion::activa()->razon_social ?: config('siat.razon_social'),
+            "<div class='id-et'>N&ordm; DE VENTA</div><div class='id-nro'>" . $factura->id . '</div>'
+        )
         . "<div class='subtitulo'>(Con derecho a crédito fiscal)</div>"
         . $sinCuf
         . $anulado
@@ -3304,6 +3343,11 @@ class FacturacionController extends Controller
      */
     public function lote(Request $request, $documento)
     {
+        // Un camion entero son cientos de hojas y con 128 MB dompdf se queda
+        // sin memoria a la mitad.
+        ini_set('memory_limit', '2048M');
+        set_time_limit(600);
+
         // 'todos' saca el paquete completo del filtro sin separar por tipo:
         // cada venta en el papel que le toca, que es como caja lo reparte.
         if (!in_array($documento, ['factura', 'voucher', 'todos'], true)) {
