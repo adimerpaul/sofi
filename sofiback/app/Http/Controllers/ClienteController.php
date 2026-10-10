@@ -384,6 +384,28 @@ class ClienteController extends Controller{
         ");
     }
 
+    /**
+     * Los canales que valen segun el supra canal. Sin tildes, como el resto de
+     * tbclientes (es del sistema anterior). La pantalla Clientes tiene la
+     * misma lista para el select.
+     */
+    const CANALES = [
+        'ON' => [
+            'COMIDA RAPIDA', 'RESTAURANT', 'POLLERIA', 'VENTA AL PASO', 'INSTITUCION', 'ENTRETENIMIENTO',
+            'HOGAR', 'EMPRESA', 'COMEDOR', 'PIZZERIA', 'REPOSTERIA',
+        ],
+        'OFF' => [
+            'FRIAL', 'ABARROTES', 'PUESTO DE MERCADO', 'PUESTO DE MERCADO PET', 'TIENDA DE BARRIO',
+            'VETERINARIA', 'MICROMERCADO', 'PET SHOP', 'AGENCIA DE HUEVOS',
+        ],
+    ];
+
+    /** Las zonas del despegable de Clientes (la misma lista tiene la pantalla). */
+    const ZONAS = [
+        'NORTE', 'SUD', 'CENTRO', 'PROVINCIA', 'COLQUIRI', 'HUANUNI', 'LLALLAGUA', 'CARACOLLO',
+        'CHALLAPATA', 'UNCIA', 'POOPO', 'MACHACAMARCA',
+    ];
+
     // Campos de tbclientes que se pueden editar desde la pantalla Clientes.
     // Casi todas las columnas son NOT NULL sin default: un texto vacio se guarda como '' y un numero como 0.
     private $camposTexto = [
@@ -404,6 +426,8 @@ class ClienteController extends Controller{
             'Id' => 'required|string|max:15',
             'Latitud' => 'nullable|max:15',
             'longitud' => 'nullable|max:15',
+            // Supra canal solo es ON u OFF (en la pantalla es un select).
+            'SupraCanal' => 'nullable|in:ON,OFF,on,off',
         ]);
         $ci = trim($request->Id);
         $duplicado = Cliente::whereRaw('TRIM(Id) = ?', [$ci])
@@ -427,6 +451,26 @@ class ClienteController extends Controller{
             $datos[$campo] = is_numeric($valor) ? $valor : 0;
         }
         $datos['Id'] = $ci;
+        // Un cliente nuevo sin elegir queda en OFF, que es lo de casi todos.
+        if (array_key_exists('SupraCanal', $datos)) {
+            $datos['SupraCanal'] = strtoupper($datos['SupraCanal']) ?: ($nuevo ? 'OFF' : '');
+        }
+        // La zona sale del despegable; vacia se acepta (se completa al editar).
+        if (array_key_exists('zona', $datos) && $datos['zona'] !== '') {
+            $datos['zona'] = strtoupper($datos['zona']);
+            if (!in_array($datos['zona'], self::ZONAS, true)) {
+                abort(422, 'La zona ' . $datos['zona'] . ' no está en la lista');
+            }
+        }
+        // El canal tiene que ser uno de los de su supra canal (vacio se acepta:
+        // hay clientes viejos sin canal que se completan al editarlos).
+        if (array_key_exists('Canal', $datos) && $datos['Canal'] !== '') {
+            $datos['Canal'] = strtoupper($datos['Canal']);
+            $supra = $datos['SupraCanal'] ?? trim((string) Cliente::where('Cod_Aut', $codAut)->value('SupraCanal'));
+            if (!in_array($datos['Canal'], self::CANALES[$supra] ?? [], true)) {
+                abort(422, 'El canal ' . $datos['Canal'] . ' no corresponde al supra canal ' . ($supra ?: '(vacío)'));
+            }
+        }
         // Con excepcion de deuda no se bloquea: se habilita en el momento, sin esperar al recalculo.
         if (!empty($datos['excepcion_deuda'])) {
             $datos['venta'] = 'ACTIVO';

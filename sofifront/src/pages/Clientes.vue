@@ -136,17 +136,21 @@
                   <div class="col-12 col-md-5"><q-input v-model="cliente.Nombres" label="Nombre *" dense outlined maxlength="70" :rules="[v => !!v || 'Requerido']"/></div>
                   <div class="col-8 col-md-3"><q-input v-model="cliente.Id" label="CI / NIT *" dense outlined maxlength="15" :rules="[v => !!v || 'Requerido']"/></div>
                   <div class="col-4 col-md-2"><q-input v-model="cliente.complto" label="Complemento" dense outlined maxlength="5"/></div>
+                  <!-- Sin uso: se oculta, pero el valor se conserva al guardar.
                   <div class="col-12 col-md-2"><q-input v-model.number="cliente.Tipodocu" label="Tipo doc" dense outlined type="number"/></div>
+                  -->
                   <div class="col-12 col-md-3"><q-input v-model="cliente.Telf" label="Teléfono" dense outlined maxlength="100"/></div>
                   <div class="col-12 col-md-3"><q-input v-model="cliente.Correcli" label="Email" dense outlined maxlength="50"/></div>
                   <div class="col-12 col-md-6"><q-input v-model="cliente.Direccion" label="Dirección" dense outlined maxlength="100"/></div>
                   <div class="col-12 col-md-3"><q-input v-model="cliente.Empresa" label="Empresa" dense outlined maxlength="150"/></div>
+                  <!-- Sin uso: se ocultan, pero los valores se conservan al guardar.
                   <div class="col-12 col-md-3"><q-input v-model="cliente.profecion" label="Profesión" dense outlined maxlength="60"/></div>
                   <div class="col-6 col-md-2"><q-input v-model="cliente.sexo" label="Sexo" dense outlined maxlength="20"/></div>
                   <div class="col-6 col-md-2"><q-input v-model="cliente.edad" label="Edad" dense outlined maxlength="3"/></div>
                   <div class="col-6 col-md-2"><q-input v-model="cliente.EstCiv" label="Estado civil" dense outlined maxlength="50"/></div>
                   <div class="col-6 col-md-2"><q-input v-model="cliente.Cod_ciudad" label="Cod ciudad" dense outlined maxlength="4"/></div>
                   <div class="col-6 col-md-2"><q-input v-model="cliente.Cod_Nacio" label="Cod nacio" dense outlined maxlength="4"/></div>
+                  -->
                 </div>
               </q-tab-panel>
 
@@ -156,15 +160,26 @@
                     <q-select v-model="cliente.CiVend" :options="vendedoresFiltrados" use-input fill-input hide-selected input-debounce="0" @filter="filtrarVendedores" option-label="label" option-value="ci"
                               emit-value map-options clearable dense outlined label="Vendedor (preventista)"/>
                   </div>
+                  <!-- Sin uso: se ocultan, pero los valores se conservan al guardar.
                   <div class="col-6 col-md-2"><q-input v-model.number="cliente.cod_car" label="Cod car" dense outlined type="number"/></div>
                   <div class="col-6 col-md-2"><q-input v-model.number="cliente.Categoria" label="Categoría" dense outlined type="number"/></div>
+                  -->
                   <div class="col-6 col-md-2"><q-input v-model.number="cliente.codcli" label="Cod cliente" dense outlined type="number"/></div>
+                  <!--
                   <div class="col-6 col-md-2"><q-input v-model="cliente.clinew" label="Cli new" dense outlined maxlength="3"/></div>
                   <div class="col-6 col-md-2"><q-input v-model.number="cliente.Imp_pieza" label="Imp pieza" dense outlined type="number" step="0.01"/></div>
-                  <div class="col-6 col-md-2"><q-input v-model="cliente.SupraCanal" label="Supra canal" dense outlined maxlength="5"/></div>
-                  <div class="col-6 col-md-3"><q-input v-model="cliente.Canal" label="Canal" dense outlined maxlength="80"/></div>
+                  -->
+                  <div class="col-6 col-md-2">
+                    <q-select v-model="cliente.SupraCanal" :options="['OFF', 'ON']" label="Supra canal" dense outlined
+                              @update:model-value="cambiarSupraCanal"/>
+                  </div>
+                  <!-- El canal sale de la lista de su supra canal. -->
+                  <div class="col-6 col-md-3">
+                    <q-select v-model="cliente.Canal" :options="canalesDelSupra" label="Canal" dense outlined clearable
+                              :hint="cliente.Canal ? '' : 'Sin canal: elija uno'"/>
+                  </div>
                   <div class="col-6 col-md-3"><q-input v-model="cliente.subcanal" label="Subcanal" dense outlined maxlength="20"/></div>
-                  <div class="col-6 col-md-3"><q-input v-model="cliente.zona" label="Zona" dense outlined maxlength="20"/></div>
+                  <div class="col-6 col-md-3"><q-select v-model="cliente.zona" :options="ZONAS" label="Zona" dense outlined clearable/></div>
                   <div class="col-6 col-md-3"><q-input v-model="cliente.territorio" label="Territorio" dense outlined maxlength="10"/></div>
                   <div class="col-6 col-md-3"><q-input v-model="cliente.transporte" label="Transporte" dense outlined maxlength="60"/></div>
                   <div class="col-6 col-md-3">
@@ -322,6 +337,19 @@ const iconoMarcador = L.divIcon({
   iconAnchor: [14, 14]
 })
 
+// Los canales que valen segun el supra canal; la misma lista valida el backend
+// (ClienteController::CANALES). Sin tildes, como el resto de tbclientes.
+const CANALES = {
+  ON: ['COMIDA RAPIDA', 'RESTAURANT', 'POLLERIA', 'VENTA AL PASO', 'INSTITUCION', 'ENTRETENIMIENTO',
+    'HOGAR', 'EMPRESA', 'COMEDOR', 'PIZZERIA', 'REPOSTERIA'],
+  OFF: ['FRIAL', 'ABARROTES', 'PUESTO DE MERCADO', 'PUESTO DE MERCADO PET', 'TIENDA DE BARRIO',
+    'VETERINARIA', 'MICROMERCADO', 'PET SHOP', 'AGENCIA DE HUEVOS']
+}
+
+// Las zonas del despegable; la misma lista valida el backend (ClienteController::ZONAS).
+const ZONAS = ['NORTE', 'SUD', 'CENTRO', 'PROVINCIA', 'COLQUIRI', 'HUANUNI', 'LLALLAGUA', 'CARACOLLO',
+  'CHALLAPATA', 'UNCIA', 'POOPO', 'MACHACAMARCA']
+
 const camposNumero = [
   'Tipodocu', 'cod_car', 'Categoria', 'codcli', 'Imp_pieza', 'ctasMont', 'ctasdias',
   'lu', 'Ma', 'Mi', 'Ju', 'Vi', 'Sa', 'do',
@@ -331,7 +359,7 @@ const camposNumero = [
 const clienteVacio = () => ({
   Cod_Aut: null, Id: '', Nombres: '', Telf: '', Direccion: '', complto: '', Tipodocu: 0, Correcli: '',
   Empresa: '', profecion: '', sexo: '', edad: '', EstCiv: '', Cod_ciudad: '', Cod_Nacio: '',
-  cod_car: 0, Categoria: 0, codcli: 0, clinew: '', CiVend: '', Imp_pieza: 0, SupraCanal: '', Canal: '',
+  cod_car: 0, Categoria: 0, codcli: 0, clinew: '', CiVend: '', Imp_pieza: 0, SupraCanal: 'OFF', Canal: '',
   subcanal: '', zona: '', territorio: '', transporte: '', venta: 'ACTIVO', tarjeta: '', TipoPaciente: '',
   ctasMont: 0, ctasdias: 0, MotivoListBlack: '', Latitud: '', longitud: '',
   lu: 0, Ma: 0, Mi: 0, Ju: 0, Vi: 0, Sa: 0, do: 0,
@@ -341,6 +369,7 @@ const clienteVacio = () => ({
 export default {
   data () {
     return {
+      ZONAS,
       loading: false,
       guardando: false,
       filter: '',
@@ -395,6 +424,9 @@ export default {
     }
   },
   computed: {
+    canalesDelSupra () {
+      return CANALES[this.cliente.SupraCanal] || []
+    },
     totales () {
       const lista = this.clientesFiltrados
       let inactivos = 0
@@ -470,6 +502,11 @@ export default {
     this.vendedoresGet()
   },
   methods: {
+    // Al pasar de ON a OFF (o al reves) el canal elegido ya no vale: se limpia
+    // para que se elija uno de la otra lista.
+    cambiarSupraCanal (supra) {
+      if (!(CANALES[supra] || []).includes(this.cliente.Canal)) this.cliente.Canal = ''
+    },
     quitar () {
       this.$api.post('bloquear').then(() => this.misclientes())
     },
