@@ -93,6 +93,10 @@ Route::group(['middleware'=>'auth:sanctum'],function (){
     // Van antes de /facturacion/{factura}: si no, 'lote' y 'reporte' entrarian
     // como si fueran el id de una factura.
     Route::get('/facturacion/lote/{documento}',[\App\Http\Controllers\FacturacionController::class,'lote']);
+    // La pantalla arma el lote en partes: primero pide los ids ya revisados
+    // y al final marca como impreso todo junto.
+    Route::get('/facturacion/lote/{documento}/ids',[\App\Http\Controllers\FacturacionController::class,'loteIds']);
+    Route::post('/facturacion/impresos',[\App\Http\Controllers\FacturacionController::class,'marcarImpresos']);
     Route::get('/facturacion/reporte',[\App\Http\Controllers\FacturacionController::class,'reporte']);
     Route::get('/facturacion/carga',[\App\Http\Controllers\FacturacionController::class,'carga']);
     // Caja aprueba la carga de todo un camion de una vez.

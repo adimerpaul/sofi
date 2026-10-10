@@ -43,7 +43,7 @@ class FacturacionController extends Controller
     private const FECHA_NULA = '1899-11-30 04:32:36';
 
     /** Tope de comprobantes por PDF; mas que esto no se imprime de una vez. */
-    private const MAX_LOTE = 150;
+    private const MAX_LOTE = 600;
 
     /** Lo anulado ya no vale: no se imprime por ninguna via. */
     private const NO_IMPRIME_ANULADO = 'El comprobante está anulado: no se puede imprimir';
@@ -3369,28 +3369,21 @@ class FacturacionController extends Controller
         return $html;
     }
 
+    /** Ventas por pedido del lote: cada parte sale en un request corto. */
+    private const POR_PARTE = 30;
+
     /**
-     * Todos los comprobantes del filtro en un solo PDF, uno por hoja.
+     * Las ventas que entran en un lote, o la respuesta que explica por que no
+     * se puede imprimir.
      *
      * Cada lote lleva solo lo suyo: el de facturas, las ventas entregadas como
      * factura; el de vouchers, las que salieron como voucher. Asi lo del dia se
      * imprime de una vez sin que una misma venta salga en los dos lotes.
-     * El tope existe para no armar un PDF de cientos de hojas por un filtro
-     * demasiado abierto.
+     *
+     * @return array [$facturas, $error]
      */
-    public function lote(Request $request, $documento)
+    private function facturasDelLote(Request $request, $documento)
     {
-        // Un camion entero son cientos de hojas y con 128 MB dompdf se queda
-        // sin memoria a la mitad.
-        ini_set('memory_limit', '2048M');
-        set_time_limit(600);
-
-        // 'todos' saca el paquete completo del filtro sin separar por tipo:
-        // cada venta en el papel que le toca, que es como caja lo reparte.
-        if (!in_array($documento, ['factura', 'voucher', 'todos'], true)) {
-            $documento = 'voucher';
-        }
-
         $facturas = $this->filtrar($request)
             // Aunque el filtro muestre anulados, esos no salen en el papel.
             ->where('estado', '<>', 'ANULADO')
@@ -3405,14 +3398,23 @@ class FacturacionController extends Controller
             })
             // Sale en el orden en que se reparte: embutidos, pollo, cerdo y
             // podium/huevo; despues res y la venta directa (sin tipo). Dentro
-            // de cada tipo, por numero de venta.
+            // de cada tipo, por numero de venta. Las partes usan el mismo
+            // orden, asi que juntas quedan igual que un lote entero.
             ->reorder()
             ->orderByRaw("CASE UPPER(TRIM(COALESCE(facturas.pedido_tipo, '')))
                 WHEN 'NORMAL' THEN 1 WHEN 'POLLO' THEN 2 WHEN 'CERDO' THEN 3
                 WHEN 'PODIUM' THEN 4 WHEN 'RES' THEN 5 ELSE 6 END")
             ->orderBy('facturas.id')
-            ->limit(self::MAX_LOTE)
+            // Uno de mas para saber si el filtro se pasa del tope: antes se
+            // cortaba en silencio y quedaban ventas sin imprimir.
+            ->limit(self::MAX_LOTE + 1)
             ->get();
+
+        if ($facturas->count() > self::MAX_LOTE) {
+            return [null, response()->json([
+                'message' => 'Son más de ' . self::MAX_LOTE . ' comprobantes; filtrá por camión o por hora para imprimirlos en partes',
+            ], 422)];
+        }
 
         if ($facturas->isEmpty()) {
             $vacio = [
@@ -3421,18 +3423,80 @@ class FacturacionController extends Controller
                 'todos' => 'No hay comprobantes vigentes en lo que estás viendo (los anulados no se imprimen)',
             ];
 
-            return response()->json(['message' => $vacio[$documento]], 422);
+            return [null, response()->json(['message' => $vacio[$documento]], 422)];
         }
 
         // Un lote sale entero o no sale: si alguno de los camiones todavia no
         // reviso su carga se frena todo, porque el papel se reparte junto.
         $camiones = $this->camionesSinVerificar($facturas);
         if (!empty($camiones)) {
-            return response()->json([
+            return [null, response()->json([
                 'message' => count($camiones) === 1
                     ? 'El camión ' . $camiones[0] . ' todavía no verificó su carga; no se puede imprimir el lote'
                     : 'Estos camiones todavía no verificaron su carga: ' . implode(', ', $camiones),
-            ], 422);
+            ], 422)];
+        }
+
+        return [$facturas, null];
+    }
+
+    /** 'todos' saca el paquete completo del filtro sin separar por tipo. */
+    private function documentoDeLote($documento)
+    {
+        return in_array($documento, ['factura', 'voucher', 'todos'], true) ? $documento : 'voucher';
+    }
+
+    /**
+     * Las ventas de un lote, ya revisadas y en orden, para que la pantalla
+     * pida el PDF en partes: cientos de hojas en un solo request dejaban a
+     * dompdf sin memoria o a la pantalla esperando sin fin.
+     */
+    public function loteIds(Request $request, $documento)
+    {
+        [$facturas, $error] = $this->facturasDelLote($request, $this->documentoDeLote($documento));
+        if ($error) {
+            return $error;
+        }
+
+        return response()->json([
+            'ids'       => $facturas->pluck('id')->all(),
+            'por_parte' => self::POR_PARTE,
+        ]);
+    }
+
+    /**
+     * Marca como impresas las ventas de un lote armado en partes: recien
+     * cuando el PDF entero llego a la pantalla, no parte por parte.
+     */
+    public function marcarImpresos(Request $request)
+    {
+        $ids = $this->idsSeleccionados($request);
+        if (empty($ids) || count($ids) > self::MAX_LOTE) {
+            return response()->json(['message' => 'No hay comprobantes para marcar'], 422);
+        }
+
+        $request->merge(['imprimir' => 1]);
+        $this->marcarImpreso($request, $ids);
+
+        return response()->json(['marcadas' => count($ids)]);
+    }
+
+    /**
+     * Los comprobantes del filtro (o de los ids pedidos) en un solo PDF, uno
+     * por hoja. La pantalla lo pide de a partes con ids=...; sin ids sale el
+     * filtro entero, hasta el tope.
+     */
+    public function lote(Request $request, $documento)
+    {
+        // Muchas hojas juntas: con 128 MB dompdf se queda sin memoria.
+        ini_set('memory_limit', '2048M');
+        set_time_limit(600);
+
+        $documento = $this->documentoDeLote($documento);
+
+        [$facturas, $error] = $this->facturasDelLote($request, $documento);
+        if ($error) {
+            return $error;
         }
 
         // Con copias=1 cada comprobante sale dos veces seguidas: ORIGINAL para

@@ -107,18 +107,44 @@
         <q-btn color="primary" outline dense no-caps icon="add" label="Agregar producto" @click="abrirCatalogo"/>
       </div>
 
-      <q-banner v-if="lineasCambiadas.length" dense rounded class="bg-deep-orange-1 text-deep-orange-10 q-mb-sm">
+      <q-banner v-if="lineasCambiadas.length || lineasNuevas.length" dense rounded class="bg-deep-orange-1 text-deep-orange-10 q-mb-sm">
         <template v-slot:avatar><q-icon name="published_with_changes" color="deep-orange"/></template>
         <span class="text-weight-medium">
-          {{ lineasCambiadas.length }}
-          {{ lineasCambiadas.length === 1 ? 'producto sale' : 'productos salen' }}
-          con una cantidad distinta a la del pedido
+          <template v-if="lineasCambiadas.length">
+            {{ lineasCambiadas.length }}
+            {{ lineasCambiadas.length === 1 ? 'producto sale' : 'productos salen' }}
+            con una cantidad distinta a la del pedido
+          </template>
+          <template v-if="lineasNuevas.length">
+            {{ lineasCambiadas.length ? '·' : '' }} {{ lineasNuevas.length }}
+            {{ lineasNuevas.length === 1 ? 'agregado' : 'agregados' }}
+          </template>
         </span>
+        <!-- En un pedido de 20 o 30 productos lo cambiado se pierde: con esto
+             se revisa solo eso antes de cobrar. -->
+        <template v-slot:action>
+          <q-btn
+            dense unelevated no-caps size="sm"
+            :color="soloCambiados ? 'deep-orange' : 'white'"
+            :text-color="soloCambiados ? 'white' : 'deep-orange-10'"
+            :icon="soloCambiados ? 'list' : 'filter_alt'"
+            :label="soloCambiados ? 'Ver todos' : 'Ver solo cambiados'"
+            @click="soloCambiados = !soloCambiados"
+          />
+        </template>
       </q-banner>
 
       <q-card flat bordered class="rounded-borders q-mb-sm">
         <q-list separator>
-          <q-item v-for="(item, indice) in items" :key="item.cod_prod + '-' + indice" class="q-pa-sm">
+          <!-- La fila entera se pinta si cambio la cantidad o se agrego: en un
+               pedido largo el color se ve de lejos al bajar por la lista.
+               v-show y no un filtro para que el indice siga siendo el de items. -->
+          <q-item
+            v-for="(item, indice) in items" :key="item.cod_prod + '-' + indice"
+            v-show="!filtrandoCambios || cambioCantidad(item) || esNuevo(item)"
+            class="q-pa-sm"
+            :class="{ 'linea-cambiada': cambioCantidad(item), 'linea-nueva': esNuevo(item) }"
+          >
             <q-item-section>
               <q-item-label class="text-weight-bold" lines="2">
                 {{ item.nombre }}
@@ -346,6 +372,8 @@ export default {
     return {
       pedido: null,
       items: [],
+      // Muestra solo lo que cambio contra el pedido o se agrego.
+      soloCambiados: false,
       cargando: true,
       guardando: false,
       guardandoBorrador: false,
@@ -399,6 +427,14 @@ export default {
     },
     // Lo que se entrega distinto de lo que pidio el cliente, para avisarlo
     // arriba de la lista. Es informativo: no viaja al backend.
+    // Si ya no queda nada cambiado el aviso (y su boton) se va: se vuelve a
+    // ver todo para que la lista no quede vacia.
+    filtrandoCambios () {
+      return this.soloCambiados && (this.lineasCambiadas.length + this.lineasNuevas.length) > 0
+    },
+    lineasNuevas () {
+      return this.items.filter(item => this.esNuevo(item))
+    },
     lineasCambiadas () {
       return this.items.filter(item => this.cambioCantidad(item))
     },
@@ -799,5 +835,14 @@ export default {
 .leading {
   line-height: 1.15;
   text-align: left;
+}
+/* Lo que ya no es lo que pidio el cliente: fondo y borde para verlo de lejos. */
+.linea-cambiada {
+  background: #ffe0b2;
+  border-left: 5px solid #e64a19;
+}
+.linea-nueva {
+  background: #e3f2fd;
+  border-left: 5px solid #1976d2;
 }
 </style>

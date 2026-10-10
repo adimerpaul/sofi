@@ -984,6 +984,7 @@
 import { date } from 'quasar'
 import xlsx from 'json-as-xlsx'
 import { imprimirPdfDirecto } from 'src/utils/impresion.js'
+import { PDFDocument } from 'pdf-lib'
 
 /** Hora de cierre de caja: el turno de hoy empezo ayer a esta hora. */
 // Caja empieza a facturar el reparto del dia siguiente desde la tarde (el
@@ -1469,9 +1470,9 @@ export default {
     /** Los comprobantes marcados en un solo PDF, cada uno en su papel. */
     loteSeleccionadas (imprimir) {
       const ids = this.seleccionadasImprimibles.map(row => row.id).sort((a, b) => a - b)
-      return this.bajarArchivo(
-        'facturacion/lote/todos',
-        { ids: ids.join(','), copias: this.conCopia ? 1 : 0 },
+      return this.pdfEnPartes(
+        'todos',
+        { ids: ids.join(',') },
         'comprobantes_seleccionados_' + (this.filtros.desde || 'todo') + '.pdf',
         imprimir
       )
@@ -1588,12 +1589,112 @@ export default {
     lote (documento, imprimir) {
       const nombre = documento === 'todos' ? 'comprobantes' : documento + 's'
 
-      return this.bajarArchivo(
-        'facturacion/lote/' + documento,
-        Object.assign({ copias: this.conCopia ? 1 : 0 }, this.paramsFiltro()),
+      return this.pdfEnPartes(
+        documento,
+        this.paramsFiltro(),
         nombre + '_' + (this.filtros.desde || 'todo') + '.pdf',
         imprimir
       )
+    },
+
+    /**
+     * Un lote grande (un camion entero son cientos de hojas) en un solo PDF,
+     * pedido de a partes: todo junto en un request dejaba al backend sin
+     * memoria o a la pantalla esperando sin fin.
+     *
+     * Primero el backend revisa el lote entero y da los ids en el orden de
+     * reparto; despues se piden las partes, se juntan aca y recien con el PDF
+     * completo se marcan como impresas. Mientras tanto se ve el porcentaje,
+     * para que nadie piense que se colgo.
+     */
+    async pdfEnPartes (documento, params, nombre, imprimir) {
+      this.exportando = true
+      const avance = (porcentaje, detalle) => `
+        <div class="text-h5 text-weight-bold text-primary text-center">${porcentaje}%</div>
+        <div style="height:10px;background:#e0e0e0;border-radius:5px;overflow:hidden;margin:8px 0">
+          <div style="height:100%;width:${porcentaje}%;background:#1976d2;transition:width .3s"></div>
+        </div>
+        <div class="text-caption text-grey-8 text-center">${detalle}</div>`
+      const dialogo = this.$q.dialog({
+        title: imprimir ? 'Preparando la impresión' : 'Preparando el PDF',
+        message: avance(0, 'Revisando los comprobantes…'),
+        html: true,
+        persistent: true,
+        ok: false
+      })
+
+      try {
+        const { data } = await this.$api.get('facturacion/lote/' + documento + '/ids', { params })
+        const ids = data.ids
+        const partes = []
+        for (let i = 0; i < ids.length; i += data.por_parte) {
+          partes.push(ids.slice(i, i + data.por_parte))
+        }
+
+        // Se piden varias partes a la vez: en el servidor cada una corre en su
+        // proceso. Se guardan por indice para juntarlas en el mismo orden.
+        const pdfs = new Array(partes.length)
+        let siguiente = 0
+        let listas = 0
+        const mostrar = () => dialogo.update({
+          // El 95% es generar; el ultimo tramo es juntar las hojas.
+          message: avance(Math.round(listas / partes.length * 95),
+            'Generando ' + ids.length + ' comprobantes · parte ' + listas + ' de ' + partes.length +
+            '<br>No cierre esta ventana')
+        })
+        const trabajar = async () => {
+          while (siguiente < partes.length) {
+            const i = siguiente++
+            const res = await this.$api.get('facturacion/lote/' + documento, {
+              params: { ids: partes[i].join(','), copias: this.conCopia ? 1 : 0 },
+              responseType: 'blob'
+            })
+            pdfs[i] = await res.data.arrayBuffer()
+            listas++
+            mostrar()
+          }
+        }
+        mostrar()
+        await Promise.all([trabajar(), trabajar(), trabajar()])
+
+        dialogo.update({ message: avance(97, 'Juntando las hojas…') })
+        const completo = await PDFDocument.create()
+        for (const bytes of pdfs) {
+          const parte = await PDFDocument.load(bytes)
+          const hojas = await completo.copyPages(parte, parte.getPageIndices())
+          hojas.forEach(hoja => completo.addPage(hoja))
+        }
+        const pdf = new Blob([await completo.save()], { type: 'application/pdf' })
+        dialogo.update({ message: avance(100, completo.getPageCount() + ' hojas listas') })
+
+        if (imprimir) {
+          await this.$api.post('facturacion/impresos', { ids })
+          // Recarga para que lo recien impreso salga pintado de azul.
+          this.onRequest({ pagination: this.pagination })
+          dialogo.hide()
+          await imprimirPdfDirecto(pdf, nombre)
+          return
+        }
+
+        const enlace = document.createElement('a')
+        enlace.href = window.URL.createObjectURL(pdf)
+        enlace.download = nombre
+        enlace.click()
+        window.URL.revokeObjectURL(enlace.href)
+      } catch (err) {
+        console.error('pdfEnPartes', err)
+        // Sin respuesta del backend el problema es de la pantalla: que se vea cual.
+        let mensaje = err.response ? 'No se pudo generar el archivo' : 'No se pudo armar el PDF: ' + (err.message || err)
+        try {
+          const cuerpo = err.response && err.response.data
+          // Las partes llegan como blob: el motivo del error hay que leerlo.
+          mensaje = (cuerpo instanceof Blob ? JSON.parse(await cuerpo.text()) : cuerpo).message || mensaje
+        } catch (e) { /* el error no vino en JSON */ }
+        this.$q.notify({ type: 'negative', position: 'top', message: mensaje })
+      } finally {
+        dialogo.hide()
+        this.exportando = false
+      }
     },
 
     /** contenido: 'ventas' o 'cambios'; formato: 'pdf' o 'excel'. */
