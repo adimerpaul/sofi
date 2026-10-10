@@ -75,18 +75,33 @@
 
       <template v-slot:body-cell-acciones="props">
         <q-td :props="props" style="white-space: nowrap">
-          <q-btn v-if="props.row.estado === 'ACTIVO'" dense flat round size="sm" icon="print" color="secondary" @click="imprimirCompra(props.row)">
-            <q-tooltip>Imprimir compra con detalle</q-tooltip>
-          </q-btn>
-          <q-btn dense flat round size="sm" icon="visibility" color="primary" @click="verDetalle(props.row)">
-            <q-tooltip>Ver detalle</q-tooltip>
-          </q-btn>
-          <q-btn
-            v-if="can('comprasAnular') && props.row.estado !== 'ANULADO'"
-            dense flat round size="sm" icon="block" color="negative"
-            @click="pedirAnulacion(props.row)"
-          >
-            <q-tooltip>Anular y devolver el stock</q-tooltip>
+          <!-- Todo lo que se hace con una compra, en un solo menu. -->
+          <q-btn dense flat round size="sm" icon="more_vert" color="grey-8" :loading="imprimiendo === props.row.id">
+            <q-menu auto-close>
+              <q-list dense style="min-width: 230px">
+                <q-item clickable @click="verDetalle(props.row)">
+                  <q-item-section avatar><q-icon name="visibility" color="primary"/></q-item-section>
+                  <q-item-section>Ver detalle</q-item-section>
+                </q-item>
+                <q-item clickable :disable="props.row.estado === 'ANULADO'" @click="imprimirCompra(props.row)">
+                  <q-item-section avatar><q-icon name="print" color="secondary"/></q-item-section>
+                  <q-item-section>
+                    Imprimir nota de compra
+                    <q-item-label v-if="props.row.estado === 'ANULADO'" caption>Anulada: no se imprime</q-item-label>
+                  </q-item-section>
+                </q-item>
+                <template v-if="can('comprasAnular') && props.row.estado !== 'ANULADO'">
+                  <q-separator/>
+                  <q-item clickable @click="pedirAnulacion(props.row)">
+                    <q-item-section avatar><q-icon name="block" color="negative"/></q-item-section>
+                    <q-item-section>
+                      Anular
+                      <q-item-label caption>Devuelve el stock que había ingresado</q-item-label>
+                    </q-item-section>
+                  </q-item>
+                </template>
+              </q-list>
+            </q-menu>
           </q-btn>
         </q-td>
       </template>
@@ -106,6 +121,9 @@
           <div class="text-caption">
             {{ sel.proveedor || 'Sin proveedor' }} · {{ String(sel.fecha || '').substr(0, 10) }} {{ sel.hora }}
             <span v-if="sel.nro_factura"> · Factura {{ sel.nro_factura }}</span>
+          </div>
+          <div v-if="sel.usuario" class="text-caption">
+            <q-icon name="person" size="14px"/> Registrado por {{ nombreUsuario(sel.usuario) }}
           </div>
         </q-card-section>
 
@@ -151,7 +169,13 @@
             </div>
             <div class="text-weight-bold">Total: Bs {{ money(sel.total) }}</div>
           </div>
-          <q-btn flat no-caps label="Cerrar" color="primary" v-close-popup/>
+          <div>
+            <q-btn
+              v-if="sel.estado !== 'ANULADO'" flat no-caps icon="print" label="Imprimir" color="secondary"
+              :loading="imprimiendo === sel.id" @click="imprimirCompra(sel)"
+            />
+            <q-btn flat no-caps label="Cerrar" color="primary" v-close-popup/>
+          </div>
         </q-card-actions>
       </q-card>
     </q-dialog>
@@ -188,6 +212,62 @@ const escaparHtml = valor => String(valor ?? '').replace(/[&<>"']/g, caracter =>
   '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
 }[caracter]))
 
+// El logo va incrustado: la hoja se imprime en un iframe y una imagen por URL
+// puede no alcanzar a cargarse antes del dialogo de impresion.
+let logoCompras
+function cargarLogo () {
+  if (!logoCompras) {
+    logoCompras = fetch(new URL('logo-area-fresca.png', window.location.href).href)
+      .then(res => res.ok ? res.blob() : Promise.reject(new Error('sin logo')))
+      .then(blob => new Promise(resolve => {
+        const lector = new FileReader()
+        lector.onload = () => resolve(lector.result)
+        lector.readAsDataURL(blob)
+      }))
+      .catch(() => '')
+  }
+  return logoCompras
+}
+
+const ESTILOS_NOTA = `
+  @page { size: letter portrait; margin: 12mm 11mm }
+  * { box-sizing: border-box }
+  body { font: 10.5px Arial, Helvetica, sans-serif; color: #222; margin: 0 }
+  .cab { display: flex; align-items: flex-start; gap: 12px }
+  .cab img { width: 110px }
+  .emp { flex: 1 }
+  .emp-nom { font-size: 16px; font-weight: bold; color: #c1272d; letter-spacing: .5px }
+  .emp-dato { font-size: 9.5px; color: #555; line-height: 1.5 }
+  .caja { width: 210px; border: 1.5px solid #c1272d; border-radius: 4px; overflow: hidden }
+  .caja .tit { background: #c1272d; color: #fff; text-align: center; font-weight: bold;
+               letter-spacing: 1px; padding: 4px; font-size: 11px }
+  .caja table { width: 100%; border-collapse: collapse }
+  .caja td { padding: 2px 8px; font-size: 10px }
+  .caja .et { color: #666 }
+  .caja .nro { font-size: 18px; font-weight: bold; color: #c1272d; text-align: right }
+  .datos { display: grid; grid-template-columns: 2fr 1fr 1fr; margin-top: 10px;
+           border: 1px solid #ccc; border-radius: 4px }
+  .datos div { padding: 5px 8px; border-bottom: 1px solid #eee }
+  .datos .ancho { grid-column: span 3 }
+  .et2 { display: block; font-size: 8.5px; color: #777; text-transform: uppercase; letter-spacing: .3px }
+  table.det { width: 100%; border-collapse: collapse; margin-top: 10px }
+  table.det th { background: #37474f; color: #fff; font-size: 9px; text-transform: uppercase;
+                 letter-spacing: .4px; padding: 6px 5px; text-align: left }
+  table.det td { padding: 5px; border-bottom: 1px solid #e4e4e4 }
+  table.det tr:nth-child(even) td { background: #fafafa }
+  .num { text-align: right !important; white-space: nowrap }
+  .cod { color: #666 }
+  .pie { display: flex; gap: 12px; margin-top: 10px; align-items: flex-start }
+  .obs { flex: 1; border: 1px solid #ddd; padding: 7px 9px; line-height: 1.5 }
+  .tot { width: 38%; border-collapse: collapse }
+  .tot td { padding: 4px 9px; border-bottom: 1px solid #eee }
+  .tot .final td { background: #37474f; color: #fff; font-size: 13px; font-weight: bold; border: 0 }
+  .firmas { display: flex; gap: 30px; margin-top: 55px }
+  .firmas div { flex: 1; border-top: 1px solid #999; padding-top: 4px; text-align: center; font-size: 9.5px; color: #555 }
+  .firmas b { display: block; color: #222; font-size: 10px }
+  .legal { margin-top: 18px; text-align: center; font-size: 8.5px; color: #888 }
+`
+
 function filtrosPorDefecto () {
   const hoy = date.formatDate(new Date(), 'YYYY-MM-DD')
   return { desde: hoy, hasta: hoy, buscar: '', estado: null }
@@ -203,6 +283,7 @@ export default {
       dialogAnular: false,
       motivo: '',
       anulando: false,
+      imprimiendo: null,
       loading: false,
       filtros: filtrosPorDefecto(),
       pagination: { page: 1, rowsPerPage: 15, rowsNumber: 0 },
@@ -281,17 +362,102 @@ export default {
         .catch(() => {})
     },
 
+    // personal guarda los nombres con espacios de relleno.
+    nombreUsuario (u) {
+      return [u.Nombre1, u.App1, u.Apm].map(p => String(p || '').trim()).filter(Boolean).join(' ') || '—'
+    },
+
+    /** La nota de compra en carta, con el mismo aire que la boleta de entrega. */
     imprimirCompra (row) {
-      this.$api.get('compras/' + row.id)
-        .then(res => {
-          const compra = res.data
-          const filas = (compra.detalles || []).map(d => `<tr><td>${escaparHtml(d.cod_prod)}</td><td>${escaparHtml(d.nombre)}</td><td class="numero">${Number(d.cantidad || 0).toFixed(d.unidad === 'KG' ? 3 : 0)}</td><td class="numero">${Number(d.precio_producto || 0).toFixed(2)}</td><td class="numero">${Number(d.precio || 0).toFixed(2)}</td><td class="numero">${Number(d.subtotal || 0).toFixed(2)}</td><td>${escaparHtml(d.lote || '—')}</td><td>${escaparHtml(this.fechaCorta(d.fecha_vencimiento))}</td></tr>`).join('')
+      this.imprimiendo = row.id
+      Promise.all([this.$api.get('compras/' + row.id), cargarLogo()])
+        .then(([res, logo]) => {
+          const c = res.data
+          const e = c.empresa || {}
+          const p = c.proveedor_rel || {}
+          const usuario = c.usuario ? this.nombreUsuario(c.usuario) : '—'
+          const n = (v, dec = 2) => Number(v || 0).toLocaleString('en-US', { minimumFractionDigits: dec, maximumFractionDigits: dec })
+
+          const filas = (c.detalles || []).map((d, i) => `<tr>
+              <td class="num">${i + 1}</td>
+              <td class="cod">${escaparHtml(d.cod_prod)}</td>
+              <td>${escaparHtml(d.nombre)}</td>
+              <td>${escaparHtml(d.unidad || '')}</td>
+              <td class="num">${n(d.cantidad, d.unidad === 'KG' ? 3 : 0)}</td>
+              <td class="num">${n(d.precio)}</td>
+              <td class="num"><b>${n(d.subtotal)}</b></td>
+              <td>${escaparHtml(d.lote || '—')}</td>
+              <td>${escaparHtml(this.fechaCorta(d.fecha_vencimiento))}</td>
+            </tr>`).join('')
+
           const contenido = document.createElement('div')
-          contenido.innerHTML = `<h1>Compra #${escaparHtml(compra.id)}</h1><p><strong>Proveedor:</strong> ${escaparHtml(compra.proveedor || 'Sin proveedor')} &nbsp; <strong>NIT:</strong> ${escaparHtml(compra.nit || '—')}</p><p><strong>Fecha:</strong> ${escaparHtml(String(compra.fecha || '').substr(0, 10))} ${escaparHtml(compra.hora || '')} &nbsp; <strong>Factura:</strong> ${escaparHtml(compra.nro_factura || '—')} &nbsp; <strong>Pago:</strong> ${escaparHtml(compra.tipo_pago || '—')}</p><table><thead><tr><th>Código</th><th>Producto</th><th>Cantidad</th><th>Precio producto (Bs)</th><th>Costo (Bs)</th><th>Subtotal (Bs)</th><th>Lote</th><th>Vence</th></tr></thead><tbody>${filas}</tbody></table><div class="totales"><p>Subtotal: Bs ${Number(compra.subtotal || 0).toFixed(2)}</p><p>Descuento: Bs ${Number(compra.descuento || 0).toFixed(2)}</p><h2>Total: Bs ${Number(compra.total || 0).toFixed(2)}</h2></div>`
+          contenido.innerHTML = `
+            <div class="cab">
+              ${logo ? `<img src="${logo}" alt="">` : ''}
+              <div class="emp">
+                <div class="emp-nom">${escaparHtml(e.nombre || '')}</div>
+                <div class="emp-dato">
+                  ${escaparHtml(e.sucursal || '')} · NIT ${escaparHtml(e.nit || '')}<br>
+                  ${escaparHtml(e.direccion || '')}<br>
+                  Telf. ${escaparHtml(e.telefono || '')} · ${escaparHtml(e.ciudad || '')}
+                </div>
+              </div>
+              <div class="caja">
+                <div class="tit">NOTA DE COMPRA</div>
+                <table>
+                  <tr><td class="et">Nro</td><td class="nro">${escaparHtml(c.id)}</td></tr>
+                  <tr><td class="et">Fecha</td><td class="num">${escaparHtml(this.fechaCorta(c.fecha))}</td></tr>
+                  <tr><td class="et">Hora</td><td class="num">${escaparHtml(c.hora || '')}</td></tr>
+                </table>
+              </div>
+            </div>
+
+            <div class="datos">
+              <div><span class="et2">Proveedor</span><b>${escaparHtml(c.proveedor || 'Sin proveedor')}</b></div>
+              <div><span class="et2">NIT</span>${escaparHtml(c.nit || '—')}</div>
+              <div><span class="et2">Teléfono</span>${escaparHtml(String(p.TELF || '').trim() || '—')}</div>
+              <div><span class="et2">Dirección</span>${escaparHtml(String(p.DIRECCION || '').trim() || '—')}</div>
+              <div><span class="et2">Factura del proveedor</span>${escaparHtml(c.nro_factura || '—')}</div>
+              <div><span class="et2">Forma de pago</span><b>${escaparHtml(c.tipo_pago || '—')}</b></div>
+              <div class="ancho"><span class="et2">Registrado por</span><b>${escaparHtml(usuario)}</b></div>
+            </div>
+
+            <table class="det">
+              <thead><tr>
+                <th class="num" style="width:4%">#</th><th style="width:9%">Código</th><th>Producto</th>
+                <th style="width:6%">Unid</th><th class="num" style="width:9%">Cantidad</th>
+                <th class="num" style="width:10%">Costo Bs</th><th class="num" style="width:11%">Subtotal Bs</th>
+                <th style="width:9%">Lote</th><th style="width:9%">Vence</th>
+              </tr></thead>
+              <tbody>${filas}</tbody>
+            </table>
+
+            <div class="pie">
+              <div class="obs">
+                <b>${(c.detalles || []).length} producto(s)</b><br>
+                <b>Observación:</b> ${escaparHtml(c.observacion || '—')}
+              </div>
+              <table class="tot">
+                <tr><td>Subtotal Bs.</td><td class="num">${n(c.subtotal)}</td></tr>
+                <tr><td>Descuento Bs.</td><td class="num">${n(c.descuento)}</td></tr>
+                <tr class="final"><td>TOTAL Bs.</td><td class="num">${n(c.total)}</td></tr>
+              </table>
+            </div>
+
+            <div class="firmas">
+              <div><b>${escaparHtml(c.proveedor || '')}&nbsp;</b>Entregado por (proveedor)</div>
+              <div><b>${escaparHtml(usuario)}</b>Recibido por</div>
+            </div>
+
+            <div class="legal">
+              ${escaparHtml(e.nombre || '')} · nota de compra Nº ${escaparHtml(c.id)} · impresa el ${date.formatDate(new Date(), 'DD/MM/YYYY HH:mm')}
+            </div>`
+
           if (!impresoraCompras) impresoraCompras = new Printd()
-          impresoraCompras.print(contenido, ['@page { size: A4 portrait; margin: 12mm; } body { font: 11px Arial, sans-serif; color: #111; } h1 { font-size: 20px; } h2 { font-size: 16px; } table { width: 100%; border-collapse: collapse; } th, td { border: 1px solid #bbb; padding: 5px; text-align: left; } th { background: #eee; } .numero { text-align: right; white-space: nowrap; } .totales { margin: 16px 0 0 auto; text-align: right; }'])
+          impresoraCompras.print(contenido, [ESTILOS_NOTA])
         })
         .catch(err => { this.avisar(err, 'No se pudo cargar el detalle para imprimir') })
+        .finally(() => { this.imprimiendo = null })
     },
 
     pedirAnulacion (row) {

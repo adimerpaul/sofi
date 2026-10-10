@@ -70,6 +70,13 @@ class CompraController extends Controller
             $detalle->unsetRelation('producto');
         });
 
+        // Los datos de la empresa para la cabecera de la nota impresa: los
+        // mismos que lleva la boleta de entrega.
+        $compra->setAttribute('empresa', array_merge(
+            array_diff_key(config('siat.emisor'), ['logo' => true]),
+            ['nit' => config('siat.nit')]
+        ));
+
         return response()->json($compra);
     }
 

@@ -701,6 +701,7 @@ class CreditoController extends Controller
                 $activa = false;
                 $v->estado_texto = 'BONIFICACIÓN';
             }
+            $saldo = $activa ? $this->saldoDe((object) ['monto' => $total, 'pagado' => $pagado]) : 0;
             return [
                 'id' => $v->id,
                 'fecha' => substr((string) $v->fecha, 0, 10),
@@ -709,8 +710,8 @@ class CreditoController extends Controller
                 'pedido' => $v->pedido_nro,
                 'total' => $total,
                 'pagado' => $pagado,
-                'saldo' => $activa ? max(0, round($total - $pagado, 2)) : 0,
-                'estado' => !$activa ? ($v->estado_texto ?? 'ANULADA') : ($total - $pagado > 0.009 ? 'PENDIENTE' : 'PAGADA'),
+                'saldo' => $saldo,
+                'estado' => !$activa ? ($v->estado_texto ?? 'ANULADA') : ($saldo > 0 ? 'PENDIENTE' : 'PAGADA'),
                 'observacion' => $v->observacion,
                 'productos' => ($detalles->get($v->id) ?? collect())->map(function ($d) {
                     return [
@@ -760,6 +761,18 @@ class CreditoController extends Controller
                 'vendido' => round($ventas->whereNotIn('estado', ['ANULADA', 'BONIFICACIÓN'])->sum('total'), 2),
             ],
         ];
+    }
+
+    /**
+     * Lo que queda por cobrar de una deuda. Si ya se le abono y quedan menos de
+     * Bs 2 (centavos del redondeo al cobrar) se da por pagada: no se va a
+     * cobrar y solo ensuciaba deudores y el Excel.
+     */
+    private function saldoDe($deuda)
+    {
+        $saldo = max(0, round($deuda->monto - $deuda->pagado, 2));
+
+        return $deuda->pagado > 0 && $saldo < self::DEUDA_MINIMA ? 0 : $saldo;
     }
 
     /**
@@ -822,7 +835,7 @@ class CreditoController extends Controller
             // Una bonificacion no se cobra; si igual se le abono algo, queda a la
             // vista para revisarla, como lo anulado.
             if ((!$activa || $bonificado) && !$deuda->pagado) { continue; }
-            $deuda->saldo = $activa && !$bonificado ? max(0, round($deuda->monto - $deuda->pagado, 2)) : 0;
+            $deuda->saldo = $activa && !$bonificado ? $this->saldoDe($deuda) : 0;
             $deuda->estado = !$activa ? 'ANULADA CON ABONOS: REVISAR'
                 : ($bonificado ? 'BONIFICACIÓN CON ABONOS: REVISAR' : ($deuda->saldo > 0 ? 'PENDIENTE' : 'PAGADO'));
             $filas->push($deuda);
@@ -845,7 +858,7 @@ class CreditoController extends Controller
             $deuda->clave = 'manual:' . $deuda->id;
             $deuda->pagado = (float) ($abonosManuales[$deuda->id] ?? 0);
             $deuda->monto = (float) $deuda->monto;
-            $deuda->saldo = max(0, round($deuda->monto - $deuda->pagado, 2));
+            $deuda->saldo = $this->saldoDe($deuda);
             $deuda->estado = $deuda->saldo > 0 ? 'PENDIENTE' : 'PAGADO';
             $filas->push($deuda);
         }

@@ -22,6 +22,7 @@
               dense outlined clearable autofocus class="col"
               placeholder="Buscar por nombre o código"
               @update:model-value="buscarConRetraso"
+              @keyup.enter="buscarYAbrir"
             >
               <template v-slot:prepend><q-icon name="search"/></template>
             </q-input>
@@ -234,10 +235,14 @@
               :label="elegido.unidad === 'KG' ? 'Kilos' : 'Cantidad'"
               step="any" min="0"
               @focus="$event.target.select()"
+              @keydown.enter.prevent="$refs.precioLinea.focus()"
             />
+            <!-- Enter en la cantidad pasa aqui; Enter aqui agrega la linea. -->
             <q-input
+              ref="precioLinea"
               v-model.number="linea.precio" outlined dense type="number" step="any" min="0"
               class="col-6" label="Precio unitario" prefix="Bs"
+              @focus="$event.target.select()"
             />
 
             <div class="col-12 row items-center q-px-sm q-py-xs rounded-borders bg-orange-1 text-orange-10">
@@ -514,19 +519,54 @@ export default {
     },
     buscarConRetraso () {
       clearTimeout(this.temporizador)
-      this.temporizador = setTimeout(this.recargarCatalogo, 300)
+      this.temporizador = setTimeout(() => {
+        this.paginacion.page = 1
+        // Un codigo escrito o escaneado completo abre el producto solo.
+        this.cargarCatalogo().then(() => this.abrirSiEsCodigo(false))
+      }, 300)
+    },
+    /**
+     * Enter en el buscador: busca ya, sin esperar el retraso, y si el texto
+     * es el codigo de un producto (o queda uno solo) lo abre para cargarlo.
+     */
+    buscarYAbrir () {
+      clearTimeout(this.temporizador)
+      this.paginacion.page = 1
+      this.cargarCatalogo().then(() => this.abrirSiEsCodigo(true))
+    },
+    /**
+     * Mientras se escribe solo abre si el codigo exacto es el unico
+     * resultado: "12" no se abre si tambien existe "123". Con Enter
+     * (conEnter) abre el codigo exacto aunque haya otros, o el unico que quedo.
+     */
+    abrirSiEsCodigo (conEnter) {
+      const texto = String(this.filtros.buscar || '').trim().toLowerCase()
+      if (texto === '' || this.dialogProducto) {
+        return
+      }
+      const exacto = this.productos.filter(p => String(p.cod_prod).trim().toLowerCase() === texto)
+      if (exacto.length === 1 && (conEnter || this.productos.length === 1)) {
+        this.abrirProducto(exacto[0])
+      } else if (conEnter && this.productos.length === 1) {
+        this.abrirProducto(this.productos[0])
+      }
     },
     cargarCatalogo () {
       this.cargando = true
+      const buscar = this.filtros.buscar || ''
 
-      this.$api.get('facturacion/catalogo', {
+      return this.$api.get('facturacion/catalogo', {
         params: {
-          buscar: this.filtros.buscar || '',
+          buscar,
           grupo: this.filtros.grupo || '',
           page: this.paginacion.page,
           perPage: 50
         }
       }).then(res => {
+        // Una respuesta vieja (se siguio escribiendo) no pisa a la nueva.
+        if (buscar !== (this.filtros.buscar || '')) {
+          return
+        }
         this.productos = res.data.data
         this.paginacion = {
           page: res.data.current_page,
@@ -639,6 +679,11 @@ export default {
       })
 
       this.dialogProducto = false
+      // Listo para el siguiente producto: buscador vacio y con el foco.
+      if (this.filtros.buscar) {
+        this.filtros.buscar = ''
+        this.recargarCatalogo()
+      }
     },
     enfocarBuscador () {
       this.$refs.buscador && this.$refs.buscador.focus()

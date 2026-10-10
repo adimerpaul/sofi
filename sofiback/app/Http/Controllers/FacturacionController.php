@@ -3180,16 +3180,23 @@ class FacturacionController extends Controller
         // En la factura la cantidad declarada son los kilos que se cobran, asi
         // que de como se llego a ese peso no queda rastro: cuando algo se peso
         // en canastillos se agrega el bruto con los canastillos que se le
-        // descontaron. Son columnas informativas y lo fiscal no cambia, por eso
-        // no van las piezas entregadas, que no tienen nada que declarar.
+        // descontaron. Son columnas informativas y lo fiscal no cambia.
         $conCanastillos = $factura->detalles->contains(function ($d) {
             return (float) $d->peso_bruto > 0;
         });
+
+        // Piezas va siempre: en lo que se vende por peso son las piezas que se
+        // entregan (la Cantidad fiscal son los kilos). En lo que va por unidad
+        // la Cantidad ya son las piezas, y lo trozado no se cuenta: en los dos
+        // casos la celda queda vacia.
+        $trozados = $this->codigosTrozados($factura->detalles);
 
         $filas = '';
         foreach ($factura->detalles as $i => $d) {
             $par = $i % 2 ? " class='par'" : '';
             $peso = (float) $d->peso;
+            $conPiezas = $peso > 0 && empty($trozados[trim((string) $d->cod_prod)]);
+            $piezas = "<td class='r'>" . ($conPiezas ? number_format($d->cantidad, 2) : '') . '</td>';
 
             $columnasPeso = '';
             if ($conCanastillos) {
@@ -3202,6 +3209,7 @@ class FacturacionController extends Controller
 
             $filas .= "<tr$par>"
                 . "<td class='cod'>" . e($d->cod_prod) . '</td>'
+                . $piezas
                 // Lo declarado a Impuestos es lo que se cobra: en lo que va por
                 // kilo, el peso. Tiene que coincidir con lo que manda el SIAT.
                 . "<td class='r'>" . number_format($d->cantidad_facturada, 2) . '</td>'
@@ -3287,8 +3295,9 @@ class FacturacionController extends Controller
         <table class='detalle'>
             <tr>
                 <th style='width:8%'>Código</th>
+                <th style='width:7%'>Piezas</th>
                 <th style='width:8%'>Cantidad</th>
-                <th style='width:" . ($conCanastillos ? '10' : '12') . "%'>Unidad</th>
+                <th style='width:10%'>Unidad</th>
                 <th>Descripción</th>
                 " . ($conCanastillos
                     ? "<th style='width:8%'>P. Bruto</th><th style='width:6%'>Canast.</th>"

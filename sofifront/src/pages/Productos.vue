@@ -365,7 +365,7 @@ export default {
       },
       // Precio3..Precio13 quedan ocultas por defecto: son 11 columnas que
       // hacen ilegible la tabla, pero el usuario puede activarlas.
-      visibleColumns: ['acciones', 'imagen', 'cod_prod', 'Producto', 'grupo', 'codUnid', 'trozado', 'Precio', 'Precio_Costo', 'precioAprox', 'cantidad'],
+      visibleColumns: ['acciones', 'imagen', 'cod_prod', 'Producto', 'grupo', 'codUnid', 'trozado', 'precio_compra', 'Precio', 'Precio_Costo', 'precioAprox', 'cantidad'],
       // Producto cuya foto se está subiendo, para el spinner de la miniatura.
       subiendo: null,
       productoImagen: null,
@@ -389,6 +389,8 @@ export default {
         { name: 'grupo', label: 'Grupo', field: 'grupo', align: 'left', sortable: true },
         { name: 'codUnid', label: 'Unidad', field: 'codUnid', align: 'center', sortable: true },
         { name: 'trozado', label: 'Trozado', field: 'trozado', align: 'center' },
+        // El de la ultima compra; sin compras se ve un guion, no 0.
+        { name: 'precio_compra', label: 'P. Compra', field: 'precio_compra', align: 'right', sortable: true, format: v => v === null || v === undefined ? '—' : Number(v).toFixed(2) },
         { name: 'Precio', label: 'Precio', field: 'Precio', align: 'right', sortable: true, format: v => Number(v || 0).toFixed(2) },
         { name: 'Precio_Costo', label: 'P. Costo', field: 'Precio_Costo', align: 'right', format: v => Number(v || 0).toFixed(2) },
         { name: 'precioAprox', label: 'P. Aprox.', field: 'precioAprox', align: 'right', sortable: true, format: v => Number(v || 0).toFixed(2) },

@@ -121,6 +121,9 @@
             {{ resumen.verificados }}/{{ resumen.comprobantes }}
           </div>
           <div class="text-caption text-grey-8">Bs {{ money(resumen.total) }}</div>
+          <div v-if="canastillosCamion" class="text-caption text-orange-10 text-weight-bold">
+            <q-icon name="shopping_basket" size="14px"/> {{ canastillosCamion }} canastillos
+          </div>
         </div>
       </div>
 
@@ -313,6 +316,9 @@
                   </div>
                   <div class="text-caption ellipsis" :class="comprobante.verificado ? 'text-green-9' : 'text-grey-7'">
                     {{ comprobante.productos }} producto{{ comprobante.productos === 1 ? '' : 's' }}
+                    <span v-if="canastillosDe(comprobante)" class="text-orange-10 text-weight-bold">
+                      · {{ canastillosDe(comprobante) }} canastillo{{ canastillosDe(comprobante) === 1 ? '' : 's' }}
+                    </span>
                     <span v-if="comprobante.zona">· {{ comprobante.zona }}</span>
                     <span v-if="comprobante.cambio" class="text-orange-9 text-weight-bold">
                       · cambió la venta, revisar de nuevo
@@ -393,14 +399,28 @@
                   </q-item-section>
                   <q-item-section>
                     <q-item-label lines="2" class="text-weight-medium">{{ item.nombre }}</q-item-label>
-                    <q-item-label caption>{{ item.cod_prod }}</q-item-label>
+                    <q-item-label caption>
+                      {{ item.cod_prod }} · Bs {{ money(item.precio) }}{{ porKilo(item) ? '/kg' : ' c/u' }}
+                    </q-item-label>
+                    <!-- Pollo, cerdo y res van en canastillos: es lo primero que
+                         se cuenta al subir, con el bruto que marco la balanza. -->
+                    <div v-if="item.canastillos" class="canastillo-linea q-mt-xs">
+                      <q-icon name="shopping_basket" size="15px"/>
+                      <b>{{ item.canastillos }}</b> canastillo{{ item.canastillos === 1 ? '' : 's' }}
+                      <span v-if="item.peso_bruto"> · bruto <b>{{ cantidad(item.peso_bruto) }}</b> kg</span>
+                    </div>
                   </q-item-section>
-                  <!-- La cantidad es lo que el caminero cuenta al subir la
-                       carga: va grande y en recuadro para leerla de un vistazo. -->
+                  <!-- Lo que el caminero cuenta al subir la carga: las piezas o
+                       cajas y el peso neto, grandes y en recuadro para leerlos
+                       de un vistazo. -->
                   <q-item-section side class="text-right">
-                    <div class="cantidad-caja" :class="item.revisado ? 'cantidad-revisada' : ''">
-                      <span class="cantidad-numero">{{ cantidad(item.peso || item.cantidad) }}</span>
-                      <span class="cantidad-unidad">{{ item.unidad }}</span>
+                    <div v-if="piezas(item) !== null" class="cantidad-caja" :class="item.revisado ? 'cantidad-revisada' : ''">
+                      <span class="cantidad-numero">{{ cantidad(piezas(item)) }}</span>
+                      <span class="cantidad-unidad">{{ item.unidad === 'KG' && item.peso > 0 ? 'pza' : item.unidad }}</span>
+                    </div>
+                    <div v-if="item.peso > 0" class="cantidad-caja q-mt-xs" :class="item.revisado ? 'cantidad-revisada' : ''">
+                      <span :class="piezas(item) !== null ? 'peso-numero' : 'cantidad-numero'">{{ cantidad(item.peso) }}</span>
+                      <span class="cantidad-unidad">kg</span>
                     </div>
                     <q-item-label caption class="q-mt-xs">Bs {{ money(item.total) }}</q-item-label>
                   </q-item-section>
@@ -579,6 +599,10 @@ export default {
     vistaClientes () {
       return !this.cliente && !this.producto
     },
+    // Los canastillos que suben al camion, del tipo que se esta viendo.
+    canastillosCamion () {
+      return this.comprobantesDelTipo.reduce((suma, comprobante) => suma + this.canastillosDe(comprobante), 0)
+    },
     clientesCarga () {
       const porCliente = {}
       this.comprobantesDelTipo.forEach(comprobante => {
@@ -674,6 +698,25 @@ export default {
     },
     cantidad (valor) {
       return Number(valor || 0).toLocaleString('es-BO', { maximumFractionDigits: 3 })
+    },
+    /**
+     * Lo que se cuenta a mano: cajas o unidades, y en lo que se vende por
+     * kilo las piezas (barras, bandejas). null si en lo pesado la cantidad
+     * es el mismo peso, para no mostrar los kilos dos veces.
+     */
+    piezas (item) {
+      const cant = Number(item.cantidad) || 0
+      const peso = Number(item.peso) || 0
+      return item.unidad === 'KG' && peso > 0 && Math.abs(cant - peso) < 0.001 ? null : cant
+    },
+    /** El precio es por kilo si el total sale del peso y no de la cantidad. */
+    porKilo (item) {
+      const peso = Number(item.peso) || 0
+      return peso > 0 && Math.abs(peso * Number(item.precio || 0) - Number(item.total || 0)) < 0.05
+    },
+    /** Canastillos de una canasta, contando solo el tipo que se esta viendo. */
+    canastillosDe (comprobante) {
+      return this.lineasDelTipo(comprobante).reduce((suma, item) => suma + (Number(item.canastillos) || 0), 0)
     },
     esFactura (comprobante) {
       return comprobante.tipo_comprobante === 'FACTURA'
@@ -1037,6 +1080,18 @@ export default {
 .cantidad-numero {
   font-size: 22px;
   font-weight: 800;
+}
+.peso-numero {
+  font-size: 17px;
+  font-weight: 800;
+}
+.canastillo-linea {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: #fff3e0;
+  color: #e65100;
+  font-size: 12px;
 }
 .cantidad-unidad {
   font-size: 12px;

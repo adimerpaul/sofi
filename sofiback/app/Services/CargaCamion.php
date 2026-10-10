@@ -421,7 +421,8 @@ class CargaCamion
             ->whereIn('factura_id', $facturaIds->all())
             ->whereNull('deleted_at')
             ->orderBy('id')
-            ->get(['id', 'factura_id', 'cod_prod', 'nombre', 'unidad', 'cantidad', 'peso', 'precio', 'subtotal'])
+            ->get(['id', 'factura_id', 'cod_prod', 'nombre', 'unidad', 'cantidad', 'peso',
+                'peso_bruto', 'canastillos', 'precio', 'subtotal'])
             ->map(function ($detalle) {
                 return [
                     // Con el id se tilda cada producto por separado.
@@ -434,6 +435,11 @@ class CargaCamion
                     // Lo que va a granel se pesa: es lo que el caminero mira
                     // para saber si la canasta esta completa.
                     'peso' => $detalle->peso !== null ? (float) $detalle->peso : null,
+                    // Pollo, cerdo y res se pesan en canastillos: el caminero
+                    // cuenta los canastillos y ve el bruto que marco la balanza.
+                    'peso_bruto' => $detalle->peso_bruto !== null ? (float) $detalle->peso_bruto : null,
+                    'canastillos' => $detalle->canastillos !== null ? (int) $detalle->canastillos : null,
+                    'precio' => round((float) $detalle->precio, 2),
                     'total' => round((float) $detalle->subtotal, 2),
                     // Podium y huevo salen en el mismo comprobante, pero se
                     // cargan por separado: el caminero los revisa aparte.

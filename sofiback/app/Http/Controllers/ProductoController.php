@@ -492,9 +492,9 @@ class ProductoController extends Controller{
         $hoja = $libro->getActiveSheet();
         $hoja->setTitle('Productos');
 
-        $cabecera = ['Código', 'Producto', 'Grupo', 'Unidad', 'Precio', 'P. Costo', 'Stock'];
+        $cabecera = ['Código', 'Producto', 'Grupo', 'Unidad', 'P. Compra', 'Precio', 'P. Costo', 'Stock'];
         $hoja->fromArray($cabecera, null, 'A1');
-        $hoja->getStyle('A1:G1')->getFont()->setBold(true);
+        $hoja->getStyle('A1:H1')->getFont()->setBold(true);
 
         $fila = 2;
         foreach ($filas as $p) {
@@ -506,6 +506,8 @@ class ProductoController extends Controller{
                 $p->Producto,
                 $p->grupo,
                 $p->codUnid,
+                // El de la ultima compra; sin compras queda en blanco, no en 0.
+                $p->precio_compra === null ? null : (float) $p->precio_compra,
                 (float) $p->Precio,
                 (float) $p->Precio_Costo,
                 (float) $p->cantidad,
@@ -513,9 +515,9 @@ class ProductoController extends Controller{
             $fila++;
         }
 
-        $hoja->getStyle('E2:G' . max($fila - 1, 2))->getNumberFormat()->setFormatCode('#,##0.00');
+        $hoja->getStyle('E2:H' . max($fila - 1, 2))->getNumberFormat()->setFormatCode('#,##0.00');
 
-        foreach (range('A', 'G') as $col) {
+        foreach (range('A', 'H') as $col) {
             $hoja->getColumnDimension($col)->setAutoSize(true);
         }
 
@@ -544,7 +546,7 @@ class ProductoController extends Controller{
         <div class='sub'>" . count($filas) . " productos &middot; " . date('d/m/Y H:i') . "</div>
         <table><tr>
             <th>Código</th><th>Producto</th><th>Grupo</th><th>Unid.</th>
-            <th class='n'>Precio</th><th class='n'>P. Costo</th><th class='n'>Stock</th>
+            <th class='n'>P. Compra</th><th class='n'>Precio</th><th class='n'>P. Costo</th><th class='n'>Stock</th>
         </tr>";
 
         foreach ($filas as $p) {
@@ -553,6 +555,7 @@ class ProductoController extends Controller{
                 . '<td>' . e($p->Producto) . '</td>'
                 . '<td>' . e($p->grupo) . '</td>'
                 . '<td>' . e($p->codUnid) . '</td>'
+                . "<td class='n'>" . ($p->precio_compra === null ? '—' : number_format((float) $p->precio_compra, 2)) . '</td>'
                 . "<td class='n'>" . number_format((float) $p->Precio, 2) . '</td>'
                 . "<td class='n'>" . number_format((float) $p->Precio_Costo, 2) . '</td>'
                 . "<td class='n'>" . number_format((float) $p->cantidad, 2) . '</td>'
