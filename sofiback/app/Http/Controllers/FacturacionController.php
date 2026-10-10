@@ -904,6 +904,9 @@ class FacturacionController extends Controller
                 'p.Precio as precio',
                 // Lo usa la pantalla de compras para proponer el costo.
                 'p.precio_compra as costo',
+                // El Precio 2 de la venta. Va aparte de "costo": si se arma con
+                // ese alias la venta ofrece el precio de compra como Precio 2.
+                'p.Precio_Costo',
                 'p.Precio3', 'p.Precio4', 'p.Precio5', 'p.Precio6', 'p.Precio7', 'p.Precio8',
                 'p.Precio9', 'p.Precio10', 'p.Precio11', 'p.Precio12', 'p.Precio13',
                 // El alias no puede llamarse "stock": tbproductos ya tiene una
@@ -934,6 +937,7 @@ class FacturacionController extends Controller
 
         $productos->getCollection()->transform(function ($p) {
             $p->precios = $this->listaPrecios($p, ['Precio 1' => $p->precio]);
+            unset($p->Precio_Costo);
             foreach (self::PRECIOS_LISTA as $columna) {
                 unset($p->$columna);
             }
@@ -2186,7 +2190,7 @@ class FacturacionController extends Controller
         $valores = $primeros;
         // Precio_Costo es el Precio 2 del preventista (nombre heredado, no es
         // el costo); el catalogo lo trae con el alias "costo".
-        $valores['Precio 2'] = $fila->Precio_Costo ?? $fila->costo ?? 0;
+        $valores['Precio 2'] = $fila->Precio_Costo ?? 0;
         foreach (self::PRECIOS_LISTA as $columna) {
             $valores['Precio ' . substr($columna, 6)] = $fila->$columna ?? 0;
         }
