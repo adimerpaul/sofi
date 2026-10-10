@@ -88,7 +88,12 @@
       </div>
 
       <div class="row items-center q-mb-xs q-gutter-xs">
-        <div class="col text-subtitle2 text-weight-bold">Productos ({{ items.length }})</div>
+        <div class="col text-subtitle2 text-weight-bold">
+          Productos ({{ items.length }})
+          <q-badge v-if="items.length" :color="preparados === items.length ? 'positive' : 'grey-6'" class="q-ml-xs">
+            <q-icon name="task_alt" size="12px" class="q-mr-xs"/>{{ preparados }}/{{ items.length }} preparados
+          </q-badge>
+        </div>
         <!-- Pasa todos los productos a un mismo precio de lista de una vez
              (por ejemplo, todos al Precio 8). -->
         <q-btn-dropdown
@@ -143,8 +148,26 @@
             v-for="(item, indice) in items" :key="item.cod_prod + '-' + indice"
             v-show="!filtrandoCambios || cambioCantidad(item) || esNuevo(item)"
             class="q-pa-sm"
-            :class="{ 'linea-cambiada': cambioCantidad(item), 'linea-nueva': esNuevo(item) }"
+            :class="{
+              'linea-preparada': item.preparado,
+              'linea-cambiada': !item.preparado && cambioCantidad(item),
+              'linea-nueva': !item.preparado && esNuevo(item)
+            }"
           >
+            <!-- Ya armado en el mostrador: la linea queda bloqueada para que
+                 nadie le cambie la cantidad, el peso o el precio sin querer.
+                 Para corregirla se destilda. -->
+            <q-item-section side top class="q-pr-sm">
+              <q-checkbox
+                v-model="item.preparado" color="positive" size="lg" dense
+                checked-icon="task_alt" unchecked-icon="radio_button_unchecked"
+              >
+                <q-tooltip>{{ item.preparado ? 'Preparado: destildar para corregir' : 'Marcar como preparado' }}</q-tooltip>
+              </q-checkbox>
+              <div class="text-caption text-center" :class="item.preparado ? 'text-positive text-weight-bold' : 'text-grey-6'">
+                {{ item.preparado ? 'Listo' : 'Preparar' }}
+              </div>
+            </q-item-section>
             <q-item-section>
               <q-item-label class="text-weight-bold" lines="2">
                 {{ item.nombre }}
@@ -163,6 +186,7 @@
                   :color="esPeso(item) ? 'orange-8' : 'blue-grey-6'"
                   :icon="esPeso(item) ? 'scale' : 'tag'"
                   :label="esPeso(item) ? 'Por kilo' : 'Por unidad'"
+                  :disable="item.preparado"
                   @click="cambiarUnidad(item)"
                 >
                   <q-tooltip>
@@ -199,7 +223,7 @@
                 <div :class="esPeso(item) && conCanastillos ? 'col-2' : esPeso(item) ? 'col-3' : 'col-5'">
                   <q-input
                     v-model.number="item.cantidad" type="number" min="0.001" step="0.001"
-                    dense outlined label="Cantidad" @update:model-value="actualizar(item)"
+                    dense outlined label="Cantidad" :readonly="item.preparado" @update:model-value="actualizar(item)"
                     :bg-color="cambioCantidad(item) ? 'deep-orange-1' : ''"
                   />
                 </div>
@@ -208,7 +232,7 @@
                 <div v-if="esPeso(item) && conCanastillos" class="col-3">
                   <q-input
                     v-model.number="item.peso_bruto" type="number" min="0.001" step="0.001"
-                    dense outlined label="P. bruto kg" bg-color="orange-1"
+                    dense outlined label="P. bruto kg" bg-color="orange-1" :readonly="item.preparado"
                     :error="!(Number(item.peso) > 0)" hide-bottom-space
                     @update:model-value="actualizar(item)"
                   />
@@ -217,13 +241,13 @@
                 <div v-if="esPeso(item) && conCanastillos" class="col-2">
                   <q-input
                     v-model.number="item.canastillos" type="number" min="0" step="1"
-                    dense outlined label="Canast." @update:model-value="actualizar(item)"
+                    dense outlined label="Canast." :readonly="item.preparado" @update:model-value="actualizar(item)"
                   />
                 </div>
                 <div v-else-if="esPeso(item)" class="col-3">
                   <q-input
                     v-model.number="item.peso" type="number" min="0.001" step="0.001"
-                    dense outlined label="Peso kg" bg-color="orange-1"
+                    dense outlined label="Peso kg" bg-color="orange-1" :readonly="item.preparado"
                     :error="!Number(item.peso)" hide-bottom-space
                     @update:model-value="actualizar(item)"
                   />
@@ -234,12 +258,12 @@
                   <q-select
                     :model-value="Number(item.precio)" :options="opcionesPrecio(item)"
                     emit-value map-options dense outlined options-dense label="Precio Bs"
-                    :display-value="textoPrecio(item)"
+                    :display-value="textoPrecio(item)" :readonly="item.preparado"
                     @update:model-value="valor => elegirPrecio(item, valor)"
                   />
                 </div>
                 <div class="col-2 flex flex-center">
-                  <q-btn flat round dense color="negative" icon="delete" @click="items.splice(indice, 1)"/>
+                  <q-btn flat round dense color="negative" icon="delete" :disable="item.preparado" @click="items.splice(indice, 1)"/>
                 </div>
               </div>
 
@@ -432,6 +456,9 @@ export default {
     filtrandoCambios () {
       return this.soloCambiados && (this.lineasCambiadas.length + this.lineasNuevas.length) > 0
     },
+    preparados () {
+      return this.items.filter(item => item.preparado).length
+    },
     lineasNuevas () {
       return this.items.filter(item => this.esNuevo(item))
     },
@@ -525,6 +552,8 @@ export default {
       const sinPrecio = []
       let cambiados = 0
       this.items.forEach(item => {
+        // Lo ya preparado queda como esta.
+        if (item.preparado) return
         const opcion = this.precioLlamado(item, nombre)
         if (!opcion) {
           sinPrecio.push(item.nombre)
@@ -574,6 +603,8 @@ export default {
           // Las lineas por kilo llegan sin pesar, asi que su importe arranca
           // en cero hasta que el cajero escriba el peso.
           this.items.forEach(this.actualizar)
+          // Lo tildado como preparado vuelve del borrador; el resto arranca sin tildar.
+          this.items.forEach(item => { item.preparado = !!item.preparado })
           this.nit = this.pedido.nit || ''
           // Si la venta anterior se anulo, la observacion con la que se cobro
           // vuelve tal cual; si no, la del pedido.
@@ -620,7 +651,8 @@ export default {
         .finally(() => { this.cargandoProductos = false })
     },
     agregar (producto) {
-      const existente = this.items.find(item => item.cod_prod === producto.cod_prod)
+      // A una linea ya preparada no se le suma: el producto entra en otra.
+      const existente = this.items.find(item => item.cod_prod === producto.cod_prod && !item.preparado)
       if (existente) {
         existente.cantidad = Number(existente.cantidad || 0) + 1
         this.actualizar(existente)
@@ -633,6 +665,7 @@ export default {
           cantidad: 1,
           // No viene del pedido: no hay cantidad pedida contra que comparar.
           cantidad_pedida: null,
+          preparado: false,
           peso: null,
           peso_bruto: null,
           canastillos: null,
@@ -658,6 +691,7 @@ export default {
         caja: original.caja || null,
         cantidad: 1,
         cantidad_pedida: null,
+        preparado: false,
         peso: null,
         peso_bruto: null,
         canastillos: null,
@@ -760,7 +794,8 @@ export default {
             ? null : Math.max(0, Math.trunc(Number(item.canastillos) || 0)),
           precio: Number(item.precio) || 0,
           recuperado: !!item.recuperado,
-          retorno: !!item.retorno
+          retorno: !!item.retorno,
+          preparado: !!item.preparado
         }))
       }).then(res => {
         this.$q.notify({ type: 'positive', position: 'top', message: res.data.message })
@@ -808,6 +843,30 @@ export default {
 }
 .campos-compactos :deep(.q-field__append .q-icon) {
   font-size: 14px;
+}
+/* El select del precio trae su propio alto minimo: sin esto el texto
+   ("Bs 83.80 · Pedido · Precio 1") se sale por debajo del recuadro. */
+.campos-compactos :deep(.q-select .q-field__native) {
+  min-height: 0;
+  line-height: 18px;
+  flex-wrap: nowrap;
+}
+.campos-compactos :deep(.q-select .q-field__native > span) {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.campos-compactos :deep(.q-select .q-field__control-container) {
+  padding-top: 0;
+}
+/* Ya preparado: verde y con los campos en gris, para que se note que no se toca. */
+.linea-preparada {
+  background: #e8f5e9;
+  border-left: 5px solid #2e7d32;
+}
+.linea-preparada :deep(.q-field__native),
+.linea-preparada :deep(.q-field__input) {
+  color: #555;
 }
 
 /* Guardar y Finalizar lado a lado, misma altura; Finalizar ocupa mas porque

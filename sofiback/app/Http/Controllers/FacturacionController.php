@@ -1349,6 +1349,7 @@ class FacturacionController extends Controller
             'items.*.precio'      => 'nullable|numeric|min:0',
             'items.*.recuperado'  => 'nullable|boolean',
             'items.*.retorno'     => 'nullable|boolean',
+            'items.*.preparado'   => 'nullable|boolean',
             'tipo_comprobante'    => 'nullable|in:VENTA,FACTURA',
             'tipo_pago'           => 'nullable|string|max:20',
             'nit'                 => 'nullable|string|max:20',
@@ -1385,6 +1386,8 @@ class FacturacionController extends Controller
                 'total'           => round(($esPeso ? (float) $peso : $cantidad) * $precio, 2),
                 'recuperado'      => !empty($item['recuperado']),
                 'retorno'         => !empty($item['retorno']),
+                // Ya armado en el mostrador: la pantalla lo deja bloqueado.
+                'preparado'       => !empty($item['preparado']),
             ];
         })->values();
 
@@ -1542,11 +1545,24 @@ class FacturacionController extends Controller
         }
     }
 
+    /**
+     * Lo que se vuelve a cobrar es lo de la ultima venta emitida, no lo del
+     * pedido original: si al editar se quito un producto, no tiene que volver
+     * a aparecer. Del pedido solo queda lo que la venta tambien llevaba (para
+     * conservar la cantidad pedida y la lista de precios).
+     */
     private function recuperarAnulada($items, Factura $anulada)
     {
         $porCodigo = $anulada->detalles->keyBy(function ($detalle) {
             return trim((string) $detalle->cod_prod);
         });
+
+        // Una venta sin detalle no dice nada de que se quito: queda el pedido.
+        if ($porCodigo->isNotEmpty()) {
+            $items = $items->filter(function ($item) use ($porCodigo) {
+                return $porCodigo->has(trim((string) $item->cod_prod));
+            });
+        }
 
         $items = $items->map(function ($item) use ($porCodigo) {
             $detalle = $porCodigo->get(trim((string) $item->cod_prod));
