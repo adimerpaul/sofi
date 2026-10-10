@@ -3213,7 +3213,7 @@ class FacturacionController extends Controller
                 // Lo declarado a Impuestos es lo que se cobra: en lo que va por
                 // kilo, el peso. Tiene que coincidir con lo que manda el SIAT.
                 . "<td class='r'>" . number_format($d->cantidad_facturada, 2) . '</td>'
-                . "<td class='c'>" . e($peso > 0 || $d->unidad === 'KG'
+                . "<td class='c uni'>" . e($peso > 0 || $d->unidad === 'KG'
                     ? 'KILOGRAMO' : 'UNIDAD (SERVICIOS)') . '</td>'
                 . '<td>' . e($d->nombre) . '</td>'
                 . $columnasPeso
@@ -3245,8 +3245,8 @@ class FacturacionController extends Controller
             $png = base64_encode(FacturaFiscalController::qrPng(
                 FacturaFiscalController::urlSiat($cuf, $factura->nro_factura ?: $factura->id)
             ));
-            $qr = "<td style='width:120px; text-align:center; vertical-align:top'>"
-                . "<img src='data:image/png;base64,$png' style='width:110px; height:110px'></td>";
+            $qr = "<td style='width:92px; text-align:center; vertical-align:top'>"
+                . "<img src='data:image/png;base64,$png' style='width:85px; height:85px'></td>";
         }
 
         $anulado = $factura->estado === 'ANULADO'
@@ -3258,7 +3258,34 @@ class FacturacionController extends Controller
             .id-venta { text-align: center; vertical-align: middle }
             .id-et { font-size: 9px; font-weight: bold; color: #444; letter-spacing: 2px }
             .id-nro { font-size: 34px; font-weight: bold; color: #000; line-height: 1.1 }
-        </style>"
+
+            /* La factura va apretada para que unos 30 productos entren en una
+               hoja. Todo cuelga de .fac: en un lote mezclado los vouchers
+               conservan su formato. */
+            .fac .logo { width: 86px }
+            .fac .empresa { font-size: 12px }
+            .fac .empresa-dato { font-size: 7.5px; line-height: 1.3 }
+            .fac .caja-doc .tit { font-size: 9px; padding: 2px }
+            .fac .caja-doc td { padding: 1px 6px; font-size: 8px }
+            .fac .caja-doc .nro { font-size: 13px }
+            .fac .id-et { font-size: 7.5px }
+            .fac .id-nro { font-size: 26px }
+            .fac .subtitulo { font-size: 7.5px; margin: 2px 0 1px }
+            .fac .datos { margin-top: 3px }
+            .fac .datos td { padding: 1.5px 5px; font-size: 8px }
+            .fac .datos .et { font-size: 6.5px }
+            .fac .detalle { margin-top: 4px }
+            .fac .detalle th { padding: 3px; font-size: 7px; letter-spacing: .2px }
+            .fac .detalle td { padding: 1px 3px; font-size: 8px; line-height: 1.15 }
+            .fac .detalle .cod { font-size: 7.5px }
+            .fac .detalle .uni { font-size: 6.5px; white-space: nowrap }
+            .fac .literal { padding: 3px 6px; font-size: 8px; line-height: 1.3 }
+            .fac .totales td { padding: 1.5px 7px; font-size: 8.5px }
+            .fac .totales .final td { font-size: 10.5px }
+            .fac .legal { font-size: 6.5px; line-height: 1.3 }
+            .fac .copia { font-size: 8.5px; margin-top: 3px }
+        </style>
+        <div class='fac'>"
         // La factura fiscal va con la razon social registrada en Impuestos.
         // Al centro, como en el voucher, el id de la venta para el control
         // del reparto (el numero fiscal sigue en la caja de la derecha).
@@ -3297,7 +3324,7 @@ class FacturacionController extends Controller
                 <th style='width:8%'>Código</th>
                 <th style='width:7%'>Piezas</th>
                 <th style='width:8%'>Cantidad</th>
-                <th style='width:10%'>Unidad</th>
+                <th style='width:12%'>Unidad</th>
                 <th>Descripción</th>
                 " . ($conCanastillos
                     ? "<th style='width:8%'>P. Bruto</th><th style='width:6%'>Canast.</th>"
@@ -3309,7 +3336,7 @@ class FacturacionController extends Controller
             $filas
         </table>
 
-        <table style='width:100%; margin-top:10px; border-collapse:collapse'><tr>
+        <table style='width:100%; margin-top:4px; border-collapse:collapse'><tr>
             <td style='vertical-align:top; padding-right:10px'>
                 <div class='literal'>
                     <b>SON:</b> " . e(mb_strtoupper($this->enLetras($factura->total))) . " BOLIVIANOS
@@ -3336,7 +3363,8 @@ class FacturacionController extends Controller
             $qr
         </tr></table>
 
-        <div class='copia'>" . e($marca) . "</div>";
+        <div class='copia'>" . e($marca) . "</div>
+        </div>";
 
         return $html;
     }
@@ -3375,7 +3403,14 @@ class FacturacionController extends Controller
                 // vouchers: cada venta se imprime en uno solo.
                 $q->where('tipo_comprobante', '<>', 'FACTURA');
             })
-            ->reorder('id')
+            // Sale en el orden en que se reparte: embutidos, pollo, cerdo y
+            // podium/huevo; despues res y la venta directa (sin tipo). Dentro
+            // de cada tipo, por numero de venta.
+            ->reorder()
+            ->orderByRaw("CASE UPPER(TRIM(COALESCE(facturas.pedido_tipo, '')))
+                WHEN 'NORMAL' THEN 1 WHEN 'POLLO' THEN 2 WHEN 'CERDO' THEN 3
+                WHEN 'PODIUM' THEN 4 WHEN 'RES' THEN 5 ELSE 6 END")
+            ->orderBy('facturas.id')
             ->limit(self::MAX_LOTE)
             ->get();
 
