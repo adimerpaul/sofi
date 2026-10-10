@@ -316,7 +316,7 @@
                     </q-item-section>
                     <q-item-section side class="text-right">
                       <q-item-label class="text-weight-bold">Bs {{ money(venta.total) }}</q-item-label>
-                      <q-badge :color="venta.estado === 'PENDIENTE' ? 'orange-8' : (venta.estado === 'ANULADA' ? 'grey-6' : 'green-7')">
+                      <q-badge :color="{ PENDIENTE: 'orange-8', ANULADA: 'grey-6', 'BONIFICACIÓN': 'purple-6' }[venta.estado] || 'green-7'">
                         {{ venta.estado }}<span v-if="venta.estado === 'PENDIENTE'">&nbsp;· Bs {{ money(venta.saldo) }}</span>
                       </q-badge>
                     </q-item-section>
@@ -554,8 +554,10 @@ export default {
     filtrados () {
       const texto = (this.buscar || '').trim().toLowerCase()
       return this.clientes.filter(c => {
-        if (this.filtro === 'deuda' && !(c.saldo > 0)) return false
-        if (this.filtro === 'sin' && c.saldo > 0) return false
+        // deudor lo decide el backend: debe Bs 2 o mas y no es una cuenta de
+        // bajas (bonificaciones, degustacion...). Los demas siguen en Todos.
+        if (this.filtro === 'deuda' && !c.deudor) return false
+        if (this.filtro === 'sin' && c.deudor) return false
         if (this.zona && c.zona !== this.zona) return false
         if (this.vendedor && c.vendedor !== this.vendedor) return false
         if (!texto) return true

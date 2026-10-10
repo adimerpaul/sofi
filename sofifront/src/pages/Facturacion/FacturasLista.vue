@@ -656,6 +656,21 @@
 
               <q-separator/>
 
+              <!-- Un corte de comunicacion deja la factura en ERROR aunque
+                   Impuestos la haya recibido: se pregunta antes de reenviar,
+                   porque reenviarla la duplicaria. -->
+              <q-item
+                v-if="props.row.tipo_comprobante === 'FACTURA' && props.row.cuf
+                  && props.row.estado_siat !== 'VALIDADA' && props.row.estado !== 'ANULADO'"
+                clickable v-close-popup @click="verificarSiat(props.row)"
+              >
+                <q-item-section avatar><q-icon name="fact_check" color="green-7"/></q-item-section>
+                <q-item-section>
+                  Verificar en Impuestos
+                  <q-item-label caption>Si Impuestos ya la tiene válida, solo se actualiza el estado</q-item-label>
+                </q-item-section>
+              </q-item>
+
               <q-item
                 v-if="props.row.tipo_comprobante === 'FACTURA' && props.row.estado_siat === 'ERROR'"
                 clickable v-close-popup @click="reenviarSiat(props.row)"
@@ -1676,10 +1691,35 @@ export default {
         })
     },
 
+    /**
+     * Le pregunta a Impuestos (por el CUF) en que quedo la factura. Si la
+     * tiene VALIDADA, aca solo cambia el estado: no hay que refacturar.
+     */
+    verificarSiat (row) {
+      const aviso = this.$q.notify({
+        group: false, timeout: 0, spinner: true, position: 'top',
+        message: 'Consultando la factura #' + row.id + ' en Impuestos…'
+      })
+      this.$api.post('impuestos/facturas/' + row.id + '/verificar')
+        .then(res => {
+          const valida = res.data.estado === 'VALIDADA'
+          this.$q.notify({
+            type: valida ? 'positive' : 'warning', position: 'top', timeout: 10000,
+            message: valida
+              ? 'Impuestos la tiene VALIDADA: se actualizó el estado, no hace falta refacturar'
+              : res.data.message + '. Si Impuestos no la tiene, reenvíela al SIAT.'
+          })
+          this.onRequest({ pagination: this.pagination })
+        })
+        .catch(err => { this.avisar(err, 'No se pudo consultar en Impuestos') })
+        .finally(() => aviso())
+    },
+
     reenviarSiat (row) {
       this.$q.dialog({
         title: 'Reenviar al SIAT',
-        message: 'Se volverá a generar y enviar la factura fiscal #' + row.id + '. ¿Continuar?',
+        message: 'Se volverá a generar y enviar la factura fiscal #' + row.id + '. ' +
+          'Si Impuestos ya la tiene válida quedará duplicada: use antes "Verificar en Impuestos". ¿Continuar?',
         cancel: true,
         persistent: true
       }).onOk(() => {

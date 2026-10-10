@@ -2,12 +2,36 @@
 
 namespace App\Http\Controllers;
 
+use App\Services\TipoPedido;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class CreditoController extends Controller
 {
+    /** Menos de esto no se cobra: el cliente no sale como deudor. */
+    const DEUDA_MINIMA = 2;
+
+    /** BAJAS POR BONIFICACIONES y BAJAS POR CALIDAD (tbpedidos.bonificacionId). */
+    const CUENTAS_BAJA = [2728, 3070];
+
+    /**
+     * Las cuentas "BAJAS POR ..." (bonificaciones, degustacion, merma,
+     * vencimiento, calidad) no son clientes que deban: ahi se cargan las
+     * bajas. Se reconocen por el nombre, no por "BONIF", porque hay clientes
+     * de verdad que se llaman Bonifacia o Bonifacio.
+     */
+    private function esCuentaDeBaja($nombre)
+    {
+        return strpos(strtoupper(trim((string) $nombre)), 'BAJAS POR ') === 0;
+    }
+
+    /** Si el cliente cuenta como deudor en la lista y en el Excel. */
+    private function esDeudor($nombre, $saldo)
+    {
+        return $saldo >= self::DEUDA_MINIMA && !$this->esCuentaDeBaja($nombre);
+    }
+
     public function __construct()
     {
         $vendedor = ['clientesVendedor', 'deudasVendedor', 'cobrarVendedor'];
@@ -101,6 +125,7 @@ class CreditoController extends Controller
                 $deudas = $porCliente->get($c->Cod_Aut) ?? collect();
                 $pendientes = $deudas->where('saldo', '>', 0);
                 $desde = $pendientes->min('fecha');
+                $saldo = round($pendientes->sum('saldo'), 2);
 
                 return [
                     'id' => (int) $c->Cod_Aut,
@@ -112,7 +137,9 @@ class CreditoController extends Controller
                     'canal' => trim((string) $c->Canal),
                     'vendedor' => $vendedores->get(trim((string) $c->CiVend), ''),
                     'activo' => strtoupper(trim((string) $c->venta)) !== 'INACTIVO',
-                    'saldo' => round($pendientes->sum('saldo'), 2),
+                    'saldo' => $saldo,
+                    // Menos de Bs 2 o una cuenta de bajas: no sale en deudores.
+                    'deudor' => $this->esDeudor($c->Nombres, $saldo),
                     'deudas' => $pendientes->count(),
                     // Desde cuando debe: la deuda pendiente mas vieja.
                     'desde' => $desde ? substr((string) $desde, 0, 10) : null,
@@ -120,7 +147,7 @@ class CreditoController extends Controller
                 ];
             });
 
-        $conDeuda = $clientes->where('saldo', '>', 0);
+        $conDeuda = $clientes->where('deudor', true);
 
         return [
             'clientes' => $clientes->values(),
@@ -199,6 +226,14 @@ class CreditoController extends Controller
                 ];
             };
             return $orden($a) <=> $orden($b);
+        })->values();
+
+        // Fuera los que deben menos de Bs 2 en total (sumando deudas y ventas)
+        // y las cuentas de bajas, que no son deudores de verdad.
+        $totalPorCliente = $filas->groupBy(function ($f) { return $f['cliente_id'] ?: $f['cliente']; })
+            ->map(function ($grupo) { return round($grupo->sum('deuda'), 2); });
+        $filas = $filas->filter(function ($f) use ($totalPorCliente) {
+            return $this->esDeudor($f['cliente'], $totalPorCliente->get($f['cliente_id'] ?: $f['cliente']));
         })->values();
 
         $libro = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
@@ -655,10 +690,17 @@ class CreditoController extends Controller
             ->orderBy('id')->get(['factura_id', 'cod_prod', 'nombre', 'unidad', 'cantidad', 'peso', 'precio', 'subtotal'])
             ->groupBy('factura_id');
 
-        $ventas = $ventas->map(function ($v) use ($abonos, $detalles) {
+        $esBonificada = $this->ventasBonificadas($ventas);
+
+        $ventas = $ventas->map(function ($v) use ($abonos, $detalles, $esBonificada) {
             $total = (float) $v->total;
             $pagado = (float) ($abonos[$v->id] ?? 0);
             $activa = $v->estado === 'ACTIVO';
+            // Se sigue viendo en el historial, pero no se debe.
+            if ($activa && $esBonificada($v)) {
+                $activa = false;
+                $v->estado_texto = 'BONIFICACIÓN';
+            }
             return [
                 'id' => $v->id,
                 'fecha' => substr((string) $v->fecha, 0, 10),
@@ -668,7 +710,7 @@ class CreditoController extends Controller
                 'total' => $total,
                 'pagado' => $pagado,
                 'saldo' => $activa ? max(0, round($total - $pagado, 2)) : 0,
-                'estado' => !$activa ? 'ANULADA' : ($total - $pagado > 0.009 ? 'PENDIENTE' : 'PAGADA'),
+                'estado' => !$activa ? ($v->estado_texto ?? 'ANULADA') : ($total - $pagado > 0.009 ? 'PENDIENTE' : 'PAGADA'),
                 'observacion' => $v->observacion,
                 'productos' => ($detalles->get($v->id) ?? collect())->map(function ($d) {
                     return [
@@ -715,9 +757,32 @@ class CreditoController extends Controller
                 'deudas' => $deudas->where('saldo', '>', 0)->count(),
                 'abonado' => round($deudas->sum('pagado'), 2),
                 'ventas' => $ventas->count(),
-                'vendido' => round($ventas->where('estado', '<>', 'ANULADA')->sum('total'), 2),
+                'vendido' => round($ventas->whereNotIn('estado', ['ANULADA', 'BONIFICACIÓN'])->sum('total'), 2),
             ],
         ];
+    }
+
+    /**
+     * Lo bonificado sale como venta a credito al cliente, pero su pedido va
+     * cargado a una cuenta de bajas: no es una deuda. Es el mismo criterio con
+     * el que la boleta lo imprime a nombre de la cuenta de baja. Devuelve una
+     * funcion que dice si una venta (con pedido_nro y pedido_tipo) lo es.
+     */
+    private function ventasBonificadas($ventas)
+    {
+        $nros = collect($ventas)->pluck('pedido_nro')->filter()->unique()->values()->all();
+        $bonificados = empty($nros) ? collect() : DB::table('tbpedidos')
+            ->whereNull('deleted_at')
+            ->whereIn('NroPed', $nros)
+            ->whereIn('bonificacionId', self::CUENTAS_BAJA)
+            ->select('NroPed', DB::raw(TipoPedido::sql('') . ' as tipo'))
+            ->distinct()->get()
+            ->mapWithKeys(function ($p) { return [$p->NroPed . '|' . $p->tipo => true]; });
+
+        return function ($venta) use ($bonificados) {
+            return $venta->pedido_nro
+                && $bonificados->has($venta->pedido_nro . '|' . strtoupper(trim((string) $venta->pedido_tipo)));
+        };
     }
 
     /**
@@ -739,11 +804,14 @@ class CreditoController extends Controller
             ->whereIn('f.tipo_pago', ['CRÉDITO', 'CREDITO'])
             ->when($cliente, function ($q) use ($cliente) { $q->where('f.cliente_id', $cliente); })
             ->get(['f.id', 'f.cliente_id', 'f.fecha', 'f.total as monto', 'f.estado', 'f.deleted_at',
-                'f.tipo_comprobante', 'f.pedido_nro',
+                'f.tipo_comprobante', 'f.pedido_nro', 'f.pedido_tipo',
                 DB::raw("COALESCE(c.Nombres, f.nombre) as cliente")]);
+
+        $esBonificada = $this->ventasBonificadas($facturas);
 
         $filas = collect();
         foreach ($facturas as $deuda) {
+            $bonificado = $esBonificada($deuda);
             $deuda->origen = 'factura';
             $deuda->clave = 'factura:' . $deuda->id;
             $deuda->concepto = ($deuda->tipo_comprobante === 'FACTURA' ? 'Factura #' : 'Venta #') . $deuda->id
@@ -751,9 +819,12 @@ class CreditoController extends Controller
             $deuda->pagado = (float) ($abonos[$deuda->id] ?? 0);
             $deuda->monto = (float) $deuda->monto;
             $activa = $deuda->estado === 'ACTIVO' && !$deuda->deleted_at;
-            if (!$activa && !$deuda->pagado) { continue; }
-            $deuda->saldo = $activa ? max(0, round($deuda->monto - $deuda->pagado, 2)) : 0;
-            $deuda->estado = !$activa ? 'ANULADA CON ABONOS: REVISAR' : ($deuda->saldo > 0 ? 'PENDIENTE' : 'PAGADO');
+            // Una bonificacion no se cobra; si igual se le abono algo, queda a la
+            // vista para revisarla, como lo anulado.
+            if ((!$activa || $bonificado) && !$deuda->pagado) { continue; }
+            $deuda->saldo = $activa && !$bonificado ? max(0, round($deuda->monto - $deuda->pagado, 2)) : 0;
+            $deuda->estado = !$activa ? 'ANULADA CON ABONOS: REVISAR'
+                : ($bonificado ? 'BONIFICACIÓN CON ABONOS: REVISAR' : ($deuda->saldo > 0 ? 'PENDIENTE' : 'PAGADO'));
             $filas->push($deuda);
         }
 
