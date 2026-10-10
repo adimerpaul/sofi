@@ -42,12 +42,18 @@ class CobranzaRecojoController extends Controller
         $camion = trim((string) ($datos['camion'] ?? ''));
 
         $filas = $recojo->filas($fecha, $camion ?: null, !$request->boolean('todo'));
+        // Lo que sigue en el camion sin ninguna entrega: no suma plata, pero
+        // el camion tiene que verse aunque todavia no haya marcado nada.
+        $pendientes = $recojo->pendientes($fecha, $camion ?: null)->groupBy('placa');
 
         // Un bloque por camion: es como se cuenta la plata, un caminero a la
         // vez, y es tambien como se imprime.
         $camiones = [];
-        foreach ($filas->groupBy('placa') as $placa => $delCamion) {
+        $placas = $filas->pluck('placa')->merge($pendientes->keys())->unique()->sort()->values();
+        foreach ($placas as $placa) {
+            $delCamion = $filas->where('placa', $placa)->values();
             $grupos = $recojo->agrupar($delCamion);
+            $sinEntregar = ($pendientes->get($placa) ?? collect())->values();
 
             $camiones[] = [
                 'placa' => $placa,
@@ -56,6 +62,8 @@ class CobranzaRecojoController extends Controller
                 'tabla' => $recojo->tabla($delCamion),
                 'totales' => $recojo->totales($grupos, $delCamion->whereIn('estado', RecojoDelDia::ESTADOS_COBRADOS)),
                 'notas' => $delCamion->count(),
+                'pendientes' => $sinEntregar,
+                'pendientes_total' => round($sinEntregar->sum('monto'), 2),
             ];
         }
 
@@ -76,8 +84,18 @@ class CobranzaRecojoController extends Controller
     public function camiones(Request $request, RecojoDelDia $recojo)
     {
         $datos = $request->validate(['fecha' => 'nullable|date', 'todo' => 'nullable|boolean']);
+        $fecha = $datos['fecha'] ?? date('Y-m-d');
 
-        return $recojo->camiones($datos['fecha'] ?? date('Y-m-d'), !$request->boolean('todo'));
+        // Tambien los que todavia no registraron ninguna entrega.
+        $camiones = collect($recojo->camiones($fecha, !$request->boolean('todo')));
+        $conEntregas = $camiones->pluck('placa')->all();
+        foreach ($recojo->pendientes($fecha)->pluck('placa')->unique() as $placa) {
+            if (!in_array($placa, $conEntregas, true)) {
+                $camiones->push(['placa' => $placa, 'caminero' => $placa]);
+            }
+        }
+
+        return $camiones->sortBy('placa')->values()->all();
     }
 
     /**

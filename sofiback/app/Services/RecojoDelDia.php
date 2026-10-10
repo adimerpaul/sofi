@@ -62,11 +62,17 @@ class RecojoDelDia
         // Lo de un comprobante anulado (o borrado) no sale: si se volvio a
         // emitir, la nota nueva trae su propia entrega y saldria repetida; si
         // se anulo el pedido, ya no hay nada que rendir.
-        $consulta->whereNotExists(function ($sub) {
-            $sub->from('facturas as fa')
-                ->whereColumn('fa.id', 'e.factura_id')
-                ->where(function ($w) {
-                    $w->where('fa.estado', 'ANULADO')->orWhereNotNull('fa.deleted_at');
+        // Lo no entregado si sale aunque despues se anulara la venta (es lo
+        // normal: caja anula lo que volvio). No trae plata, asi que no hay nada
+        // que se pueda contar dos veces, y el camion tiene que verse con su 0.
+        $consulta->where(function ($w) {
+            $w->whereNotIn('e.estado', self::ESTADOS_COBRADOS)
+                ->orWhereNotExists(function ($sub) {
+                    $sub->from('facturas as fa')
+                        ->whereColumn('fa.id', 'e.factura_id')
+                        ->where(function ($w) {
+                            $w->where('fa.estado', 'ANULADO')->orWhereNotNull('fa.deleted_at');
+                        });
                 });
         });
 
@@ -102,6 +108,13 @@ class RecojoDelDia
                 $fila->monto = (float) $fila->monto;
                 $fila->monto_efectivo = (float) $fila->monto_efectivo;
                 $fila->monto_qr = (float) $fila->monto_qr;
+                // Lo que no se entrego no trae nada: va con 0, no con el total
+                // de la nota, en la tabla, en los totales y en la hoja.
+                if (!in_array($fila->estado, self::ESTADOS_COBRADOS, true)) {
+                    $fila->monto = 0.0;
+                    $fila->monto_efectivo = 0.0;
+                    $fila->monto_qr = 0.0;
+                }
                 // Las entregas de la ruta de siempre no traen desglose: se
                 // deduce del tipago para que el dinero cuadre igual. Solo el
                 // mixto necesita las columnas cargadas.
@@ -321,6 +334,57 @@ class RecojoDelDia
         <div class='pie'><div class='legal'>"
             . e(config('siat.emisor')['nombre']) . ' &middot; Recojo del ' . date('d/m/Y', strtotime($fecha))
             . ' &middot; camión ' . e($placa) . ' &middot; generado el ' . date('d/m/Y H:i') . '</div></div>';
+    }
+
+    /**
+     * Las ventas del turno que van en un camion y todavia no tienen ninguna
+     * entrega registrada (siguen "en camion"). No traen plata, pero sin esto
+     * un camion que aun no marco nada no aparecia y parecia que no existia.
+     *
+     * El turno es el de facturacion: de las 18:00 del dia anterior a las 18:00
+     * del dia. El camion es el del pedido, o el de la venta directa, igual que
+     * en la grilla de facturacion.
+     */
+    public function pendientes($fecha, $placa = null): Collection
+    {
+        $desde = date('Y-m-d', strtotime($fecha . ' -1 day')) . ' 18:00:00';
+        $hasta = $fecha . ' 18:00:00';
+        $camion = "COALESCE(NULLIF(TRIM(f.placa), ''), (
+                SELECT CONVERT(TRIM(COALESCE(pc.placa, '')) USING utf8mb4)
+                FROM tbpedidos pc
+                WHERE pc.deleted_at IS NULL AND pc.NroPed = f.pedido_nro
+                  AND " . TipoPedido::sql('pc') . " = UPPER(TRIM(f.pedido_tipo))
+                LIMIT 1
+            ))";
+
+        return DB::table('facturas as f')
+            ->leftJoin('tbclientes as c', 'c.Cod_Aut', '=', 'f.cliente_id')
+            ->where('f.estado', '<>', 'ANULADO')
+            ->whereNull('f.deleted_at')
+            ->whereRaw("TIMESTAMP(f.fecha, COALESCE(f.hora, '00:00:00')) >= ?", [$desde])
+            ->whereRaw("TIMESTAMP(f.fecha, COALESCE(f.hora, '00:00:00')) < ?", [$hasta])
+            ->whereNotExists(function ($sub) {
+                $sub->from('entregas as e')->whereColumn('e.factura_id', 'f.id');
+            })
+            ->orderBy('f.id')
+            ->get([
+                'f.id as nota', 'f.tipo_comprobante', 'f.tipo_pago', 'f.pedido_tipo',
+                DB::raw('COALESCE(f.total, 0) as monto'),
+                DB::raw("COALESCE(NULLIF(TRIM(c.Nombres), ''), f.nombre) as cliente"),
+                DB::raw("$camion as placa"),
+            ])
+            ->map(function ($fila) {
+                $fila->monto = (float) $fila->monto;
+                $fila->placa = trim((string) $fila->placa);
+                return $fila;
+            })
+            // El camion se filtra aca y no en el SQL: la placa del pedido viene
+            // del legado con otra collation y MySQL no deja compararlas.
+            ->filter(function ($fila) use ($placa) {
+                return $fila->placa !== ''
+                    && ($placa === null || trim((string) $placa) === '' || $fila->placa === trim($placa));
+            })
+            ->values();
     }
 
     /** Los camiones que trajeron algo ese dia, con su caminero. */

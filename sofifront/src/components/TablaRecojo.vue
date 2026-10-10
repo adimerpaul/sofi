@@ -68,7 +68,7 @@
       {{ ocultas }} nota{{ ocultas === 1 ? '' : 's' }} sin plata (crédito o sin entregar) no se muestran
     </div>
     <div v-else-if="tabla.totales.no_entregadas && !soloRecogido" class="text-caption text-grey-7 q-px-xs">
-      {{ tabla.totales.no_entregadas }} sin entregar por Bs {{ money(tabla.totales.monto_no_entregado) }} (no suman)
+      {{ tabla.totales.no_entregadas }} no entregada{{ tabla.totales.no_entregadas === 1 ? '' : 's' }} (van en 0, no traen plata)
     </div>
   </div>
 </template>

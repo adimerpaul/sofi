@@ -94,7 +94,7 @@
     </div>
 
     <div v-else-if="!camiones.length" class="text-center text-grey-6 q-pa-lg">
-      Ningún camión registró entregas el {{ fechaLarga }}
+      Ningún camión registró entregas ni tiene ventas pendientes el {{ fechaLarga }}
     </div>
 
     <div v-else>
@@ -150,6 +150,9 @@
             <div class="text-caption text-grey-7">
               {{ uno.caminero }} ·
               {{ uno.notas }} nota{{ uno.notas === 1 ? '' : 's' }}
+              <q-badge v-if="uno.pendientes && uno.pendientes.length" color="orange-8" class="q-ml-xs">
+                {{ uno.pendientes.length }} sin entregar
+              </q-badge>
             </div>
           </q-item-section>
           <q-item-section side>
@@ -173,7 +176,38 @@
           </q-item-section>
         </template>
 
-        <TablaRecojo :tabla="uno.tabla" :buscar="buscar || ''"/>
+        <TablaRecojo v-if="uno.notas" :tabla="uno.tabla" :buscar="buscar || ''"/>
+        <div v-else class="text-caption text-grey-7 q-pa-sm">
+          Este camión todavía no registró ninguna entrega.
+        </div>
+
+        <!-- Lo que sigue en el camion sin ninguna entrega: no trae plata
+             todavia, pero se ve para saber que falta rendir. -->
+        <div v-if="pendientesVisibles(uno).length" class="q-pa-xs">
+          <div class="row items-center bg-orange-1 text-orange-10 text-weight-bold q-px-sm barra-titulo">
+            SIN ENTREGAR · {{ pendientesVisibles(uno).length }} nota{{ pendientesVisibles(uno).length === 1 ? '' : 's' }}
+            <q-space/>
+            Bs {{ money(uno.pendientes_total) }}
+          </div>
+          <q-markup-table dense flat bordered separator="horizontal" class="tabla-pendientes">
+            <thead>
+              <tr>
+                <th class="text-left">Nota</th>
+                <th class="text-left">Cliente</th>
+                <th class="text-left">Pago</th>
+                <th class="text-right">Monto</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="p in pendientesVisibles(uno)" :key="p.nota">
+                <td class="text-left">#{{ p.nota }}</td>
+                <td class="text-left">{{ p.cliente }}</td>
+                <td class="text-left">{{ p.tipo_pago || '—' }}</td>
+                <td class="text-right">{{ money(p.monto) }}</td>
+              </tr>
+            </tbody>
+          </q-markup-table>
+        </div>
       </q-expansion-item>
     </div>
   </q-page>
@@ -224,12 +258,13 @@ export default {
         this.listaCamiones.map(c => ({ label: c.placa + ' · ' + c.caminero, value: c.placa }))
       )
     },
-    // Buscando, solo los camiones que tienen alguna nota que coincide.
+    // Buscando, solo los camiones que tienen alguna nota que coincide (entre
+    // lo rendido o lo que sigue sin entregar).
     camionesVisibles () {
       const texto = String(this.buscar || '').trim().toLowerCase()
       if (!texto) return this.camiones
-      return this.camiones.filter(uno => uno.tabla.filas.some(fila =>
-        (String(fila.cliente || '').toLowerCase().includes(texto) || String(fila.nota).includes(texto))))
+      const coincide = fila => String(fila.cliente || '').toLowerCase().includes(texto) || String(fila.nota).includes(texto)
+      return this.camiones.filter(uno => uno.tabla.filas.some(coincide) || (uno.pendientes || []).some(coincide))
     },
     fechaLarga () {
       return date.formatDate(this.fecha + 'T00:00:00', 'dddd, D [DE] MMMM [DE] YYYY').toUpperCase()
@@ -238,6 +273,12 @@ export default {
   methods: {
     money (valor) {
       return Number(valor || 0).toFixed(2)
+    },
+    pendientesVisibles (uno) {
+      const texto = String(this.buscar || '').trim().toLowerCase()
+      const lista = uno.pendientes || []
+      if (!texto) return lista
+      return lista.filter(p => String(p.cliente || '').toLowerCase().includes(texto) || String(p.nota).includes(texto))
     },
     /** Cuántas notas hay en una hoja, sumando todos los camiones mostrados. */
     conteo (clave) {
@@ -346,6 +387,10 @@ export default {
 .camion :deep(.camion-titulo) {
   min-height: 40px;
   padding: 2px 8px;
+}
+.tabla-pendientes td, .tabla-pendientes th {
+  font-size: 11px;
+  padding: 2px 6px;
 }
 .camion-avatar {
   min-width: 28px;
