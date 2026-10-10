@@ -1479,11 +1479,15 @@ class FacturacionController extends Controller
     }
 
     /**
-     * Cuando se emite de nuevo un pedido cuya venta anterior tenia un retorno
-     * parcial, esa entrega pasa al comprobante nuevo: el cobro ya se hizo en
-     * la puerta y la nota no tiene que volver a salir como pendiente en la
-     * lista del caminero. La carga tambien queda revisada, porque el camion
-     * ya salio con ella.
+     * Cuando se emite de nuevo un pedido que el camion ya habia entregado, la
+     * entrega pasa al comprobante nuevo: el cobro ya se hizo en la puerta, la
+     * nota no tiene que volver a salir como pendiente en la lista del caminero
+     * y el recojo de ese dia tiene que seguir cuadrando (lo de un comprobante
+     * anulado no sale en el recojo). Pasa con cualquier entrega, no solo con
+     * un retorno parcial: tambien cuando solo se cambio el tipo de comprobante.
+     *
+     * Con retorno parcial ademas el monto pasa a ser el del comprobante nuevo
+     * y la carga queda revisada, porque el camion ya salio con ella.
      */
     private function heredarRetorno(Factura $nueva, $usuario)
     {
@@ -1494,14 +1498,23 @@ class FacturacionController extends Controller
             ->orderByDesc('id')
             ->first(['id']);
 
-        $retorno = $anterior ? $this->retornoDe($anterior->id) : null;
+        if (!$anterior) {
+            return;
+        }
+
+        // Se lee antes de mover: busca la entrega por el comprobante anterior.
+        $retorno = $this->retornoDe($anterior->id);
+
+        DB::table('entregas')->where('factura_id', $anterior->id)->update([
+            'factura_id' => $nueva->id,
+        ]);
+
         if (!$retorno) {
             return;
         }
 
         DB::table('entregas')->where('id', $retorno['entrega_id'])->update([
-            'factura_id' => $nueva->id,
-            'monto'      => round((float) $nueva->total, 2),
+            'monto' => round((float) $nueva->total, 2),
         ]);
 
         $marca = DB::table('carga_verificaciones')->where('factura_id', $anterior->id)->first();
@@ -1916,12 +1929,25 @@ class FacturacionController extends Controller
             $tipoPago = $datos['tipo_pago'] ?? 'EFECTIVO';
             list($montoEfectivo, $montoQr) = $this->montosPago($tipoPago, round($subtotal - $descuento, 2), $datos);
 
+            // Al refacturar (anular y volver a emitir el mismo pedido) la venta
+            // sigue siendo del dia en que se hizo: si tomara la fecha de hoy
+            // saldria de la venta y de la jornada del camion que la entrego y
+            // caeria en otro dia. Cuando se emitio de verdad queda en
+            // created_at y, si es factura, en fecha_emision (la de Impuestos).
+            $refacturada = !empty($datos['pedido_nro'])
+                ? Factura::where('pedido_nro', $datos['pedido_nro'])
+                    ->where('pedido_tipo', $datos['pedido_tipo'])
+                    ->where('estado', 'ANULADO')
+                    ->orderByDesc('id')
+                    ->first(['id', 'fecha', 'hora'])
+                : null;
+
             $factura = Factura::create([
                 'user_id'          => $usuario->CodAut,
                 'cliente_id'       => $cliente->Cod_Aut ?? null,
                 'vendedor_ci'      => $cliente ? trim((string) $cliente->CiVend) : null,
-                'fecha'            => date('Y-m-d'),
-                'hora'             => date('H:i:s'),
+                'fecha'            => $refacturada ? $refacturada->fecha->format('Y-m-d') : date('Y-m-d'),
+                'hora'             => $refacturada ? $refacturada->hora : date('H:i:s'),
                 'nit'              => $nit !== '' ? $nit : ($cliente ? trim($cliente->Id) : null),
                 'nombre'           => $datos['nombre'] ?? ($cliente ? trim($cliente->Nombres) : null),
                 'tipo_comprobante' => $tipo,
@@ -2459,6 +2485,8 @@ class FacturacionController extends Controller
     {
         $datos = $request->validate([
             'codigo_motivo' => 'required|integer|between:1,4',
+            // Por que se anulo, en palabras de quien lo hizo. Puede ir vacio.
+            'observacion'   => 'nullable|string|max:255',
         ]);
 
         $motivos = [
@@ -2511,8 +2539,9 @@ class FacturacionController extends Controller
         }
 
         $ci = trim((string) ($request->user()->ci ?? ''));
+        $usuario = $request->user();
 
-        DB::transaction(function () use ($factura, $datos, $motivos, $ci) {
+        DB::transaction(function () use ($factura, $datos, $motivos, $ci, $usuario) {
             $lineas = $factura->detalles->map(function ($d) {
                 return [
                     'cod_prod' => $d->cod_prod,
@@ -2525,10 +2554,12 @@ class FacturacionController extends Controller
             // Lo que no se vendio vuelve al inventario.
             $this->moverStock($lineas, $factura->id, $ci, date('Y-m-d H:i:s'), 'ANULACION');
 
+            $observacion = trim((string) ($datos['observacion'] ?? ''));
+
             $factura->update([
-                'estado'           => 'ANULADO',
-                'motivo_anulacion' => $motivos[$datos['codigo_motivo']],
-                'anulado_at'       => now(),
+                'estado'                => 'ANULADO',
+                'motivo_anulacion'      => $motivos[$datos['codigo_motivo']],
+                'anulado_at'            => now(),
             ]);
         });
 
@@ -2539,6 +2570,20 @@ class FacturacionController extends Controller
             'factura' => $factura->fresh(),
             'siat' => $respuestaSiat,
         ]);
+    }
+
+    /**
+     * La fecha que va impresa en la factura fiscal: la de su emision en
+     * Impuestos, que es la que muestra el QR. Puede no ser la de la venta: al
+     * refacturar, la venta conserva el dia original y la factura se emite hoy.
+     */
+    private function fechaImpresaFactura(Factura $factura)
+    {
+        $emision = $factura->fecha_emision ? strtotime(substr($factura->fecha_emision, 0, 19)) : false;
+
+        return $emision
+            ? date('d/m/Y H:i:s', $emision)
+            : $factura->fecha->format('d/m/Y') . ' ' . e($factura->hora);
     }
 
     /**
@@ -2732,9 +2777,9 @@ class FacturacionController extends Controller
             $this->moverStock($devueltas, $original->id, $ci, date('Y-m-d H:i:s'), 'ANULACION');
 
             $original->update([
-                'estado'           => 'ANULADO',
-                'motivo_anulacion' => $motivos[$motivo],
-                'anulado_at'       => now(),
+                'estado'                => 'ANULADO',
+                'motivo_anulacion'      => $motivos[$motivo],
+                'anulado_at'            => now(),
             ]);
 
             $nueva = Factura::create([
@@ -3185,7 +3230,7 @@ class FacturacionController extends Controller
                 <td style='width:24%'><span class='et'>NIT / CI / CEX</span><br>"
                     . e($factura->nit ?: '—') . "</td>
                 <td><span class='et'>Fecha</span><br>"
-                    . $factura->fecha->format('d/m/Y') . ' ' . e($factura->hora) . "</td>
+                    . $this->fechaImpresaFactura($factura) . "</td>
             </tr>
             <tr>
                 <td><span class='et'>Cod. cliente</span><br>" . ($factura->cliente_id ?: '—') . "</td>

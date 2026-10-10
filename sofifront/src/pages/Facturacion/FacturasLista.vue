@@ -711,14 +711,14 @@
                    vuelve a abrirse con todo cargado para emitir uno nuevo. -->
               <template v-if="can('facturacionAnular') && props.row.estado !== 'ANULADO'">
                 <q-separator/>
-                <q-item clickable v-close-popup :disable="!props.row.pedido_nro" @click="pedirEdicion(props.row)">
+                <q-item clickable v-close-popup @click="pedirEdicion(props.row)">
                   <q-item-section avatar><q-icon name="edit" color="deep-orange-7"/></q-item-section>
                   <q-item-section>
                     Editar
                     <q-item-label caption>
                       {{ props.row.pedido_nro
                         ? 'Anula este y crea uno nuevo con los cambios'
-                        : 'Venta directa: anular y registrar otra' }}
+                        : 'Anula este y abre la venta nueva con todo cargado' }}
                     </q-item-label>
                   </q-item-section>
                 </q-item>
@@ -1815,6 +1815,15 @@ export default {
               path: '/facturacion/pedidos/' + this.sel.pedido_nro + '/' + this.sel.pedido_tipo,
               query: this.sel.placa ? { camion: this.sel.placa } : {}
             })
+            return
+          }
+          // Venta directa: no hay pedido que reabrir, se carga en Nueva venta.
+          if (this.editando) {
+            this.$q.notify({
+              type: 'positive', position: 'top',
+              message: 'Comprobante #' + this.sel.id + ' anulado: corregí la venta y emití la nueva'
+            })
+            this.$router.push({ path: '/facturacion/nueva', query: { desde: this.sel.id } })
             return
           }
           this.$q.notify({

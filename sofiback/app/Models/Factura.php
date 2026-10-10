@@ -60,7 +60,9 @@ class Factura extends Model
         'leyenda',
         'online',
         'motivo_anulacion',
+        'anulacion_observacion',
         'anulado_at',
+        'anulado_por',
     ];
 
     /** El XML enviado al SIAT pesa varios KB y no lo usa ninguna pantalla. */

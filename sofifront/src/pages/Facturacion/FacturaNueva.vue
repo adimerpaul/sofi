@@ -552,6 +552,8 @@ export default {
     this.cargarCatalogo()
     if (this.$route.query.pedido && this.$route.query.tipo) {
       this.cargarPedido(this.$route.query.pedido, this.$route.query.tipo)
+    } else if (this.$route.query.desde) {
+      this.cargarDesdeFactura(this.$route.query.desde)
     }
   },
   methods: {
@@ -612,6 +614,58 @@ export default {
           this.avisar(err, 'No se pudo recuperar el pedido')
           this.$router.push('/facturacion/pedidos')
         })
+        .finally(() => { this.cargandoPedido = false })
+    },
+
+    // Editar una venta directa: el comprobante ya se anulo y su contenido se
+    // carga aca para corregirlo y emitir uno nuevo.
+    cargarDesdeFactura (id) {
+      this.cargandoPedido = true
+      this.$api.get('facturacion/' + id)
+        .then(res => {
+          const f = res.data
+          this.carrito = (f.detalles || []).map(d => {
+            const conCanastillos = d.peso_bruto !== null && d.peso_bruto !== undefined
+            const item = {
+              cod_prod: d.cod_prod,
+              nombre: d.nombre,
+              unidad: d.unidad,
+              imagen: null,
+              precios: [],
+              cantidad: Number(d.cantidad),
+              precio: Number(d.precio),
+              con_canastillos: conCanastillos,
+              kg_canastillo: 2,
+              peso_bruto: conCanastillos ? Number(d.peso_bruto) : null,
+              canastillos: conCanastillos ? Number(d.canastillos || 0) : null,
+              total: 0
+            }
+            this.sincronizarTotal(item)
+            return item
+          })
+          if (f.cliente) {
+            this.cliente = {
+              id: f.cliente_id,
+              nit: String(f.cliente.Id || '').trim(),
+              nombre: f.nombre || String(f.cliente.Nombres || '').trim(),
+              direccion: String(f.cliente.Direccion || '').trim(),
+              zona: String(f.cliente.zona || '').trim(),
+              vendedor_ci: f.vendedor_ci || '',
+              vendedor: ''
+            }
+            this.clientes = [this.cliente]
+          }
+          this.tipoComprobante = f.tipo_comprobante || 'VENTA'
+          this.tipoPago = String(f.tipo_pago || '').toUpperCase().includes('CREDIT') ? 'CRÉDITO' : (f.tipo_pago || 'EFECTIVO')
+          this.montoEfectivo = f.monto_efectivo !== null ? Number(f.monto_efectivo) : null
+          this.montoQr = f.monto_qr !== null ? Number(f.monto_qr) : null
+          this.descuento = Number(f.descuento) || 0
+          this.observacion = f.observacion || ''
+          this.placa = f.placa ? String(f.placa).trim() : null
+          // Despues del watch de cliente, que pisaria el NIT con el del cliente.
+          this.$nextTick(() => { this.nit = f.nit || '' })
+        })
+        .catch(err => { this.avisar(err, 'No se pudo recuperar el comprobante') })
         .finally(() => { this.cargandoPedido = false })
     },
 
@@ -869,6 +923,10 @@ export default {
           }), 1000)
         } else {
           this.limpiar()
+          // Lo editado ya se emitio: que recargar la pagina no lo vuelva a traer.
+          if (this.$route.query.desde) {
+            this.$router.replace({ path: '/facturacion/nueva' })
+          }
         }
       }).catch(err => {
         this.avisar(err, 'No se pudo registrar')
