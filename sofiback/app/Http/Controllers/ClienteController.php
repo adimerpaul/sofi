@@ -402,7 +402,7 @@ class ClienteController extends Controller{
 
     /** Las zonas del despegable de Clientes (la misma lista tiene la pantalla). */
     const ZONAS = [
-        'NORTE', 'SUD', 'CENTRO', 'PROVINCIA', 'COLQUIRI', 'HUANUNI', 'LLALLAGUA', 'CARACOLLO',
+        'NORTE', 'SUD', 'ESTE', 'CENTRO', 'PROVINCIA', 'COLQUIRI', 'HUANUNI', 'LLALLAGUA', 'CARACOLLO',
         'CHALLAPATA', 'UNCIA', 'POOPO', 'MACHACAMARCA',
     ];
 
