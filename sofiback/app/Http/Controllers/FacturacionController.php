@@ -2902,6 +2902,198 @@ class FacturacionController extends Controller
     }
 
     /**
+     * Pedido contra facturacion, en una sola hoja: cada producto con lo que
+     * pidio el preventista y lo que se cobro, y abajo el comentario de que
+     * cambio (o que no hubo cambios). No marca el comprobante como impreso:
+     * es un control, no el papel que va al cliente.
+     */
+    public function comparacion($id)
+    {
+        $factura = Factura::with(['detalles', 'cliente', 'vendedor'])->find($id);
+        if (!$factura) {
+            return response()->json(['message' => 'La venta no existe'], 404);
+        }
+
+        $servicio = new CambioPedido();
+        $lineasPedido = $factura->pedido_nro ? $servicio->lineasPedido($factura) : collect();
+        $diferencias = $lineasPedido->isNotEmpty() ? $servicio->diferencias($factura) : null;
+        $cambiosPorCodigo = collect($diferencias['productos'] ?? [])->keyBy('cod_prod');
+
+        // Un mismo codigo puede venir en varias lineas (otro precio, otro
+        // canastillo): se junta por codigo, igual que al detectar el cambio.
+        $pedido = $lineasPedido->groupBy(function ($l) { return trim((string) $l->cod_prod); });
+        $vendido = $factura->detalles->groupBy(function ($d) { return trim((string) $d->cod_prod); });
+        $codigos = $pedido->keys()->merge($vendido->keys())->unique()->values();
+
+        $cant = function ($v) {
+            return rtrim(rtrim(number_format((float) $v, 3, '.', ','), '0'), '.');
+        };
+        $precios = function ($lineas) {
+            return collect($lineas)->map(function ($l) { return number_format((float) $l->precio, 2); })
+                ->unique()->implode(' / ');
+        };
+
+        $filas = '';
+        $totPedido = 0;
+        $totVendido = 0;
+        foreach ($codigos as $i => $codigo) {
+            $p = $pedido->get($codigo);
+            $v = $vendido->get($codigo);
+            $cambio = $cambiosPorCodigo->get((string) $codigo);
+            $tipo = $cambio['cambio'] ?? null;
+            $camposCambiados = collect($cambio['campos'] ?? [])->pluck('campo')->all();
+
+            $subPedido = $p ? (float) $p->sum('subtotal') : 0;
+            $subVendido = $v ? (float) $v->sum('subtotal') : 0;
+            $totPedido += $subPedido;
+            $totVendido += $subVendido;
+            $dif = $subVendido - $subPedido;
+
+            $marca = function ($campo, $texto) use ($tipo, $camposCambiados) {
+                return $tipo === 'MODIFICADO' && in_array($campo, $camposCambiados, true) ? "<b class='cambio'>$texto</b>" : $texto;
+            };
+            $nombre = $v ? $v->first()->nombre : $p->first()->nombre;
+            $estado = $tipo === 'AGREGADO' ? 'AGREGADO' : ($tipo === 'QUITADO' ? 'QUITADO' : ($tipo ? 'CAMBIÓ' : 'IGUAL'));
+            $clase = $tipo === 'AGREGADO' ? 'agregado' : ($tipo === 'QUITADO' ? 'quitado' : ($tipo ? 'modificado' : ($i % 2 ? 'par' : '')));
+            $peso = $v ? (float) $v->sum('peso') : 0;
+
+            $filas .= "<tr class='$clase'>"
+                . "<td class='cod'>" . e($codigo) . '</td>'
+                . '<td>' . e($nombre) . '</td>'
+                . "<td class='r sep'>" . ($p ? $marca('cantidad', $cant($p->sum('cantidad'))) : '—') . '</td>'
+                . "<td class='r'>" . ($p ? $marca('precio', $precios($p)) : '—') . '</td>'
+                . "<td class='r'>" . ($p ? number_format($subPedido, 2) : '—') . '</td>'
+                . "<td class='r sep'>" . ($v ? $marca('cantidad', $cant($v->sum('cantidad'))) : '—') . '</td>'
+                . "<td class='r'>" . ($peso > 0 ? $cant($peso) : '—') . '</td>'
+                . "<td class='r'>" . ($v ? $marca('precio', $precios($v)) : '—') . '</td>'
+                . "<td class='r'>" . ($v ? number_format($subVendido, 2) : '—') . '</td>'
+                // Sin cambio, la diferencia solo es el peso real de la balanza.
+                . "<td class='r sep" . ($tipo ? '' : ' gris') . "'>" . (abs($dif) >= 0.005 ? ($dif > 0 ? '+' : '') . number_format($dif, 2) : '') . '</td>'
+                . "<td class='c est'>" . $estado . '</td>'
+                . '</tr>';
+        }
+
+        // El comentario de abajo: que cambio, o que se facturo tal cual.
+        if (!$factura->pedido_nro) {
+            $comentario = "<div class='nota'>Venta directa: no viene de un pedido, no hay contra qué comparar.</div>";
+        } elseif ($diferencias === null) {
+            $comentario = "<div class='nota'>El pedido #" . (int) $factura->pedido_nro
+                . ' ya no existe o fue eliminado: no hay contra qué comparar.</div>';
+        } elseif (!count($diferencias['resumen'])) {
+            $comentario = "<div class='sin-cambios'>NO HUBO CAMBIOS: se facturó tal cual el pedido.</div>";
+        } else {
+            $items = '';
+            foreach ($diferencias['cabecera'] as $c) {
+                $items .= '<li><b>' . e($c['etiqueta']) . ':</b> ' . e($c['antes'] ?? '—') . ' &rarr; ' . e($c['despues'] ?? '—') . '</li>';
+            }
+            foreach ($diferencias['productos'] as $c) {
+                $detalle = collect($c['campos'])->map(function ($campo) use ($cant) {
+                    $f = function ($x) use ($campo, $cant) {
+                        return $x === null ? '—' : ($campo['campo'] === 'cantidad' ? $cant($x) : $x);
+                    };
+                    return mb_strtolower($campo['etiqueta']) . ' ' . e($f($campo['antes'])) . ' &rarr; ' . e($f($campo['despues']));
+                })->implode(', ');
+                $titulo = $c['cambio'] === 'AGREGADO' ? 'Se agregó' : ($c['cambio'] === 'QUITADO' ? 'Se quitó' : 'Cambió');
+                $items .= '<li><b>' . $titulo . ' ' . e($c['nombre']) . ':</b> ' . $detalle . '</li>';
+            }
+            $comentario = "<div class='con-cambios'><div class='tit-cambios'>HUBO CAMBIOS ("
+                . count($diferencias['resumen']) . ")</div><ul>$items</ul></div>";
+        }
+
+        $vendedor = $factura->vendedor
+            ? trim(implode(' ', array_filter([trim($factura->vendedor->Nombre1), trim($factura->vendedor->App1), trim($factura->vendedor->Apm)])))
+            : '';
+        $anulado = $factura->estado === 'ANULADO'
+            ? "<div class='aviso'>ANULADO &middot; " . e($factura->motivo_anulacion) . '</div>'
+            : '';
+        $difTotal = $totVendido - $totPedido;
+
+        // Todo tiene que entrar en una hoja: mientras mas productos, mas chica
+        // la letra y mas juntas las filas (un pedido grande pasa de 50).
+        $n = $codigos->count();
+        [$letra, $relleno] = $n > 45 ? ['6.6px', '0.6px 3px'] : ($n > 30 ? ['7.3px', '1.4px 3px'] : ['8.3px', '2.6px 3px']);
+        $chica = $n > 30;
+
+        $html = '<style>' . $this->estilosImpresion() . "
+            @page { margin: 9mm 9mm 9mm 9mm }
+            .titulo { font-size: 13px; font-weight: bold; letter-spacing: .5px }
+            .sub { font-size: 8.5px; color: #555 }
+            .comp td, .comp td.cod { font-size: $letra; padding: $relleno; line-height: 1.15 }
+            .comp td.gris { color: #999 }
+            .comp th { font-size: 7.5px; padding: 3px 3px }
+            .comp th.grupo { background: #546e7a; font-size: 8px }
+            .comp .sep { border-left: 1.5px solid #90a4ae }
+            .comp tr.agregado td { background: #e8f5e9 }
+            .comp tr.quitado td { background: #ffebee; color: #b71c1c }
+            .comp tr.modificado td { background: #fff8e1 }
+            .comp .cambio { color: #c62828 }
+            .comp .est { font-size: 7px; font-weight: bold }
+            .comp tr.total td { background: #37474f; color: #fff; font-weight: bold; font-size: 9px }
+            .sin-cambios { border: 1.5px solid #2e7d32; background: #e8f5e9; color: #1b5e20; font-weight: bold;
+                           text-align: center; padding: 7px; margin-top: 8px; font-size: 11px }
+            .con-cambios { border: 1.5px solid #e65100; background: #fff3e0; padding: 5px 8px; margin-top: 8px }
+            .tit-cambios { font-weight: bold; color: #e65100; font-size: 10px }
+            .con-cambios ul { margin: 3px 0 0 14px; padding: 0 }
+            .con-cambios li { font-size: " . ($chica ? '7.8px' : '8.5px') . "; margin-bottom: 1px }
+            .nota { border: 1px solid #999; background: #f5f5f5; padding: 6px; margin-top: 8px; text-align: center; font-size: 9.5px }
+        </style>
+        <table style='width:100%; border-collapse:collapse'><tr>
+            <td>
+                <div class='titulo'>PEDIDO vs FACTURACIÓN</div>
+                <div class='sub'>Lo que pidió el preventista contra lo que se cobró</div>
+            </td>
+            <td class='r'>
+                <div class='titulo'>Venta #" . $factura->id
+                    . ($factura->pedido_nro ? ' &middot; Pedido #' . (int) $factura->pedido_nro : '') . "</div>
+                <div class='sub'>" . $factura->fecha->format('d/m/Y') . ' ' . e($factura->hora)
+                    . ' &middot; ' . e($factura->tipo_comprobante) . ' &middot; ' . e($this->textoPago($factura)) . "</div>
+            </td>
+        </tr></table>
+        $anulado
+        <table class='datos' style='margin-top:5px'>
+            <tr>
+                <td style='width:50%'><span class='et'>Cliente</span><br><b>" . e($factura->nombre ?: ($factura->cliente->Nombres ?? 'Sin cliente')) . "</b></td>
+                <td style='width:20%'><span class='et'>CI / NIT</span><br>" . e($factura->nit ?: '—') . "</td>
+                <td><span class='et'>Vendedor</span><br>" . e($vendedor ?: '—') . "</td>
+            </tr>
+        </table>
+
+        <table class='detalle comp' style='margin-top:6px'>
+            <tr>
+                <th colspan='2'></th>
+                <th colspan='3' class='grupo sep'>PEDIDO</th>
+                <th colspan='4' class='grupo sep'>FACTURADO</th>
+                <th colspan='2' class='grupo sep'></th>
+            </tr>
+            <tr>
+                <th style='width:7%'>Código</th>
+                <th>Producto</th>
+                <th class='sep' style='width:6%'>Cant</th>
+                <th style='width:7%'>P. Unit</th>
+                <th style='width:8%'>Subtotal</th>
+                <th class='sep' style='width:6%'>Cant</th>
+                <th style='width:6%'>Kg</th>
+                <th style='width:7%'>P. Unit</th>
+                <th style='width:8%'>Subtotal</th>
+                <th class='sep' style='width:7%'>Dif. Bs</th>
+                <th style='width:7%'>Estado</th>
+            </tr>
+            $filas
+            <tr class='total'>
+                <td colspan='2' class='r'>TOTAL (" . $codigos->count() . " productos)</td>
+                <td colspan='3' class='r sep'>" . number_format($totPedido, 2) . "</td>
+                <td colspan='4' class='r sep'>" . number_format($totVendido, 2) . "</td>
+                <td class='r sep'>" . (abs($difTotal) >= 0.005 ? ($difTotal > 0 ? '+' : '') . number_format($difTotal, 2) : '') . "</td>
+                <td></td>
+            </tr>
+        </table>
+        $comentario"
+        . ($factura->observacion ? "<div class='sub' style='margin-top:5px'><b>Observación:</b> " . e($factura->observacion) . '</div>' : '');
+
+        return $this->pdf($html, 'pedido_vs_factura_' . $factura->id);
+    }
+
+    /**
      * Que hojas salen de un comprobante: copias=1 da ORIGINAL y COPIA
      * seguidas; marca=ORIGINAL o marca=COPIA, solo esa. Sin nada, COPIA como
      * siempre.

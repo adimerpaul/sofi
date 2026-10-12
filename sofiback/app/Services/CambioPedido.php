@@ -34,23 +34,7 @@ class CambioPedido
     /** Null si el pedido ya no existe (no hay contra que comparar). */
     public function diferencias(Factura $factura): ?array
     {
-        $tipo = strtoupper(trim((string) $factura->pedido_tipo));
-
-        $lineasPedido = DB::table('tbpedidos as p')
-            ->leftJoin('tbproductos as pr', function ($join) {
-                $join->on(DB::raw('TRIM(pr.cod_prod)'), '=', DB::raw('TRIM(p.cod_prod)'));
-            })
-            ->whereNull('p.deleted_at')
-            ->where('p.NroPed', $factura->pedido_nro)
-            ->whereRaw(TipoPedido::sql('p') . ' = ?', [$tipo])
-            ->where('p.bonificacion', 0)
-            ->get([
-                DB::raw('TRIM(p.cod_prod) as cod_prod'),
-                DB::raw("COALESCE(NULLIF(TRIM(pr.Producto), ''), CONCAT('Producto ', TRIM(p.cod_prod))) as nombre"),
-                DB::raw('COALESCE(p.Cant, 0) as cantidad'),
-                DB::raw('COALESCE(p.precio, 0) as precio'),
-                'p.fact', 'p.pago', 'p.idCli',
-            ]);
+        $lineasPedido = $this->lineasPedido($factura);
 
         if ($lineasPedido->isEmpty()) {
             return null;
@@ -133,6 +117,32 @@ class CambioPedido
             'productos'  => $productos,
             'resumen'    => $resumen,
         ];
+    }
+
+    /**
+     * Lo que pidio el preventista: las lineas vivas del pedido, sin
+     * bonificaciones, con el subtotal que calculo el pedido.
+     */
+    public function lineasPedido(Factura $factura)
+    {
+        $tipo = strtoupper(trim((string) $factura->pedido_tipo));
+
+        return DB::table('tbpedidos as p')
+            ->leftJoin('tbproductos as pr', function ($join) {
+                $join->on(DB::raw('TRIM(pr.cod_prod)'), '=', DB::raw('TRIM(p.cod_prod)'));
+            })
+            ->whereNull('p.deleted_at')
+            ->where('p.NroPed', $factura->pedido_nro)
+            ->whereRaw(TipoPedido::sql('p') . ' = ?', [$tipo])
+            ->where('p.bonificacion', 0)
+            ->get([
+                DB::raw('TRIM(p.cod_prod) as cod_prod'),
+                DB::raw("COALESCE(NULLIF(TRIM(pr.Producto), ''), CONCAT('Producto ', TRIM(p.cod_prod))) as nombre"),
+                DB::raw('COALESCE(p.Cant, 0) as cantidad'),
+                DB::raw('COALESCE(p.precio, 0) as precio'),
+                DB::raw('COALESCE(p.subtotal, 0) as subtotal'),
+                'p.fact', 'p.pago', 'p.idCli',
+            ]);
     }
 
     private function texto($valor)

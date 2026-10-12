@@ -626,6 +626,18 @@
                 <q-item-section avatar><q-icon name="content_copy" color="grey-7" size="20px"/></q-item-section>
                 <q-item-section>Solo copia</q-item-section>
               </q-item>
+              <!-- Control interno: no marca el comprobante como impreso. -->
+              <q-item clickable v-close-popup dense @click="imprimirComparacion(props.row)">
+                <q-item-section avatar><q-icon name="compare_arrows" color="deep-orange-7" size="20px"/></q-item-section>
+                <q-item-section>
+                  Pedido vs facturación
+                  <q-item-label caption>
+                    {{ props.row.pedido_nro
+                      ? (props.row.cambio_pedido ? 'Con el comentario de lo que cambió' : 'Una hoja · sin cambios')
+                      : 'Venta directa: no tiene pedido' }}
+                  </q-item-label>
+                </q-item-section>
+              </q-item>
 
               <q-separator/>
 
@@ -1382,6 +1394,17 @@ export default {
         })
         .catch(err => {
           this.avisar(err, 'No se pudo imprimir el ' + documento)
+        })
+        .finally(() => { this.imprimiendo = null })
+    },
+
+    // Una hoja con el pedido contra lo facturado y el comentario de que cambio.
+    imprimirComparacion (row) {
+      this.imprimiendo = row.id
+      return this.$api.get('facturacion/' + row.id + '/comparacion', { responseType: 'blob' })
+        .then(res => imprimirPdfDirecto(res.data, 'pedido_vs_factura_' + row.id + '.pdf'))
+        .catch(err => {
+          this.avisar(err, 'No se pudo imprimir la comparación')
         })
         .finally(() => { this.imprimiendo = null })
     },

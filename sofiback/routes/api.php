@@ -127,6 +127,8 @@ Route::group(['middleware'=>'auth:sanctum'],function (){
     Route::get('/reportes/kardex/excel',[\App\Http\Controllers\ReporteVentasController::class,'kardexExcel']);
     Route::get('/facturacion/{factura}/voucher',[\App\Http\Controllers\FacturacionController::class,'voucher']);
     Route::get('/facturacion/{factura}/factura',[\App\Http\Controllers\FacturacionController::class,'factura']);
+    // Pedido contra lo facturado, en una hoja, con el comentario de que cambio.
+    Route::get('/facturacion/{factura}/comparacion',[\App\Http\Controllers\FacturacionController::class,'comparacion']);
     Route::get('/facturacion/{factura}/url-impuestos',[\App\Http\Controllers\FacturacionController::class,'urlImpuestos']);
     Route::get('/facturacion/{factura}',[\App\Http\Controllers\FacturacionController::class,'show']);
     Route::post('/facturacion',[\App\Http\Controllers\FacturacionController::class,'store']);
@@ -169,6 +171,7 @@ Route::group(['middleware'=>'auth:sanctum'],function (){
     Route::get('/cobranzas/verificacion/verificadores',[\App\Http\Controllers\CobranzaVerificacionController::class,'verificadores']);
     Route::get('/cobranzas/verificacion/excel-qr',[\App\Http\Controllers\CobranzaVerificacionController::class,'excelQr']);
     Route::get('/cobranzas/verificacion/excel-total',[\App\Http\Controllers\CobranzaVerificacionController::class,'excelTotal']);
+    Route::get('/cobranzas/verificacion/excel-pendientes',[\App\Http\Controllers\CobranzaVerificacionController::class,'excelPendientes']);
     Route::get('/cobranzas/verificacion/excel-detalle',[\App\Http\Controllers\CobranzaVerificacionController::class,'excelDetalle']);
     Route::get('/creditos/clientes',[\App\Http\Controllers\CreditoController::class,'clientes']);
     Route::get('/vendedor/creditos/clientes',[\App\Http\Controllers\CreditoController::class,'clientesVendedor']);

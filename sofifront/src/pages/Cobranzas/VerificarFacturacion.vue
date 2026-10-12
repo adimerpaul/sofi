@@ -46,6 +46,10 @@
           </q-btn>
         </div>
       </q-btn-dropdown>
+      <q-btn unelevated dense no-caps size="sm" color="orange-9" icon="pending_actions" label="Excel no verificados"
+             :loading="exportando === 'pendientes'" :disable="cargando || !noVerificados.length" @click="excelNoVerificados">
+        <q-tooltip>Los comprobantes del día{{ camion ? ' del camión ' + nombrePlaca(camion) : '' }} que aún no se verificaron{{ ocultarCredito ? ', sin créditos' : '' }} ({{ noVerificados.length }})</q-tooltip>
+      </q-btn>
       <q-btn outline dense no-caps size="sm" color="green-8" icon="grid_on" label="Excel día" :loading="exportando === 'excel'" @click="exportar('excel')"/>
       <q-btn outline dense no-caps size="sm" color="red-7" icon="picture_as_pdf" label="PDF" :loading="exportando === 'pdf'" @click="exportar('pdf')"/>
       <q-btn flat dense no-caps size="sm" color="primary" icon="person_search" label="Por cliente" to="/cobranzas/verificacion/clientes"/>
@@ -75,6 +79,8 @@
             { label: 'Todos', value: 'todos' }
           ]"
         />
+        <q-toggle v-model="ocultarCredito" dense size="sm" color="orange-9" class="q-ml-sm text-caption"
+                  :label="'Ocultar créditos (' + filas.filter(esCredito).length + ')'"/>
         <q-space/>
         <span class="text-caption text-grey-7 q-mr-xs gt-sm">
           <q-icon name="payments" color="green-8"/> Efectivo · <q-icon name="qr_code_2" color="deep-purple-6"/> QR
@@ -330,6 +336,8 @@ export default {
       camion: null,
       buscar: '',
       estado: 'pendientes',
+      // Marcado por defecto: los creditos no se cobran al entregar, no hay nada que verificar.
+      ocultarCredito: true,
       cargando: false,
       actualizado: '',
       dialogVentas: false,
@@ -404,6 +412,7 @@ export default {
       return this.filas.filter(f => {
         if (this.estado === 'pendientes' && f.verificado) return false
         if (this.estado === 'verificados' && !f.verificado) return false
+        if (this.ocultarCredito && this.esCredito(f)) return false
         if (!texto) return true
         return String(f.cliente || '').toLowerCase().includes(texto) ||
           String(f.nit || '').includes(texto) ||
@@ -411,6 +420,11 @@ export default {
           String(f.pedido || '').includes(texto)
       // En orden de nota, igual que la hoja del recojo que firma el caminero.
       }).sort((a, b) => a.factura_id - b.factura_id)
+    },
+    // Lo del dia (o camion) sin verificar, respetando el toggle de creditos.
+    noVerificados () {
+      return this.filas.filter(f => !f.verificado && !(this.ocultarCredito && this.esCredito(f)))
+        .sort((a, b) => a.factura_id - b.factura_id)
     },
     avance () {
       return this.totales.comprobantes ? this.totales.verificados / this.totales.comprobantes : 0
@@ -495,6 +509,7 @@ export default {
       if (Math.abs(dif) < 0.01) return 'text-grey-6'
       return dif < 0 ? 'text-red-9 text-weight-bold' : 'text-orange-9 text-weight-bold'
     },
+    esCredito (fila) { return fila.forma_pago === 'CRÉDITO' },
     iconosPago (forma) {
       if (forma === 'MIXTO') return [ICONOS.efectivo, ICONOS.qr]
       if (forma === 'QR') return [ICONOS.qr]
@@ -648,6 +663,25 @@ export default {
         this.$q.notify({ type: 'negative', position: 'top', message: 'No se pudo generar el Excel' })
       } finally {
         this.descargandoReporte = null
+      }
+    },
+    // Del backend: resumen por camion y una hoja por efectivo, QR (y creditos si se muestran).
+    async excelNoVerificados () {
+      this.exportando = 'pendientes'
+      try {
+        const { data } = await this.$api.get('cobranzas/verificacion/excel-pendientes', {
+          params: { ...this.params(), sin_credito: this.ocultarCredito ? 1 : 0 }, responseType: 'blob'
+        })
+        const url = URL.createObjectURL(data)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = 'NO VERIFICADOS ' + this.fecha + (this.camion ? ' ' + this.nombrePlaca(this.camion) : '') + '.xlsx'
+        a.click()
+        URL.revokeObjectURL(url)
+      } catch (e) {
+        this.$q.notify({ type: 'negative', position: 'top', message: 'No se pudo generar el Excel de no verificados' })
+      } finally {
+        this.exportando = null
       }
     },
     async exportar (tipo) {
