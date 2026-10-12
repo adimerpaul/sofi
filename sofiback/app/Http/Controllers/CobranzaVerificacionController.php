@@ -777,11 +777,12 @@ class CobranzaVerificacionController extends Controller
     }
 
     /**
-     * Lo que falta verificar del dia de entrega (y camion): un resumen por
-     * camion y una hoja por lado (efectivo y QR) con cada comprobante
-     * pendiente agrupado por camion, con subtotales. De un mixto con un lado
-     * ya tildado solo sale el lado que falta. Los creditos van en su propia
-     * hoja, salvo que se pidan sin creditos.
+     * Lo que falta verificar del dia de entrega (y camion), con el mismo
+     * formato del Excel de cuentas por cobrar (CreditoController::excelDeudores)
+     * para que cobranzas copie las filas y las pegue en su hoja de pendientes:
+     * una hoja por lado (efectivo y QR) y otra de creditos, salvo que se
+     * pidan sin creditos. De un mixto con un lado ya tildado, lo ya
+     * verificado va en A CUENTA y en DEUDA solo lo que falta de ese lado.
      */
     public function excelPendientes(Request $request)
     {
@@ -791,207 +792,95 @@ class CobranzaVerificacionController extends Controller
         $credito = function ($f) { return $f['forma_pago'] === 'CRÉDITO'; };
 
         $hojas = [
-            'efectivo' => ['EFECTIVO', $filas->filter(function ($f) use ($credito) {
+            'efectivo' => ['Efectivo', 'E F E C T I V O', $filas->filter(function ($f) use ($credito) {
                 return !$credito($f) && in_array('efectivo', $f['lados'], true) && !$f['efectivo_ok'];
             })],
-            'qr' => ['QR', $filas->filter(function ($f) {
+            'qr' => ['QR', 'Q R', $filas->filter(function ($f) {
                 return in_array('qr', $f['lados'], true) && !$f['qr_ok'];
             })],
         ];
         if (!$sinCredito) {
-            $hojas['credito'] = ['CRÉDITOS', $filas->filter($credito)];
+            $hojas['credito'] = ['Créditos', 'C R É D I T O S', $filas->filter($credito)];
         }
-        // Lo pendiente de un lado: lo que trajo el camion; sin entrega todavia, lo esperado.
-        $pendiente = function ($f, $lado) {
-            return $lado === 'credito' ? $f['facturado'] : (float) $f['esperado_' . $lado];
-        };
+
+        // El vendedor: el de la venta; si no, el del cliente.
+        $ids = $filas->pluck('factura_id')->all();
+        $vendedorCi = $ids ? DB::table('facturas as f')->leftJoin('tbclientes as c', 'c.Cod_Aut', '=', 'f.cliente_id')
+            ->whereIn('f.id', $ids)->get(['f.id', 'f.vendedor_ci', 'c.CiVend'])
+            ->mapWithKeys(function ($v) { return [(int) $v->id => trim((string) ($v->vendedor_ci ?: $v->CiVend))]; }) : collect();
+        $vendedores = DB::table('personal')->whereRaw("TRIM(COALESCE(ci, '')) <> ''")->get(['ci', 'Nombre1', 'App1'])
+            ->mapWithKeys(function ($p) { return [trim($p->ci) => trim(trim((string) $p->Nombre1) . ' ' . trim((string) $p->App1))]; });
 
         $yo = $request->user();
         $quien = mb_strtoupper(preg_replace('/\s+/', ' ', trim(($yo->Nombre1 ?? '') . ' ' . ($yo->App1 ?? ''))));
-        $generado = 'Generado por ' . $quien . ' el ' . date('d/m/Y H:i');
-        $filtro = 'Entrega del ' . date('d/m/Y', strtotime($fecha)) . ' · Camión: ' . ($camion === '' ? 'Todos' : ($camion === 'SIN' ? 'Sin camión' : $camion))
-            . ($sinCredito ? ' · Sin créditos' : '');
         $placa = function ($p) { return $p === 'SIN' ? 'SIN CAMIÓN' : $p; };
-
-        $oscuro = '37474F';
-        $rojo = 'C1272D';
-        $colores = ['efectivo' => '2E7D32', 'qr' => '5E35B1', 'credito' => 'EF6C00'];
-        $fino = ['borders' => ['allBorders' => ['borderStyle' => Border::BORDER_THIN, 'color' => ['rgb' => 'BDBDBD']]]];
-        $relleno = function ($rgb) { return ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => $rgb]]; };
-        $dinero = '#,##0.00';
+        $filtro = 'Entrega del ' . date('d/m/Y', strtotime($fecha)) . ' · Camión: ' . ($camion === '' ? 'Todos' : $placa($camion))
+            . ($sinCredito ? ' · Sin créditos' : '') . ' · Generado por ' . $quien;
+        $hoy = new \DateTime(date('Y-m-d'));
 
         $libro = new Spreadsheet();
-        $libro->getProperties()->setCreator($quien)->setTitle('Pendientes de verificar ' . $fecha);
-
-        // Logo, empresa, titulo, filtro y quien lo genero; devuelve la fila siguiente.
-        $cabecera = function ($hoja, $titulo, $ultima, $color) use ($rojo, $filtro, $generado, $relleno) {
-            $emisor = config('siat.emisor');
-            $logo = public_path($emisor['logo'] ?? 'img/sofia.png');
-            if (is_file($logo)) {
-                $dibujo = new \PhpOffice\PhpSpreadsheet\Worksheet\Drawing();
-                $dibujo->setPath($logo)->setHeight(52)->setCoordinates('A1')->setOffsetX(4)->setOffsetY(4)->setWorksheet($hoja);
-            }
-            $hoja->setCellValue('C1', mb_strtoupper($emisor['nombre'] ?? 'SOFIA'));
-            $hoja->setCellValue('C2', trim(($emisor['direccion'] ?? '') . ' · ' . ($emisor['ciudad'] ?? ''), ' ·'));
-            $hoja->getStyle('C1')->getFont()->setBold(true)->setSize(13)->getColor()->setRGB($rojo);
-            $hoja->getStyle('C2')->getFont()->setSize(8)->getColor()->setRGB('757575');
-            $hoja->getRowDimension(1)->setRowHeight(22);
-            $hoja->getRowDimension(2)->setRowHeight(22);
-
-            $hoja->setCellValue('A4', $titulo);
-            $hoja->mergeCells("A4:{$ultima}4");
-            $hoja->getStyle('A4')->applyFromArray([
-                'font' => ['bold' => true, 'size' => 13, 'color' => ['rgb' => 'FFFFFF']],
-                'fill' => $relleno($color),
-                'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER, 'vertical' => Alignment::VERTICAL_CENTER],
-            ]);
-            $hoja->getRowDimension(4)->setRowHeight(22);
-            $hoja->setCellValue('A5', $filtro);
-            $hoja->setCellValue('A6', $generado);
-            $hoja->mergeCells("A5:{$ultima}5");
-            $hoja->mergeCells("A6:{$ultima}6");
-            $hoja->getStyle('A5')->getFont()->setBold(true);
-            $hoja->getStyle('A6')->getFont()->setItalic(true)->setSize(9)->getColor()->setRGB('616161');
-            return 8;
-        };
-        $pie = function ($hoja, $fila, $ultima) use ($generado) {
-            $hoja->setCellValue('B' . ($fila + 4), '______________________________');
-            $hoja->setCellValue('B' . ($fila + 5), 'Revisado por');
-            $hoja->getStyle('B' . ($fila + 5))->getFont()->setBold(true);
-            $hoja->getHeaderFooter()->setOddFooter('&L&8' . $generado . '&R&8Página &P de &N');
-            $hoja->getPageSetup()->setOrientation(PageSetup::ORIENTATION_LANDSCAPE)
-                ->setPaperSize(PageSetup::PAPERSIZE_LETTER)->setFitToWidth(1)->setFitToHeight(0);
-            $hoja->getPageMargins()->setTop(0.4)->setBottom(0.5)->setLeft(0.3)->setRight(0.3);
-        };
-
-        // Resumen por camion.
-        $resumen = $libro->getActiveSheet();
-        $resumen->setTitle('Resumen');
-        $columnasResumen = array_merge(['Camión', 'Comprobantes'], array_map(function ($h) { return 'Pendiente ' . ($h[0] === 'QR' ? 'QR' : mb_strtolower($h[0])); }, $hojas), ['Total pendiente']);
-        $ultimaResumen = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex(count($columnasResumen));
-        $r = $cabecera($resumen, 'COMPROBANTES PENDIENTES DE VERIFICAR · RESUMEN', $ultimaResumen, $oscuro);
-        $resumen->fromArray($columnasResumen, null, 'A' . $r);
-        $resumen->getStyle("A{$r}:{$ultimaResumen}{$r}")->applyFromArray([
-            'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']], 'fill' => $relleno($oscuro),
-            'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER, 'wrapText' => true],
-        ]);
-        $inicioResumen = ++$r;
-        $placas = collect($hojas)->flatMap(function ($h) { return $h[1]->pluck('placa'); })->unique()->sort()->values();
-        foreach ($placas as $p) {
-            $montos = [];
-            $ids = collect();
-            foreach ($hojas as $lado => [, $lista]) {
-                $deCamion = $lista->where('placa', $p);
-                $ids = $ids->merge($deCamion->pluck('factura_id'));
-                $montos[] = round($deCamion->sum(function ($f) use ($pendiente, $lado) { return $pendiente($f, $lado); }), 2);
-            }
-            $resumen->fromArray(array_merge([$placa($p), $ids->unique()->count()], $montos, [round(array_sum($montos), 2)]), null, 'A' . $r, true);
-            $r++;
-        }
-        if ($placas->isEmpty()) {
-            $resumen->setCellValue('A' . $r, 'Todo está verificado');
-            $resumen->mergeCells("A{$r}:{$ultimaResumen}{$r}");
-            $resumen->getStyle('A' . $r)->getFont()->setItalic(true)->getColor()->setRGB('2E7D32');
-            $r++;
-        }
-        $resumen->setCellValue('A' . $r, 'TOTAL');
-        for ($c = 2; $c <= count($columnasResumen); $c++) {
-            $col = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($c);
-            $resumen->setCellValue($col . $r, $r > $inicioResumen ? "=SUM({$col}{$inicioResumen}:{$col}" . ($r - 1) . ')' : 0);
-        }
-        $resumen->getStyle("A{$inicioResumen}:{$ultimaResumen}{$r}")->applyFromArray($fino);
-        $resumen->getStyle("A{$r}:{$ultimaResumen}{$r}")->applyFromArray(['font' => ['bold' => true], 'fill' => $relleno('ECEFF1')]);
-        $resumen->getStyle("C{$inicioResumen}:{$ultimaResumen}{$r}")->getNumberFormat()->setFormatCode($dinero);
-        $resumen->getStyle("B{$inicioResumen}:B{$r}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
-        $resumen->getColumnDimension('A')->setWidth(22);
-        for ($c = 2; $c <= count($columnasResumen); $c++) {
-            $resumen->getColumnDimension(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($c))->setWidth(17);
-        }
-        $pie($resumen, $r, $ultimaResumen);
-
-        // Una hoja por lado, agrupada por camion.
-        foreach ($hojas as $lado => [$nombre, $lista]) {
+        $libro->removeSheetByIndex(0);
+        foreach ($hojas as $lado => [$titulo, $espaciado, $lista]) {
             $hoja = $libro->createSheet();
-            $hoja->setTitle(['efectivo' => 'Efectivo', 'qr' => 'QR', 'credito' => 'Créditos'][$lado]);
-            $color = $colores[$lado];
-            $columnas = ['N°', 'Comprobante', 'Pedido', 'Facturado el', 'Cliente', 'NIT', 'Forma pago', 'Estado entrega', 'Importe',
-                $lado === 'credito' ? 'Recogido' : 'Recogido ' . ($lado === 'qr' ? 'QR' : 'efectivo'),
-                $lado === 'credito' ? 'Monto crédito' : 'Por verificar'];
-            $r = $cabecera($hoja, 'PENDIENTES DE VERIFICAR · ' . $nombre . ' (' . $lista->count() . ')', 'K', $color);
-            $hoja->fromArray($columnas, null, 'A' . $r);
-            $hoja->getStyle("A{$r}:K{$r}")->applyFromArray([
-                'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']], 'fill' => $relleno($oscuro),
-                'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER, 'vertical' => Alignment::VERTICAL_CENTER, 'wrapText' => true],
+            $hoja->setTitle($titulo);
+            $hoja->setCellValue('B1', 'P E N D I E N T E S   D E   V E R I F I C A R   ·   ' . $espaciado);
+            $hoja->mergeCells('B1:L1');
+            $hoja->getStyle('B1')->getFont()->setBold(true)->setSize(14);
+            $hoja->getStyle('B1')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+            $hoja->setCellValue('B2', 'Al ' . date('d/m/Y H:i'));
+            $hoja->setCellValue('E2', $filtro);
+            $hoja->getStyle('E2')->getFont()->setItalic(true)->setSize(9)->getColor()->setRGB('616161');
+
+            $hoja->fromArray(['COMANDA', 'NRO VENTA', 'TIPO', 'NOMBRE DE CLIENTE', 'EMPRESA', 'IMPORTE', 'A CUENTA', 'DEUDA',
+                'FECHA DE PAGO', 'VENDEDOR', 'DIAS', 'CAMIÓN', 'FORMA PAGO', 'ENTREGA'], null, 'B3');
+
+            $fila = 4;
+            foreach ($lista as $f) {
+                // Lo que falta de este lado: lo que trajo el camion o, sin entrega, lo esperado.
+                $deuda = round($lado === 'credito' ? $f['facturado'] : (float) $f['esperado_' . $lado], 2);
+                $momento = new \DateTime($f['fecha'] . ' ' . ($f['hora'] ?: '00:00'));
+                $hoja->setCellValue('B' . $fila, $f['pedido'] ? (int) $f['pedido'] : $f['factura_id']);
+                $hoja->setCellValue('C' . $fila, $f['factura_id']);
+                $hoja->setCellValue('D' . $fila, 'VENTA');
+                $hoja->setCellValueExplicit('E' . $fila, preg_replace('/\s+/', ' ', trim((string) $f['cliente'])), DataType::TYPE_STRING);
+                $hoja->setCellValueExplicit('F' . $fila, '', DataType::TYPE_STRING);
+                $hoja->setCellValue('G' . $fila, $f['facturado']);
+                $hoja->setCellValue('H' . $fila, round(max($f['facturado'] - $deuda, 0), 2));
+                $hoja->setCellValue('I' . $fila, $deuda);
+                $hoja->setCellValue('J' . $fila, \PhpOffice\PhpSpreadsheet\Shared\Date::PHPToExcel($momento));
+                $hoja->setCellValueExplicit('K' . $fila, $vendedores->get($vendedorCi->get($f['factura_id'], ''), ''), DataType::TYPE_STRING);
+                $hoja->setCellValue('L' . $fila, (int) (new \DateTime($momento->format('Y-m-d')))->diff($hoy)->format('%r%a'));
+                $hoja->setCellValueExplicit('M' . $fila, $placa($f['placa']), DataType::TYPE_STRING);
+                $hoja->setCellValueExplicit('N' . $fila, $f['forma_pago'] === 'MIXTO' && ($f['efectivo_ok'] || $f['qr_ok'])
+                    ? 'MIXTO (' . ($f['efectivo_ok'] ? 'efectivo' : 'QR') . ' ya verif.)' : $f['forma_pago'], DataType::TYPE_STRING);
+                $hoja->setCellValueExplicit('O' . $fila, $f['entrega'], DataType::TYPE_STRING);
+                $fila++;
+            }
+            $ultima = max($fila - 1, 3);
+
+            // Totales: SUBTOTAL(9) suma solo las filas visibles con el filtro puesto.
+            $total = $ultima + 1;
+            $hoja->setCellValue('E' . $total, 'TOTAL');
+            foreach (['G', 'H', 'I'] as $col) {
+                $hoja->setCellValue($col . $total, $ultima >= 4 ? "=SUBTOTAL(9,{$col}4:{$col}{$ultima})" : 0);
+            }
+            $hoja->setCellValue('B' . $total, $ultima >= 4 ? "=SUBTOTAL(3,B4:B{$ultima})" : 0);
+            $hoja->getStyle("B{$total}:O{$total}")->applyFromArray([
+                'font' => ['bold' => true],
+                'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'FCE4D6']],
+                'borders' => ['top' => ['borderStyle' => Border::BORDER_DOUBLE]],
             ]);
-            $hoja->getRowDimension($r)->setRowHeight(28);
-            $encabezado = $r;
-            $r++;
-            $subtotales = [];
-            $n = 0;
-            foreach ($lista->groupBy('placa')->sortKeys() as $p => $grupo) {
-                $hoja->setCellValue('A' . $r, 'CAMIÓN ' . $placa($p) . ' · ' . $grupo->count() . ' comprobante' . ($grupo->count() === 1 ? '' : 's'));
-                $hoja->mergeCells("A{$r}:K{$r}");
-                $hoja->getStyle("A{$r}:K{$r}")->applyFromArray(['font' => ['bold' => true, 'color' => ['rgb' => $color]], 'fill' => $relleno('F5F5F5')]);
-                $desde = ++$r;
-                foreach ($grupo as $f) {
-                    $recogido = $lado === 'credito' ? $f['recogido'] : $f['recogido_' . $lado];
-                    $hoja->fromArray([
-                        ++$n,
-                        ($f['tipo_comprobante'] === 'FACTURA' ? 'Factura #' : 'Venta #') . $f['factura_id'],
-                        $f['pedido'] ?: 'DIRECTA',
-                        date('d/m/Y', strtotime($f['fecha'])) . ' ' . $f['hora'],
-                        preg_replace('/\s+/', ' ', trim((string) $f['cliente'])) ?: 'SIN CLIENTE',
-                        null,
-                        $f['forma_pago'],
-                        $f['entrega'],
-                        $f['facturado'],
-                        $recogido,
-                        round($pendiente($f, $lado), 2),
-                    ], null, 'A' . $r, true);
-                    $hoja->setCellValueExplicit('F' . $r, (string) $f['nit'], DataType::TYPE_STRING);
-                    if ($n % 2 === 0) {
-                        $hoja->getStyle("A{$r}:K{$r}")->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB('FAFAFA');
-                    }
-                    // El otro lado del mixto ya verificado: se avisa en la forma de pago.
-                    if ($f['forma_pago'] === 'MIXTO' && ($f['efectivo_ok'] || $f['qr_ok'])) {
-                        $hoja->setCellValue('G' . $r, 'MIXTO (' . ($f['efectivo_ok'] ? 'efectivo' : 'QR') . ' ya verif.)');
-                    }
-                    if (strpos($f['entrega'], 'PENDIENTE') === 0 || strpos($f['entrega'], 'NO ENTREGADO') === 0) {
-                        $hoja->getStyle('H' . $r)->getFont()->getColor()->setRGB('C62828');
-                    }
-                    $r++;
-                }
-                $hoja->setCellValue('H' . $r, 'Subtotal ' . $placa($p));
-                foreach (['I', 'J', 'K'] as $col) {
-                    $hoja->setCellValue($col . $r, "=SUM({$col}{$desde}:{$col}" . ($r - 1) . ')');
-                }
-                $hoja->getStyle("H{$r}:K{$r}")->applyFromArray(['font' => ['bold' => true], 'fill' => $relleno('ECEFF1')]);
-                $hoja->getStyle('H' . $r)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
-                $subtotales[] = $r;
-                $r++;
-            }
-            if ($lista->isEmpty()) {
-                $hoja->setCellValue('A' . $r, 'No hay pendientes de ' . mb_strtolower($nombre));
-                $hoja->mergeCells("A{$r}:K{$r}");
-                $hoja->getStyle('A' . $r)->getFont()->setItalic(true)->getColor()->setRGB('2E7D32');
-                $r++;
-            }
-            $hoja->setCellValue('H' . $r, 'TOTAL ' . $nombre);
-            foreach (['I', 'J', 'K'] as $col) {
-                $hoja->setCellValue($col . $r, $subtotales ? '=' . implode('+', array_map(function ($s) use ($col) { return $col . $s; }, $subtotales)) : 0);
-            }
-            $hoja->getStyle("A{$r}:K{$r}")->applyFromArray(['font' => ['bold' => true, 'size' => 12, 'color' => ['rgb' => 'FFFFFF']], 'fill' => $relleno($color)]);
-            $hoja->getStyle('H' . $r)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
-            $hoja->getStyle("A{$encabezado}:K{$r}")->applyFromArray($fino);
-            $hoja->getStyle("I{$encabezado}:K{$r}")->getNumberFormat()->setFormatCode($dinero);
-            $hoja->getStyle("A{$encabezado}:A{$r}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
-            foreach (['A' => 5, 'B' => 15, 'C' => 10, 'D' => 16, 'E' => 38, 'F' => 13, 'G' => 22, 'H' => 26, 'I' => 13, 'J' => 13, 'K' => 14] as $col => $ancho) {
+
+            $hoja->getStyle('B3:O3')->getFont()->setBold(true);
+            $hoja->getStyle('B4:B' . $ultima)->getFont()->setBold(true);
+            $hoja->getStyle("G4:I{$total}")->getNumberFormat()->setFormatCode('#,##0.00');
+            $hoja->getStyle("J4:J{$ultima}")->getNumberFormat()->setFormatCode('d/m/yyyy h:mm');
+            $hoja->setAutoFilter("B3:O{$ultima}");
+            $hoja->freezePane('B4');
+            foreach (['A' => 8.71, 'B' => 9.71, 'C' => 10.71, 'D' => 8.71, 'E' => 40.71, 'F' => 25.71, 'G' => 12.71,
+                'H' => 12.71, 'I' => 12.71, 'J' => 15.71, 'K' => 32.71, 'L' => 8.71, 'M' => 16.71, 'N' => 22.71, 'O' => 26.71] as $col => $ancho) {
                 $hoja->getColumnDimension($col)->setWidth($ancho);
             }
-            $hoja->freezePane('A' . ($encabezado + 1));
-            $hoja->getPageSetup()->setRowsToRepeatAtTopByStartAndEnd($encabezado, $encabezado);
-            $hoja->getTabColor()->setRGB($color);
-            $pie($hoja, $r, 'K');
         }
         $libro->setActiveSheetIndex(0);
 
