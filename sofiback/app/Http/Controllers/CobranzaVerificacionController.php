@@ -586,12 +586,13 @@ class CobranzaVerificacionController extends Controller
             $hoja->getStyle('B' . $fila)->getFont()->setBold(true);
             $fila += 2;
         }
-        // Un bloque por cliente, en orden alfabetico, con el total de cada uno.
-        foreach ($filas->sortBy('cliente')->groupBy('cliente') as $grupo) {
+        // Un bloque por cliente, en el orden en que se verificaron (las filas ya
+        // vienen por hora de verificacion), con el total de cada uno.
+        foreach ($filas->groupBy('cliente') as $grupo) {
             $hoja->fromArray(['fecha', 'vendedor', 'cliente', 'qr', 'comanda', 'factura', 'referencia'], null, 'A' . $fila);
             $hoja->getStyle("A{$fila}:G{$fila}")->applyFromArray($borde);
             $desdeFila = ++$fila;
-            foreach ($grupo->sortBy('factura_id') as $f) {
+            foreach ($grupo as $f) {
                 // El dia en que el camion lo entrego (y cobro), no el de la factura.
                 $hoja->setCellValue('A' . $fila, date('d/m/y', strtotime($f['dia_entrega'])));
                 $hoja->setCellValueExplicit('B' . $fila, $f['vendedor'], DataType::TYPE_STRING);

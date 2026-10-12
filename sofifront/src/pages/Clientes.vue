@@ -347,7 +347,7 @@ const CANALES = {
 }
 
 // Las zonas del despegable; la misma lista valida el backend (ClienteController::ZONAS).
-const ZONAS = ['NORTE', 'SUD', 'CENTRO', 'PROVINCIA', 'COLQUIRI', 'HUANUNI', 'LLALLAGUA', 'CARACOLLO',
+const ZONAS = ['NORTE', 'SUD', 'ESTE', 'CENTRO', 'PROVINCIA', 'COLQUIRI', 'HUANUNI', 'LLALLAGUA', 'CARACOLLO',
   'CHALLAPATA', 'UNCIA', 'POOPO', 'MACHACAMARCA']
 
 const camposNumero = [
