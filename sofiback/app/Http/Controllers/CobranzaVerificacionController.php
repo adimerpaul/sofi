@@ -909,31 +909,22 @@ class CobranzaVerificacionController extends Controller
      * marco el caminero y la verificacion de cobranzas. $facturaId puede ser
      * un id o una lista de ids (las compras de un cliente).
      *
-     * El dia es el de la entrega del camion, no el de la factura: caja factura
-     * de noche lo que sale a la manana siguiente, y cobranzas verifica contra
-     * lo que trajo el camion ese dia (la misma hoja que firma el caminero).
+     * El dia es el de la entrega del camion (facturas.fecha_entrega), no el de
+     * la factura: caja factura de noche lo que sale a la manana siguiente, y
+     * cobranzas verifica contra lo que trajo el camion ese dia (la misma hoja
+     * que firma el caminero).
      */
     private function filas($fecha, $camion, $facturaId = null)
     {
-        $vispera = $fecha ? date('Y-m-d', strtotime($fecha . ' -1 day')) : null;
         $facturas = DB::table('facturas as f')
             ->leftJoin('tbclientes as c', 'c.Cod_Aut', '=', 'f.cliente_id')
             ->whereNull('f.deleted_at')
             ->where('f.estado', 'ACTIVO')
-            // Candidatos: lo facturado la vispera o ese dia, y lo entregado ese
-            // dia aunque se haya facturado antes. Abajo se decide el dia exacto.
-            ->when($fecha, function ($q) use ($fecha, $vispera) {
-                $q->where(function ($w) use ($fecha, $vispera) {
-                    $w->whereBetween('f.fecha', [$vispera, $fecha])
-                        ->orWhereIn('f.id', function ($e) use ($fecha) {
-                            $e->from('entregas')->whereNotNull('factura_id')->where('fechaEntreg', $fecha)->select('factura_id');
-                        });
-                });
-            })
+            ->when($fecha, function ($q) use ($fecha) { $q->where('f.fecha_entrega', $fecha); })
             ->when($facturaId, function ($q) use ($facturaId) { $q->whereIn('f.id', (array) $facturaId); })
             ->orderBy('f.id')
             ->get([
-                'f.id', 'f.cliente_id', 'f.fecha', 'f.hora', 'f.tipo_comprobante', 'f.tipo_pago', 'f.total', 'f.pedido_nro', 'f.pedido_tipo',
+                'f.id', 'f.cliente_id', 'f.fecha', 'f.hora', 'f.fecha_entrega', 'f.tipo_comprobante', 'f.tipo_pago', 'f.total', 'f.pedido_nro', 'f.pedido_tipo',
                 'f.monto_efectivo', 'f.monto_qr',
                 DB::raw("TRIM(COALESCE(c.Nombres, f.nombre, '')) as cliente"),
                 DB::raw("TRIM(COALESCE(f.nit, c.Id, '')) as nit"),
@@ -963,14 +954,6 @@ class CobranzaVerificacionController extends Controller
             ->get(['factura_id', 'estado', 'tipago', 'monto_efectivo', 'monto_qr', 'fechaEntreg', DB::raw("TRIM(COALESCE(placa, '')) as placa")])
             ->keyBy('factura_id');
         $verificaciones = DB::table('cobranza_verificaciones')->whereIn('factura_id', $ids)->get()->keyBy('factura_id');
-
-        // Con fecha, solo lo que el camion entrega ese dia.
-        if ($fecha) {
-            $facturas = $facturas->filter(function ($f) use ($fecha, $pedidos, $entregas) {
-                $pedido = $pedidos->get($f->pedido_nro . '-' . strtoupper(trim((string) $f->pedido_tipo)));
-                return $this->diaDeEntrega($f, $pedido, $entregas->get($f->id)) === $fecha;
-            });
-        }
 
         return $facturas->map(function ($f) use ($pedidos, $entregas, $verificaciones) {
             $pedido = $pedidos->get($f->pedido_nro . '-' . strtoupper(trim((string) $f->pedido_tipo)));
@@ -1025,7 +1008,7 @@ class CobranzaVerificacionController extends Controller
                 'cliente' => $f->cliente,
                 'cliente_id' => $f->cliente_id,
                 'nit' => $f->nit,
-                'dia_entrega' => $this->diaDeEntrega($f, $pedido, $entrega),
+                'dia_entrega' => substr((string) $f->fecha_entrega, 0, 10),
                 'placa' => $placa,
                 'placa_color' => $pedido && $pedido->placa === $placa ? $pedido->color : '',
                 'entregado' => $entrega && in_array($entrega->estado, RecojoDelDia::ESTADOS_COBRADOS, true),
@@ -1056,25 +1039,6 @@ class CobranzaVerificacionController extends Controller
         })->filter(function ($fila) use ($camion) {
             return !$camion || $fila['placa'] === $camion;
         })->values();
-    }
-
-    /**
-     * El dia en que el camion entrega el comprobante: el de su ultima entrega
-     * si ya la hay; si no, la misma regla que la lista del caminero: lo
-     * facturado despues del corte (18:00) va al dia siguiente, salvo que el
-     * pedido se entregue ese mismo dia.
-     */
-    private function diaDeEntrega($factura, $pedido, $entrega)
-    {
-        if ($entrega && $entrega->fechaEntreg) {
-            return substr((string) $entrega->fechaEntreg, 0, 10);
-        }
-        $dia = substr((string) $factura->fecha, 0, 10);
-        if ((string) $factura->hora >= CargaCamion::CORTE_JORNADA
-            && !($pedido && substr((string) $pedido->fecha_entrega, 0, 10) === $dia)) {
-            $dia = date('Y-m-d', strtotime($dia . ' +1 day'));
-        }
-        return $dia;
     }
 
     /** EFECTIVO, QR, MIXTO o CRÉDITO segun el tipo de pago y los montos de cada lado. */

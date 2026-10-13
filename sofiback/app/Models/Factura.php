@@ -25,6 +25,9 @@ class Factura extends Model
         'vendedor_ci',
         'fecha',
         'hora',
+        // Dia en que el camion lo entrega: el del pedido o, en venta directa,
+        // el que elige caja. Ver AddFechaEntregaToFacturas.
+        'fecha_entrega',
         'nit',
         'nombre',
         'tipo_comprobante',

@@ -222,12 +222,11 @@
                         </template>
                         <!-- Lo que se vende por caja se pidio en unidades, cajas
                              o kilos; se recupera de tbpedidos.caja para poder
-                             corregirlo al modificar la comanda. -->
+                             corregirlo al modificar la comanda. Las opciones
+                             son las mismas que en la visita. -->
                         <select v-if="props.row.codUnid == 'CAJA'" v-model="props.row.caja"
                                 class="entrada-pedido entrada-caja q-ml-xs">
-                          <option value="U">U</option>
-                          <option value="CAJA">CAJA</option>
-                          <option value="KG">KG</option>
+                          <option v-for="u in unidadesCaja(props.row)" :key="u" :value="u">{{ u }}</option>
                         </select>
                         <q-btn flat dense @click="quitar(props.row,props.rowIndex)" class="q-ma-none q-pa-none"
                                color="negative" icon="remove_circle"/>
@@ -789,6 +788,9 @@ window.JSZip = jszip;
 import {jsPDF} from "jspdf";
 
 const {addToDate} = date
+// Grupo de productos FRIAL: lo que se vende por caja de este grupo solo se
+// pide por unidad (igual que en la visita).
+const GRUPO_FRIAL = '31'
 export default {
   data() {
     return {
@@ -1955,8 +1957,10 @@ ${primera.comentario ? `<div class="coment"><b>Comentario:</b> ${esc(primera.com
         nombre: this.producto.Producto,
         cod_prod: this.producto.cod_prod,
         codUnid: String(this.producto.codUnid || '').trim(),
-        // Solo los productos por caja eligen unidad; por defecto se piden en cajas.
-        caja: String(this.producto.codUnid || '').trim() == 'CAJA' ? 'CAJA' : null,
+        cod_grup: this.producto.cod_grup,
+        // Solo los productos por caja eligen unidad; por defecto se piden en
+        // kilos, salvo el cerdo y el frial, que se piden por unidad.
+        caja: this.unidadPorDefecto(this.producto),
         precio: parseFloat(this.producto.Precio).toFixed(2),
         precios: this.listaPrecios(this.producto),
         cantidad: 1,
@@ -2033,6 +2037,11 @@ ${primera.comentario ? `<div class="coment"><b>Comentario:</b> ${esc(primera.com
             const prod = this.productos2.find(x => String(x.cod_prod).trim() === String(p.cod_prod).trim())
             p.precios = this.listaPrecios(prod)
             p.codUnid = String(p.codUnid || (prod ? prod.codUnid : '') || '').trim()
+            p.cod_grup = p.cod_grup || (prod ? prod.cod_grup : null)
+            // Una unidad que la visita no deja elegir vuelve a la de por defecto.
+            if (p.codUnid == 'CAJA' && !this.unidadesCaja(p).includes(p.caja)) {
+              p.caja = this.unidadPorDefecto(p)
+            }
             return p
           })
           this.modalpedido = true
@@ -2043,6 +2052,22 @@ ${primera.comentario ? `<div class="coment"><b>Comentario:</b> ${esc(primera.com
         }).finally(() => {
         this.loading = false
       })
+    },
+    /**
+     * Unidades en que se puede pedir un producto que se vende por caja (se
+     * guarda en tbpedidos.caja): el FRIAL solo por unidad, el cerdo por unidad
+     * o kilo y lo demas tambien por caja. Es la misma regla de Visita.vue.
+     */
+    unidadesCaja(p) {
+      if (String(p.codUnid || '').trim() != 'CAJA') return []
+      if (String(p.cod_grup || '').trim() == GRUPO_FRIAL) return ['U']
+      if (p.tipo == 'CERDO') return ['U', 'KG']
+      return ['U', 'CAJA', 'KG']
+    },
+    unidadPorDefecto(p) {
+      const unidades = this.unidadesCaja(p)
+      if (!unidades.length) return null
+      return unidades.includes('CAJA') ? 'KG' : 'U'
     },
     seleccionartipo(m) {
       // console.log(m)

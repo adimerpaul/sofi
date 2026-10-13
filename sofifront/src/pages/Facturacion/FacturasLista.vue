@@ -129,19 +129,12 @@
 
     <q-card flat bordered class="q-pa-xs q-mb-sm filtros">
       <div class="row q-col-gutter-xs items-center" @keyup.enter="recargar">
-        <!-- Por defecto se mira desde las 18:00 de ayer hasta las 19:00 de hoy;
-             la hora se puede vaciar para mirar dias enteros. -->
+        <!-- Un solo dia: el de entrega del camion (el del pedido, o el que se
+             eligio en la venta directa). Lo facturado de noche para manana
+             sale en el dia de manana, sin cortes por hora. -->
         <div class="col-auto">
-          <q-input v-model="filtros.desde" type="date" dense outlined label="Desde" class="campo-fecha"/>
-        </div>
-        <div class="col-auto">
-          <q-input v-model="filtros.horaDesde" type="time" dense outlined label="Hora" class="campo-hora"/>
-        </div>
-        <div class="col-auto">
-          <q-input v-model="filtros.hasta" type="date" dense outlined label="Hasta" class="campo-fecha"/>
-        </div>
-        <div class="col-auto">
-          <q-input v-model="filtros.horaHasta" type="time" dense outlined label="Hora" class="campo-hora"/>
+          <q-input v-model="filtros.fechaEntrega" type="date" dense outlined label="Fecha entrega" class="campo-fecha"
+                   @update:model-value="recargar"/>
         </div>
         <div class="col-12 col-md">
           <q-input v-model="filtros.buscar" dense outlined clearable label="Cliente, NIT, número o pedido">
@@ -998,21 +991,10 @@ import xlsx from 'json-as-xlsx'
 import { imprimirPdfDirecto } from 'src/utils/impresion.js'
 import { PDFDocument } from 'pdf-lib'
 
-/** Hora de cierre de caja: el turno de hoy empezo ayer a esta hora. */
-// Caja empieza a facturar el reparto del dia siguiente desde la tarde (el
-// 05/10 arranco a las 20:51): con corte a las 18:00 entra toda esa carga.
-const CIERRE = '18:00'
-/** Hora fin por defecto: lo que caja rehace pasado el cierre tambien se ve hoy. */
-const FIN = '19:00'
-
 function filtrosPorDefecto () {
-  const hoy = date.formatDate(new Date(), 'YYYY-MM-DD')
-  const ayer = date.formatDate(date.subtractFromDate(new Date(), { days: 1 }), 'YYYY-MM-DD')
   return {
-    desde: ayer,
-    horaDesde: CIERRE,
-    hasta: hoy,
-    horaHasta: FIN,
+    // Lo que sale hoy en los camiones, se haya facturado hoy o anoche.
+    fechaEntrega: date.formatDate(new Date(), 'YYYY-MM-DD'),
     buscar: '',
     tipo: null,
     pedidoTipo: null,
@@ -1131,6 +1113,8 @@ export default {
         // Fecha y hora van en la misma celda: son un solo dato para el cajero
         // y separadas se comian dos columnas de la grilla.
         { name: 'fecha', label: 'Fecha', field: 'fecha', align: 'left' },
+        // El dia en que sale en el camion: es el que manda en el filtro.
+        { name: 'fecha_entrega', label: 'F. entrega', field: 'fecha_entrega', align: 'left', format: v => fechaCorta(v) },
         { name: 'nombre', label: 'Cliente', field: 'nombre', align: 'left' },
         { name: 'placa', label: 'Camión', field: 'placa', align: 'left', format: v => v || '—' },
         // El visto bueno del caminero sobre la canasta de este comprobante.
@@ -1167,31 +1151,18 @@ export default {
     porcentajeTotal () {
       return this.pedidosTotal ? Math.round((this.verificadosTotal / this.pedidosTotal) * 100) : 0
     },
-    /**
-     * El dia que se esta mirando, para lo que es de un solo dia (camiones y
-     * carga): el mismo dia sin hora, o un turno de caja (de ayer a cierta
-     * hora a hoy a la misma hora o hasta la hora fin), que cuenta como
-     * el dia de hoy.
-     */
+    /** El dia de entrega que se esta mirando (camiones y carga son de un dia). */
     diaUnico () {
-      const { desde, hasta, horaDesde, horaHasta } = this.filtros
-      if (!desde || !hasta) return null
-      if (desde === hasta) return desde
-      const siguiente = date.formatDate(date.addToDate(new Date(desde + 'T12:00:00'), { days: 1 }), 'YYYY-MM-DD')
-      return horaDesde && (horaHasta === horaDesde || horaHasta === FIN) && siguiente === hasta ? hasta : null
+      return this.filtros.fechaEntrega || null
     }
   },
   created () {
     if (this.$route.query.buscar) {
       this.filtros.buscar = String(this.$route.query.buscar)
     }
-    // Cuando se llega buscando un comprobante de una fecha, se mira el dia
-    // entero: con el turno de caja se perderia lo cobrado despues de las 18:00.
+    // Cuando se llega buscando un comprobante, se mira su dia de entrega.
     if (this.$route.query.fecha) {
-      this.filtros.desde = String(this.$route.query.fecha)
-      this.filtros.hasta = String(this.$route.query.fecha)
-      this.filtros.horaDesde = null
-      this.filtros.horaHasta = null
+      this.filtros.fechaEntrega = String(this.$route.query.fecha)
     }
     this.onRequest({ pagination: this.pagination })
   },
@@ -1412,10 +1383,7 @@ export default {
     /** Los mismos filtros que ve el usuario; lo exportado tiene que coincidir. */
     paramsFiltro () {
       return {
-        desde: this.filtros.desde || '',
-        hora_desde: this.filtros.horaDesde || '',
-        hasta: this.filtros.hasta || '',
-        hora_hasta: this.filtros.horaHasta || '',
+        fecha_entrega: this.filtros.fechaEntrega || '',
         buscar: this.filtros.buscar || '',
         tipo: this.filtros.tipo || '',
         pedido_tipo: this.filtros.pedidoTipo || '',
@@ -1496,7 +1464,7 @@ export default {
       return this.pdfEnPartes(
         'todos',
         { ids: ids.join(',') },
-        'comprobantes_seleccionados_' + (this.filtros.desde || 'todo') + '.pdf',
+        'comprobantes_seleccionados_' + (this.filtros.fechaEntrega || 'todo') + '.pdf',
         imprimir
       )
     },
@@ -1615,7 +1583,7 @@ export default {
       return this.pdfEnPartes(
         documento,
         this.paramsFiltro(),
-        nombre + '_' + (this.filtros.desde || 'todo') + '.pdf',
+        nombre + '_' + (this.filtros.fechaEntrega || 'todo') + '.pdf',
         imprimir
       )
     },
@@ -1725,7 +1693,7 @@ export default {
       return this.bajarArchivo(
         'facturacion/reporte',
         Object.assign({ contenido, formato }, this.paramsFiltro()),
-        contenido + '_' + (this.filtros.desde || 'todo') + (formato === 'excel' ? '.xlsx' : '.pdf'),
+        contenido + '_' + (this.filtros.fechaEntrega || 'todo') + (formato === 'excel' ? '.xlsx' : '.pdf'),
         false
       )
     },

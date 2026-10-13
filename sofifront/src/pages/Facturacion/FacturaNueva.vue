@@ -389,6 +389,14 @@
                 {{ mixtoValido ? 'Suma Bs ' + money(total) : mixtoAviso }}
               </div>
             </template>
+            <!-- Dia en que sale la venta directa: con el se filtra en facturacion,
+                 en la carga y en el caminero. Lo que sale de un pedido usa el suyo. -->
+            <q-input
+              v-if="!pedidoOrigen"
+              v-model="fechaEntrega" type="date" outlined dense class="col-12" label="Fecha de entrega"
+            >
+              <template v-slot:prepend><q-icon name="event"/></template>
+            </q-input>
             <!-- Camion de la venta directa: con el se filtra en facturacion como
                  si hubiera sido un pedido. Lo que sale de un pedido usa el suyo. -->
             <q-select
@@ -470,6 +478,12 @@
 </template>
 
 <script>
+import { date } from 'quasar'
+
+function hoy () {
+  return date.formatDate(new Date(), 'YYYY-MM-DD')
+}
+
 export default {
   name: 'FacturaNueva',
   data () {
@@ -498,6 +512,8 @@ export default {
       montoQr: null,
       // Camion de la venta directa (tabla vehiculo, igual que en despacho).
       placa: null,
+      // Dia de entrega de la venta directa; por defecto hoy.
+      fechaEntrega: hoy(),
       camiones: [],
       cliente: null,
       clientes: [],
@@ -662,6 +678,7 @@ export default {
           this.descuento = Number(f.descuento) || 0
           this.observacion = f.observacion || ''
           this.placa = f.placa ? String(f.placa).trim() : null
+          this.fechaEntrega = f.fecha_entrega ? String(f.fecha_entrega).substr(0, 10) : hoy()
           // Despues del watch de cliente, que pisaria el NIT con el del cliente.
           this.$nextTick(() => { this.nit = f.nit || '' })
         })
@@ -883,6 +900,7 @@ export default {
         descuento: Number(this.descuento) || 0,
         observacion: this.observacion || '',
         placa: this.pedidoOrigen ? null : (this.placa || null),
+        fecha_entrega: this.pedidoOrigen ? null : (this.fechaEntrega || null),
         pedido_nro: this.pedidoOrigen ? this.pedidoOrigen.nro_pedido : null,
         pedido_tipo: this.pedidoOrigen ? this.pedidoOrigen.tipo : null,
         // Con canastillos va el bruto: el backend recalcula el neto que se cobra.
@@ -946,6 +964,7 @@ export default {
       this.montoEfectivo = null
       this.montoQr = null
       this.placa = null
+      this.fechaEntrega = hoy()
       this.dialogCobro = false
     },
 

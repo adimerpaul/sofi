@@ -106,7 +106,7 @@ class FacturacionController extends Controller
             if ($factura->pedido_nro || $placa === '' || $factura->zona_color) {
                 continue;
             }
-            $dia = optional($factura->fecha)->format('Y-m-d') ?? date('Y-m-d');
+            $dia = $factura->fecha_entrega ?: (optional($factura->fecha)->format('Y-m-d') ?? date('Y-m-d'));
             $clave = $placa . '|' . $dia;
             if (!array_key_exists($clave, $cache)) {
                 $cache[$clave] = CargaCamion::colorDeZona($placa, $dia);
@@ -407,6 +407,10 @@ class FacturacionController extends Controller
         $entregaDesde = $this->hora($request->input('hora_desde'))
             ? date('Y-m-d', strtotime($desde . ' +1 day'))
             : $desde;
+        // Con fecha de entrega: los pedidos de ese reparto, sin vueltas de hora.
+        if ($entrega = $this->fechaEntregaFiltro($request)) {
+            $entregaDesde = $hasta = $entrega;
+        }
 
         // Una fila por pedido (numero y tipo), marcada si ya se cobro.
         $pedidos = DB::table('tbpedidos as p')
@@ -1455,6 +1459,54 @@ class FacturacionController extends Controller
     }
 
     /**
+     * El recuadro del retorno parcial para el impreso Pedido vs Facturacion:
+     * quien lo registro, el motivo y cada producto con lo que salio, lo que
+     * el cliente se quedo y lo devuelto. Lo entregado entero no se lista.
+     */
+    private function bloqueRetorno(array $retorno, callable $cant)
+    {
+        $filas = '';
+        $devueltoBs = 0;
+        foreach ($retorno['items'] ?? [] as $item) {
+            $original = (float) ($item['original'] ?? 0);
+            $entregado = (float) ($item['entregado'] ?? 0);
+            if (abs($original - $entregado) < 0.001) {
+                continue;
+            }
+            $precio = (float) ($item['precio'] ?? 0);
+            $bs = round(($original - $entregado) * $precio, 2);
+            $devueltoBs += $bs;
+            $unidad = !empty($item['por_peso']) ? ' kg' : '';
+            $filas .= '<tr><td>' . e($item['cod_prod'] ?? '') . '</td><td>' . e($item['nombre'] ?? '') . '</td>'
+                . "<td class='r'>" . $cant($original) . $unidad . '</td>'
+                . "<td class='r'>" . $cant($entregado) . $unidad . '</td>'
+                . "<td class='r'><b>" . $cant($original - $entregado) . $unidad . '</b></td>'
+                . "<td class='r'>" . number_format($precio, 2) . '</td>'
+                . "<td class='r'><b>" . number_format($bs, 2) . '</b></td></tr>';
+        }
+
+        $datos = array_filter([
+            !empty($retorno['motivo']) ? '<b>Motivo:</b> ' . e($retorno['motivo']) : null,
+            !empty($retorno['caminero']) ? '<b>Caminero:</b> ' . e($retorno['caminero']) : null,
+            !empty($retorno['registrado']) ? '<b>Registrado:</b> ' . e(date('d/m/Y H:i', strtotime($retorno['registrado']))) : null,
+            !empty($retorno['factura_original']) ? '<b>Venta original:</b> #' . (int) $retorno['factura_original'] : null,
+            isset($retorno['total_original'], $retorno['total_entregado'])
+                ? '<b>Total:</b> ' . number_format((float) $retorno['total_original'], 2) . ' &rarr; ' . number_format((float) $retorno['total_entregado'], 2)
+                : null,
+        ]);
+
+        return "<div class='retorno'><div class='tit-retorno'>RETORNO PARCIAL: el cliente devolvió parte de lo entregado</div>"
+            . "<div class='sub'>" . implode(' &middot; ', $datos) . '</div>'
+            . (!empty($retorno['observacion']) ? "<div class='sub'><b>Observación:</b> " . e($retorno['observacion']) . '</div>' : '')
+            . ($filas
+                ? "<table><tr><th>Código</th><th>Producto</th><th class='r'>Salió</th><th class='r'>Se quedó</th>"
+                    . "<th class='r'>Devuelto</th><th class='r'>P. Unit</th><th class='r'>Bs devuelto</th></tr>$filas"
+                    . "<tr class='tot'><td colspan='6' class='r'>TOTAL DEVUELTO</td><td class='r'>" . number_format($devueltoBs, 2) . '</td></tr></table>'
+                : '')
+            . '</div>';
+    }
+
+    /**
      * Pone en cada linea lo que el cliente se quedo segun el retorno parcial.
      * Lo devuelto entero sale de la lista; el peso vuelve sin bruto ni
      * canastillos porque ya no es el que marco la balanza.
@@ -1748,6 +1800,8 @@ class FacturacionController extends Controller
             'pedido_tipo'      => 'nullable|required_with:pedido_nro|' . TipoPedido::regla(),
             // Camion de la venta directa; con pedido manda el del pedido.
             'placa'            => 'nullable|string|max:50',
+            // Dia de entrega de la venta directa; con pedido manda el del pedido.
+            'fecha_entrega'    => 'nullable|date',
         ]);
 
         $tipo = $datos['tipo_comprobante'] ?? 'VENTA';
@@ -1959,10 +2013,11 @@ class FacturacionController extends Controller
                     ->where('pedido_tipo', $datos['pedido_tipo'])
                     ->where('estado', 'ANULADO')
                     ->orderByDesc('id')
-                    ->first(['id', 'fecha', 'hora'])
+                    ->first(['id', 'fecha', 'hora', 'fecha_entrega'])
                 : null;
 
             $factura = Factura::create([
+                'fecha_entrega'    => $this->fechaEntregaNueva($datos, $refacturada),
                 'user_id'          => $usuario->CodAut,
                 'cliente_id'       => $cliente->Cod_Aut ?? null,
                 'vendedor_ci'      => $cliente ? trim((string) $cliente->CiVend) : null,
@@ -2078,7 +2133,31 @@ class FacturacionController extends Controller
         }
     }
 
-    /** 'HH:MM' valida o null; asi lo que llega del filtro no entra crudo al SQL. */
+    /**
+     * Dia de entrega de un comprobante nuevo. Al refacturar, el mismo del
+     * anulado: sigue siendo el mismo reparto. Con pedido, el del pedido, pero
+     * nunca antes de hoy (un pedido atrasado sale en el proximo reparto). La
+     * venta directa, el que eligio caja o hoy.
+     */
+    private function fechaEntregaNueva(array $datos, $refacturada)
+    {
+        if ($refacturada && $refacturada->fecha_entrega) {
+            return substr((string) $refacturada->fecha_entrega, 0, 10);
+        }
+        $hoy = date('Y-m-d');
+        if (!empty($datos['pedido_nro'])) {
+            $delPedido = DB::table('tbpedidos')
+                ->whereNull('tbpedidos.deleted_at')
+                ->where('NroPed', $datos['pedido_nro'])
+                ->whereRaw(TipoPedido::sql('') . ' = ?', [$datos['pedido_tipo']])
+                ->min('fecha_entrega');
+            $dia = $delPedido ? substr((string) $delPedido, 0, 10) : $hoy;
+            return max($dia, $hoy);
+        }
+
+        return !empty($datos['fecha_entrega']) ? date('Y-m-d', strtotime($datos['fecha_entrega'])) : $hoy;
+    }
+
     /**
      * Corta los comprobantes por el rango de la lista. Con hora el corte es
      * por fecha y hora juntas: el turno de caja va de las 18:00 de ayer a las
@@ -2087,6 +2166,10 @@ class FacturacionController extends Controller
      */
     private function enVentana($query, Request $request)
     {
+        // Con fecha de entrega manda esa: es el dia del reparto, sin cortes por hora.
+        if ($entrega = $this->fechaEntregaFiltro($request)) {
+            return $query->where('facturas.fecha_entrega', $entrega);
+        }
         $horaDesde = $this->hora($request->input('hora_desde'));
         $horaHasta = $this->hora($request->input('hora_hasta'));
         if ($desde = $request->input('desde')) {
@@ -2109,6 +2192,15 @@ class FacturacionController extends Controller
         return $query;
     }
 
+    /** 'YYYY-MM-DD' valido del filtro fecha_entrega, o null. */
+    private function fechaEntregaFiltro(Request $request)
+    {
+        $valor = trim((string) $request->input('fecha_entrega', ''));
+
+        return preg_match('/^\d{4}-\d{2}-\d{2}$/', $valor) && strtotime($valor) ? $valor : null;
+    }
+
+    /** 'HH:MM' valida o null; asi lo que llega del filtro no entra crudo al SQL. */
     private function hora($valor)
     {
         $valor = trim((string) $valor);
@@ -2808,6 +2900,8 @@ class FacturacionController extends Controller
                 'vendedor_ci'      => $original->vendedor_ci,
                 'fecha'            => date('Y-m-d'),
                 'hora'             => date('H:i:s'),
+                // Sale del mismo reparto que el original.
+                'fecha_entrega'    => $original->fecha_entrega,
                 'nit'              => $original->nit,
                 'nombre'           => $original->nombre,
                 'tipo_comprobante' => $original->tipo_comprobante,
@@ -2933,6 +3027,18 @@ class FacturacionController extends Controller
                 ->unique()->implode(' / ');
         };
 
+        // Lo que el cliente devolvio al caminero (retorno parcial): el de este
+        // comprobante o, si se reemitio, el de la venta anulada de la que salio.
+        $retorno = $this->retornoDe($factura->id);
+        if (!$retorno && $factura->pedido_nro) {
+            $anterior = Factura::where('pedido_nro', $factura->pedido_nro)->where('pedido_tipo', $factura->pedido_tipo)
+                ->where('estado', 'ANULADO')->where('id', '<', $factura->id)->orderByDesc('id')->value('id');
+            $retorno = $anterior ? $this->retornoDe($anterior) : null;
+        }
+        $devueltos = collect($retorno['items'] ?? [])->filter(function ($item) {
+            return abs((float) ($item['original'] ?? 0) - (float) ($item['entregado'] ?? 0)) >= 0.001;
+        })->map(function ($item) { return trim((string) ($item['cod_prod'] ?? '')); })->all();
+
         $filas = '';
         $totPedido = 0;
         $totVendido = 0;
@@ -2955,6 +3061,11 @@ class FacturacionController extends Controller
             $nombre = $v ? $v->first()->nombre : $p->first()->nombre;
             $estado = $tipo === 'AGREGADO' ? 'AGREGADO' : ($tipo === 'QUITADO' ? 'QUITADO' : ($tipo ? 'CAMBIÓ' : 'IGUAL'));
             $clase = $tipo === 'AGREGADO' ? 'agregado' : ($tipo === 'QUITADO' ? 'quitado' : ($tipo ? 'modificado' : ($i % 2 ? 'par' : '')));
+            // Sin otro cambio, lo devuelto en el retorno parcial se marca aparte.
+            if (!$tipo && in_array((string) $codigo, $devueltos, true)) {
+                $estado = 'RETORNO';
+                $clase = 'devuelto';
+            }
             $peso = $v ? (float) $v->sum('peso') : 0;
 
             $filas .= "<tr class='$clase'>"
@@ -3000,6 +3111,8 @@ class FacturacionController extends Controller
                 . count($diferencias['resumen']) . ")</div><ul>$items</ul></div>";
         }
 
+        $comentario .= $retorno ? $this->bloqueRetorno($retorno, $cant) : '';
+
         $vendedor = $factura->vendedor
             ? trim(implode(' ', array_filter([trim($factura->vendedor->Nombre1), trim($factura->vendedor->App1), trim($factura->vendedor->Apm)])))
             : '';
@@ -3026,6 +3139,7 @@ class FacturacionController extends Controller
             .comp tr.agregado td { background: #e8f5e9 }
             .comp tr.quitado td { background: #ffebee; color: #b71c1c }
             .comp tr.modificado td { background: #fff8e1 }
+            .comp tr.devuelto td { background: #fbe9e7; color: #bf360c }
             .comp .cambio { color: #c62828 }
             .comp .est { font-size: 7px; font-weight: bold }
             .comp tr.total td { background: #37474f; color: #fff; font-weight: bold; font-size: 9px }
@@ -3036,6 +3150,13 @@ class FacturacionController extends Controller
             .con-cambios ul { margin: 3px 0 0 14px; padding: 0 }
             .con-cambios li { font-size: " . ($chica ? '7.8px' : '8.5px') . "; margin-bottom: 1px }
             .nota { border: 1px solid #999; background: #f5f5f5; padding: 6px; margin-top: 8px; text-align: center; font-size: 9.5px }
+            .retorno { border: 1.5px solid #d84315; background: #fbe9e7; padding: 5px 8px; margin-top: 8px }
+            .tit-retorno { font-weight: bold; color: #bf360c; font-size: 10px }
+            .retorno .sub { color: #5d4037 }
+            .retorno table { width: 100%; border-collapse: collapse; margin-top: 4px }
+            .retorno th { background: #d84315; color: #fff; font-size: 7.5px; padding: 3px; text-transform: uppercase }
+            .retorno td { font-size: 8.3px; padding: 2px 3px; border-bottom: 1px solid #ffccbc; background: #fff }
+            .retorno tr.tot td { font-weight: bold; background: #ffccbc }
         </style>
         <table style='width:100%; border-collapse:collapse'><tr>
             <td>
@@ -3873,6 +3994,12 @@ class FacturacionController extends Controller
     /** Titulo y rango, para que el papel diga que se esta mirando. */
     private function tituloReporte($contenido, Request $request)
     {
+        if ($entrega = $this->fechaEntregaFiltro($request)) {
+            return [
+                $contenido === 'cambios' ? 'CAMBIOS EN LOS PEDIDOS' : 'REPORTE DE VENTAS',
+                'Entrega del ' . date('d/m/Y', strtotime($entrega)),
+            ];
+        }
         $desde = $request->input('desde');
         $hasta = $request->input('hasta');
 

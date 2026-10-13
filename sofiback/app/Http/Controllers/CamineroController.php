@@ -150,23 +150,13 @@ class CamineroController extends Controller
      */
     private function comprobantesDelCamion($fecha, $placa)
     {
-        // La jornada de la carga del camion (vispera 18:00 a ese dia 18:00) y
-        // ademas lo facturado ese dia hasta la medianoche: una nota que caja
-        // rehace de noche sobre un pedido que se entrega hoy tiene que seguir
-        // en la lista para que el caminero la cobre. Cual de los dos dias le
-        // toca se decide abajo con el pedido.
-        $vispera = date('Y-m-d', strtotime($fecha . ' -1 day'));
+        // El dia de reparto lo guarda el comprobante (fecha_entrega): el del
+        // pedido o el que eligio caja en la venta directa. Sin cortes por hora.
         $facturas = DB::table('facturas as f')
             ->leftJoin('tbclientes as c', 'c.Cod_Aut', '=', 'f.cliente_id')
             ->whereNull('f.deleted_at')
             ->where('f.estado', '<>', 'ANULADO')
-            ->where('f.fecha', '>=', $vispera)
-            ->where('f.fecha', '<=', $fecha)
-            ->where(function ($q) use ($vispera, $fecha) {
-                $q->where(function ($q) use ($vispera) {
-                    $q->where('f.fecha', $vispera)->where('f.hora', '>=', CargaCamion::CORTE_JORNADA);
-                })->orWhere('f.fecha', $fecha);
-            })
+            ->where('f.fecha_entrega', $fecha)
             // Lo que sale de un pedido de ese camion, o la venta directa a la
             // que caja le eligio ese camion.
             ->where(function ($camion) use ($placa) {
@@ -182,7 +172,7 @@ class CamineroController extends Controller
             })
             ->orderBy('f.hora')
             ->get([
-                'f.id as factura_id', 'f.fecha as factura_fecha', 'f.hora',
+                'f.id as factura_id', 'f.fecha as factura_fecha', 'f.hora', 'f.fecha_entrega',
                 'f.tipo_comprobante', 'f.tipo_pago', 'f.total', 'f.estado',
                 DB::raw('TRIM(COALESCE(f.nit, "")) as nit'),
                 DB::raw('TRIM(COALESCE(f.nombre, "")) as nombre'),
@@ -234,15 +224,11 @@ class CamineroController extends Controller
             ? (CargaCamion::colorDeZona($placa, $fecha)['colorStyle'] ?? '')
             : '';
 
-        $facturas = $facturas->filter(function ($factura) use ($pedidos, $placa, $productosDirecta, $colorCamion, $fecha) {
+        $facturas = $facturas->filter(function ($factura) use ($pedidos, $placa, $productosDirecta, $colorCamion) {
             if (!$factura->nro_pedido) {
-                if (self::diaDeReparto($factura->factura_fecha, $factura->hora) !== $fecha) {
-                    return false;
-                }
                 $factura->placa = $placa;
                 $factura->placa_color = $colorCamion;
                 $factura->pedido_fecha = $factura->factura_fecha;
-                $factura->fecha_entrega = self::diaDeReparto($factura->factura_fecha, $factura->hora);
                 $factura->productos = (int) $productosDirecta->get($factura->factura_id, 0);
                 $factura->total_pedido = round((float) $factura->total, 2);
                 return true;
@@ -251,20 +237,9 @@ class CamineroController extends Controller
             if (!$pedido || $pedido->placa !== $placa) {
                 return false;
             }
-            // Facturada despues del corte va al dia siguiente, salvo que el
-            // pedido se entregue ese mismo dia.
-            $dia = substr((string) $factura->factura_fecha, 0, 10);
-            if ((string) $factura->hora >= CargaCamion::CORTE_JORNADA
-                && substr((string) $pedido->fecha_entrega, 0, 10) !== $dia) {
-                $dia = self::diaDeReparto($dia, $factura->hora);
-            }
-            if ($dia !== $fecha) {
-                return false;
-            }
             $factura->placa = $pedido->placa;
             $factura->placa_color = $pedido->placa_color;
             $factura->pedido_fecha = $pedido->pedido_fecha;
-            $factura->fecha_entrega = $pedido->fecha_entrega;
             $factura->productos = $pedido->productos;
             $factura->total_pedido = $pedido->total_pedido;
             return true;
@@ -459,7 +434,7 @@ class CamineroController extends Controller
             ->whereNull('deleted_at')
             ->where('id', $facturaId)
             ->first(['id', 'cliente_id', 'nit', 'total', 'estado', 'tipo_pago',
-                'pedido_nro', 'pedido_tipo', 'fecha', 'hora', 'placa']);
+                'pedido_nro', 'pedido_tipo', 'fecha', 'hora', 'placa', 'fecha_entrega']);
 
         if (!$factura) {
             return [null, $placa, response()->json(['message' => 'El comprobante no existe'], 404)];
@@ -474,11 +449,11 @@ class CamineroController extends Controller
                 ->where('NroPed', $factura->pedido_nro)
                 ->whereRaw(TipoPedido::sql('') . ' = ?', [strtoupper(trim((string) $factura->pedido_tipo))])
                 ->where('bonificacion', 0)
-                ->first([DB::raw("TRIM(COALESCE(placa, '')) as placa"), 'fecha', 'fecha_entrega']);
+                ->first([DB::raw("TRIM(COALESCE(placa, '')) as placa")]);
         } else {
             // Venta directa: el camion es el que caja le eligio al venderla.
             $pedido = trim((string) $factura->placa) !== ''
-                ? (object) ['placa' => trim($factura->placa), 'fecha_entrega' => self::diaDeReparto($factura->fecha, $factura->hora)]
+                ? (object) ['placa' => trim($factura->placa)]
                 : null;
         }
 
@@ -505,9 +480,7 @@ class CamineroController extends Controller
             return [null, $placa, response()->json(['message' => 'Esa entrega ya fue cobrada'], 422)];
         }
 
-        // El dia de reparto del pedido: con esa fecha se registra la entrega.
-        $factura->fecha_entrega = $pedido->fecha_entrega;
-
+        // Con el dia de reparto del comprobante (fecha_entrega) se registra la entrega.
         return [$factura, $placa, null];
     }
 
@@ -616,19 +589,6 @@ class CamineroController extends Controller
     private static function rectificable($entrega)
     {
         return $entrega && substr((string) $entrega->fecha, 0, 10) === date('Y-m-d');
-    }
-
-    /**
-     * Dia de reparto de una venta directa con camion: lo vendido despues del
-     * corte de la jornada (18:00) sale al dia siguiente, igual que la carga.
-     */
-    private static function diaDeReparto($fecha, $hora)
-    {
-        $dia = substr((string) $fecha, 0, 10);
-
-        return (string) $hora >= CargaCamion::CORTE_JORNADA
-            ? date('Y-m-d', strtotime($dia . ' +1 day'))
-            : $dia;
     }
 
     /** 3.000 -> 3, 2.500 -> 2.5: como se escribe una cantidad a mano. */

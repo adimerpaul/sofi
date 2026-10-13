@@ -474,38 +474,20 @@ class CargaCamion
     public const CORTE_JORNADA = '18:00:00';
 
     /**
-     * Limita los comprobantes (alias f) a la jornada que termina ese dia: desde
-     * la vispera a las 18:00 hasta ese dia a las 18:00. Caja factura de tarde
-     * y de noche lo que sale a la manana siguiente, asi que el dia calendario
-     * partia la carga en dos.
-     *
-     * fecha y hora son columnas separadas: el rango sobre f.fecha deja usar
-     * el indice y la hora solo corta las puntas.
+     * Limita los comprobantes (alias f) al dia de reparto. Antes se cortaba
+     * por hora (vispera 18:00 a ese dia 18:00) y lo facturado de noche caia en
+     * un dia u otro segun la pantalla; ahora el comprobante guarda su
+     * fecha_entrega: la del pedido o la que eligio caja en la venta directa.
      */
     public static function enJornada($consulta, $fecha, $alias = 'f')
     {
-        $vispera = date('Y-m-d', strtotime($fecha . ' -1 day'));
-        $corte = self::CORTE_JORNADA;
-
-        return $consulta
-            ->where("$alias.fecha", '>=', $vispera)
-            ->where("$alias.fecha", '<=', $fecha)
-            ->where(function ($q) use ($alias, $vispera, $fecha, $corte) {
-                $q->where(function ($q) use ($alias, $vispera, $corte) {
-                    $q->where("$alias.fecha", $vispera)->where("$alias.hora", '>=', $corte);
-                })->orWhere(function ($q) use ($alias, $fecha, $corte) {
-                    $q->where("$alias.fecha", $fecha)->where("$alias.hora", '<', $corte);
-                });
-            });
+        return $consulta->where("$alias.fecha_entrega", $fecha);
     }
 
-    /** La jornada escrita para el papel: "05/10/2026 18:00 a 06/10/2026 18:00". */
+    /** El dia de reparto escrito para el papel: "06/10/2026". */
     public static function textoJornada($fecha)
     {
-        $hora = substr(self::CORTE_JORNADA, 0, 5);
-
-        return date('d/m/Y', strtotime($fecha . ' -1 day')) . ' ' . $hora
-            . ' a ' . date('d/m/Y', strtotime($fecha)) . ' ' . $hora;
+        return date('d/m/Y', strtotime($fecha));
     }
 
     /**
