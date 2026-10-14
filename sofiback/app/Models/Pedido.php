@@ -149,7 +149,7 @@ class Pedido extends Model implements Auditable{
         return $this->belongsTo(Cliente::class,'idCli','Cod_Aut');
     }
     function producto(){
-        return $this->belongsTo(Producto::class,'cod_prod','cod_prod');
+        return $this->belongsTo(Producto::class,'cod_prod','cod_prod')->withTrashed();
     }
     public function detalles()
     {

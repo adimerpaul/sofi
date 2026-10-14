@@ -686,32 +686,14 @@ class ReporteVentasController extends Controller
             ->orderBy('fecha')->orderBy('CodAut')
             ->get(['CodAut', 'fecha', 'cant', 'saldo', 'MotivoEgreso', 'comandast', 'motivstock']);
 
-        // Facturas web de los movimientos "VENTA WEB id" / "ANULA VENTA WEB id".
-        $idsWeb = $filas->map(function ($f) {
-            return preg_match('/VENTA WEB (\d+)$/', trim((string) $f->motivstock), $m) ? (int) $m[1] : null;
-        })->filter()->unique()->values()->all();
-        $web = $idsWeb ? DB::table('facturas')->whereIn('id', $idsWeb)
-            ->get(['id', 'nro_factura', 'tipo_comprobante', 'pedido_nro'])->keyBy('id') : collect();
-
-        // Facturas del sistema anterior, por comanda.
-        $comandas = $filas->pluck('comandast')->filter()->unique()->values()->all();
-        $legado = $comandas ? DB::table('tbfactura')->whereIn('comanda', $comandas)
-            ->where('nrofac', '>', 0)->pluck('nrofac', 'comanda') : collect();
+        $referencias = $this->referenciasStock($filas);
 
         $existencia = $anterior;
-        $movimientos = $filas->map(function ($f) use (&$existencia, $web, $legado) {
+        $movimientos = $filas->map(function ($f) use (&$existencia, $referencias) {
             $entrada = (float) $f->cant;
             $salida = (float) $f->saldo;
             $existencia += $entrada - $salida;
-
-            $comanda = (int) $f->comandast;
-            $factura = $comanda ? ($legado[$comanda] ?? null) : null;
-            if (preg_match('/VENTA WEB (\d+)$/', trim((string) $f->motivstock), $m) && ($w = $web->get((int) $m[1]))) {
-                $comanda = $comanda ?: (int) $w->pedido_nro;
-                $factura = $w->tipo_comprobante === 'FACTURA' && $w->nro_factura
-                    ? $w->nro_factura
-                    : 'Voucher #' . $w->id;
-            }
+            list($comanda, $factura) = $referencias($f);
 
             return [
                 'id' => $f->CodAut,
@@ -738,6 +720,208 @@ class ReporteVentasController extends Controller
             'stock_sistema' => round((float) $producto->stock_actual, 3),
             'movimientos' => $movimientos,
         ];
+    }
+
+    /**
+     * Nro de comanda y de factura de cada movimiento de tbstock. Los del
+     * sistema anterior salen de la fila (comandast) y de tbfactura; los web
+     * ("VENTA WEB 123") apuntan a la factura del sistema y de ahi su pedido.
+     * Devuelve una funcion fila => [comanda, factura].
+     */
+    private function referenciasStock($filas)
+    {
+        $idsWeb = $filas->map(function ($f) {
+            return preg_match('/VENTA WEB (\d+)$/', trim((string) $f->motivstock), $m) ? (int) $m[1] : null;
+        })->filter()->unique()->values()->all();
+        $web = $idsWeb ? DB::table('facturas')->whereIn('id', $idsWeb)
+            ->get(['id', 'nro_factura', 'tipo_comprobante', 'pedido_nro'])->keyBy('id') : collect();
+
+        $comandas = $filas->pluck('comandast')->filter()->unique()->values()->all();
+        $legado = $comandas ? DB::table('tbfactura')->whereIn('comanda', $comandas)
+            ->where('nrofac', '>', 0)->pluck('nrofac', 'comanda') : collect();
+
+        return function ($f) use ($web, $legado) {
+            $comanda = (int) $f->comandast;
+            $factura = $comanda ? ($legado[$comanda] ?? null) : null;
+            if (preg_match('/VENTA WEB (\d+)$/', trim((string) $f->motivstock), $m) && ($w = $web->get((int) $m[1]))) {
+                $comanda = $comanda ?: (int) $w->pedido_nro;
+                $factura = $w->tipo_comprobante === 'FACTURA' && $w->nro_factura
+                    ? $w->nro_factura
+                    : 'Voucher #' . $w->id;
+            }
+            return [$comanda ?: null, $factura ?: null];
+        };
+    }
+
+    /**
+     * Entradas y salidas de inventario en el formato de la planilla de caja:
+     * por cada producto una fila de SALDO ANTERIOR (lo que entro y salio
+     * antes del rango y con cuanto arranca) y debajo cada movimiento del
+     * rango con la existencia que va quedando. Sin cod_prod, todos los
+     * productos que se movieron en el rango. Por defecto, hoy.
+     */
+    public function entradasSalidas(Request $request)
+    {
+        $datos = $this->datosEntradasSalidas($request);
+        if ($request->input('formato') === 'excel') {
+            return $this->entradasSalidasExcel($datos);
+        }
+
+        return $datos;
+    }
+
+    private function datosEntradasSalidas(Request $request): array
+    {
+        $datos = $request->validate([
+            'cod_prod' => 'nullable|string|max:25',
+            'desde' => 'nullable|date',
+            'hasta' => 'nullable|date',
+        ]);
+        $cod = trim((string) ($datos['cod_prod'] ?? ''));
+        $desde = $datos['desde'] ?? date('Y-m-d');
+        $hasta = $datos['hasta'] ?? $desde;
+        if ($hasta < $desde) {
+            list($desde, $hasta) = [$hasta, $desde];
+        }
+
+        // En tbstock los codigos no llevan espacios: el indice de cod_prod sirve.
+        $filas = DB::table('tbstock')
+            ->when($cod !== '', function ($q) use ($cod) { $q->where('cod_prod', $cod); })
+            ->whereBetween('fecha', [$desde . ' 00:00:00', $hasta . ' 23:59:59'])
+            ->orderBy('cod_prod')->orderBy('fecha')->orderBy('CodAut')
+            ->get(['CodAut', 'cod_prod', 'fecha', 'cant', 'saldo', 'MotivoEgreso', 'comandast', 'motivstock']);
+
+        $codigos = $cod !== '' ? [$cod] : $filas->pluck('cod_prod')->map(function ($c) {
+            return trim((string) $c);
+        })->unique()->values()->all();
+
+        $anteriores = $codigos ? DB::table('tbstock')
+            ->whereIn('cod_prod', $codigos)
+            ->where('fecha', '<', $desde . ' 00:00:00')
+            ->groupBy('cod_prod')
+            ->get([DB::raw('TRIM(cod_prod) as cod_prod'), DB::raw('SUM(cant) as entradas'), DB::raw('SUM(saldo) as salidas')])
+            ->keyBy('cod_prod') : collect();
+
+        $productos = $codigos ? DB::table('tbproductos')
+            ->whereIn(DB::raw('TRIM(cod_prod)'), $codigos)
+            ->get([DB::raw('TRIM(cod_prod) as cod_prod'), DB::raw('TRIM(Producto) as producto'),
+                DB::raw('COALESCE(stock_actual, 0) as stock_actual')])
+            ->keyBy('cod_prod') : collect();
+        abort_if($cod !== '' && !$productos->has($cod), 404, 'Ese producto no existe');
+
+        $referencias = $this->referenciasStock($filas);
+        $porCodigo = $filas->groupBy(function ($f) { return trim((string) $f->cod_prod); });
+
+        $movimientos = [];
+        $totales = ['productos' => 0, 'movimientos' => 0, 'entradas' => 0.0, 'salidas' => 0.0];
+        foreach ($codigos as $codigo) {
+            $nombre = $productos[$codigo]->producto ?? 'Producto ' . $codigo;
+            $previo = $anteriores->get($codigo);
+            $existencia = round((float) ($previo->entradas ?? 0) - (float) ($previo->salidas ?? 0), 3);
+            $movimientos[] = [
+                'cod_prod' => $codigo, 'producto' => $nombre, 'saldo' => true,
+                'fecha' => $desde . ' 00:00', 'entrada' => round((float) ($previo->entradas ?? 0), 3),
+                'salida' => round((float) ($previo->salidas ?? 0), 3), 'motivo' => 'SALDO ANTERIOR',
+                'existencia' => $existencia, 'comanda' => null, 'factura' => null, 'motivo_stock' => '',
+            ];
+            foreach ($porCodigo->get($codigo, []) as $f) {
+                $entrada = round((float) $f->cant, 3);
+                $salida = round((float) $f->saldo, 3);
+                $existencia = round($existencia + $entrada - $salida, 3);
+                list($comanda, $factura) = $referencias($f);
+                $movimientos[] = [
+                    'cod_prod' => $codigo, 'producto' => $nombre, 'saldo' => false,
+                    'fecha' => substr((string) $f->fecha, 0, 16), 'entrada' => $entrada, 'salida' => $salida,
+                    'motivo' => trim((string) $f->MotivoEgreso), 'existencia' => $existencia,
+                    'comanda' => $comanda, 'factura' => $factura, 'motivo_stock' => trim((string) $f->motivstock),
+                ];
+                $totales['movimientos']++;
+                $totales['entradas'] += $entrada;
+                $totales['salidas'] += $salida;
+            }
+            $totales['productos']++;
+        }
+        $totales['entradas'] = round($totales['entradas'], 3);
+        $totales['salidas'] = round($totales['salidas'], 3);
+
+        return [
+            'cod_prod' => $cod !== '' ? $cod : null,
+            'producto' => $cod !== '' ? $productos[$cod]->producto : null,
+            'stock_sistema' => $cod !== '' ? round((float) $productos[$cod]->stock_actual, 3) : null,
+            'desde' => $desde,
+            'hasta' => $hasta,
+            'totales' => $totales,
+            'movimientos' => $movimientos,
+        ];
+    }
+
+    /** Las mismas columnas y orden que la planilla "entradas y salidas" de caja. */
+    private function entradasSalidasExcel(array $datos)
+    {
+        $libro = new Spreadsheet();
+        $hoja = $libro->getActiveSheet();
+        $hoja->setTitle('Entradas y salidas');
+
+        $hoja->fromArray(['CODIGO', 'PRODUCTO', 'FECHA REGISTRO', 'ENTRADA', 'SALIDA', 'MOTIVO INGRE/EGRE',
+            'EXISTENCIA', 'NRO COMANDA', 'NRO FACTURA', 'MOTIVO INGR. STOCK'], null, 'A1');
+        $hoja->getStyle('A1:J1')->applyFromArray([
+            'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
+            'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => '1F3864']],
+            'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER, 'vertical' => Alignment::VERTICAL_CENTER],
+        ]);
+        $hoja->getRowDimension(1)->setRowHeight(20);
+
+        $fila = 2;
+        foreach ($datos['movimientos'] as $m) {
+            $hoja->setCellValueExplicit('A' . $fila, $m['cod_prod'], DataType::TYPE_STRING);
+            $hoja->setCellValue('B' . $fila, $m['producto']);
+            // Fecha de verdad (no texto): se puede ordenar y filtrar.
+            $hoja->setCellValue('C' . $fila, \PhpOffice\PhpSpreadsheet\Shared\Date::PHPToExcel($m['fecha'] . ':00'));
+            $hoja->setCellValue('D' . $fila, $m['entrada']);
+            $hoja->setCellValue('E' . $fila, $m['salida']);
+            $hoja->setCellValue('F' . $fila, $m['motivo']);
+            $hoja->setCellValue('G' . $fila, $m['existencia']);
+            $hoja->setCellValue('H' . $fila, $m['comanda'] ?: 0);
+            if ($m['factura'] !== null && !is_numeric($m['factura'])) {
+                $hoja->setCellValueExplicit('I' . $fila, $m['factura'], DataType::TYPE_STRING);
+            } else {
+                $hoja->setCellValue('I' . $fila, $m['factura'] ?: 0);
+            }
+            $hoja->setCellValue('J' . $fila, $m['motivo_stock']);
+            // La fila de saldo de cada producto se distingue de sus movimientos.
+            if ($m['saldo']) {
+                $hoja->getStyle("A{$fila}:J{$fila}")->applyFromArray([
+                    'font' => ['bold' => true],
+                    'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'DDEBF7']],
+                ]);
+            }
+            $fila++;
+        }
+        $ultima = max($fila - 1, 1);
+
+        $hoja->getStyle('C2:C' . $ultima)->getNumberFormat()->setFormatCode('dd/mm/yyyy hh:mm');
+        $hoja->getStyle('D2:E' . $ultima)->getNumberFormat()->setFormatCode('#,##0.00');
+        $hoja->getStyle('G2:G' . $ultima)->getNumberFormat()->setFormatCode('#,##0.00');
+        $hoja->getStyle('A1:J' . $ultima)->getBorders()->getAllBorders()
+            ->setBorderStyle(Border::BORDER_HAIR)->getColor()->setRGB('BFBFBF');
+        foreach (['A' => 10, 'B' => 42, 'C' => 17, 'D' => 11, 'E' => 11, 'F' => 36, 'G' => 12, 'H' => 13, 'I' => 14, 'J' => 28] as $col => $ancho) {
+            $hoja->getColumnDimension($col)->setWidth($ancho);
+        }
+        $hoja->freezePane('C2');
+        $hoja->setAutoFilter('A1:J' . $ultima);
+        $hoja->getPageSetup()->setOrientation(PageSetup::ORIENTATION_LANDSCAPE)
+            ->setPaperSize(PageSetup::PAPERSIZE_LETTER)
+            ->setFitToWidth(1)->setFitToHeight(0)
+            ->setRowsToRepeatAtTopByStartAndEnd(1, 1);
+
+        $rango = $datos['desde'] === $datos['hasta'] ? $datos['desde'] : $datos['desde'] . '_a_' . $datos['hasta'];
+        $nombre = 'entradas_y_salidas_' . ($datos['cod_prod'] ? $datos['cod_prod'] . '_' : '') . $rango . '.xlsx';
+
+        return response()->streamDownload(function () use ($libro) {
+            (new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($libro))->save('php://output');
+        }, $nombre, [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        ]);
     }
 
     /** El kardex en Excel, con las columnas de la planilla de siempre. */

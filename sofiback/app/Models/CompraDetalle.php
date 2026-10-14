@@ -41,6 +41,6 @@ class CompraDetalle extends Model
 
     public function producto()
     {
-        return $this->belongsTo(Producto::class, 'cod_prod', 'cod_prod');
+        return $this->belongsTo(Producto::class, 'cod_prod', 'cod_prod')->withTrashed();
     }
 }

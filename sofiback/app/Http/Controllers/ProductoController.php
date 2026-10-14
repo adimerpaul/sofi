@@ -280,8 +280,10 @@ class ProductoController extends Controller{
         $codProd = trim((string) ($datos['cod_prod'] ?? ''));
         if ($codProd === '') {
             $codProd = $this->siguienteCodigo();
-        } elseif (Producto::whereRaw('TRIM(cod_prod) = ?', [$codProd])->exists()) {
-            return response()->json(['message' => 'Ya existe un producto con el código ' . $codProd], 422);
+        } elseif ($existente = Producto::withTrashed()->whereRaw('TRIM(cod_prod) = ?', [$codProd])->first()) {
+            // Un eliminado sigue ocupando su codigo: se restaura, no se duplica.
+            return response()->json(['message' => 'Ya existe un producto con el código ' . $codProd
+                . ($existente->trashed() ? ' (está eliminado: restáurelo desde "Ver eliminados")' : '')], 422);
         }
 
         $producto = new Producto();
@@ -449,38 +451,73 @@ class ProductoController extends Controller{
         if ($request->boolean('conStock')) {
             $query->whereRaw(self::SQL_STOCK . ' > 0');
         }
-        // Por convencion del negocio los productos dados de baja llevan
-        // "inactivo" en el nombre; se ocultan salvo que se pidan.
+        // Los eliminados (deleted_at) y los dados de baja a la antigua, con
+        // "inactivo" en el nombre, se ocultan salvo que se pidan.
         if (!$request->boolean('incluirInactivos')) {
-            $query->where('p.Producto', 'not like', '%inactivo%');
+            $query->whereNull('p.deleted_at')->where('p.Producto', 'not like', '%inactivo%');
         }
+        $query->addSelect([
+            'p.deleted_at',
+            DB::raw("(p.deleted_at IS NOT NULL OR p.Producto LIKE '%inactivo%') as eliminado"),
+        ]);
 
         return $query;
     }
 
     /**
-     * Da de baja un producto.
+     * Elimina un producto con borrado logico: la fila no se borra nunca.
      *
-     * No se borra la fila: tbventas guarda el cod_pro de cada linea vendida y
-     * borrarlo dejaria huerfano todo el historico. Se sigue la convencion que
-     * ya usa el negocio, que es marcar el nombre como INACTIVO; asi desaparece
-     * del catalogo y de la pantalla de ventas salvo que se pidan los inactivos.
+     * tbventas y facturas guardan el codigo de cada linea vendida, asi que
+     * borrarla dejaria huerfano el historico. Se marca deleted_at (quien lo
+     * hizo queda en audits) y ademas el nombre lleva INACTIVO, que es lo que
+     * filtran los catalogos, la app del preventista y el sistema de caja.
+     * Se deshace con restaurar().
      */
     public function eliminar($codProd)
     {
-        $producto = Producto::whereRaw('TRIM(cod_prod) = ?', [trim($codProd)])->first();
+        $producto = Producto::withTrashed()->whereRaw('TRIM(cod_prod) = ?', [trim($codProd)])->first();
         if (!$producto) {
             return response()->json(['message' => 'El producto no existe'], 404);
         }
-
-        if (stripos($producto->Producto, 'inactivo') !== false) {
-            return response()->json(['message' => 'El producto ya estaba dado de baja'], 422);
+        if ($producto->trashed()) {
+            return response()->json(['message' => 'El producto ya estaba eliminado'], 422);
         }
 
-        $producto->Producto = trim($producto->Producto) . ' INACTIVO';
-        $producto->save();
+        DB::transaction(function () use ($producto) {
+            if (stripos($producto->Producto, 'inactivo') === false) {
+                $producto->Producto = trim($producto->Producto) . ' INACTIVO';
+                $producto->save();
+            }
+            $producto->delete();
+        });
 
-        return response()->json(['message' => 'Producto dado de baja']);
+        return response()->json(['message' => 'Producto eliminado. Se puede restaurar desde "Ver eliminados"']);
+    }
+
+    /**
+     * Deshace la eliminacion: quita deleted_at y el sufijo INACTIVO del
+     * nombre. Sirve tambien para los dados de baja a la antigua (solo con
+     * INACTIVO en el nombre).
+     */
+    public function restaurar($codProd)
+    {
+        $producto = Producto::withTrashed()->whereRaw('TRIM(cod_prod) = ?', [trim($codProd)])->first();
+        if (!$producto) {
+            return response()->json(['message' => 'El producto no existe'], 404);
+        }
+        if (!$producto->trashed() && stripos($producto->Producto, 'inactivo') === false) {
+            return response()->json(['message' => 'El producto no está eliminado'], 422);
+        }
+
+        DB::transaction(function () use ($producto) {
+            $producto->Producto = trim(preg_replace('/\s*inactivo\s*$/i', '', trim($producto->Producto)));
+            $producto->save();
+            if ($producto->trashed()) {
+                $producto->restore();
+            }
+        });
+
+        return response()->json(['message' => 'Producto restaurado: "' . $producto->Producto . '" vuelve al catálogo']);
     }
 
     /** Catalogo filtrado en Excel. */

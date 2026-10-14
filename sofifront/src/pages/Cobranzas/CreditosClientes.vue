@@ -88,7 +88,8 @@
           :options="[
             { label: 'Con deuda (' + totales.con_deuda + ')', value: 'deuda' },
             { label: 'Sin deuda', value: 'sin' },
-            { label: 'Todos', value: 'todos' }
+            { label: 'Todos', value: 'todos' },
+            { label: 'Bajas · Bs ' + money(totales.bajas_monto), value: 'bajas' }
           ]"
         />
       </div>
@@ -101,6 +102,11 @@
     </div>
 
     <q-banner v-if="error" class="bg-red-1 text-negative q-mb-sm">{{ error }}</q-banner>
+    <q-banner v-if="filtro === 'bajas'" dense rounded class="bg-purple-1 text-purple-10 q-mb-sm">
+      <template #avatar><q-icon name="card_giftcard"/></template>
+      Lo cargado a las cuentas de bajas (bonificación, calidad, degustación…): {{ totales.bajas_cantidad }} bajas por
+      <b>Bs {{ money(totales.bajas_monto) }}</b>. Es solo para ver: no es deuda. Toca una cuenta para ver a qué cliente se dio cada baja y sus productos.
+    </q-banner>
 
     <div class="row items-center justify-end q-gutter-sm q-mb-sm">
       <span class="text-caption">Filtrados: {{ filtrados.length }} clientes · Saldo Bs {{ money(filtrados.reduce((total, c) => total + Number(c.saldo), 0)) }}</span>
@@ -120,13 +126,18 @@
       </template>
       <template #body-cell-saldo="props">
         <q-td :props="props">
-          <span v-if="props.row.saldo > 0" class="text-weight-bolder text-red-9">Bs {{ money(props.row.saldo) }}</span>
+          <!-- Una cuenta de bajas no debe: se muestra lo que se le cargo. -->
+          <template v-if="props.row.es_baja">
+            <div class="text-weight-bolder text-purple-8">Bajas Bs {{ money(props.row.bajas_monto) }}</div>
+            <div class="text-caption text-grey-7">{{ props.row.bajas_cantidad }} bajas · no es deuda</div>
+          </template>
+          <span v-else-if="props.row.saldo > 0" class="text-weight-bolder text-red-9">Bs {{ money(props.row.saldo) }}</span>
           <span v-else class="text-grey-5">—</span>
         </q-td>
       </template>
       <template #body-cell-dias="props">
         <q-td :props="props">
-          <q-badge v-if="props.row.saldo > 0" :color="colorDias(props.row.dias)">{{ props.row.dias }} d</q-badge>
+          <q-badge v-if="props.row.saldo > 0 && !props.row.es_baja" :color="colorDias(props.row.dias)">{{ props.row.dias }} d</q-badge>
         </q-td>
       </template>
 
@@ -153,7 +164,12 @@
                   </div>
                 </div>
                 <div class="text-right q-ml-sm">
-                  <template v-if="props.row.saldo > 0">
+                  <template v-if="props.row.es_baja">
+                    <div class="text-caption text-purple-8">Bajas</div>
+                    <div class="text-subtitle1 text-weight-bolder text-purple-8">Bs {{ money(props.row.bajas_monto) }}</div>
+                    <q-badge color="purple-6">{{ props.row.bajas_cantidad }} bajas · no es deuda</q-badge>
+                  </template>
+                  <template v-else-if="props.row.saldo > 0">
                     <div class="text-caption text-red-8">Debe</div>
                     <div class="text-subtitle1 text-weight-bolder text-red-9">Bs {{ money(props.row.saldo) }}</div>
                     <q-badge :color="colorDias(props.row.dias)">{{ props.row.deudas }} · {{ props.row.dias }} días</q-badge>
@@ -491,7 +507,7 @@ export default {
       cobradores: [],
       cargandoCobradores: false,
       descargandoCierre: false,
-      totales: { clientes: 0, con_deuda: 0, saldo: 0, deudas: 0 },
+      totales: { clientes: 0, con_deuda: 0, saldo: 0, deudas: 0, bajas_cuentas: 0, bajas_monto: 0, bajas_cantidad: 0 },
       buscar: '',
       // Arranca en los que deben: es lo que cobranzas viene a mirar.
       filtro: 'deuda',
@@ -565,6 +581,7 @@ export default {
         // bajas (bonificaciones, degustacion...). Los demas siguen en Todos.
         if (this.filtro === 'deuda' && !c.deudor) return false
         if (this.filtro === 'sin' && c.deudor) return false
+        if (this.filtro === 'bajas' && !c.es_baja) return false
         if (this.zona && c.zona !== this.zona) return false
         if (this.vendedor && c.vendedor !== this.vendedor) return false
         if (!texto) return true

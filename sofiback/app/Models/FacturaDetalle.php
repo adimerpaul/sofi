@@ -70,6 +70,6 @@ class FacturaDetalle extends Model
     /** tbproductos se referencia por cod_prod, que es su clave real. */
     public function producto()
     {
-        return $this->belongsTo(Producto::class, 'cod_prod', 'cod_prod');
+        return $this->belongsTo(Producto::class, 'cod_prod', 'cod_prod')->withTrashed();
     }
 }

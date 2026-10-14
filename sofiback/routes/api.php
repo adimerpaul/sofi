@@ -74,6 +74,8 @@ Route::group(['middleware'=>'auth:sanctum'],function (){
     Route::post('/productos',[\App\Http\Controllers\ProductoController::class,'crear']);
     Route::put('/productos/{codProd}',[\App\Http\Controllers\ProductoController::class,'actualizar']);
     Route::delete('/productos/{codProd}',[\App\Http\Controllers\ProductoController::class,'eliminar']);
+    // Deshace la eliminacion (borrado logico).
+    Route::post('/productos/{codProd}/restaurar',[\App\Http\Controllers\ProductoController::class,'restaurar']);
     Route::post('/productos/{codProd}/imagen',[\App\Http\Controllers\ProductoController::class,'subirImagen']);
     Route::delete('/productos/{codProd}/imagen',[\App\Http\Controllers\ProductoController::class,'quitarImagen']);
 
@@ -129,6 +131,8 @@ Route::group(['middleware'=>'auth:sanctum'],function (){
     Route::get('/reportes/kardex/productos',[\App\Http\Controllers\ReporteVentasController::class,'kardexProductos']);
     Route::get('/reportes/kardex',[\App\Http\Controllers\ReporteVentasController::class,'kardex']);
     Route::get('/reportes/kardex/excel',[\App\Http\Controllers\ReporteVentasController::class,'kardexExcel']);
+    // Entradas y salidas de inventario (formato planilla de caja); ?formato=excel para bajarla.
+    Route::get('/reportes/entradas-salidas',[\App\Http\Controllers\ReporteVentasController::class,'entradasSalidas']);
     // Productos que salieron en facturacion en un rango, de mayor a menor.
     Route::get('/reportes/productos-vendidos',[\App\Http\Controllers\ReporteVentasController::class,'productosVendidos']);
     Route::get('/reportes/productos-vendidos/excel',[\App\Http\Controllers\ReporteVentasController::class,'productosVendidosExcel']);

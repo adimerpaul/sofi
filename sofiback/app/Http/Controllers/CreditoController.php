@@ -282,6 +282,7 @@ class CreditoController extends Controller
     public function resumen()
     {
         $porCliente = $this->deudas(null)->groupBy('cliente_id');
+        $bajas = $this->resumenBajas();
 
         $vendedores = DB::table('personal')->whereRaw("TRIM(COALESCE(ci, '')) <> ''")
             ->get(['ci', 'Nombre1', 'App1'])
@@ -291,11 +292,13 @@ class CreditoController extends Controller
 
         $clientes = DB::table('tbclientes')->orderBy('Nombres')
             ->get(['Cod_Aut', 'Id', 'Nombres', 'Telf', 'Direccion', 'zona', 'CiVend', 'Canal', 'venta'])
-            ->map(function ($c) use ($porCliente, $vendedores) {
+            ->map(function ($c) use ($porCliente, $vendedores, $bajas) {
                 $deudas = $porCliente->get($c->Cod_Aut) ?? collect();
                 $pendientes = $deudas->where('saldo', '>', 0);
                 $desde = $pendientes->min('fecha');
                 $saldo = round($pendientes->sum('saldo'), 2);
+                $esBaja = $this->esCuentaDeBaja($c->Nombres);
+                $baja = $bajas[$c->Cod_Aut] ?? ['monto' => 0, 'cantidad' => 0];
 
                 return [
                     'id' => (int) $c->Cod_Aut,
@@ -314,10 +317,15 @@ class CreditoController extends Controller
                     // Desde cuando debe: la deuda pendiente mas vieja.
                     'desde' => $desde ? substr((string) $desde, 0, 10) : null,
                     'dias' => $desde ? (int) floor((time() - strtotime(substr((string) $desde, 0, 10))) / 86400) : null,
+                    // Cuenta "BAJAS POR ...": lo que se le cargo, solo para ver.
+                    'es_baja' => $esBaja,
+                    'bajas_monto' => $esBaja ? $baja['monto'] : 0,
+                    'bajas_cantidad' => $esBaja ? $baja['cantidad'] : 0,
                 ];
             });
 
         $conDeuda = $clientes->where('deudor', true);
+        $cuentasBaja = $clientes->where('es_baja', true);
 
         return [
             'clientes' => $clientes->values(),
@@ -326,8 +334,38 @@ class CreditoController extends Controller
                 'con_deuda' => $conDeuda->count(),
                 'saldo' => round($conDeuda->sum('saldo'), 2),
                 'deudas' => $conDeuda->sum('deudas'),
+                'bajas_cuentas' => $cuentasBaja->count(),
+                'bajas_monto' => round($cuentasBaja->sum('bajas_monto'), 2),
+                'bajas_cantidad' => $cuentasBaja->sum('bajas_cantidad'),
             ],
         ];
+    }
+
+    /**
+     * Lo cargado a cada cuenta de bajas, para mostrarlo en la lista (no es
+     * deuda): los pedidos bonificados a su nombre (tbpedidos.bonificacionId,
+     * los mismos que lista el detalle) y los comprobantes vigentes emitidos
+     * directo a la cuenta. [cuenta => ['monto' => Bs, 'cantidad' => n]].
+     */
+    private function resumenBajas()
+    {
+        $cuentas = DB::table('tbclientes')->where('Nombres', 'like', 'BAJAS POR %')->pluck('Cod_Aut');
+        $propias = DB::table('facturas')->whereNull('deleted_at')->where('estado', 'ACTIVO')
+            ->whereIn('cliente_id', $cuentas)
+            ->select('cliente_id', DB::raw('SUM(total) as monto'), DB::raw('COUNT(*) as cantidad'))
+            ->groupBy('cliente_id')->get()->keyBy('cliente_id');
+
+        $resumen = [];
+        foreach ($cuentas as $cuenta) {
+            $bonificadas = $this->bonificacionesDeCuenta((int) $cuenta, collect());
+            $propia = $propias[$cuenta] ?? null;
+            $resumen[$cuenta] = [
+                'monto' => round($bonificadas->sum('total') + (float) ($propia->monto ?? 0), 2),
+                'cantidad' => $bonificadas->count() + (int) ($propia->cantidad ?? 0),
+            ];
+        }
+
+        return $resumen;
     }
 
     /**

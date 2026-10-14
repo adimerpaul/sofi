@@ -12,6 +12,14 @@
       </div>
       <div class="col-auto">
         <q-btn
+          dense unelevated no-caps color="indigo" icon="swap_vert"
+          label="Entradas y salidas" @click="abrirEntradasSalidas(null)"
+        >
+          <q-tooltip>Movimientos de stock de todos los productos, con Excel</q-tooltip>
+        </q-btn>
+      </div>
+      <div class="col-auto">
+        <q-btn
           dense unelevated no-caps color="orange-8" icon="sync"
           label="Actualizar pollos" :loading="actualizandoPollos"
           @click="actualizarPollos"
@@ -63,7 +71,7 @@
           />
           <q-toggle
             v-model="filtros.incluirInactivos"
-            dense label="Ver inactivos" color="grey-7"
+            dense label="Ver eliminados" color="grey-7"
             @update:model-value="recargar"
           />
         </div>
@@ -122,6 +130,16 @@
         </q-td>
       </template>
 
+      <!-- Lo eliminado (solo se ve con "Ver eliminados") va tachado y marcado. -->
+      <template v-slot:body-cell-Producto="props">
+        <q-td :props="props" :class="{ 'producto-eliminado': esEliminado(props.row) }">
+          {{ props.value }}
+          <q-badge v-if="esEliminado(props.row)" color="negative" class="q-ml-xs" label="ELIMINADO">
+            <q-tooltip v-if="props.row.deleted_at">Eliminado el {{ fechaHora(props.row.deleted_at) }}</q-tooltip>
+          </q-badge>
+        </q-td>
+      </template>
+
       <!-- Opciones: primera columna para que no queden fuera de pantalla. -->
       <template v-slot:body-cell-acciones="props">
         <q-td :props="props" style="white-space: nowrap">
@@ -151,13 +169,29 @@
                 <q-item-section>Quitar imagen</q-item-section>
               </q-item>
 
+              <q-item clickable v-close-popup @click="abrirEntradasSalidas(props.row)">
+                <q-item-section avatar><q-icon name="swap_vert" color="indigo"/></q-item-section>
+                <q-item-section>
+                  Entradas y salidas
+                  <q-item-label caption>Movimientos de stock, con Excel</q-item-label>
+                </q-item-section>
+              </q-item>
+
               <q-separator/>
 
-              <q-item clickable v-close-popup @click="eliminar(props.row)">
+              <!-- Eliminar es borrado logico: el eliminado se puede restaurar. -->
+              <q-item v-if="esEliminado(props.row)" clickable v-close-popup @click="restaurar(props.row)">
+                <q-item-section avatar><q-icon name="restore_from_trash" color="positive"/></q-item-section>
+                <q-item-section>
+                  Restaurar
+                  <q-item-label caption>Vuelve al catálogo</q-item-label>
+                </q-item-section>
+              </q-item>
+              <q-item v-else clickable v-close-popup @click="eliminar(props.row)">
                 <q-item-section avatar><q-icon name="delete" color="negative"/></q-item-section>
                 <q-item-section>
                   Eliminar
-                  <q-item-label caption>Lo marca como inactivo</q-item-label>
+                  <q-item-label caption>Se puede restaurar después</q-item-label>
                 </q-item-section>
               </q-item>
             </q-list>
@@ -333,14 +367,131 @@
         </q-form>
       </q-card>
     </q-dialog>
+
+    <!-- Entradas y salidas de inventario, en el formato de la planilla de
+         caja: de un producto (menu Opciones) o de todos (boton de arriba). -->
+    <q-dialog v-model="es.abierto" maximized transition-show="slide-up" transition-hide="slide-down">
+      <q-card class="column no-wrap">
+        <q-card-section class="bg-primary text-white q-py-sm row items-center no-wrap">
+          <q-icon name="swap_vert" size="22px" class="q-mr-sm"/>
+          <div class="col">
+            <div class="text-subtitle1 text-weight-bold">Entradas y salidas</div>
+            <div class="text-caption ellipsis">
+              {{ es.producto ? es.producto.cod_prod + ' · ' + es.producto.Producto : 'Todos los productos que se movieron en el rango' }}
+            </div>
+          </div>
+          <q-btn icon="close" flat round dense v-close-popup/>
+        </q-card-section>
+
+        <q-card-section class="q-pa-sm">
+          <div class="row items-center q-gutter-sm">
+            <q-input v-model="es.desde" type="date" dense outlined label="Desde" style="width: 160px"
+                     @update:model-value="cargarEntradasSalidas"/>
+            <q-input v-model="es.hasta" type="date" dense outlined label="Hasta" style="width: 160px"
+                     @update:model-value="cargarEntradasSalidas"/>
+            <q-btn color="primary" icon="refresh" label="Actualizar" no-caps unelevated :loading="es.cargando"
+                   @click="cargarEntradasSalidas"/>
+            <q-btn color="green-8" icon="table_chart" label="Exportar Excel" no-caps unelevated
+                   :loading="es.exportando" :disable="!es.datos.movimientos.length" @click="exportarEntradasSalidas"/>
+            <q-space/>
+            <q-input v-model="es.buscar" dense outlined clearable debounce="300" style="width: 260px"
+                     placeholder="Código, producto, comanda, motivo…">
+              <template v-slot:append><q-icon name="search"/></template>
+            </q-input>
+          </div>
+
+          <div class="row q-col-gutter-sm q-mt-xs">
+            <div v-if="!es.producto" class="col-6 col-sm">
+              <q-card flat bordered class="tarjeta-es">
+                <div class="tarjeta-es-titulo">Productos</div>
+                <div class="tarjeta-es-valor">{{ es.datos.totales.productos }}</div>
+              </q-card>
+            </div>
+            <div class="col-6 col-sm">
+              <q-card flat bordered class="tarjeta-es">
+                <div class="tarjeta-es-titulo">Movimientos</div>
+                <div class="tarjeta-es-valor">{{ es.datos.totales.movimientos }}</div>
+              </q-card>
+            </div>
+            <div class="col-6 col-sm">
+              <q-card flat bordered class="tarjeta-es">
+                <div class="tarjeta-es-titulo">Entradas</div>
+                <div class="tarjeta-es-valor text-green-9">{{ num(es.datos.totales.entradas) }}</div>
+              </q-card>
+            </div>
+            <div class="col-6 col-sm">
+              <q-card flat bordered class="tarjeta-es">
+                <div class="tarjeta-es-titulo">Salidas</div>
+                <div class="tarjeta-es-valor text-negative">{{ num(es.datos.totales.salidas) }}</div>
+              </q-card>
+            </div>
+            <div v-if="es.producto" class="col-6 col-sm">
+              <q-card flat bordered class="tarjeta-es">
+                <div class="tarjeta-es-titulo">Existencia final</div>
+                <div class="tarjeta-es-valor text-blue-9">{{ num(existenciaFinalEs) }}</div>
+                <div class="tarjeta-es-sub">Stock del sistema: {{ num(es.datos.stock_sistema) }}</div>
+              </q-card>
+            </div>
+          </div>
+        </q-card-section>
+
+        <q-card-section class="col q-pa-sm q-pt-none" style="min-height: 0">
+          <q-table
+            class="tabla-es" flat bordered dense virtual-scroll
+            :rows="es.datos.movimientos" :columns="columnasEs" :filter="es.buscar"
+            :rows-per-page-options="[0]" row-key="_k" :loading="es.cargando"
+            no-data-label="Sin entradas ni salidas en este rango"
+          >
+            <template v-slot:body="props">
+              <q-tr :props="props" :class="{ 'fila-saldo': props.row.saldo }">
+                <q-td v-for="col in props.cols" :key="col.name" :props="props"
+                      :class="{
+                        'text-green-9': col.name === 'entrada' && props.row.entrada > 0 && !props.row.saldo,
+                        'text-negative': col.name === 'salida' && props.row.salida > 0 && !props.row.saldo,
+                        'text-weight-bold': col.name === 'existencia'
+                      }">
+                  {{ col.value }}
+                </q-td>
+              </q-tr>
+            </template>
+          </q-table>
+        </q-card-section>
+      </q-card>
+    </q-dialog>
   </q-page>
 </template>
 
 <script>
+import { date } from 'quasar'
+
 export default {
   name: 'ProductosPage',
   data () {
+    const hoy = date.formatDate(Date.now(), 'YYYY-MM-DD')
     return {
+      // Entradas y salidas: producto null = todos.
+      es: {
+        abierto: false,
+        producto: null,
+        desde: hoy,
+        hasta: hoy,
+        buscar: '',
+        cargando: false,
+        exportando: false,
+        datos: { movimientos: [], totales: { productos: 0, movimientos: 0, entradas: 0, salidas: 0 }, stock_sistema: 0 }
+      },
+      columnasEs: [
+        { name: 'cod_prod', label: 'Código', field: 'cod_prod', align: 'left' },
+        { name: 'producto', label: 'Producto', field: 'producto', align: 'left' },
+        { name: 'fecha', label: 'Fecha registro', field: 'fecha', align: 'left', format: v => this.fechaHora(v) },
+        { name: 'entrada', label: 'Entrada', field: 'entrada', align: 'right', format: v => this.num(v) },
+        { name: 'salida', label: 'Salida', field: 'salida', align: 'right', format: v => this.num(v) },
+        { name: 'motivo', label: 'Motivo ingre/egre', field: 'motivo', align: 'left' },
+        { name: 'existencia', label: 'Existencia', field: 'existencia', align: 'right', format: v => this.num(v) },
+        { name: 'comanda', label: 'Nro comanda', field: 'comanda', align: 'right', format: v => v || '' },
+        { name: 'factura', label: 'Nro factura', field: 'factura', align: 'right', format: v => v || '' },
+        { name: 'motivo_stock', label: 'Motivo ingr. stock', field: 'motivo_stock', align: 'left' }
+      ],
       productos: [],
       grupos: [],
       padres: [],
@@ -402,6 +553,11 @@ export default {
   computed: {
     columnasOpcionales () {
       return this.columns.map(c => ({ name: c.name, label: c.label }))
+    },
+    // La existencia de la ultima fila: con cuanto termina el rango.
+    existenciaFinalEs () {
+      const lista = this.es.datos.movimientos
+      return lista.length ? lista[lista.length - 1].existencia : 0
     }
   },
   created () {
@@ -419,6 +575,55 @@ export default {
     this.onRequest({ pagination: this.pagination })
   },
   methods: {
+    // producto null = todos los productos que se movieron.
+    abrirEntradasSalidas (producto) {
+      this.es.producto = producto ? { cod_prod: producto.cod_prod, Producto: producto.Producto } : null
+      this.es.buscar = ''
+      this.es.datos = { movimientos: [], totales: { productos: 0, movimientos: 0, entradas: 0, salidas: 0 }, stock_sistema: 0 }
+      this.es.abierto = true
+      this.cargarEntradasSalidas()
+    },
+    paramsEntradasSalidas () {
+      return {
+        cod_prod: this.es.producto ? String(this.es.producto.cod_prod).trim() : '',
+        desde: this.es.desde,
+        hasta: this.es.hasta || this.es.desde
+      }
+    },
+    cargarEntradasSalidas () {
+      if (!this.es.desde) return
+      this.es.cargando = true
+      this.$api.get('reportes/entradas-salidas', { params: this.paramsEntradasSalidas() })
+        .then(res => {
+          // Clave propia: un mismo producto tiene muchas filas.
+          res.data.movimientos.forEach((m, i) => { m._k = i })
+          this.es.datos = res.data
+        })
+        .catch(err => {
+          this.$q.notify({ type: 'negative', message: err.response?.data?.message || 'No se pudo cargar el movimiento' })
+        })
+        .finally(() => { this.es.cargando = false })
+    },
+    async exportarEntradasSalidas () {
+      this.es.exportando = true
+      try {
+        const params = Object.assign({ formato: 'excel' }, this.paramsEntradasSalidas())
+        const res = await this.$api.get('reportes/entradas-salidas', { params, responseType: 'blob' })
+        const enlace = document.createElement('a')
+        enlace.href = window.URL.createObjectURL(res.data)
+        const rango = params.desde === params.hasta ? params.desde : params.desde + '_a_' + params.hasta
+        enlace.download = 'entradas_y_salidas_' + (params.cod_prod ? params.cod_prod + '_' : '') + rango + '.xlsx'
+        enlace.click()
+        window.URL.revokeObjectURL(enlace.href)
+      } catch (e) {
+        this.$q.notify({ type: 'negative', message: 'No se pudo exportar el Excel' })
+      } finally {
+        this.es.exportando = false
+      }
+    },
+    fechaHora (valor) {
+      return valor ? date.formatDate(String(valor).replace(' ', 'T'), 'DD/MM/YYYY HH:mm') : ''
+    },
     num (v) {
       return Number(v || 0).toFixed(2)
     },
@@ -561,14 +766,24 @@ export default {
       })
     },
 
+    // Eliminado con deleted_at, o dado de baja a la antigua (INACTIVO en el nombre).
+    esEliminado (row) {
+      return !!row.deleted_at || Number(row.eliminado) === 1 || /inactivo/i.test(row.Producto || '')
+    },
+    // Para no borrar uno sin querer hay que escribir su codigo. Igual es
+    // borrado logico: se puede restaurar desde "Ver eliminados".
     eliminar (row) {
+      const codigo = String(row.cod_prod).trim()
       this.$q.dialog({
         title: 'Eliminar producto',
-        message: '¿Dar de baja "' + row.Producto + '"? Se marcará como INACTIVO y ' +
-          'dejará de aparecer en el catálogo, pero se conserva el historial de ventas.',
-        cancel: true,
+        message: '¿Eliminar "' + row.Producto + '"? Deja de aparecer en el catálogo y en los pedidos; ' +
+          'el historial de ventas se conserva y se puede restaurar desde "Ver eliminados".<br><br>' +
+          'Para confirmar escriba el código <b>' + codigo + '</b>:',
+        html: true,
+        prompt: { model: '', type: 'text', isValid: v => String(v).trim() === codigo, outlined: true, dense: true },
+        cancel: { flat: true, noCaps: true, label: 'Cancelar' },
         persistent: true,
-        ok: { label: 'Eliminar', color: 'negative', noCaps: true }
+        ok: { label: 'Eliminar', color: 'negative', noCaps: true, unelevated: true }
       }).onOk(() => {
         this.$api.delete('productos/' + encodeURIComponent(row.cod_prod))
           .then(res => {
@@ -581,6 +796,22 @@ export default {
             this.onRequest({ pagination: this.pagination })
           })
           .catch(err => { this.avisarError(err, 'No se pudo eliminar') })
+      })
+    },
+
+    restaurar (row) {
+      this.$q.dialog({
+        title: 'Restaurar producto',
+        message: '¿Restaurar "' + row.Producto + '"? Vuelve al catálogo y a los pedidos.',
+        cancel: { flat: true, noCaps: true, label: 'Cancelar' },
+        ok: { label: 'Restaurar', color: 'positive', noCaps: true, unelevated: true }
+      }).onOk(() => {
+        this.$api.post('productos/' + encodeURIComponent(String(row.cod_prod).trim()) + '/restaurar')
+          .then(res => {
+            this.$q.notify({ message: res.data.message, color: 'positive', icon: 'restore_from_trash', position: 'top' })
+            this.onRequest({ pagination: this.pagination })
+          })
+          .catch(err => { this.avisarError(err, 'No se pudo restaurar') })
       })
     },
 
@@ -816,6 +1047,48 @@ export default {
 </script>
 
 <style scoped>
+.producto-eliminado {
+  color: #9e9e9e;
+  text-decoration: line-through;
+}
+/* Entradas y salidas: la tabla ocupa el resto del dialogo, encabezado fijo. */
+.tabla-es {
+  height: 100%;
+}
+.tabla-es :deep(thead tr th) {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: #1f3864;
+  color: #fff;
+}
+.tabla-es :deep(td),
+.tabla-es :deep(th) {
+  font-size: 11px;
+  padding: 2px 6px;
+  height: 22px;
+}
+.tabla-es :deep(tr.fila-saldo td) {
+  background: #ddebf7;
+  font-weight: 700;
+}
+.tarjeta-es {
+  padding: 4px 8px;
+  text-align: center;
+  line-height: 1.2;
+}
+.tarjeta-es-titulo,
+.tarjeta-es-sub {
+  font-size: 10px;
+  color: rgba(0, 0, 0, 0.55);
+}
+.tarjeta-es-titulo {
+  text-transform: uppercase;
+}
+.tarjeta-es-valor {
+  font-size: 18px;
+  font-weight: 700;
+}
 /* Tabla compacta: con 1.050 productos y muchas columnas, cuanto mas quepa
    por pantalla menos hay que paginar y desplazarse. */
 .tabla-compacta :deep(thead th) {
