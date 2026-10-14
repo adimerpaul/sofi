@@ -126,13 +126,21 @@ class CobranzaRecojoController extends Controller
         $claves = in_array($grupo, ['todos', 'tabla'], true) ? array_keys(RecojoDelDia::HOJAS) : [$grupo];
         $hojas = [];
 
-        foreach ($filas->groupBy('placa') as $placa => $delCamion) {
+        // La tabla lleva abajo lo que sigue en el camion sin cobrar; un camion
+        // que todavia no marco nada igual tiene su hoja, con solo pendientes.
+        $pendientes = $grupo === 'tabla' ? $recojo->pendientes($fecha, $camion ?: null)->groupBy('placa') : collect();
+        $porCamion = $filas->groupBy('placa');
+        foreach ($pendientes->keys()->diff($porCamion->keys())->sort() as $placa) {
+            $porCamion->put($placa, collect());
+        }
+
+        foreach ($porCamion as $placa => $delCamion) {
             $grupos = $recojo->agrupar($delCamion);
             $caminero = $recojo->caminero($delCamion, $placa);
 
             // Una tabla por camion: cada caminero firma la suya.
             if ($grupo === 'tabla') {
-                $hojas[] = $recojo->tablaHtml($fecha, $caminero, $placa, $delCamion);
+                $hojas[] = $recojo->tablaHtml($fecha, $caminero, $placa, $delCamion, $pendientes->get($placa));
                 continue;
             }
 

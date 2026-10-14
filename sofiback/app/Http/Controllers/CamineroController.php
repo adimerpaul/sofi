@@ -112,7 +112,7 @@ class CamineroController extends Controller
                 ? json_decode($entrega->retorno_detalle, true)
                 : null;
             $factura->cobrada = $entrega && in_array($entrega->estado, RecojoDelDia::ESTADOS_COBRADOS, true);
-            // Lo ya registrado se puede corregir solo el mismo dia.
+            // Lo ya registrado se puede corregir el dia que se registro o el siguiente.
             $factura->rectificable = self::rectificable($entrega);
             return $factura;
         });
@@ -474,7 +474,7 @@ class CamineroController extends Controller
                 return [null, $placa, response()->json(['message' => 'Esa nota todavía no tiene entrega para rectificar'], 422)];
             }
             if (!self::rectificable($ultima)) {
-                return [null, $placa, response()->json(['message' => 'Solo se puede rectificar el mismo día en que se registró la entrega'], 422)];
+                return [null, $placa, response()->json(['message' => 'Solo se puede rectificar una entrega registrada hoy o ayer'], 422)];
             }
         } elseif ($ultima && in_array($ultima->estado, RecojoDelDia::ESTADOS_COBRADOS, true)) {
             return [null, $placa, response()->json(['message' => 'Esa entrega ya fue cobrada'], 422)];
@@ -583,12 +583,16 @@ class CamineroController extends Controller
     }
 
     /**
-     * Una entrega cerrada se puede rectificar solo el mismo dia en que se
-     * registro: despues ya es lo que el caminero rindio en caja.
+     * Una entrega cerrada se puede rectificar si se registro hoy o ayer:
+     * mas atras ya es lo que el caminero rindio en caja.
      */
     private static function rectificable($entrega)
     {
-        return $entrega && substr((string) $entrega->fecha, 0, 10) === date('Y-m-d');
+        if (!$entrega) {
+            return false;
+        }
+        $registrada = substr((string) $entrega->fecha, 0, 10);
+        return in_array($registrada, [date('Y-m-d'), date('Y-m-d', strtotime('-1 day'))], true);
     }
 
     /** 3.000 -> 3, 2.500 -> 2.5: como se escribe una cantidad a mano. */

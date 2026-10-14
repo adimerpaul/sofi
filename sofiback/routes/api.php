@@ -125,6 +125,10 @@ Route::group(['middleware'=>'auth:sanctum'],function (){
     Route::get('/reportes/kardex/productos',[\App\Http\Controllers\ReporteVentasController::class,'kardexProductos']);
     Route::get('/reportes/kardex',[\App\Http\Controllers\ReporteVentasController::class,'kardex']);
     Route::get('/reportes/kardex/excel',[\App\Http\Controllers\ReporteVentasController::class,'kardexExcel']);
+    // Productos que salieron en facturacion en un rango, de mayor a menor.
+    Route::get('/reportes/productos-vendidos',[\App\Http\Controllers\ReporteVentasController::class,'productosVendidos']);
+    Route::get('/reportes/productos-vendidos/excel',[\App\Http\Controllers\ReporteVentasController::class,'productosVendidosExcel']);
+    Route::get('/reportes/productos-vendidos/pdf',[\App\Http\Controllers\ReporteVentasController::class,'productosVendidosPdf']);
     Route::get('/facturacion/{factura}/voucher',[\App\Http\Controllers\FacturacionController::class,'voucher']);
     Route::get('/facturacion/{factura}/factura',[\App\Http\Controllers\FacturacionController::class,'factura']);
     // Pedido contra lo facturado, en una hoja, con el comentario de que cambio.

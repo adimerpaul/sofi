@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\PapeleriaSofia;
 use App\Services\ReporteAuxiliarPollo;
+use Barryvdh\DomPDF\Facade\Pdf;
 use App\Services\TipoPedido;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -20,28 +22,51 @@ use PhpOffice\PhpSpreadsheet\Worksheet\PageSetup;
  */
 class ReporteVentasController extends Controller
 {
+    use PapeleriaSofia;
+
     /** Lo que se compara ante un redondeo de cantidades. */
     private const TOLERANCIA = 0.0005;
 
-    /** Quiebre de stock de embutidos en pantalla. */
+    /** Como se llama cada tipo de pedido en el quiebre. */
+    private const NOMBRES_TIPO = [
+        'NORMAL' => 'EMBUTIDO',
+        'POLLO'  => 'POLLO',
+        'CERDO'  => 'CERDO',
+        'RES'    => 'RES',
+        'PODIUM' => 'PODIUM Y HUEVO',
+    ];
+
+    /** Quiebre de stock en pantalla. */
     public function quiebreEmbutido(Request $request)
     {
         $fecha = $this->fecha($request);
+        $tipo = $this->tipoQuiebre($request);
 
         return [
             'fecha'  => $fecha,
+            'tipo'   => $tipo,
             'semana' => (int) date('W', strtotime($fecha)),
             'ciudad' => config('siat.emisor.ciudad'),
-        ] + $this->quiebre($fecha);
+        ] + $this->quiebre($fecha, $tipo);
+    }
+
+    /** El tipo pedido (NORMAL, POLLO, ...), o '' para todos. Sin tipo, embutido como antes. */
+    private function tipoQuiebre(Request $request)
+    {
+        $tipo = strtoupper(trim((string) $request->query('tipo', 'NORMAL')));
+
+        return in_array($tipo, TipoPedido::TIPOS, true) ? $tipo : '';
     }
 
     /**
-     * Quiebre de stock: lo que el cliente pidio de embutidos y no se le pudo
-     * vender. Por cada producto de cada pedido, pedido - vendido en caja.
+     * Quiebre de stock: lo que el cliente pidio y no se le pudo vender. Por
+     * cada producto de cada pedido, pedido - vendido en caja.
      *
-     * - Pedido: tbpedidos de la fecha, tipo NORMAL (embutidos; podium y huevo
-     *   se facturan aparte y no entran), sin bonificaciones.
-     * - Vendido: el comprobante que emitio caja para ese pedido. Si se edito,
+     * - Pedido: tbpedidos de la fecha, del tipo pedido ($tipo: NORMAL =
+     *   embutidos, POLLO, CERDO, RES, PODIUM = podium y huevo; '' = todos),
+     *   sin bonificaciones.
+     * - Vendido: el comprobante del mismo tipo que emitio caja para ese
+     *   pedido (podium y huevo se facturan aparte del embutido). Si se edito,
      *   cuenta la ultima version; un retorno parcial no cuenta, porque eso lo
      *   devolvio el cliente despues de la venta y no es falta de stock.
      * - Solo entran los pedidos que ya pasaron por caja: uno sin comprobante
@@ -50,8 +75,9 @@ class ReporteVentasController extends Controller
      * QUIEBRE TOTAL: no se vendio nada de ese producto. QUIEBRE PARCIAL: se
      * vendio menos de lo pedido.
      */
-    private function quiebre($fecha)
+    private function quiebre($fecha, $tipo = 'NORMAL')
     {
+        $tipos = $tipo !== '' ? [$tipo] : TipoPedido::TIPOS;
         $pedidas = DB::table('tbpedidos as p')
             ->join('tbclientes as c', 'c.Cod_Aut', '=', 'p.idCli')
             ->leftJoin('tbproductos as pr', DB::raw('TRIM(pr.cod_prod)'), '=', DB::raw('TRIM(p.cod_prod)'))
@@ -59,9 +85,9 @@ class ReporteVentasController extends Controller
             ->whereNull('p.deleted_at')
             ->whereDate('p.fecha', $fecha)
             ->where('p.bonificacion', 0)
-            ->whereRaw(TipoPedido::sql('p') . " = 'NORMAL'")
+            ->whereRaw(TipoPedido::sql('p') . " IN ('" . implode("','", $tipos) . "')")
             ->get([
-                'p.NroPed', DB::raw('TRIM(p.cod_prod) as cod_prod'), 'p.Cant',
+                'p.NroPed', DB::raw(TipoPedido::sql('p') . ' as tipo'), DB::raw('TRIM(p.cod_prod) as cod_prod'), 'p.Cant',
                 DB::raw('UPPER(TRIM(COALESCE(p.caja, ""))) as caja'),
                 DB::raw('UPPER(TRIM(COALESCE(pr.codUnid, ""))) as unidad'),
                 DB::raw("COALESCE(NULLIF(TRIM(pr.Producto), ''), TRIM(p.cod_prod)) as producto"),
@@ -69,19 +95,26 @@ class ReporteVentasController extends Controller
                 DB::raw("TRIM(CONCAT_WS(' ', NULLIF(TRIM(pe.Nombre1), ''), NULLIF(TRIM(pe.App1), ''), NULLIF(TRIM(pe.Apm), ''))) as vendedor"),
             ]);
 
-        $vendidas = $this->vendido($pedidas->pluck('NroPed')->unique()->values()->all());
+        // Lo vendido por tipo: un mismo NroPed tiene su comprobante de embutido
+        // y otro de podium y huevo.
+        $vendidas = [];
+        foreach ($pedidas->groupBy('tipo') as $t => $lineas) {
+            $vendidas[$t] = $this->vendido($lineas->pluck('NroPed')->unique()->values()->all(), $t);
+        }
 
         // Pedido agrupado por pedido y producto: un mismo codigo puede venir en
         // varias lineas (con otro precio).
         $filas = [];
         foreach ($pedidas as $l) {
-            if (!isset($vendidas[$l->NroPed])) {
+            if (!isset($vendidas[$l->tipo][$l->NroPed])) {
                 continue;
             }
-            $clave = $l->NroPed . '|' . $l->cod_prod;
+            $clave = $l->tipo . '|' . $l->NroPed . '|' . $l->cod_prod;
             if (!isset($filas[$clave])) {
                 $filas[$clave] = [
                     'pedido_nro' => (int) $l->NroPed,
+                    'tipo'       => self::NOMBRES_TIPO[$l->tipo] ?? $l->tipo,
+                    '_tipo'      => $l->tipo,
                     'vendedor'   => $l->vendedor !== '' ? $l->vendedor : 'SIN VENDEDOR',
                     'cliente'    => $l->cliente,
                     'cod_prod'   => $l->cod_prod,
@@ -97,7 +130,7 @@ class ReporteVentasController extends Controller
 
         $resultado = [];
         foreach ($filas as $f) {
-            $venta = $vendidas[$f['pedido_nro']][$f['cod_prod']] ?? null;
+            $venta = $vendidas[$f['_tipo']][$f['pedido_nro']][$f['cod_prod']] ?? null;
             $vendido = $venta ? ($f['por_kilo'] && $venta['peso'] > 0 ? $venta['peso'] : $venta['cantidad']) : 0.0;
             $pedido = round($f['pedido'], 3);
             $vendido = round($vendido, 3);
@@ -105,7 +138,7 @@ class ReporteVentasController extends Controller
             if ($quiebre <= self::TOLERANCIA) {
                 continue;
             }
-            unset($f['por_kilo']);
+            unset($f['por_kilo'], $f['_tipo']);
             $resultado[] = $f + [
                 'pedido'  => $pedido,
                 'vendido' => $vendido,
@@ -116,8 +149,8 @@ class ReporteVentasController extends Controller
 
         // Como la tabla dinamica de la planilla: estado, vendedor, cliente, producto.
         usort($resultado, function ($a, $b) {
-            return [$a['estado'] === 'QUIEBRE TOTAL', $a['vendedor'], $a['cliente'], $a['producto']]
-                <=> [$b['estado'] === 'QUIEBRE TOTAL', $b['vendedor'], $b['cliente'], $b['producto']];
+            return [$a['estado'] === 'QUIEBRE TOTAL', $a['vendedor'], $a['cliente'], $a['tipo'], $a['producto']]
+                <=> [$b['estado'] === 'QUIEBRE TOTAL', $b['vendedor'], $b['cliente'], $b['tipo'], $b['producto']];
         });
 
         $total = function ($campo) use ($resultado) {
@@ -141,7 +174,7 @@ class ReporteVentasController extends Controller
      * Lo vendido por pedido y producto: [NroPed => [cod_prod => [cantidad, peso]]].
      * Solo trae los pedidos que tienen comprobante de caja vigente.
      */
-    private function vendido(array $pedidos)
+    private function vendido(array $pedidos, $tipo = 'NORMAL')
     {
         if (!$pedidos) {
             return [];
@@ -151,7 +184,7 @@ class ReporteVentasController extends Controller
         $comprobantes = DB::table('facturas')
             ->whereNull('deleted_at')
             ->whereNull('factura_origen_id')
-            ->where('pedido_tipo', 'NORMAL')
+            ->where('pedido_tipo', $tipo)
             ->whereIn('pedido_nro', $pedidos)
             ->orderBy('id')
             ->get(['id', 'pedido_nro', 'estado']);
@@ -204,14 +237,37 @@ class ReporteVentasController extends Controller
     public function quiebreEmbutidoExcel(Request $request)
     {
         $fecha = $this->fecha($request);
-        $datos = $this->quiebre($fecha);
+        $tipo = $this->tipoQuiebre($request);
+        $datos = $this->quiebre($fecha, $tipo);
+
+        // Los mismos filtros de la pantalla: estado y texto buscado.
+        $estado = strtoupper(trim((string) $request->query('estado', '')));
+        $texto = mb_strtolower(trim((string) $request->query('buscar', '')));
+        $datos['filas'] = array_values(array_filter($datos['filas'], function ($f) use ($estado, $texto) {
+            if ($estado !== '' && $f['estado'] !== $estado) {
+                return false;
+            }
+            if ($texto === '') {
+                return true;
+            }
+            foreach ([$f['vendedor'], $f['cliente'], $f['producto'], $f['cod_prod']] as $v) {
+                if (mb_strpos(mb_strtolower((string) $v), $texto) !== false) {
+                    return true;
+                }
+            }
+            return false;
+        }));
+        foreach (['pedido', 'vendido', 'quiebre'] as $campo) {
+            $datos['totales'][$campo] = round(array_sum(array_column($datos['filas'], $campo)), 3);
+        }
+        $nombreTipo = $tipo !== '' ? self::NOMBRES_TIPO[$tipo] : 'TODOS';
 
         $libro = new Spreadsheet();
         $hoja = $libro->getActiveSheet();
-        $hoja->setTitle('Quiebre embutido');
+        $hoja->setTitle('Quiebre ' . mb_strtolower($nombreTipo));
 
-        $hoja->setCellValue('A1', 'QUIEBRE DE STOCK EMBUTIDO');
-        $hoja->mergeCells('A1:F1');
+        $hoja->setCellValue('A1', trim('QUIEBRE DE STOCK ' . ($tipo !== '' ? $nombreTipo : '')));
+        $hoja->mergeCells('A1:G1');
         $hoja->getStyle('A1')->getFont()->setBold(true)->setSize(16);
         $hoja->getStyle('A1')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
 
@@ -219,6 +275,7 @@ class ReporteVentasController extends Controller
             ['CIUDAD', config('siat.emisor.ciudad')],
             ['FECHA', date('d/m/Y', strtotime($fecha))],
             ['N° DE SEMANA', (int) date('W', strtotime($fecha))],
+            ['TIPO', $nombreTipo],
         ];
         foreach ($cabecera as $i => [$etiqueta, $valor]) {
             $fila = $i + 2;
@@ -230,30 +287,30 @@ class ReporteVentasController extends Controller
             ]);
             $hoja->getStyle('B' . $fila)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
         }
-        $hoja->getStyle('A2:B4')->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_THIN);
-        $hoja->getStyle('B2:B4')->getFont()->setBold(true);
+        $hoja->getStyle('A2:B5')->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_THIN);
+        $hoja->getStyle('B2:B5')->getFont()->setBold(true);
 
         $logo = public_path(config('siat.emisor.logo', 'logo-sofia.png'));
         if (is_file($logo)) {
             $dibujo = new Drawing();
             $dibujo->setPath($logo);
             $dibujo->setHeight(60);
-            $dibujo->setCoordinates('G1');
+            $dibujo->setCoordinates('H1');
             $dibujo->setWorksheet($hoja);
         }
 
-        $hoja->fromArray(['', '', '', '', 'PEDIDO', 'VENDIDO', 'QUIEBRE'], null, 'A6');
-        $hoja->fromArray(['ESTADO', 'VENDEDOR', 'CLIENTE', 'PRODUCTO', 'Cant. pedida', 'Cant. vendida', 'Cant. quiebre'], null, 'A7');
-        $hoja->getStyle('E6:G6')->getFont()->setBold(true);
-        $hoja->getStyle('E6:G6')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
-        $hoja->getStyle('A7:G7')->applyFromArray([
+        $hoja->fromArray(['', '', '', '', '', 'PEDIDO', 'VENDIDO', 'QUIEBRE'], null, 'A7');
+        $hoja->fromArray(['ESTADO', 'VENDEDOR', 'CLIENTE', 'TIPO', 'PRODUCTO', 'Cant. pedida', 'Cant. vendida', 'Cant. quiebre'], null, 'A8');
+        $hoja->getStyle('F7:H7')->getFont()->setBold(true);
+        $hoja->getStyle('F7:H7')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+        $hoja->getStyle('A8:H8')->applyFromArray([
             'font' => ['bold' => true, 'size' => 9],
             'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'D9D9D9']],
             'alignment' => ['vertical' => Alignment::VERTICAL_CENTER, 'wrapText' => true],
         ]);
 
         // Como en la tabla dinamica: estado, vendedor y cliente solo cuando cambian.
-        $fila = 8;
+        $fila = 9;
         $anterior = ['estado' => null, 'vendedor' => null, 'pedido_nro' => null];
         foreach ($datos['filas'] as $f) {
             $nuevoEstado = $f['estado'] !== $anterior['estado'];
@@ -269,46 +326,47 @@ class ReporteVentasController extends Controller
             if ($nuevoCliente) {
                 $hoja->setCellValue('C' . $fila, $f['cliente']);
             }
-            if ($nuevoEstado && $fila > 8) {
-                $hoja->getStyle("A{$fila}:G{$fila}")->getBorders()->getTop()->setBorderStyle(Border::BORDER_MEDIUM);
+            if ($nuevoEstado && $fila > 9) {
+                $hoja->getStyle("A{$fila}:H{$fila}")->getBorders()->getTop()->setBorderStyle(Border::BORDER_MEDIUM);
             }
-            $hoja->setCellValue('D' . $fila, $f['producto']);
-            $hoja->setCellValue('E' . $fila, $f['pedido']);
-            $hoja->setCellValue('F' . $fila, $f['vendido']);
-            $hoja->setCellValue('G' . $fila, $f['quiebre']);
+            $hoja->setCellValue('D' . $fila, $f['tipo']);
+            $hoja->setCellValue('E' . $fila, $f['producto']);
+            $hoja->setCellValue('F' . $fila, $f['pedido']);
+            $hoja->setCellValue('G' . $fila, $f['vendido']);
+            $hoja->setCellValue('H' . $fila, $f['quiebre']);
             $anterior = $f;
             $fila++;
         }
 
         $hoja->setCellValue('A' . $fila, 'Total general');
-        $hoja->setCellValue('E' . $fila, $datos['totales']['pedido']);
-        $hoja->setCellValue('F' . $fila, $datos['totales']['vendido']);
-        $hoja->setCellValue('G' . $fila, $datos['totales']['quiebre']);
-        $hoja->getStyle("A{$fila}:G{$fila}")->applyFromArray([
+        $hoja->setCellValue('F' . $fila, $datos['totales']['pedido']);
+        $hoja->setCellValue('G' . $fila, $datos['totales']['vendido']);
+        $hoja->setCellValue('H' . $fila, $datos['totales']['quiebre']);
+        $hoja->getStyle("A{$fila}:H{$fila}")->applyFromArray([
             'font' => ['bold' => true],
             'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'D9D9D9']],
         ]);
 
-        $hoja->getStyle('A8:D' . $fila)->getFont()->setSize(9);
-        $hoja->getStyle('A8:B' . $fila)->getFont()->setBold(true);
-        $hoja->getStyle('E7:G' . $fila)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
-        $hoja->getStyle('A7:G' . $fila)->getBorders()->getBottom()->setBorderStyle(Border::BORDER_HAIR);
-        $hoja->getStyle('F8:F' . max($fila - 1, 8))->getFont()->getColor()->setRGB('1F3864');
-        $hoja->getStyle('G8:G' . max($fila - 1, 8))->getFont()->setBold(true)->getColor()->setRGB('C00000');
+        $hoja->getStyle('A9:E' . $fila)->getFont()->setSize(9);
+        $hoja->getStyle('A9:B' . $fila)->getFont()->setBold(true);
+        $hoja->getStyle('F8:H' . $fila)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+        $hoja->getStyle('A8:H' . $fila)->getBorders()->getBottom()->setBorderStyle(Border::BORDER_HAIR);
+        $hoja->getStyle('G9:G' . max($fila - 1, 9))->getFont()->getColor()->setRGB('1F3864');
+        $hoja->getStyle('H9:H' . max($fila - 1, 9))->getFont()->setBold(true)->getColor()->setRGB('C00000');
 
-        foreach (['A' => 16, 'B' => 28, 'C' => 36, 'D' => 46, 'E' => 11, 'F' => 11, 'G' => 11] as $col => $ancho) {
+        foreach (['A' => 16, 'B' => 28, 'C' => 36, 'D' => 14, 'E' => 46, 'F' => 11, 'G' => 11, 'H' => 11] as $col => $ancho) {
             $hoja->getColumnDimension($col)->setWidth($ancho);
         }
-        $hoja->getRowDimension(7)->setRowHeight(28);
-        $hoja->freezePane('A8');
-        $hoja->setAutoFilter('A7:G' . max($fila - 1, 7));
+        $hoja->getRowDimension(8)->setRowHeight(28);
+        $hoja->freezePane('A9');
+        $hoja->setAutoFilter('A8:H' . max($fila - 1, 8));
 
         $hoja->getPageSetup()->setOrientation(PageSetup::ORIENTATION_LANDSCAPE)
             ->setPaperSize(PageSetup::PAPERSIZE_LETTER)
             ->setFitToWidth(1)->setFitToHeight(0)
-            ->setRowsToRepeatAtTopByStartAndEnd(7, 7);
+            ->setRowsToRepeatAtTopByStartAndEnd(8, 8);
 
-        $nombre = 'quiebre_embutido_' . $fecha . '.xlsx';
+        $nombre = 'quiebre_' . str_replace(' ', '_', mb_strtolower($nombreTipo)) . '_' . $fecha . '.xlsx';
 
         return response()->streamDownload(function () use ($libro) {
             (new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($libro))->save('php://output');
@@ -762,6 +820,8 @@ class ReporteVentasController extends Controller
 
     /** Columnas del detalle de ventas, en el orden de la planilla que ya usaban. */
     private const COLUMNAS_DETALLE = [
+        'fecha_entrega' => 'FECHA ENTREGA',
+        'fecha_hora'   => 'EMITIDO',
         'vendedor'     => 'VENDEDOR',
         'cod_prod'     => 'COD. PRODUCTO',
         'producto'     => 'PRODUCTO',
@@ -784,7 +844,7 @@ class ReporteVentasController extends Controller
     /** Detalle de ventas en pantalla. */
     public function detalleVentas(Request $request)
     {
-        [$desde, $hasta] = $this->turno($request);
+        [$desde, $hasta] = $this->rangoEntrega($request);
         $filas = $this->detalle($desde, $hasta);
 
         return [
@@ -802,7 +862,9 @@ class ReporteVentasController extends Controller
     }
 
     /**
-     * Todo lo facturado en el turno, una fila por producto de cada comprobante
+     * Todo lo que se reparte entre dos fechas de entrega (ambas incluidas),
+     * igual que la lista de facturacion: el dia lo da facturas.fecha_entrega,
+     * sin cortes por hora. Una fila por producto de cada comprobante
      * (factura o voucher), como la planilla de ventas del sistema anterior.
      *
      * - Entra todo lo que no esta anulado, venga de un pedido o de mostrador;
@@ -826,12 +888,11 @@ class ReporteVentasController extends Controller
             ->whereNull('f.deleted_at')
             ->whereNull('d.deleted_at')
             ->where('f.estado', '<>', 'ANULADO')
-            ->whereRaw('TIMESTAMP(DATE(f.fecha), f.hora) >= ?', [$desde])
-            ->whereRaw('TIMESTAMP(DATE(f.fecha), f.hora) < ?', [$hasta])
+            ->whereBetween('f.fecha_entrega', [$desde, $hasta])
             ->orderBy('f.id')
             ->orderBy('d.id')
             ->get([
-                'f.id as factura_id', 'f.tipo_comprobante', 'f.nro_factura', 'f.tipo_pago', 'f.nit',
+                'f.id as factura_id', 'f.fecha_entrega', 'f.fecha', 'f.hora', 'f.tipo_comprobante', 'f.nro_factura', 'f.tipo_pago', 'f.nit',
                 // El camion: el de la venta directa o el del pedido (igual que en facturacion).
                 DB::raw("COALESCE(NULLIF(TRIM(f.placa), ''), (
                     SELECT CONVERT(TRIM(COALESCE(pc.placa, '')) USING utf8mb4)
@@ -874,6 +935,9 @@ class ReporteVentasController extends Controller
 
             $filas[] = [
                 'factura_id'    => (int) $l->factura_id,
+                'fecha_entrega' => (string) $l->fecha_entrega,
+                // Cuando se emitio el comprobante en caja.
+                'fecha_hora'    => substr((string) $l->fecha, 0, 10) . ' ' . substr((string) $l->hora, 0, 5),
                 'vendedor'      => $l->vendedor ?: 'AGENCIA',
                 'cod_prod'      => $l->cod_prod,
                 'producto'      => trim((string) $l->nombre),
@@ -905,7 +969,7 @@ class ReporteVentasController extends Controller
     /** El detalle de ventas en Excel, con las columnas de la planilla. */
     public function detalleVentasExcel(Request $request)
     {
-        [$desde, $hasta] = $this->turno($request);
+        [$desde, $hasta] = $this->rangoEntrega($request);
         $filas = $this->detalle($desde, $hasta);
 
         $libro = new Spreadsheet();
@@ -934,26 +998,32 @@ class ReporteVentasController extends Controller
             $fila++;
         }
 
+        // La letra de cada columna sale de su lugar en COLUMNAS_DETALLE.
+        $letra = function ($campo) {
+            return Coordinate::stringFromColumnIndex(array_search($campo, array_keys(self::COLUMNAS_DETALLE), true) + 1);
+        };
+
         $hoja->setCellValue('A' . $fila, 'TOTAL');
-        $hoja->setCellValue('D' . $fila, round(array_sum(array_column($filas, 'peso')), 3));
-        $hoja->setCellValue('E' . $fila, round(array_sum(array_column($filas, 'importe')), 2));
-        $hoja->setCellValue('F' . $fila, round(array_sum(array_column($filas, 'p_compra')), 2));
+        $hoja->setCellValue($letra('peso') . $fila, round(array_sum(array_column($filas, 'peso')), 3));
+        $hoja->setCellValue($letra('importe') . $fila, round(array_sum(array_column($filas, 'importe')), 2));
+        $hoja->setCellValue($letra('p_compra') . $fila, round(array_sum(array_column($filas, 'p_compra')), 2));
         $hoja->getStyle("A{$fila}:{$ultimaCol}{$fila}")->getFont()->setBold(true);
 
-        $hoja->getStyle('D2:D' . $fila)->getNumberFormat()->setFormatCode('#,##0.000');
-        $hoja->getStyle('E2:F' . $fila)->getNumberFormat()->setFormatCode('#,##0.00');
-        $hoja->getStyle('I2:I' . $fila)->getNumberFormat()->setFormatCode('#,##0.00');
-        $hoja->getStyle('L2:L' . $fila)->getNumberFormat()->setFormatCode('#,##0.00');
+        foreach (['peso' => '#,##0.000', 'importe' => '#,##0.00', 'p_compra' => '#,##0.00',
+                     'cantidad' => '#,##0.00', 'peso_promedio' => '#,##0.00'] as $campo => $formato) {
+            $hoja->getStyle($letra($campo) . '2:' . $letra($campo) . $fila)->getNumberFormat()->setFormatCode($formato);
+        }
         $hoja->getStyle("A1:{$ultimaCol}{$fila}")->getFont()->setSize(9);
-        foreach (['A' => 34, 'B' => 10, 'C' => 46, 'D' => 9, 'E' => 11, 'F' => 11, 'G' => 18, 'H' => 11,
-                     'I' => 9, 'J' => 7, 'K' => 40, 'L' => 10, 'M' => 13, 'N' => 34, 'O' => 9, 'P' => 10] as $col => $ancho) {
-            $hoja->getColumnDimension($col)->setWidth($ancho);
+        foreach (['fecha_entrega' => 12, 'fecha_hora' => 16, 'vendedor' => 34, 'cod_prod' => 10, 'producto' => 46,
+                     'peso' => 9, 'importe' => 11, 'p_compra' => 11, 'placa' => 18, 'tipo_pago' => 11,
+                     'cantidad' => 9, 'cajas' => 7, 'direccion' => 40, 'peso_promedio' => 10, 'doc_cliente' => 13,
+                     'cliente' => 34, 'nro_factura' => 9, 'nro_boleta' => 10] as $campo => $ancho) {
+            $hoja->getColumnDimension($letra($campo))->setWidth($ancho);
         }
         $hoja->freezePane('A2');
         $hoja->setAutoFilter("A1:{$ultimaCol}" . max($fila - 1, 1));
 
-        $nombre = 'ventas_' . str_replace([' ', ':'], ['_', ''], substr($desde, 0, 16))
-            . '_a_' . str_replace([' ', ':'], ['_', ''], substr($hasta, 0, 16)) . '.xlsx';
+        $nombre = 'ventas_' . $desde . '_a_' . $hasta . '.xlsx';
 
         return response()->streamDownload(function () use ($libro) {
             (new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($libro))->save('php://output');
@@ -962,23 +1032,222 @@ class ReporteVentasController extends Controller
         ]);
     }
 
+    /** Productos facturados en el rango, de mayor a menor. */
+    public function productosVendidos(Request $request)
+    {
+        return $this->ranking($request);
+    }
+
+    /**
+     * Lo que salio en facturacion entre dos fechas (ambas incluidas), una fila
+     * por producto, ordenado de mayor a menor por importe, peso o cantidad.
+     *
+     * Entran facturas y vouchers no anulados, de pedido o de mostrador. Peso y
+     * cantidad se cuentan igual que en el detalle de ventas.
+     */
+    private function ranking(Request $request): array
+    {
+        $datos = $request->validate([
+            'desde' => 'nullable|date_format:Y-m-d',
+            'hasta' => 'nullable|date_format:Y-m-d',
+            'orden' => 'nullable|in:importe,peso,cantidad',
+        ]);
+        $desde = $datos['desde'] ?? date('Y-m-01');
+        $hasta = $datos['hasta'] ?? date('Y-m-d');
+        $orden = $datos['orden'] ?? 'importe';
+        if ($hasta < $desde) {
+            [$desde, $hasta] = [$hasta, $desde];
+        }
+
+        $lineas = DB::table('facturas as f')
+            ->join('factura_detalles as d', 'd.factura_id', '=', 'f.id')
+            ->whereNull('f.deleted_at')
+            ->whereNull('d.deleted_at')
+            ->where('f.estado', '<>', 'ANULADO')
+            ->where('f.fecha', '>=', $desde)
+            ->where('f.fecha', '<', date('Y-m-d', strtotime($hasta . ' +1 day')))
+            ->get([
+                'f.id as factura_id', 'f.cliente_id', 'f.nit',
+                DB::raw('TRIM(d.cod_prod) as cod_prod'), 'd.nombre', 'd.unidad', 'd.cantidad', 'd.peso',
+                'd.subtotal',
+            ]);
+
+        // El peso de cada unidad aparte: un join por TRIM no usa indice y en
+        // rangos largos se vuelve lento.
+        $pesoUnidad = DB::table('tbproductos')
+            ->whereIn(DB::raw('TRIM(cod_prod)'), $lineas->pluck('cod_prod')->unique()->values())
+            ->pluck('CantPren', DB::raw('TRIM(cod_prod)'));
+
+        $productos = [];
+        foreach ($lineas as $l) {
+            $porKilo = (float) $l->peso > 0 || strtoupper(trim((string) $l->unidad)) === 'KG';
+            $cantidad = (float) $l->cantidad;
+            if ((float) $l->peso > 0) {
+                $peso = (float) $l->peso;
+            } elseif ($porKilo) {
+                $peso = $cantidad;
+                $cantidad = 0.0;
+            } else {
+                $peso = $cantidad * (float) ($pesoUnidad[$l->cod_prod] ?? 0);
+            }
+
+            $p = &$productos[$l->cod_prod];
+            if (!isset($p)) {
+                $p = [
+                    'cod_prod' => $l->cod_prod, 'producto' => trim((string) $l->nombre),
+                    'unidad' => strtoupper(trim((string) $l->unidad)),
+                    'cantidad' => 0.0, 'peso' => 0.0, 'importe' => 0.0, '_comp' => [], '_cli' => [],
+                ];
+            }
+            $p['cantidad'] += $cantidad;
+            $p['peso'] += $peso;
+            $p['importe'] += (float) $l->subtotal;
+            $p['_comp'][$l->factura_id] = true;
+            // La venta de mostrador no tiene ficha: se cuenta por su documento.
+            $p['_cli'][$l->cliente_id ? 'c' . $l->cliente_id : 'n' . trim((string) $l->nit)] = true;
+            unset($p);
+        }
+
+        $totalImporte = array_sum(array_column($productos, 'importe'));
+        $filas = array_map(function ($p) use ($totalImporte) {
+            return [
+                'cod_prod'     => $p['cod_prod'],
+                'producto'     => $p['producto'],
+                'unidad'       => $p['unidad'],
+                'cantidad'     => round($p['cantidad'], 3),
+                'peso'         => round($p['peso'], 3),
+                'importe'      => round($p['importe'], 2),
+                'comprobantes' => count($p['_comp']),
+                'clientes'     => count($p['_cli']),
+                'porcentaje'   => $totalImporte > 0 ? round($p['importe'] / $totalImporte * 100, 2) : 0,
+            ];
+        }, array_values($productos));
+
+        usort($filas, function ($a, $b) use ($orden) {
+            return [$b[$orden], $b['importe']] <=> [$a[$orden], $a['importe']];
+        });
+        foreach ($filas as $i => &$f) {
+            $f['puesto'] = $i + 1;
+        }
+        unset($f);
+
+        return [
+            'desde'   => $desde,
+            'hasta'   => $hasta,
+            'orden'   => $orden,
+            'filas'   => $filas,
+            'totales' => [
+                'productos'    => count($filas),
+                'comprobantes' => count(array_unique(array_column($lineas->all(), 'factura_id'))),
+                'cantidad'     => round(array_sum(array_column($filas, 'cantidad')), 3),
+                'peso'         => round(array_sum(array_column($filas, 'peso')), 3),
+                'importe'      => round($totalImporte, 2),
+            ],
+        ];
+    }
+
+    /** Productos facturados en Excel. */
+    public function productosVendidosExcel(Request $request)
+    {
+        $datos = $this->ranking($request);
+
+        $libro = new Spreadsheet();
+        $hoja = $libro->getActiveSheet();
+        $hoja->setTitle('Productos facturados');
+
+        $hoja->setCellValue('A1', 'PRODUCTOS FACTURADOS DE MAYOR A MENOR (' . strtoupper($datos['orden']) . ')');
+        $hoja->setCellValue('A2', 'Del ' . date('d/m/Y', strtotime($datos['desde'])) . ' al ' . date('d/m/Y', strtotime($datos['hasta'])));
+        $hoja->getStyle('A1')->getFont()->setBold(true)->setSize(12);
+
+        $hoja->fromArray(['N°', 'CÓDIGO', 'PRODUCTO', 'UNIDAD', 'CANTIDAD', 'PESO KG', 'IMPORTE BS', '% IMPORTE',
+            'COMPROBANTES', 'CLIENTES'], null, 'A4');
+        $hoja->getStyle('A4:J4')->applyFromArray([
+            'font' => ['bold' => true, 'size' => 9],
+            'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'D9D9D9']],
+        ]);
+
+        $fila = 5;
+        foreach ($datos['filas'] as $f) {
+            $hoja->setCellValue('A' . $fila, $f['puesto']);
+            $hoja->setCellValueExplicit('B' . $fila, (string) $f['cod_prod'], DataType::TYPE_STRING);
+            $hoja->setCellValue('C' . $fila, $f['producto']);
+            $hoja->setCellValue('D' . $fila, $f['unidad']);
+            $hoja->setCellValue('E' . $fila, $f['cantidad']);
+            $hoja->setCellValue('F' . $fila, $f['peso']);
+            $hoja->setCellValue('G' . $fila, $f['importe']);
+            $hoja->setCellValue('H' . $fila, $f['porcentaje'] / 100);
+            $hoja->setCellValue('I' . $fila, $f['comprobantes']);
+            $hoja->setCellValue('J' . $fila, $f['clientes']);
+            $fila++;
+        }
+
+        $t = $datos['totales'];
+        $hoja->setCellValue('C' . $fila, 'TOTAL (' . $t['productos'] . ' productos, ' . $t['comprobantes'] . ' comprobantes)');
+        $hoja->setCellValue('E' . $fila, $t['cantidad']);
+        $hoja->setCellValue('F' . $fila, $t['peso']);
+        $hoja->setCellValue('G' . $fila, $t['importe']);
+        $hoja->setCellValue('H' . $fila, $t['importe'] > 0 ? 1 : 0);
+        $hoja->getStyle("A{$fila}:J{$fila}")->getFont()->setBold(true);
+        $hoja->getStyle("A{$fila}:J{$fila}")->getBorders()->getTop()->setBorderStyle(Border::BORDER_THIN);
+
+        $hoja->getStyle("E5:F{$fila}")->getNumberFormat()->setFormatCode('#,##0.000');
+        $hoja->getStyle("G5:G{$fila}")->getNumberFormat()->setFormatCode('#,##0.00');
+        $hoja->getStyle("H5:H{$fila}")->getNumberFormat()->setFormatCode('0.00%');
+        $hoja->getStyle("A4:J{$fila}")->getFont()->setSize(9);
+        foreach (['A' => 6, 'B' => 11, 'C' => 46, 'D' => 8, 'E' => 12, 'F' => 12, 'G' => 14, 'H' => 10,
+                     'I' => 13, 'J' => 10] as $col => $ancho) {
+            $hoja->getColumnDimension($col)->setWidth($ancho);
+        }
+        $hoja->freezePane('A5');
+        $hoja->setAutoFilter('A4:J' . max($fila - 1, 4));
+
+        $nombre = 'productos_facturados_' . $datos['desde'] . '_a_' . $datos['hasta'] . '.xlsx';
+
+        return response()->streamDownload(function () use ($libro) {
+            (new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($libro))->save('php://output');
+        }, $nombre, [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        ]);
+    }
+
+    /** Productos facturados en PDF, con la cabecera de la casa. */
+    public function productosVendidosPdf(Request $request)
+    {
+        $datos = $this->ranking($request);
+
+        $documento = "<table class='caja-doc'>
+            <tr><td colspan='2' class='tit'>PRODUCTOS FACTURADOS</td></tr>
+            <tr><td class='et'>Desde</td><td class='r'><b>" . date('d/m/Y', strtotime($datos['desde'])) . "</b></td></tr>
+            <tr><td class='et'>Hasta</td><td class='r'><b>" . date('d/m/Y', strtotime($datos['hasta'])) . "</b></td></tr>
+        </table>";
+
+        $pdf = Pdf::loadView('pdf.productosFacturados', $datos + [
+            'estilos'  => $this->estilosImpresion(),
+            'cabecera' => $this->cabeceraEmisor($documento),
+            'empresa'  => config('siat.emisor')['nombre'],
+        ]);
+        $pdf->getDomPDF()->getOptions()->setIsFontSubsettingEnabled(true);
+        $pdf->setPaper('letter');
+
+        return $pdf->stream('productos_facturados_' . $datos['desde'] . '_a_' . $datos['hasta'] . '.pdf');
+    }
+
     /**
      * Desde y hasta del detalle de ventas como 'Y-m-d H:i:s'. Por defecto el
      * turno de ayer a las 18:00 a hoy a las 18:00; el hasta no se incluye.
      */
-    private function turno(Request $request)
+    /** Rango de fechas de entrega del detalle de ventas; por defecto, hoy. */
+    private function rangoEntrega(Request $request)
     {
         $datos = $request->validate([
-            'desde'      => 'nullable|date_format:Y-m-d',
-            'hora_desde' => 'nullable|date_format:H:i',
-            'hasta'      => 'nullable|date_format:Y-m-d',
-            'hora_hasta' => 'nullable|date_format:H:i',
+            'desde' => 'nullable|date_format:Y-m-d',
+            'hasta' => 'nullable|date_format:Y-m-d',
         ]);
 
-        $desde = ($datos['desde'] ?? date('Y-m-d', strtotime('-1 day'))) . ' ' . ($datos['hora_desde'] ?? '18:00') . ':00';
-        $hasta = ($datos['hasta'] ?? date('Y-m-d')) . ' ' . ($datos['hora_hasta'] ?? '18:00') . ':00';
+        $desde = $datos['desde'] ?? date('Y-m-d');
+        $hasta = $datos['hasta'] ?? $desde;
 
-        return [$desde, $hasta];
+        return $desde <= $hasta ? [$desde, $hasta] : [$hasta, $desde];
     }
 
     private function fecha(Request $request)

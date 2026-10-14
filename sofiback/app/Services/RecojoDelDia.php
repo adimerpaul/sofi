@@ -220,9 +220,15 @@ class RecojoDelDia
         ];
     }
 
-    /** La tabla del recojo en una hoja, con la firma del caminero al pie. */
-    public function tablaHtml($fecha, $caminero, $placa, $filas)
+    /**
+     * La tabla del recojo en una hoja, con la firma del caminero al pie.
+     *
+     * Con $pendientes (lo de pendientes() de ese camion), debajo van las notas
+     * que siguen en el camion sin ninguna entrega: lo que todavia no se cobro.
+     */
+    public function tablaHtml($fecha, $caminero, $placa, $filas, $pendientes = null)
     {
+        $pendientes = collect($pendientes ?? []);
         $tabla = $this->tabla($filas);
         $t = $tabla['totales'];
         $monto = function ($valor) {
@@ -269,7 +275,7 @@ class RecojoDelDia
 
         // Tiene que entrar en una sola hoja carta: filas apretadas y letra
         // grande, que baja un poco solo en los dias con muchas notas.
-        $notas = count($tabla['filas']);
+        $notas = count($tabla['filas']) + ($pendientes->isNotEmpty() ? $pendientes->count() + 4 : 0);
         [$letra, $alto] = $notas <= 34 ? [10.5, 1.5] : ($notas <= 44 ? [9.5, 1] : [8.5, 0.5]);
 
         return '<style>' . $this->estilosImpresion() . "
@@ -327,6 +333,7 @@ class RecojoDelDia
             <tr class='final'><td>A RENDIR EN CAJA (EFECTIVO + QR)</td><td class='r'>Bs. "
                 . number_format($t['efectivo'] + $t['qr'], 2) . "</td></tr>
         </table>
+        " . $this->pendientesHtml($pendientes) . "
         <div class='firma'>
             <div class='firma-linea'></div>
             <b>" . e($caminero) . "</b><br>Firma del caminero
@@ -334,6 +341,42 @@ class RecojoDelDia
         <div class='pie'><div class='legal'>"
             . e(config('siat.emisor')['nombre']) . ' &middot; Recojo del ' . date('d/m/Y', strtotime($fecha))
             . ' &middot; camión ' . e($placa) . ' &middot; generado el ' . date('d/m/Y H:i') . '</div></div>';
+    }
+
+    /** Debajo de la tabla: las notas que siguen en el camion, sin cobrar. */
+    private function pendientesHtml($pendientes)
+    {
+        if ($pendientes->isEmpty()) {
+            return '';
+        }
+
+        $cuerpo = '';
+        foreach ($pendientes->values() as $i => $fila) {
+            $cuerpo .= '<tr' . ($i % 2 ? " class='par'" : '') . '>'
+                . "<td class='c'>" . ($i + 1) . '</td>'
+                . "<td class='c nota'>" . e($fila->nota) . '</td>'
+                . '<td>' . e($fila->cliente ?: 'Sin cliente') . '</td>'
+                . "<td class='c'>" . e($fila->tipo_pago) . '</td>'
+                . "<td class='r b'>" . number_format($fila->monto, 2) . '</td>'
+                . '</tr>';
+        }
+
+        return "<div style='margin-top:8px;font-weight:bold;font-size:10px;color:#c62828'>"
+            . 'PENDIENTES · SIGUEN EN EL CAMIÓN SIN ENTREGA NI COBRO (' . $pendientes->count() . ')</div>'
+            . "<table class='detalle' style='margin-top:3px'>
+            <thead><tr>
+                <th style='width:22px'>N°</th>
+                <th style='width:52px'>Nro</th>
+                <th style='text-align:left'>Cliente</th>
+                <th style='width:80px'>Tipo pago</th>
+                <th style='width:62px' class='r'>Total</th>
+            </tr></thead>
+            <tbody>$cuerpo</tbody>
+            <tfoot><tr>
+                <td colspan='4' class='r'>TOTAL PENDIENTE</td>
+                <td class='r'>" . number_format($pendientes->sum('monto'), 2) . '</td>
+            </tr></tfoot>
+        </table>';
     }
 
     /**

@@ -3,10 +3,11 @@
     <!-- Una pestaña por reporte. -->
     <q-tabs v-model="reporte" dense align="left" no-caps active-color="primary" indicator-color="primary"
             class="text-grey-8">
-      <q-tab name="quiebre" icon="production_quantity_limits" label="Quiebre de stock embutido"/>
+      <q-tab name="quiebre" icon="production_quantity_limits" label="Quiebre de stock"/>
       <q-tab name="pollo" icon="egg" label="Reporte auxiliar de pollo"/>
       <q-tab name="detalle" icon="receipt_long" label="Detalle de ventas"/>
       <q-tab name="kardex" icon="inventory" label="Kardex por producto"/>
+      <q-tab name="ranking" icon="leaderboard" label="Productos facturados"/>
     </q-tabs>
     <q-separator/>
 
@@ -15,10 +16,12 @@
         <div class="row items-center q-gutter-sm">
           <q-input v-model="fecha" type="date" dense outlined label="Fecha del pedido" style="width: 170px"
                    @update:model-value="consultar"/>
+          <q-select v-model="tipo" :options="tipos" emit-value map-options dense outlined label="Tipo"
+                    style="width: 170px" @update:model-value="consultar"/>
           <q-btn color="primary" icon="refresh" label="Actualizar" no-caps unelevated :loading="cargando"
                  @click="consultar"/>
           <q-btn color="green-8" icon="download" label="Excel" no-caps unelevated :loading="descargando"
-                 :disable="!filas.length" @click="descargarExcel"/>
+                 :disable="!visibles.length" @click="descargarExcel"/>
           <q-space/>
           <div class="text-caption text-grey-8">
             {{ ciudad }} · Semana N° <b>{{ semana }}</b>
@@ -26,7 +29,7 @@
         </div>
 
         <div class="text-caption text-grey-7 q-mt-xs">
-          Lo que pidió cada cliente de embutidos contra lo que se le vendió en caja. Solo entran los pedidos que ya
+          Lo que pidió cada cliente contra lo que se le vendió en caja. Solo entran los pedidos que ya
           tienen comprobante.
         </div>
 
@@ -81,6 +84,7 @@
             <th class="text-left">Estado</th>
             <th class="text-left">Vendedor</th>
             <th class="text-left">Cliente</th>
+            <th class="text-left">Tipo</th>
             <th class="text-left">Producto</th>
             <th class="text-right">Pedido</th>
             <th class="text-right">Vendido</th>
@@ -89,12 +93,12 @@
           </thead>
           <tbody>
           <tr v-if="!visibles.length">
-            <td colspan="7" class="text-center text-grey-7 q-pa-md">
+            <td colspan="8" class="text-center text-grey-7 q-pa-md">
               {{ cargando ? 'Cargando…' : 'No hay quiebres de stock en esta fecha' }}
             </td>
           </tr>
           <!-- Como la tabla dinamica: estado, vendedor y cliente solo cuando cambian. -->
-          <tr v-for="(f, i) in visibles" :key="f.pedido_nro + '-' + f.cod_prod"
+          <tr v-for="(f, i) in visibles" :key="f.tipo + '-' + f.pedido_nro + '-' + f.cod_prod"
               :class="{ 'corte-estado': i > 0 && f._estado }">
             <td>
               <q-badge v-if="f._estado" :color="f.estado === 'QUIEBRE TOTAL' ? 'negative' : 'orange-8'"
@@ -102,6 +106,7 @@
             </td>
             <td class="text-weight-bold">{{ f._vendedor ? f.vendedor : '' }}</td>
             <td>{{ f._cliente ? f.cliente : '' }}</td>
+            <td class="text-grey-8">{{ f.tipo }}</td>
             <td>
               {{ f.producto }}
               <span class="text-grey-6">· {{ f.cod_prod }}</span>
@@ -113,7 +118,7 @@
           </tbody>
           <tfoot v-if="visibles.length">
           <tr class="bg-grey-3 text-weight-bold">
-            <td colspan="4">Total general</td>
+            <td colspan="5">Total general</td>
             <td class="text-right">{{ numero(suma('pedido')) }}</td>
             <td class="text-right">{{ numero(suma('vendido')) }}</td>
             <td class="text-right text-negative">{{ numero(suma('quiebre')) }}</td>
@@ -197,10 +202,10 @@
            ventas que se sacaba del sistema anterior. -->
       <q-tab-panel name="detalle" class="q-pa-none q-pt-sm">
         <div class="row items-center q-gutter-sm">
-          <q-input v-model="turno.desde" type="date" dense outlined label="Desde" style="width: 150px"/>
-          <q-input v-model="turno.horaDesde" type="time" dense outlined label="Hora" style="width: 105px"/>
-          <q-input v-model="turno.hasta" type="date" dense outlined label="Hasta" style="width: 150px"/>
-          <q-input v-model="turno.horaHasta" type="time" dense outlined label="Hora" style="width: 105px"/>
+          <q-input v-model="turno.desde" type="date" dense outlined label="Entrega desde" style="width: 160px"
+                   @update:model-value="consultarDetalle"/>
+          <q-input v-model="turno.hasta" type="date" dense outlined label="Entrega hasta" style="width: 160px"
+                   @update:model-value="consultarDetalle"/>
           <q-btn color="primary" icon="refresh" label="Actualizar" no-caps unelevated :loading="cargandoDetalle"
                  @click="consultarDetalle"/>
           <q-btn color="green-8" icon="download" label="Excel" no-caps unelevated :loading="descargandoDetalle"
@@ -208,7 +213,7 @@
         </div>
 
         <div class="text-caption text-grey-7 q-mt-xs">
-          Facturas y vouchers no anulados del turno (la hora de cierre ya es del turno siguiente). La venta de
+          Facturas y vouchers no anulados por fecha de entrega (el día del reparto, como en Facturación). La venta de
           mostrador sale como AGENCIA. P.COMPRA usa el precio de compra cargado en Productos.
         </div>
 
@@ -244,7 +249,7 @@
           class="q-mt-sm tabla-detalle" flat bordered dense virtual-scroll
           :rows="detalle.filas" :columns="columnasDetalle" :filter="buscarDetalle"
           :rows-per-page-options="[0]" row-key="_k" :loading="cargandoDetalle"
-          no-data-label="No hay ventas en ese turno"
+          no-data-label="No hay ventas con esa fecha de entrega"
         >
           <template v-slot:top-right>
             <q-input v-model="buscarDetalle" dense outlined clearable debounce="300"
@@ -392,6 +397,100 @@
           </q-markup-table>
         </template>
       </q-tab-panel>
+
+      <!-- Lo que salio en facturacion en el rango, un producto por fila, de mayor a menor. -->
+      <q-tab-panel name="ranking" class="q-pa-none q-pt-sm">
+        <div class="row items-center q-gutter-sm">
+          <q-input v-model="ranking.desde" type="date" dense outlined label="Desde" style="width: 150px"
+                   @update:model-value="consultarRanking"/>
+          <q-input v-model="ranking.hasta" type="date" dense outlined label="Hasta" style="width: 150px"
+                   @update:model-value="consultarRanking"/>
+          <q-btn-toggle v-model="ranking.orden" dense no-caps unelevated toggle-color="primary" color="grey-3"
+                        text-color="grey-9" :options="[
+                          { label: 'Por importe', value: 'importe' },
+                          { label: 'Por peso', value: 'peso' },
+                          { label: 'Por cantidad', value: 'cantidad' }
+                        ]" @update:model-value="consultarRanking"/>
+          <q-btn color="primary" icon="refresh" label="Actualizar" no-caps unelevated :loading="cargandoRanking"
+                 @click="consultarRanking"/>
+          <q-btn color="green-8" icon="download" label="Excel" no-caps unelevated :loading="descargandoRanking === 'excel'"
+                 :disable="!ranking.datos.filas.length" @click="descargarRanking('excel')"/>
+          <q-btn color="red-8" icon="picture_as_pdf" label="PDF" no-caps unelevated :loading="descargandoRanking === 'pdf'"
+                 :disable="!ranking.datos.filas.length" @click="descargarRanking('pdf')"/>
+        </div>
+
+        <div class="text-caption text-grey-7 q-mt-xs">
+          Facturas y vouchers no anulados entre las dos fechas (ambas incluidas), de pedidos y de mostrador.
+        </div>
+
+        <div class="row q-col-gutter-sm q-mt-xs">
+          <div class="col-6 col-sm-3">
+            <q-card flat bordered class="tarjeta">
+              <div class="tarjeta-titulo">Productos</div>
+              <div class="tarjeta-valor">{{ ranking.datos.totales.productos }}</div>
+              <div class="tarjeta-sub">{{ ranking.datos.totales.comprobantes }} comprobantes</div>
+            </q-card>
+          </div>
+          <div class="col-6 col-sm-3">
+            <q-card flat bordered class="tarjeta">
+              <div class="tarjeta-titulo">Importe Bs</div>
+              <div class="tarjeta-valor text-positive">{{ bs(ranking.datos.totales.importe) }}</div>
+            </q-card>
+          </div>
+          <div class="col-6 col-sm-3">
+            <q-card flat bordered class="tarjeta">
+              <div class="tarjeta-titulo">Peso kg</div>
+              <div class="tarjeta-valor">{{ numero(ranking.datos.totales.peso) }}</div>
+            </q-card>
+          </div>
+          <div class="col-6 col-sm-3">
+            <q-card flat bordered class="tarjeta">
+              <div class="tarjeta-titulo">Cantidad</div>
+              <div class="tarjeta-valor">{{ numero(ranking.datos.totales.cantidad) }}</div>
+            </q-card>
+          </div>
+        </div>
+
+        <q-input v-model="buscarRanking" dense outlined clearable placeholder="Buscar código o producto" class="q-mt-sm">
+          <template v-slot:append><q-icon name="search"/></template>
+        </q-input>
+
+        <q-markup-table flat bordered dense separator="horizontal" class="q-mt-sm tabla-quiebre">
+          <thead>
+          <tr class="bg-grey-3">
+            <th class="text-right">N°</th>
+            <th class="text-left">Código</th>
+            <th class="text-left">Producto</th>
+            <th class="text-left">Unidad</th>
+            <th class="text-right">Cantidad</th>
+            <th class="text-right">Peso kg</th>
+            <th class="text-right">Importe Bs</th>
+            <th class="text-right">%</th>
+            <th class="text-right">Comprob.</th>
+            <th class="text-right">Clientes</th>
+          </tr>
+          </thead>
+          <tbody>
+          <tr v-if="!rankingVisibles.length">
+            <td colspan="10" class="text-center text-grey-7 q-pa-md">
+              {{ cargandoRanking ? 'Cargando…' : 'No hay productos facturados en este rango' }}
+            </td>
+          </tr>
+          <tr v-for="p in rankingVisibles" :key="p.cod_prod">
+            <td class="text-right text-grey-7">{{ p.puesto }}</td>
+            <td>{{ p.cod_prod }}</td>
+            <td>{{ p.producto }}</td>
+            <td>{{ p.unidad }}</td>
+            <td class="text-right" :class="{ 'text-weight-bold': ranking.datos.orden === 'cantidad' }">{{ numero(p.cantidad) }}</td>
+            <td class="text-right" :class="{ 'text-weight-bold': ranking.datos.orden === 'peso' }">{{ numero(p.peso) }}</td>
+            <td class="text-right" :class="{ 'text-weight-bold': ranking.datos.orden === 'importe' }">{{ bs(p.importe) }}</td>
+            <td class="text-right text-grey-7">{{ p.porcentaje.toFixed(1) }}</td>
+            <td class="text-right">{{ p.comprobantes }}</td>
+            <td class="text-right">{{ p.clientes }}</td>
+          </tr>
+          </tbody>
+        </q-markup-table>
+      </q-tab-panel>
     </q-tab-panels>
   </q-page>
 </template>
@@ -405,6 +504,15 @@ export default {
     return {
       reporte: 'quiebre',
       fecha: date.formatDate(Date.now(), 'YYYY-MM-DD'),
+      tipo: 'NORMAL',
+      tipos: [
+        { label: 'Todos', value: 'TODOS' },
+        { label: 'Embutido', value: 'NORMAL' },
+        { label: 'Pollo', value: 'POLLO' },
+        { label: 'Cerdo', value: 'CERDO' },
+        { label: 'Res', value: 'RES' },
+        { label: 'Podium y huevo', value: 'PODIUM' }
+      ],
       ciudad: '',
       semana: '',
       filas: [],
@@ -417,18 +525,18 @@ export default {
       pollo: { columnas: [], stock_inicial: {}, vendedores: [], ventas_directas: {}, total_ventas: {}, stock_final: {} },
       cargandoPollo: false,
       descargandoPollo: false,
-      // Detalle de ventas: el turno va de ayer a las 18:00 a hoy a las 18:00.
+      // Detalle de ventas: por fecha de entrega, por defecto la de hoy.
       turno: {
-        desde: date.formatDate(date.subtractFromDate(Date.now(), { days: 1 }), 'YYYY-MM-DD'),
-        horaDesde: '18:00',
-        hasta: date.formatDate(Date.now(), 'YYYY-MM-DD'),
-        horaHasta: '18:00'
+        desde: date.formatDate(Date.now(), 'YYYY-MM-DD'),
+        hasta: date.formatDate(Date.now(), 'YYYY-MM-DD')
       },
       detalle: { filas: [], totales: { lineas: 0, comprobantes: 0, peso: 0, importe: 0, p_compra: 0 } },
       buscarDetalle: '',
       cargandoDetalle: false,
       descargandoDetalle: false,
       columnasDetalle: [
+        { name: 'fecha_entrega', label: 'F. entrega', field: 'fecha_entrega', align: 'left', sortable: true },
+        { name: 'fecha_hora', label: 'Emitido', field: 'fecha_hora', align: 'left', sortable: true },
         { name: 'vendedor', label: 'Vendedor', field: 'vendedor', align: 'left', sortable: true },
         { name: 'cod_prod', label: 'Cód. producto', field: 'cod_prod', align: 'left', sortable: true },
         { name: 'producto', label: 'Producto', field: 'producto', align: 'left', sortable: true },
@@ -455,7 +563,17 @@ export default {
       kardex: { movimientos: [] },
       buscarKardex: '',
       cargandoKardex: false,
-      descargandoKardex: false
+      descargandoKardex: false,
+      // Productos facturados: por defecto, el mes en curso hasta hoy.
+      ranking: {
+        desde: date.formatDate(Date.now(), 'YYYY-MM') + '-01',
+        hasta: date.formatDate(Date.now(), 'YYYY-MM-DD'),
+        orden: 'importe',
+        datos: { filas: [], totales: { productos: 0, comprobantes: 0, cantidad: 0, peso: 0, importe: 0 } }
+      },
+      buscarRanking: '',
+      cargandoRanking: false,
+      descargandoRanking: ''
     }
   },
   watch: {
@@ -465,9 +583,16 @@ export default {
       if (valor === 'detalle' && !this.detalle.filas.length) this.consultarDetalle()
       // Sin producto elegido arranca con todos los productos.
       if (valor === 'kardex' && !this.kardex.todos && !this.kardex.cod_prod) this.consultarKardex()
+      if (valor === 'ranking' && !this.ranking.datos.filas.length) this.consultarRanking()
     }
   },
   computed: {
+    rankingVisibles () {
+      const texto = (this.buscarRanking || '').toLowerCase()
+      const lista = this.ranking.datos.filas
+      if (!texto) return lista
+      return lista.filter(p => p.cod_prod.toLowerCase().includes(texto) || p.producto.toLowerCase().includes(texto))
+    },
     productosKardexVisibles () {
       const texto = (this.buscarKardex || '').toLowerCase()
       const lista = this.kardex.productos || []
@@ -508,6 +633,40 @@ export default {
     this.consultar()
   },
   methods: {
+    paramsRanking () {
+      return { desde: this.ranking.desde, hasta: this.ranking.hasta, orden: this.ranking.orden }
+    },
+    consultarRanking () {
+      if (!this.ranking.desde || !this.ranking.hasta) return
+      this.cargandoRanking = true
+      this.$api.get('reportes/productos-vendidos', { params: this.paramsRanking() }).then(res => {
+        this.ranking.datos = res.data
+      }).catch(err => {
+        this.$q.notify({ type: 'negative', message: err.response?.data?.message || 'No se pudo cargar el reporte' })
+      }).finally(() => {
+        this.cargandoRanking = false
+      })
+    },
+    async descargarRanking (formato) {
+      this.descargandoRanking = formato
+      try {
+        const res = await this.$api.get('reportes/productos-vendidos/' + formato, {
+          params: this.paramsRanking(),
+          responseType: 'blob'
+        })
+        const url = window.URL.createObjectURL(res.data)
+        const enlace = document.createElement('a')
+        enlace.href = url
+        enlace.download = 'productos_facturados_' + this.ranking.desde + '_a_' + this.ranking.hasta +
+          (formato === 'pdf' ? '.pdf' : '.xlsx')
+        enlace.click()
+        window.URL.revokeObjectURL(url)
+      } catch (e) {
+        this.$q.notify({ type: 'negative', message: 'No se pudo descargar el ' + (formato === 'pdf' ? 'PDF' : 'Excel') })
+      } finally {
+        this.descargandoRanking = ''
+      }
+    },
     buscarKardexProducto (texto, actualizar) {
       this.$api.get('reportes/kardex/productos', { params: { buscar: texto || '' } })
         .then(res => actualizar(() => { this.kardexOpciones = res.data }))
@@ -555,7 +714,7 @@ export default {
     },
     consultar () {
       this.cargando = true
-      this.$api.get('reportes/quiebre-embutido', { params: { fecha: this.fecha } }).then(res => {
+      this.$api.get('reportes/quiebre-embutido', { params: { fecha: this.fecha, tipo: this.tipo } }).then(res => {
         this.filas = res.data.filas
         this.totales = res.data.totales
         this.ciudad = res.data.ciudad
@@ -570,13 +729,15 @@ export default {
       this.descargando = true
       try {
         const res = await this.$api.get('reportes/quiebre-embutido/excel', {
-          params: { fecha: this.fecha },
+          // El Excel sale con lo mismo que se ve: tipo, estado y búsqueda.
+          params: { fecha: this.fecha, tipo: this.tipo, estado: this.estado, buscar: this.buscar || '' },
           responseType: 'blob'
         })
         const url = window.URL.createObjectURL(res.data)
         const enlace = document.createElement('a')
         enlace.href = url
-        enlace.download = 'quiebre_embutido_' + this.fecha + '.xlsx'
+        const nombre = (this.tipos.find(t => t.value === this.tipo)?.label || 'todos').toLowerCase().replace(/ /g, '_')
+        enlace.download = 'quiebre_' + nombre + '_' + this.fecha + '.xlsx'
         enlace.click()
         window.URL.revokeObjectURL(url)
       } catch (e) {
@@ -616,12 +777,7 @@ export default {
       }
     },
     paramsTurno () {
-      return {
-        desde: this.turno.desde,
-        hora_desde: this.turno.horaDesde || '00:00',
-        hasta: this.turno.hasta,
-        hora_hasta: this.turno.horaHasta || '00:00'
-      }
+      return { desde: this.turno.desde, hasta: this.turno.hasta }
     },
     consultarDetalle () {
       if (!this.turno.desde || !this.turno.hasta) return

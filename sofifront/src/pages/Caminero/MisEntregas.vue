@@ -1167,7 +1167,7 @@ export default {
       if (this.rectificando[entrega.factura_id]) return false
       return !!(entrega.cobrada || (entrega.entrega_estado && !this.esNoEntregado(entrega)))
     },
-    /** Lo cerrado se puede corregir solo el mismo dia en que se registro. */
+    /** Lo cerrado se puede corregir si se registro hoy o ayer (lo decide el back). */
     puedeRectificar (entrega) {
       return this.cerrada(entrega) && !!entrega.rectificable
     },
