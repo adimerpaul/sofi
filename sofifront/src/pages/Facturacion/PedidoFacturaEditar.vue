@@ -204,6 +204,14 @@
               <!-- Aviso de que lo que se entrega ya no es lo que pidio el
                    cliente. Se ve solo aca, al revisar: no se guarda ni sale en
                    el comprobante impreso. -->
+              <q-item-label caption :class="sinStockPorCodigo[item.cod_prod] ? 'text-negative text-weight-bold' : 'text-grey-7'">
+                <q-icon :name="sinStockPorCodigo[item.cod_prod] ? 'error' : 'inventory_2'"/>
+                <template v-if="sinStockPorCodigo[item.cod_prod]">
+                  Sin stock suficiente: hay {{ cantidad(Math.max(stock[item.cod_prod] || 0, 0)) }},
+                  se pide {{ cantidad(sinStockPorCodigo[item.cod_prod].necesita) }}
+                </template>
+                <template v-else>Stock {{ cantidad(stock[item.cod_prod]) }}</template>
+              </q-item-label>
               <q-item-label v-if="item.retorno" caption class="text-deep-orange-9 text-weight-medium">
                 <q-icon name="assignment_return"/> Corregido por el retorno parcial
               </q-item-label>
@@ -325,6 +333,10 @@
           <div v-if="faltanPesos" class="text-caption text-negative">
             <q-icon name="scale"/> Falta pesar productos: el total aún no está completo
           </div>
+          <div v-if="sinStock.length" class="text-caption text-negative text-weight-bold">
+            <q-icon name="error"/> No se puede finalizar, falta stock de:
+            {{ sinStock.map(f => f.nombre).join(', ') }}. Baje la cantidad o quite el producto.
+          </div>
         </q-card-section>
       </q-card>
 
@@ -341,7 +353,7 @@
           </q-btn>
           <q-btn
             class="boton-accion boton-finalizar" color="positive" unelevated no-caps
-            icon="check_circle" :disable="!items.length || faltanPesos || guardandoBorrador"
+            icon="check_circle" :disable="!items.length || faltanPesos || sinStock.length > 0 || guardandoBorrador"
             :loading="guardando" @click="guardar"
           >
             <div class="column items-start q-ml-sm leading">
@@ -396,6 +408,8 @@ export default {
     return {
       pedido: null,
       items: [],
+      // Existencia por codigo: sin stock no se deja finalizar.
+      stock: {},
       // Muestra solo lo que cambio contra el pedido o se agrego.
       soloCambiados: false,
       cargando: true,
@@ -468,6 +482,26 @@ export default {
     // Mientras falte un peso el total esta incompleto y no se puede cobrar.
     faltanPesos () {
       return this.items.some(item => this.esPeso(item) && !(Number(item.peso) > 0))
+    },
+    // Productos que no alcanzan: se suma lo que sale de todas sus lineas (el
+    // peso en lo que va por kilo, la cantidad en el resto), como al vender.
+    sinStock () {
+      const necesita = {}
+      this.items.forEach(item => {
+        const sale = this.esPeso(item) && Number(item.peso) > 0 ? Number(item.peso) : Number(item.cantidad || 0)
+        necesita[item.cod_prod] = (necesita[item.cod_prod] || 0) + sale
+      })
+      return Object.keys(necesita)
+        .filter(cod => necesita[cod] > Number(this.stock[cod] || 0) + 0.0005)
+        .map(cod => ({
+          cod_prod: cod,
+          nombre: (this.items.find(item => item.cod_prod === cod) || {}).nombre || cod,
+          necesita: necesita[cod],
+          stock: Number(this.stock[cod] || 0)
+        }))
+    },
+    sinStockPorCodigo () {
+      return Object.fromEntries(this.sinStock.map(f => [f.cod_prod, f]))
     },
     // colorStyle del pedido viene como 'background-color: #RRGGBB'; el texto se
     // pone negro o blanco segun que tan claro sea ese fondo.
@@ -590,6 +624,7 @@ export default {
         .then(res => {
           this.pedido = res.data.pedido
           this.items = res.data.items
+          this.stock = res.data.stock || {}
           // Lo recuperado de una venta anulada antes de los canastillos solo
           // tiene el peso: se toma como bruto sin canastillos.
           if (this.conCanastillos) {
@@ -651,6 +686,8 @@ export default {
         .finally(() => { this.cargandoProductos = false })
     },
     agregar (producto) {
+      // El catalogo trae la existencia del producto agregado.
+      this.stock[producto.cod_prod] = Number(producto.stock || 0)
       // A una linea ya preparada no se le suma: el producto entra en otra.
       const existente = this.items.find(item => item.cod_prod === producto.cod_prod && !item.preparado)
       if (existente) {
@@ -731,6 +768,15 @@ export default {
           message: 'Falta el peso de: ' + this.items
             .filter(item => this.esPeso(item) && !(Number(item.peso) > 0))
             .map(item => item.nombre).join(', ')
+        })
+        return
+      }
+      if (this.sinStock.length) {
+        this.$q.notify({
+          type: 'negative', position: 'top', timeout: 8000,
+          message: 'No hay stock suficiente de: ' + this.sinStock
+            .map(f => f.nombre + ' (hay ' + this.cantidad(Math.max(f.stock, 0)) + ', se pide ' + this.cantidad(f.necesita) + ')')
+            .join(', ')
         })
         return
       }

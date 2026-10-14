@@ -1718,7 +1718,18 @@ class FacturacionController extends Controller
         // todas de una vez a un mismo precio (por ejemplo, al Precio 8).
         $items = $this->completarPrecios($items, $filasPedido);
 
-        return response()->json(['pedido' => $cabecera, 'items' => $items]);
+        // Existencia de cada producto: la pantalla marca lo que no alcanza y no
+        // deja finalizar (store lo vuelve a validar al vender).
+        $stock = DB::table('tbproductos')
+            ->whereIn(DB::raw('TRIM(cod_prod)'), collect($items)->pluck('cod_prod')->map(function ($c) {
+                return trim((string) $c);
+            })->unique()->values())
+            ->get([DB::raw('TRIM(cod_prod) as cod_prod'), DB::raw('COALESCE(stock_actual, 0) as stock')])
+            ->mapWithKeys(function ($p) {
+                return [$p->cod_prod => round((float) $p->stock, 3)];
+            });
+
+        return response()->json(['pedido' => $cabecera, 'items' => $items, 'stock' => $stock]);
     }
 
     /**
@@ -2342,6 +2353,10 @@ class FacturacionController extends Controller
         }
 
         $factura = DB::transaction(function () use ($datos, $productos, $usuario, $ci, $cliente, $tipo, $nit) {
+            // Sin stock no se vende: se valida con las filas bloqueadas para
+            // que dos cajas no vendan a la vez lo mismo que queda.
+            $this->exigirStock($datos['items'], $productos);
+
             $subtotal = 0;
             $lineas = [];
 
@@ -2645,6 +2660,51 @@ class FacturacionController extends Controller
      * Si la linea se cobra por peso. Manda lo que eligio el cajero (por_peso)
      * cuando el preventista cargo mal la unidad; si no, la del catalogo.
      */
+    /**
+     * Corta la venta (422) si algun producto no alcanza en stock_actual.
+     * Lo que se pide sale igual que en moverStock: el peso en lo que va por
+     * kilo y la cantidad en el resto, sumando las lineas del mismo producto.
+     * Va dentro de la transaccion de la venta: lockForUpdate retiene las
+     * filas hasta que se descuente el stock.
+     */
+    private function exigirStock(array $items, $productos)
+    {
+        $necesita = [];
+        foreach ($items as $item) {
+            $cod = trim($item['cod_prod']);
+            $porPeso = $this->lineaPorPeso($productos[$cod], $item) && isset($item['peso']) && (float) $item['peso'] > 0;
+            $necesita[$cod] = ($necesita[$cod] ?? 0) + round((float) ($porPeso ? $item['peso'] : $item['cantidad']), 3);
+        }
+
+        $existencias = DB::table('tbproductos')
+            ->whereIn(DB::raw('TRIM(cod_prod)'), array_keys($necesita))
+            ->lockForUpdate()
+            ->get([DB::raw('TRIM(cod_prod) as cod_prod'), DB::raw('COALESCE(stock_actual, 0) as stock')])
+            ->pluck('stock', 'cod_prod');
+
+        $faltan = [];
+        foreach ($necesita as $cod => $cantidad) {
+            $hay = round((float) ($existencias[$cod] ?? 0), 3);
+            if ($cantidad > $hay + 0.0005) {
+                $faltan[] = [
+                    'cod_prod' => (string) $cod,
+                    'nombre'   => trim($productos[$cod]->Producto),
+                    'necesita' => $cantidad,
+                    'stock'    => $hay,
+                ];
+            }
+        }
+        if ($faltan) {
+            throw new \Illuminate\Http\Exceptions\HttpResponseException(response()->json([
+                'message' => 'No hay stock suficiente de: ' . implode(', ', array_map(function ($f) {
+                    return $f['nombre'] . ' (hay ' . rtrim(rtrim(number_format(max($f['stock'], 0), 3, '.', ''), '0'), '.')
+                        . ', se pide ' . rtrim(rtrim(number_format($f['necesita'], 3, '.', ''), '0'), '.') . ')';
+                }, $faltan)),
+                'sin_stock' => $faltan,
+            ], 422));
+        }
+    }
+
     private function lineaPorPeso($producto, array $item)
     {
         if (isset($item['por_peso'])) {
@@ -4409,7 +4469,7 @@ class FacturacionController extends Controller
         $hoja->getTabColor()->setRGB('1565C0');
         $this->tablaGeneralExcel($hoja, 'COMPROBANTES (UNA FILA POR BOLETA / FACTURA)', $subtitulo,
             $columnas, $comprobantes, '1565C0',
-            ['efectivo', 'qr', 'subtotal', 'descuento', 'total', 'total_vigente'],
+            ['efectivo', 'qr', 'entrega_cobrado', 'entrega_efectivo', 'entrega_qr', 'subtotal', 'descuento', 'total', 'total_vigente'],
             '"Total vigente" no suma lo anulado. El total de la fila final sigue a los filtros.');
 
         $hoja = $libro->createSheet();
@@ -4533,7 +4593,15 @@ class FacturacionController extends Controller
             ['Fecha entrega', 'fecha_entrega', 11, 'dd/mm/yyyy'],
             ['Nro pedido', 'pedido', 10, null], ['Tipo pedido', 'pedido_tipo', 14, null],
             ['Fecha/hora pedido', 'pedido_fecha', 16, null],
-            ['Camión', 'camion', 12, null], ['Cliente', 'cliente', 32, null], ['NIT / CI', 'nit', 13, null],
+            ['Camión', 'camion', 12, null],
+            // Lo que marco el camionero al entregar (su ultimo intento).
+            ['Camionero', 'camionero', 18, null], ['Estado entrega', 'entrega_estado', 13, null],
+            ['Fecha/hora entrega', 'entrega_fecha', 16, null], ['Cobro camionero', 'entrega_tipago', 12, null],
+            ['Cobrado camionero Bs', 'entrega_cobrado', 12, '#,##0.00'],
+            ['Efectivo camionero Bs', 'entrega_efectivo', 12, '#,##0.00'],
+            ['QR camionero Bs', 'entrega_qr', 11, '#,##0.00'],
+            ['Obs. entrega', 'entrega_obs', 28, null],
+            ['Cliente', 'cliente', 32, null], ['NIT / CI', 'nit', 13, null],
             ['Cliente en sistema', 'cliente_sistema', 30, null], ['Zona', 'zona', 14, null],
             ['Canal', 'canal', 12, null], ['Preventista', 'preventista', 24, null],
             ['Cobrado por', 'usuario', 20, null], ['Pago', 'pago', 10, null],
@@ -4583,9 +4651,26 @@ class FacturacionController extends Controller
             ->keyBy('NroPed');
         $tipos = collect(self::HOJAS_EXCEL_PEDIDOS)->map(function ($h) { return $h[0]; });
 
+        // De cada comprobante puede haber varios intentos de entrega: vale el
+        // ultimo (keyBy se queda con el de id mas alto).
+        $entregas = DB::table('entregas as e')
+            ->leftJoin('personal as pe', 'pe.CodAut', '=', 'e.personal_id')
+            ->whereIn('e.factura_id', $facturas->pluck('id')->all())
+            ->orderBy('e.id')
+            ->get([
+                'e.factura_id', 'e.estado', 'e.fechaEntreg', 'e.hora', 'e.tipago', 'e.pago',
+                'e.monto_efectivo', 'e.monto_qr', 'e.observacion',
+                DB::raw("COALESCE(NULLIF(TRIM(CONCAT_WS(' ', NULLIF(TRIM(pe.Nombre1), ''), NULLIF(TRIM(pe.App1), ''))), ''), TRIM(e.despachador)) as camionero"),
+            ])
+            ->keyBy('factura_id');
+
         $filas = [];
         foreach ($facturas as $f) {
             $nodo = $cadenas[$f->id];
+            $entrega = $entregas[$f->id] ?? null;
+            $entregaFecha = $entrega && $entrega->fechaEntreg
+                ? date('d/m/Y', strtotime((string) $entrega->fechaEntreg)) . ($entrega->hora ? ' ' . substr((string) $entrega->hora, 0, 5) : '')
+                : '';
             $cliente = $clientes[$f->cliente_id] ?? null;
             $activo = $f->estado !== 'ANULADO';
             $vendedor = $f->vendedor
@@ -4615,6 +4700,14 @@ class FacturacionController extends Controller
                 'pedido_fecha'   => $f->pedido_nro && isset($pedidos[$f->pedido_nro])
                     ? substr((string) $pedidos[$f->pedido_nro]->fecha, 0, 16) : '',
                 'camion'         => trim((string) $f->placa) ?: 'Sin camión',
+                'camionero'      => $entrega ? trim((string) $entrega->camionero) : '',
+                'entrega_estado' => $this->estadoEntrega($f, $entrega),
+                'entrega_fecha'  => $entregaFecha,
+                'entrega_tipago' => $entrega ? trim((string) $entrega->tipago) : '',
+                'entrega_cobrado'=> $entrega ? (float) $entrega->pago : null,
+                'entrega_efectivo' => $entrega ? (float) $entrega->monto_efectivo : null,
+                'entrega_qr'     => $entrega ? (float) $entrega->monto_qr : null,
+                'entrega_obs'    => $entrega ? trim((string) $entrega->observacion) : '',
                 'cliente'        => $f->nombre ?: 'Sin cliente',
                 'nit'            => (string) $f->nit,
                 'cliente_sistema'=> $cliente->nombres ?? '',
