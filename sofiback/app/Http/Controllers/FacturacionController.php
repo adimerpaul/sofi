@@ -2328,6 +2328,32 @@ class FacturacionController extends Controller
         return trim((string) DB::table('tbclientes')->where('Cod_Aut', $cuentaId)->value('Nombres')) ?: null;
     }
 
+    /**
+     * La observacion que va en el papel: la del comprobante y la del pedido
+     * (Observaciones y comentario, las de la hoja de pesos). Cada producto del
+     * pedido repite su observacion; va una sola por pedido: la de la primera
+     * linea que la tenga. Venta directa: solo la del comprobante.
+     */
+    private function observacionImpresa(Factura $factura, $observacion)
+    {
+        $textos = collect([trim((string) $observacion)]);
+        if ($factura->pedido_nro) {
+            $fila = DB::table('tbpedidos')
+                ->whereNull('tbpedidos.deleted_at')
+                ->where('NroPed', $factura->pedido_nro)
+                ->whereRaw(TipoPedido::sql('') . ' = ?', [strtoupper(trim((string) $factura->pedido_tipo))])
+                ->whereRaw("(TRIM(COALESCE(Observaciones, '')) <> '' OR TRIM(COALESCE(comentario, '')) <> '')")
+                ->orderBy('codAut')
+                ->first(['Observaciones', 'comentario']);
+            if ($fila) {
+                $textos->push(trim((string) $fila->Observaciones), trim((string) $fila->comentario));
+            }
+        }
+        $textos = $textos->filter(fn ($t) => $t !== '')->unique(fn ($t) => mb_strtoupper($t))->values();
+
+        return $textos->implode(' · ');
+    }
+
     /** "- BONIFICACION" -> "GONZALO ... - BONIFICACION"; sin repetir el nombre. */
     private function observacionDeBaja($cliente, $observacion)
     {
@@ -3412,7 +3438,7 @@ class FacturacionController extends Controller
             </tr>
             <tr>
                 <td colspan='3'><span class='et'>Observación</span><br>"
-                    . e($observacion ?: '—') . "</td>
+                    . e($this->observacionImpresa($factura, $observacion) ?: '—') . "</td>
             </tr>
         </table>
 
@@ -3648,7 +3674,7 @@ class FacturacionController extends Controller
             <tr>
                 <td>" . $this->celdaCamion($factura, $placa) . "</td>
                 <td><span class='et'>Pedido</span><br>" . ($factura->pedido_nro ?: '—') . "</td>
-                <td><span class='et'>Observación</span><br>" . e($factura->observacion ?: '—') . "</td>
+                <td><span class='et'>Observación</span><br>" . e($this->observacionImpresa($factura, $factura->observacion) ?: '—') . "</td>
             </tr>
         </table>
 
@@ -3831,6 +3857,11 @@ class FacturacionController extends Controller
         if ($error) {
             return $error;
         }
+
+        // El filtro trae el cliente con pocas columnas (las de la grilla); el
+        // papel necesita el completo (direccion, telefono, territorio,
+        // complemento), igual que al imprimir una sola venta.
+        $facturas->load('cliente');
 
         // Con copias=1 cada comprobante sale dos veces seguidas: ORIGINAL para
         // el cliente y COPIA para la empresa (4 ventas = 8 hojas).
