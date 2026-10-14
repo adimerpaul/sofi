@@ -765,6 +765,8 @@ export default {
         { name: 'peso_promedio', label: 'Peso prom.', field: 'peso_promedio', align: 'right', format: v => v === null ? '—' : this.numero(v) },
         { name: 'doc_cliente', label: 'Doc. cliente', field: 'doc_cliente', align: 'left', sortable: true },
         { name: 'cliente', label: 'Cliente', field: 'cliente', align: 'left', sortable: true },
+        // En una baja: a quien se le dio (Cliente es la cuenta de baja).
+        { name: 'recibio', label: 'Recibió', field: 'recibio', align: 'left', sortable: true },
         { name: 'nro_factura', label: 'Nro. fact.', field: 'nro_factura', align: 'right', sortable: true },
         // El Nro impreso en la boleta (el del comprobante).
         { name: 'nro_boleta', label: 'Nro. boleta', field: 'nro_boleta', align: 'right', sortable: true }

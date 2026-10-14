@@ -199,6 +199,7 @@ Route::group(['middleware'=>'auth:sanctum'],function (){
     // Todos los clientes con su deuda, y el detalle de uno (deudas y ventas a credito).
     Route::get('/creditos/resumen',[\App\Http\Controllers\CreditoController::class,'resumen']);
     Route::get('/creditos/excel-deudores',[\App\Http\Controllers\CreditoController::class,'excelDeudores']);
+    Route::get('/creditos/excel-bajas',[\App\Http\Controllers\CreditoController::class,'excelBajas']);
     Route::get('/creditos/excel-cobros',[\App\Http\Controllers\CreditoController::class,'excelCobros']);
     // Cierre de caja de cobros: lo cobrado por cada usuario entre fecha/hora.
     Route::get('/creditos/cobradores',[\App\Http\Controllers\CreditoController::class,'cobradores']);

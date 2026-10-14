@@ -1441,6 +1441,8 @@ class ReporteVentasController extends Controller
         'peso_promedio' => 'PESO PROMED',
         'doc_cliente'  => 'DOC CLIENTE',
         'cliente'      => 'CLIENTE',
+        // En una baja: el cliente que la recibio (CLIENTE es la cuenta de baja).
+        'recibio'      => 'RECIBIO',
         'nro_factura'  => 'NRO FACT',
         // El numero del comprobante: el Nro que sale impreso en la boleta.
         'nro_boleta'   => 'NRO BOLETA',
@@ -1514,11 +1516,28 @@ class ReporteVentasController extends Controller
                 DB::raw("COALESCE(NULLIF(TRIM(f.nombre), ''), TRIM(c.Nombres)) as cliente"),
                 DB::raw('TRIM(d.cod_prod) as cod_prod'), 'd.nombre', 'd.unidad', 'd.cantidad', 'd.peso',
                 'd.canastillos', 'd.subtotal',
-                'pr.CantPren', 'pr.precio_compra',
+                'pr.CantPren', 'pr.precio_compra', 'f.pedido_nro', 'f.pedido_tipo', 'f.observacion',
+                DB::raw("TRIM(c.Nombres) as cliente_ficha"),
             ]);
+
+        $cuentasBaja = $this->cuentasDeBaja($lineas);
 
         $filas = [];
         foreach ($lineas as $l) {
+            // Una baja va a nombre de su cuenta, como sale en la boleta y en
+            // creditos: el bonificado (pedido con bonificacionId) y lo emitido
+            // directo a la cuenta. RECIBIO dice a quien se le dio.
+            $cliente = trim((string) $l->cliente);
+            $recibio = '';
+            $cuenta = $cuentasBaja[$l->pedido_nro . '|' . strtoupper(trim((string) $l->pedido_tipo))] ?? null;
+            if ($l->pedido_nro && $cuenta) {
+                $recibio = $cliente;
+                $cliente = $cuenta;
+            } elseif (stripos(trim((string) $l->cliente_ficha), 'BAJAS POR ') === 0) {
+                $cliente = trim((string) $l->cliente_ficha);
+                $recibio = trim((string) $l->observacion);
+            }
+
             $porKilo = (float) $l->peso > 0 || strtoupper(trim((string) $l->unidad)) === 'KG';
             $cantidad = (float) $l->cantidad;
             $pesoUnidad = (float) $l->CantPren;
@@ -1556,7 +1575,8 @@ class ReporteVentasController extends Controller
                 'direccion'     => (string) $l->direccion,
                 'peso_promedio' => $pesoPromedio !== null ? round($pesoPromedio, 3) : null,
                 'doc_cliente'   => trim((string) $l->nit),
-                'cliente'       => trim((string) $l->cliente),
+                'cliente'       => $cliente,
+                'recibio'       => $recibio,
                 'nro_factura'   => $l->tipo_comprobante === 'FACTURA' ? (int) $l->nro_factura : 0,
                 'nro_boleta'    => (int) $l->factura_id,
             ];
@@ -1569,6 +1589,35 @@ class ReporteVentasController extends Controller
         });
 
         return $filas;
+    }
+
+    /**
+     * Los pedidos de estas lineas cargados a una cuenta de bajas
+     * (tbpedidos.bonificacionId -> una cuenta "BAJAS POR ..."), con el mismo
+     * criterio que creditos y la boleta: ['NroPed|TIPO' => nombre de la cuenta].
+     */
+    private function cuentasDeBaja($lineas)
+    {
+        $nros = collect($lineas)->pluck('pedido_nro')->filter()->unique()->values();
+        if ($nros->isEmpty()) {
+            return [];
+        }
+
+        $cuentas = [];
+        foreach ($nros->chunk(1000) as $grupo) {
+            DB::table('tbpedidos as p')
+                ->join('tbclientes as b', 'b.Cod_Aut', '=', 'p.bonificacionId')
+                ->whereNull('p.deleted_at')
+                ->whereIn('p.NroPed', $grupo->values())
+                ->where('b.Nombres', 'like', 'BAJAS POR %')
+                ->select('p.NroPed', DB::raw(TipoPedido::sql('p') . ' as tipo'), DB::raw('TRIM(b.Nombres) as cuenta'))
+                ->distinct()->get()
+                ->each(function ($p) use (&$cuentas) {
+                    $cuentas[$p->NroPed . '|' . $p->tipo] = $p->cuenta;
+                });
+        }
+
+        return $cuentas;
     }
 
     /** El detalle de ventas en Excel, con las columnas de la planilla. */
@@ -1622,7 +1671,7 @@ class ReporteVentasController extends Controller
         foreach (['fecha_entrega' => 12, 'fecha_hora' => 16, 'vendedor' => 34, 'cod_prod' => 10, 'producto' => 46,
                      'peso' => 9, 'importe' => 11, 'p_compra' => 11, 'placa' => 18, 'tipo_pago' => 11,
                      'cantidad' => 9, 'cajas' => 7, 'direccion' => 40, 'peso_promedio' => 10, 'doc_cliente' => 13,
-                     'cliente' => 34, 'nro_factura' => 9, 'nro_boleta' => 10] as $campo => $ancho) {
+                     'cliente' => 34, 'recibio' => 30, 'nro_factura' => 9, 'nro_boleta' => 10] as $campo => $ancho) {
             $hoja->getColumnDimension($letra($campo))->setWidth($ancho);
         }
         $hoja->freezePane('A2');

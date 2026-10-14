@@ -279,10 +279,15 @@ class CreditoController extends Controller
      * cobranzas: los datos del cliente y una columna con su deuda. Son unos
      * pocos miles, asi que va todo de una vez y la pantalla filtra y busca.
      */
-    public function resumen()
+    public function resumen(Request $request)
     {
         $porCliente = $this->deudas(null)->groupBy('cliente_id');
-        $bajas = $this->resumenBajas();
+        // Las bajas, opcionalmente solo de un rango de fechas de entrega.
+        $rango = $request->validate([
+            'bajas_desde' => 'nullable|date_format:Y-m-d',
+            'bajas_hasta' => 'nullable|date_format:Y-m-d|after_or_equal:bajas_desde',
+        ]);
+        $bajas = $this->resumenBajas($rango['bajas_desde'] ?? null, $rango['bajas_hasta'] ?? null);
 
         $vendedores = DB::table('personal')->whereRaw("TRIM(COALESCE(ci, '')) <> ''")
             ->get(['ci', 'Nombre1', 'App1'])
@@ -298,7 +303,7 @@ class CreditoController extends Controller
                 $desde = $pendientes->min('fecha');
                 $saldo = round($pendientes->sum('saldo'), 2);
                 $esBaja = $this->esCuentaDeBaja($c->Nombres);
-                $baja = $bajas[$c->Cod_Aut] ?? ['monto' => 0, 'cantidad' => 0];
+                $baja = $bajas[$c->Cod_Aut] ?? ['monto' => 0, 'cantidad' => 0, 'directo' => 0, 'por_pedido' => 0];
 
                 return [
                     'id' => (int) $c->Cod_Aut,
@@ -321,6 +326,8 @@ class CreditoController extends Controller
                     'es_baja' => $esBaja,
                     'bajas_monto' => $esBaja ? $baja['monto'] : 0,
                     'bajas_cantidad' => $esBaja ? $baja['cantidad'] : 0,
+                    'bajas_directo' => $esBaja ? $baja['directo'] : 0,
+                    'bajas_por_pedido' => $esBaja ? $baja['por_pedido'] : 0,
                 ];
             });
 
@@ -345,23 +352,38 @@ class CreditoController extends Controller
      * Lo cargado a cada cuenta de bajas, para mostrarlo en la lista (no es
      * deuda): los pedidos bonificados a su nombre (tbpedidos.bonificacionId,
      * los mismos que lista el detalle) y los comprobantes vigentes emitidos
-     * directo a la cuenta. [cuenta => ['monto' => Bs, 'cantidad' => n]].
+     * directo a la cuenta. Con desde/hasta, solo lo repartido en esos dias
+     * (fecha de entrega, como el detalle de ventas de facturacion).
+     * [cuenta => ['monto', 'cantidad', 'directo', 'por_pedido']].
      */
-    private function resumenBajas()
+    private function resumenBajas($desde = null, $hasta = null)
     {
         $cuentas = DB::table('tbclientes')->where('Nombres', 'like', 'BAJAS POR %')->pluck('Cod_Aut');
         $propias = DB::table('facturas')->whereNull('deleted_at')->where('estado', 'ACTIVO')
             ->whereIn('cliente_id', $cuentas)
+            ->when($desde && $hasta, function ($q) use ($desde, $hasta) {
+                $q->whereBetween('fecha_entrega', [$desde, $hasta]);
+            })
             ->select('cliente_id', DB::raw('SUM(total) as monto'), DB::raw('COUNT(*) as cantidad'))
             ->groupBy('cliente_id')->get()->keyBy('cliente_id');
 
         $resumen = [];
         foreach ($cuentas as $cuenta) {
-            $bonificadas = $this->bonificacionesDeCuenta((int) $cuenta, collect());
+            // Solo lo facturado: un pedido bonificado sin comprobante (los del
+            // sistema anterior o el que aun no sale) no es una venta, igual que
+            // en el detalle de ventas de facturacion.
+            $bonificadas = $this->bonificacionesDeCuenta((int) $cuenta, collect())
+                ->filter(function ($b) use ($desde, $hasta) {
+                    return $b['id'] !== null
+                        && (!$desde || !$hasta || ($b['fecha_entrega'] >= $desde && $b['fecha_entrega'] <= $hasta));
+                });
             $propia = $propias[$cuenta] ?? null;
             $resumen[$cuenta] = [
                 'monto' => round($bonificadas->sum('total') + (float) ($propia->monto ?? 0), 2),
                 'cantidad' => $bonificadas->count() + (int) ($propia->cantidad ?? 0),
+                // Emitido a nombre de la cuenta / pedido de un cliente cargado a la cuenta.
+                'directo' => round((float) ($propia->monto ?? 0), 2),
+                'por_pedido' => round($bonificadas->sum('total'), 2),
             ];
         }
 
@@ -595,12 +617,16 @@ class CreditoController extends Controller
      * Una fila por baja de cada cuenta "BAJAS POR ...": lo bonificado a su
      * nombre (tbpedidos.bonificacionId, con el cliente que lo recibio) y los
      * comprobantes vigentes emitidos directo a la cuenta. Es lo mismo que
-     * muestra la pantalla de creditos en el filtro Bajas.
+     * muestra la pantalla de creditos en el filtro Bajas: con desde/hasta,
+     * solo lo entregado esos dias (facturas.fecha_entrega).
      */
-    private function filasBajas($clientes, $vendedores)
+    private function filasBajas($clientes, $vendedores, $desde = null, $hasta = null)
     {
         $cuentas = DB::table('tbclientes')->where('Nombres', 'like', 'BAJAS POR %')
             ->orderBy('Nombres')->get(['Cod_Aut', 'Nombres']);
+        $enRango = function ($fecha) use ($desde, $hasta) {
+            return !$desde || !$hasta || ($fecha && $fecha >= $desde && $fecha <= $hasta);
+        };
 
         $vendedorDe = function ($clienteId) use ($clientes, $vendedores) {
             $cliente = $clientes->get($clienteId);
@@ -616,10 +642,15 @@ class CreditoController extends Controller
         foreach ($cuentas as $cuenta) {
             $nombreCuenta = trim((string) $cuenta->Nombres);
 
+            // Sin comprobante no suma (ver resumenBajas).
             foreach ($this->bonificacionesDeCuenta((int) $cuenta->Cod_Aut, collect()) as $b) {
+                if ($b['id'] === null || !$enRango($b['fecha_entrega'])) {
+                    continue;
+                }
                 $filas->push([
                     'cuenta' => $nombreCuenta,
-                    'fecha' => $b['fecha'],
+                    'origen' => 'PEDIDO DE CLIENTE',
+                    'fecha' => $b['fecha_entrega'] ?: $b['fecha'],
                     'comanda' => $b['pedido'],
                     'nro_venta' => $b['id'],
                     'comprobante' => $b['comprobante'],
@@ -632,14 +663,19 @@ class CreditoController extends Controller
 
             // Lo emitido directo a la cuenta (degustacion, por ejemplo).
             $propias = DB::table('facturas')->whereNull('deleted_at')->where('estado', 'ACTIVO')
-                ->where('cliente_id', $cuenta->Cod_Aut)->orderBy('id')
-                ->get(['id', 'fecha', 'tipo_comprobante', 'pedido_nro', 'total', 'observacion']);
+                ->where('cliente_id', $cuenta->Cod_Aut)
+                ->when($desde && $hasta, function ($q) use ($desde, $hasta) {
+                    $q->whereBetween('fecha_entrega', [$desde, $hasta]);
+                })
+                ->orderBy('id')
+                ->get(['id', 'fecha', 'fecha_entrega', 'tipo_comprobante', 'pedido_nro', 'total', 'observacion']);
             $detalles = DB::table('factura_detalles')->whereIn('factura_id', $propias->pluck('id'))->whereNull('deleted_at')
                 ->get(['factura_id', 'nombre', 'cantidad'])->groupBy('factura_id');
             foreach ($propias as $f) {
                 $filas->push([
                     'cuenta' => $nombreCuenta,
-                    'fecha' => substr((string) $f->fecha, 0, 10),
+                    'origen' => 'A NOMBRE DE LA CUENTA',
+                    'fecha' => substr((string) ($f->fecha_entrega ?: $f->fecha), 0, 10),
                     'comanda' => $f->pedido_nro,
                     'nro_venta' => $f->id,
                     'comprobante' => $f->tipo_comprobante,
@@ -656,61 +692,100 @@ class CreditoController extends Controller
         return $filas->sortBy(function ($f) { return $f['cuenta'] . '|' . $f['fecha'] . '|' . str_pad((string) $f['comanda'], 10, '0', STR_PAD_LEFT); })->values();
     }
 
+    /**
+     * Excel solo de bajas, con el mismo rango de entrega que la pantalla de
+     * creditos (filtro Bajas): sin fechas, todas.
+     */
+    public function excelBajas(Request $request)
+    {
+        $rango = $request->validate([
+            'desde' => 'nullable|date_format:Y-m-d',
+            'hasta' => 'nullable|date_format:Y-m-d|after_or_equal:desde',
+        ]);
+        $desde = $rango['desde'] ?? null;
+        $hasta = $rango['hasta'] ?? null;
+
+        $vendedores = DB::table('personal')->whereRaw("TRIM(COALESCE(ci, '')) <> ''")
+            ->get(['ci', 'Nombre1', 'App1'])
+            ->mapWithKeys(function ($p) {
+                return [trim($p->ci) => trim(trim((string) $p->Nombre1) . ' ' . trim((string) $p->App1))];
+            });
+        $clientes = DB::table('tbclientes')->get(['Cod_Aut', 'Nombres', 'CiVend'])->keyBy('Cod_Aut');
+
+        $libro = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
+        $this->hojaBajas($libro->getActiveSheet(), $this->filasBajas($clientes, $vendedores, $desde, $hasta), $desde, $hasta);
+
+        $nombre = 'BAJAS ' . ($desde && $hasta ? ($desde === $hasta ? $desde : $desde . ' a ' . $hasta) : 'TODAS') . '.xlsx';
+        return response()->streamDownload(function () use ($libro) {
+            (new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($libro))->save('php://output');
+        }, $nombre, ['Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet']);
+    }
+
     /** Hoja "Bajas": resumen por cuenta y una fila por baja, con el cliente que la recibio. */
-    private function hojaBajas($hoja, $bajas)
+    private function hojaBajas($hoja, $bajas, $desde = null, $hasta = null)
     {
         $morado = ['fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID, 'startColor' => ['rgb' => 'E1BEE7']];
+        $texto = \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING;
         $hoja->setTitle('Bajas');
         $hoja->getTabColor()->setRGB('6A1B9A');
         $hoja->setCellValue('A1', 'BAJAS (BONIFICACION, CALIDAD, DEGUSTACION...) - NO ES DEUDA COBRABLE');
         $hoja->getStyle('A1')->getFont()->setBold(true)->setSize(13);
-        $hoja->setCellValue('A2', 'Al ' . date('d/m/Y H:i'));
+        $hoja->setCellValue('A2', ($desde && $hasta
+                ? 'Entregadas del ' . date('d/m/Y', strtotime($desde)) . ' al ' . date('d/m/Y', strtotime($hasta))
+                : 'Todas las fechas')
+            . ' · solo lo facturado (comprobantes vigentes) · generado el ' . date('d/m/Y H:i'));
 
-        // Resumen por cuenta.
-        $hoja->fromArray(['CUENTA', 'CANTIDAD', 'IMPORTE'], null, 'A4');
-        $hoja->getStyle('A4:C4')->applyFromArray(['font' => ['bold' => true], 'fill' => $morado]);
+        // Resumen por cuenta, separando lo emitido a nombre de la cuenta y los
+        // pedidos de clientes cargados a ella.
+        $hoja->fromArray(['CUENTA', 'CANTIDAD', 'A NOMBRE DE LA CUENTA', 'PEDIDOS DE CLIENTES', 'IMPORTE'], null, 'A4');
+        $hoja->getStyle('A4:E4')->applyFromArray(['font' => ['bold' => true], 'fill' => $morado]);
         $fila = 5;
         foreach ($bajas->groupBy('cuenta') as $cuenta => $grupo) {
-            $hoja->setCellValueExplicit('A' . $fila, $cuenta, \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
+            $hoja->setCellValueExplicit('A' . $fila, $cuenta, $texto);
             $hoja->setCellValue('B' . $fila, $grupo->count());
-            $hoja->setCellValue('C' . $fila, round($grupo->sum('importe'), 2));
+            $hoja->setCellValue('C' . $fila, round($grupo->where('origen', 'A NOMBRE DE LA CUENTA')->sum('importe'), 2));
+            $hoja->setCellValue('D' . $fila, round($grupo->where('origen', 'PEDIDO DE CLIENTE')->sum('importe'), 2));
+            $hoja->setCellValue('E' . $fila, round($grupo->sum('importe'), 2));
             $fila++;
         }
         $hoja->setCellValue('A' . $fila, 'TOTAL');
         $hoja->setCellValue('B' . $fila, $bajas->count());
-        $hoja->setCellValue('C' . $fila, round($bajas->sum('importe'), 2));
-        $hoja->getStyle("A{$fila}:C{$fila}")->getFont()->setBold(true);
-        $hoja->getStyle("C5:C{$fila}")->getNumberFormat()->setFormatCode('#,##0.00');
+        $hoja->setCellValue('C' . $fila, round($bajas->where('origen', 'A NOMBRE DE LA CUENTA')->sum('importe'), 2));
+        $hoja->setCellValue('D' . $fila, round($bajas->where('origen', 'PEDIDO DE CLIENTE')->sum('importe'), 2));
+        $hoja->setCellValue('E' . $fila, round($bajas->sum('importe'), 2));
+        $hoja->getStyle("A{$fila}:E{$fila}")->getFont()->setBold(true);
+        $hoja->getStyle("C5:E{$fila}")->getNumberFormat()->setFormatCode('#,##0.00');
 
         // Detalle: una fila por baja.
         $inicio = $fila + 2;
-        $hoja->fromArray(['CUENTA', 'FECHA', 'COMANDA', 'NRO VENTA', 'COMPROBANTE', 'CLIENTE QUE RECIBIO',
-            'VENDEDOR', 'IMPORTE', 'PRODUCTOS'], null, 'A' . $inicio);
-        $hoja->getStyle("A{$inicio}:I{$inicio}")->applyFromArray(['font' => ['bold' => true], 'fill' => $morado]);
+        $hoja->fromArray(['CUENTA', 'F. ENTREGA', 'COMANDA', 'NRO VENTA', 'COMPROBANTE', 'CLIENTE QUE RECIBIO',
+            'VENDEDOR', 'IMPORTE', 'ORIGEN', 'PRODUCTOS'], null, 'A' . $inicio);
+        $hoja->getStyle("A{$inicio}:J{$inicio}")->applyFromArray(['font' => ['bold' => true], 'fill' => $morado]);
         $fila = $inicio + 1;
         foreach ($bajas as $b) {
-            $hoja->setCellValueExplicit('A' . $fila, $b['cuenta'], \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
+            $hoja->setCellValueExplicit('A' . $fila, $b['cuenta'], $texto);
             if ($b['fecha']) {
                 $hoja->setCellValue('B' . $fila, \PhpOffice\PhpSpreadsheet\Shared\Date::PHPToExcel(new \DateTime($b['fecha'])));
             }
             $hoja->setCellValue('C' . $fila, $b['comanda']);
             $hoja->setCellValue('D' . $fila, $b['nro_venta']);
             $hoja->setCellValue('E' . $fila, $b['comprobante']);
-            $hoja->setCellValueExplicit('F' . $fila, $b['cliente'], \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
-            $hoja->setCellValueExplicit('G' . $fila, $b['vendedor'], \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
+            $hoja->setCellValueExplicit('F' . $fila, $b['cliente'], $texto);
+            $hoja->setCellValueExplicit('G' . $fila, $b['vendedor'], $texto);
             $hoja->setCellValue('H' . $fila, $b['importe']);
-            $hoja->setCellValueExplicit('I' . $fila, $b['productos'], \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
+            $hoja->setCellValueExplicit('I' . $fila, $b['origen'], $texto);
+            $hoja->setCellValueExplicit('J' . $fila, $b['productos'], $texto);
             $fila++;
         }
         $ultima = max($fila - 1, $inicio);
         $hoja->setCellValue('F' . $fila, 'TOTAL');
         $hoja->setCellValue('H' . $fila, $ultima > $inicio ? '=SUBTOTAL(9,H' . ($inicio + 1) . ":H{$ultima})" : 0);
-        $hoja->getStyle("A{$fila}:I{$fila}")->getFont()->setBold(true);
+        $hoja->getStyle("A{$fila}:J{$fila}")->getFont()->setBold(true);
         $hoja->getStyle('B' . ($inicio + 1) . ":B{$ultima}")->getNumberFormat()->setFormatCode('d/m/yyyy');
         $hoja->getStyle('H' . ($inicio + 1) . ":H{$fila}")->getNumberFormat()->setFormatCode('#,##0.00');
-        $hoja->setAutoFilter("A{$inicio}:I{$ultima}");
+        $hoja->setAutoFilter("A{$inicio}:J{$ultima}");
 
-        foreach (['A' => 30, 'B' => 11, 'C' => 10, 'D' => 10, 'E' => 13, 'F' => 38, 'G' => 26, 'H' => 12, 'I' => 70] as $col => $ancho) {
+        foreach (['A' => 30, 'B' => 11, 'C' => 10, 'D' => 12, 'E' => 22, 'F' => 38, 'G' => 26, 'H' => 12, 'I' => 24, 'J' => 70] as $col => $ancho) {
             $hoja->getColumnDimension($col)->setWidth($ancho);
         }
     }
@@ -1134,7 +1209,7 @@ class CreditoController extends Controller
         $facturas = DB::table('facturas')->whereNull('deleted_at')->where('estado', '<>', 'ANULADO')
             ->whereIn('pedido_nro', $lineas->pluck('NroPed')->unique()->values())
             ->orderByDesc('id')
-            ->get(['id', 'fecha', 'hora', 'tipo_comprobante', 'total', 'pedido_nro', 'pedido_tipo', 'cliente_id', 'nombre', 'observacion'])
+            ->get(['id', 'fecha', 'fecha_entrega', 'hora', 'tipo_comprobante', 'total', 'pedido_nro', 'pedido_tipo', 'cliente_id', 'nombre', 'observacion'])
             ->keyBy(function ($f) { return $f->pedido_nro . '|' . strtoupper(trim((string) $f->pedido_tipo)); });
         $detalles = DB::table('factura_detalles')->whereIn('factura_id', $facturas->pluck('id'))->whereNull('deleted_at')
             ->orderBy('id')->get(['factura_id', 'cod_prod', 'nombre', 'unidad', 'cantidad', 'peso', 'precio', 'subtotal'])
@@ -1170,6 +1245,8 @@ class CreditoController extends Controller
             return [
                 'id' => $f ? $f->id : null,
                 'fecha' => substr((string) ($f ? $f->fecha : $p->fecha), 0, 10),
+                // El dia del reparto, con el que filtra el detalle de ventas.
+                'fecha_entrega' => $f && $f->fecha_entrega ? substr((string) $f->fecha_entrega, 0, 10) : null,
                 'hora' => substr((string) ($f ? $f->hora : $p->hora), 0, 5),
                 // Sin comprobante todavia: se muestra el pedido.
                 'comprobante' => $f ? $f->tipo_comprobante : 'PEDIDO',

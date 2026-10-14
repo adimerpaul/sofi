@@ -105,7 +105,19 @@
     <q-banner v-if="filtro === 'bajas'" dense rounded class="bg-purple-1 text-purple-10 q-mb-sm">
       <template #avatar><q-icon name="card_giftcard"/></template>
       Lo cargado a las cuentas de bajas (bonificación, calidad, degustación…): {{ totales.bajas_cantidad }} bajas por
-      <b>Bs {{ money(totales.bajas_monto) }}</b>. Es solo para ver: no es deuda. Toca una cuenta para ver a qué cliente se dio cada baja y sus productos.
+      <b>Bs {{ money(totales.bajas_monto) }}</b><span v-if="bajasDesde && bajasHasta"> entregadas del {{ bajasDesde }} al {{ bajasHasta }}</span><span v-else> (todas las fechas)</span>.
+      Solo lo facturado (comprobantes vigentes), por fecha de entrega, igual que el detalle de ventas de facturación. Es solo para ver: no es deuda. Toca una cuenta para ver a qué cliente se dio cada baja y sus productos.
+      <div class="row items-center q-gutter-sm q-mt-xs">
+        <q-input v-model="bajasDesde" type="date" dense outlined bg-color="white" label="Entrega desde" style="width: 160px" @update:model-value="cargar"/>
+        <q-input v-model="bajasHasta" type="date" dense outlined bg-color="white" label="Entrega hasta" style="width: 160px" @update:model-value="cargar"/>
+        <q-btn v-if="bajasDesde || bajasHasta" flat dense no-caps color="purple-8" icon="clear" label="Todas las fechas" @click="bajasDesde = ''; bajasHasta = ''; cargar()"/>
+        <q-btn unelevated dense no-caps color="green-8" icon="grid_on" label="Excel bajas" :loading="descargandoBajas" @click="excelBajas"/>
+      </div>
+      <!-- Por cuenta: emitido a nombre de la cuenta y pedidos de clientes cargados a ella. -->
+      <div v-for="c in cuentasBaja" :key="c.id" class="text-caption q-mt-xs">
+        <b>{{ c.nombre }}</b>: Bs {{ money(c.bajas_monto) }}
+        <span class="text-grey-8">(a nombre de la cuenta Bs {{ money(c.bajas_directo) }} · pedidos de clientes cargados a la cuenta Bs {{ money(c.bajas_por_pedido) }})</span>
+      </div>
     </q-banner>
 
     <div class="row items-center justify-end q-gutter-sm q-mb-sm">
@@ -323,7 +335,7 @@
                   <template #header>
                     <q-item-section>
                       <q-item-label class="text-weight-medium">
-                        <template v-if="venta.comprobante === 'PEDIDO'">Pedido #{{ venta.pedido }} <span class="text-grey-7">· sin facturar</span></template>
+                        <template v-if="venta.comprobante === 'PEDIDO'">Pedido #{{ venta.pedido }} <span class="text-grey-7">· sin facturar, no suma en bajas</span></template>
                         <template v-else>
                           {{ venta.comprobante === 'FACTURA' ? 'Factura' : 'Venta' }} #{{ venta.id }}
                           <span v-if="venta.pedido" class="text-grey-7"> · Pedido #{{ venta.pedido }}</span>
@@ -494,6 +506,7 @@ export default {
       clientes: [],
       reportando: false,
       descargandoExcel: false,
+      descargandoBajas: false,
       descargandoCobros: false,
       rangoCobros: { desde: date.formatDate(new Date(), 'YYYY-MM-DD'), hasta: date.formatDate(new Date(), 'YYYY-MM-DD') },
       // Cierre de caja: por defecto hoy de 00:00 a 23:59, todos los cajeros.
@@ -511,6 +524,9 @@ export default {
       buscar: '',
       // Arranca en los que deben: es lo que cobranzas viene a mirar.
       filtro: 'deuda',
+      // Rango de entrega de las bajas: por defecto hoy; vacio = todas las fechas.
+      bajasDesde: date.formatDate(new Date(), 'YYYY-MM-DD'),
+      bajasHasta: date.formatDate(new Date(), 'YYYY-MM-DD'),
       zona: null,
       vendedor: null,
       cargando: false,
@@ -556,6 +572,10 @@ export default {
     }
   },
   computed: {
+    // Las cuentas de bajas con algo cargado, para el desglose del aviso.
+    cuentasBaja () {
+      return this.clientes.filter(c => c.es_baja && Number(c.bajas_monto) > 0)
+    },
     // Total de un abono mixto: efectivo + QR.
     sumaMixto () {
       return Math.round((Number(this.abono.monto_efectivo || 0) + Number(this.abono.monto_qr || 0)) * 100) / 100
@@ -641,6 +661,27 @@ export default {
         this.descargandoExcel = false
       }
     },
+    // Las bajas del mismo rango de entrega que se ve en pantalla, con sus montos.
+    async excelBajas () {
+      this.descargandoBajas = true
+      const conRango = this.bajasDesde && this.bajasHasta
+      try {
+        const { data } = await this.$api.get('creditos/excel-bajas', {
+          params: conRango ? { desde: this.bajasDesde, hasta: this.bajasHasta } : {},
+          responseType: 'blob'
+        })
+        const url = URL.createObjectURL(data)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = 'BAJAS ' + (conRango ? (this.bajasDesde === this.bajasHasta ? this.bajasDesde : this.bajasDesde + ' a ' + this.bajasHasta) : 'TODAS') + '.xlsx'
+        a.click()
+        URL.revokeObjectURL(url)
+      } catch (e) {
+        this.$q.notify({ type: 'negative', message: 'No se pudo generar el Excel de bajas' })
+      } finally {
+        this.descargandoBajas = false
+      }
+    },
     // Hoja de deposito: cobros del rango por dia y por boleta, con totales.
     async excelCobros () {
       const { desde, hasta } = this.rangoCobros
@@ -721,7 +762,9 @@ export default {
       this.cargando = true
       this.error = ''
       try {
-        const { data } = await this.$api.get('creditos/resumen')
+        // Las bajas solo de un rango de entrega cuando se eligieron las dos fechas.
+        const params = this.bajasDesde && this.bajasHasta ? { bajas_desde: this.bajasDesde, bajas_hasta: this.bajasHasta } : {}
+        const { data } = await this.$api.get('creditos/resumen', { params })
         this.clientes = data.clientes
         this.totales = data.totales
       } catch (e) {
