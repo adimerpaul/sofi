@@ -27,6 +27,16 @@
           <q-tooltip>Cabeceras de los pedidos {{ (tipos.find(t => t.value === tipo) || {}).label }} del día (PDF carta)</q-tooltip>
         </q-btn>
       </div>
+      <!-- Todos los tipos del dia en un solo libro: resumen y una hoja por
+           tipo, sin importar el tipo elegido en el filtro. -->
+      <div class="col-auto">
+        <q-btn
+          unelevated dense padding="6px 10px" color="green-8" icon="grid_on" no-caps label="Excel"
+          :loading="exportando" :disable="!fecha" @click="descargarExcel"
+        >
+          <q-tooltip>Todos los pedidos del día en Excel (pollo, embutidos, cerdo, res, podium y huevo)</q-tooltip>
+        </q-btn>
+      </div>
       <div class="col-auto">
         <q-btn flat dense padding="6px 8px" color="primary" icon="request_quote" to="/facturacion">
           <q-tooltip>Ver facturación</q-tooltip>
@@ -286,6 +296,7 @@ export default {
       cargando: false,
       consultaActual: 0,
       imprimiendo: null,
+      exportando: false,
       pedidos: [],
       tipos: [
         { label: 'Embutidos', value: 'NORMAL' },
@@ -456,6 +467,32 @@ export default {
       }).finally(() => {
         if (consulta === this.consultaActual) this.cargando = false
       })
+    },
+    // Va por $api (con el token) y se baja como blob: el enlace directo no
+    // lleva la sesion.
+    descargarExcel () {
+      this.exportando = true
+      this.$api.get('facturacion/pedidos-excel', { params: { fecha: this.fecha }, responseType: 'blob' })
+        .then(res => {
+          const url = window.URL.createObjectURL(new Blob([res.data], {
+            type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+          }))
+          const enlace = document.createElement('a')
+          enlace.href = url
+          enlace.download = 'pedidos_' + this.fecha + '.xlsx'
+          enlace.click()
+          window.URL.revokeObjectURL(url)
+        })
+        .catch(async err => {
+          let mensaje = null
+          if (err.response?.data instanceof Blob) {
+            try {
+              mensaje = JSON.parse(await err.response.data.text()).message
+            } catch (e) { mensaje = null }
+          }
+          this.$q.notify({ type: 'negative', position: 'top', message: mensaje || 'No se pudo generar el Excel' })
+        })
+        .finally(() => { this.exportando = false })
     },
     revisar (pedido) {
       // Fecha y camion viajan en la query para que el boton volver del detalle

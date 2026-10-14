@@ -1015,6 +1015,17 @@ class FacturacionController extends Controller
             'buscar' => 'nullable|string|max:100',
         ]);
 
+        return $this->pedidosDelDia($datos['fecha'], $datos['tipo'], $datos['buscar'] ?? '');
+    }
+
+    /**
+     * Lo que lista la pantalla de pedidos por facturar para un dia de entrega
+     * y un tipo. Lo usan la pantalla y el Excel del dia, que deben coincidir.
+     */
+    private function pedidosDelDia($fecha, $tipo, $buscar = '')
+    {
+        $datos = ['fecha' => $fecha, 'tipo' => $tipo, 'buscar' => $buscar];
+
         $query = DB::table('tbpedidos as p')
             ->whereNull('p.deleted_at')
             ->leftJoin('tbclientes as c', 'c.Cod_Aut', '=', 'p.idCli')
@@ -1155,6 +1166,383 @@ class FacturacionController extends Controller
             $pedido->anulada_total = $anulada ? (float) $anulada->total : null;
             return $pedido;
         });
+    }
+
+    /** Hojas del Excel de pedidos del dia, en orden: tipo => [nombre, color]. */
+    const HOJAS_EXCEL_PEDIDOS = [
+        'POLLO'  => ['Pollo', 'E65100'],
+        'NORMAL' => ['Embutidos', 'C62828'],
+        'CERDO'  => ['Cerdo', 'AD1457'],
+        'RES'    => ['Res', '4E342E'],
+        'PODIUM' => ['Podium y Huevo', 'F9A825'],
+    ];
+
+    /**
+     * Todos los pedidos de un dia de entrega en un Excel: una hoja de resumen
+     * y una por tipo. Cada pedido va en una fila con su cliente y debajo sus
+     * productos, agrupados para poder plegarlos.
+     */
+    public function pedidosExcel(Request $request)
+    {
+        $datos = $request->validate(['fecha' => 'required|date']);
+        $fecha = $datos['fecha'];
+        $dia = date('d/m/Y', strtotime($fecha));
+        $empresa = config('siat.emisor')['nombre'] ?? 'Sofia';
+
+        $libro = new Spreadsheet();
+        $libro->getProperties()->setCreator($empresa)->setTitle('Pedidos ' . $dia);
+        $libro->getDefaultStyle()->getFont()->setName('Calibri')->setSize(10);
+        $resumen = $libro->getActiveSheet();
+        $resumen->setTitle('Resumen');
+
+        $porTipo = [];
+        foreach (self::HOJAS_EXCEL_PEDIDOS as $tipo => list($nombre, $color)) {
+            $porTipo[$tipo] = $this->pedidosDelDia($fecha, $tipo);
+            $hoja = $libro->createSheet();
+            $hoja->setTitle($nombre);
+            $hoja->getTabColor()->setRGB($color);
+            $this->hojaPedidosExcel($hoja, $porTipo[$tipo], 'PEDIDOS DE ' . mb_strtoupper($nombre), $color, $dia, $empresa);
+        }
+        $this->hojaResumenPedidos($resumen, $porTipo, $dia, $empresa);
+        $libro->setActiveSheetIndex(0);
+
+        $writer = new Xlsx($libro);
+        return response()->streamDownload(function () use ($writer) {
+            $writer->save('php://output');
+        }, 'pedidos_' . $fecha . '.xlsx', [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        ]);
+    }
+
+    /** Titulo, subtitulo y linea de cifras arriba de cada hoja. */
+    private function cabeceraHojaExcel($hoja, $titulo, $subtitulo, $cifras, $ultima, $color)
+    {
+        $hoja->mergeCells('A1:' . $ultima . '1')->setCellValue('A1', $titulo);
+        $hoja->mergeCells('A2:' . $ultima . '2')->setCellValue('A2', $subtitulo);
+        $hoja->mergeCells('A3:' . $ultima . '3')->setCellValue('A3', $cifras);
+        $hoja->getStyle('A1')->applyFromArray([
+            'font' => ['bold' => true, 'size' => 15, 'color' => ['rgb' => 'FFFFFF']],
+            'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => $color]],
+            'alignment' => ['vertical' => Alignment::VERTICAL_CENTER, 'indent' => 1],
+        ]);
+        $hoja->getRowDimension(1)->setRowHeight(28);
+        $hoja->getStyle('A2')->getFont()->setSize(9)->getColor()->setRGB('666666');
+        $hoja->getStyle('A3')->getFont()->setBold(true)->setSize(10)->getColor()->setRGB('37474F');
+    }
+
+    /** Encabezado de tabla: blanco sobre gris azulado, como los reportes PDF. */
+    private function encabezadoTablaExcel($hoja, $rango)
+    {
+        $hoja->getStyle($rango)->applyFromArray([
+            'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
+            'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => '37474F']],
+            'alignment' => [
+                'horizontal' => Alignment::HORIZONTAL_CENTER,
+                'vertical' => Alignment::VERTICAL_CENTER,
+                'wrapText' => true,
+            ],
+        ]);
+    }
+
+    private function hojaPedidosExcel($hoja, $pedidos, $titulo, $color, $dia, $empresa)
+    {
+        // [encabezado, ancho, formato numerico]
+        $columnas = [
+            ['Nro pedido', 10, null], ['Hora', 7, null], ['Cliente', 34, null], ['NIT / CI', 13, null],
+            ['Preventista', 24, null], ['Camión', 11, null], ['Comprob.', 9, null], ['Pago', 10, null],
+            ['Estado', 19, null], ['Código', 10, null], ['Producto', 34, null],
+            ['Cantidad', 10, '#,##0.###'], ['Unidad', 8, null], ['Precio Bs', 10, '#,##0.00'],
+            ['Subtotal Bs', 12, '#,##0.00'], ['Total pedido Bs', 14, '#,##0.00'], ['Observaciones', 50, null],
+        ];
+        $ultima = Coordinate::stringFromColumnIndex(count($columnas));
+
+        $facturados = $pedidos->filter(function ($p) { return $p->factura_id; })->count();
+        $total = $pedidos->sum(function ($p) { return (float) $p->total_pedido; });
+        $this->cabeceraHojaExcel(
+            $hoja, $titulo,
+            $empresa . ' · Entrega del ' . $dia . ' · generado el ' . date('d/m/Y H:i'),
+            'Pedidos: ' . $pedidos->count() . '   ·   Facturados: ' . $facturados
+                . '   ·   Pendientes: ' . ($pedidos->count() - $facturados)
+                . '   ·   Total: Bs ' . number_format($total, 2, '.', ','),
+            $ultima, $color
+        );
+
+        foreach ($columnas as $i => list($etiqueta, $ancho)) {
+            $letra = Coordinate::stringFromColumnIndex($i + 1);
+            $hoja->setCellValue($letra . '5', $etiqueta);
+            $hoja->getColumnDimension($letra)->setWidth($ancho);
+        }
+        $this->encabezadoTablaExcel($hoja, 'A5:' . $ultima . '5');
+        $hoja->getRowDimension(5)->setRowHeight(22);
+
+        $fila = 6;
+        if ($pedidos->isEmpty()) {
+            $hoja->mergeCells('A6:' . $ultima . '6')->setCellValue('A6', 'No hay pedidos para esta fecha');
+            $hoja->getStyle('A6')->getFont()->setItalic(true)->getColor()->setRGB('888888');
+            $hoja->getStyle('A6')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+            return;
+        }
+
+        // Los productos van debajo de su pedido y el grupo se pliega desde arriba.
+        $hoja->setShowSummaryBelow(false);
+        $filasPedido = [];
+        foreach ($pedidos as $pedido) {
+            $detalle = $pedido->detalle_pollo ?? ['observaciones' => [], 'productos' => [], 'datos' => []];
+            $notas = collect($detalle['observaciones'])->merge(
+                collect($detalle['datos'])
+                    // Hora, pago y factura ya tienen su columna.
+                    ->filter(function ($d) {
+                        return $d['valor'] !== '' && $d['valor'] !== '—'
+                            && !in_array($d['etiqueta'], ['Hora pedido', 'Pago', 'Factura'], true);
+                    })
+                    ->map(function ($d) { return $d['etiqueta'] . ': ' . $d['valor']; })
+            )->implode(' · ');
+            $items = $pedido->items ?? collect();
+            $productos = collect($detalle['productos']);
+
+            $hoja->fromArray([
+                $pedido->nro_pedido, substr((string) $pedido->fecha, 11, 5), $pedido->cliente ?: 'Sin cliente',
+                (string) ($pedido->nit ?: ''), $pedido->vendedor ?: 'Sin preventista', $pedido->placa ?: 'Sin camión',
+                $this->comprobanteExcel($pedido), $this->pagoExcel($pedido), $this->estadoExcel($pedido),
+                null, $this->cuantosProductos($items->count() + $productos->count()), null, null, null, null,
+                (float) $pedido->total_pedido, $notas,
+            ], null, 'A' . $fila, true);
+            $hoja->getCell('D' . $fila)->setValueExplicit((string) ($pedido->nit ?: ''), \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
+            $hoja->getStyle('A' . $fila . ':' . $ultima . $fila)->applyFromArray([
+                'font' => ['bold' => true],
+                'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'ECEFF1']],
+                'borders' => ['top' => ['borderStyle' => Border::BORDER_THIN, 'color' => ['rgb' => '90A4AE']]],
+            ]);
+            $this->pintarCeldaExcel($hoja, 'F' . $fila, $this->hexColor($pedido->placa_color));
+            $this->pintarCeldaExcel($hoja, 'I' . $fila, $pedido->factura_id ? '2E7D32' : ($pedido->borrador ? 'FF8F00' : 'EF6C00'));
+            $this->pintarCeldaExcel($hoja, 'H' . $fila, strpos($this->pagoExcel($pedido), 'CR') === 0 ? 'D84315' : null);
+            $filasPedido[] = $fila;
+            $fila++;
+
+            foreach ($items as $item) {
+                $hoja->fromArray([
+                    $pedido->nro_pedido, null, $pedido->cliente, null, null, null, null, null, null,
+                    $item->cod_prod, $item->nombre, $item->cantidad, null, $item->precio, $item->total,
+                ], null, 'A' . $fila, true);
+                $hoja->getCell('J' . $fila)->setValueExplicit((string) $item->cod_prod, \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
+                $this->filaProductoExcel($hoja, $fila, $ultima, null);
+                $fila++;
+            }
+            // Lo que cargo el preventista de pollo/cerdo/res en sus columnas propias.
+            foreach ($productos as $producto) {
+                $hoja->fromArray([
+                    $pedido->nro_pedido, null, $pedido->cliente, null, null, null, null, null, null,
+                    'Preventista', $producto['nombre'], $producto['cantidad'], $producto['unidad'],
+                    $producto['precio'] ?: null, null, null, $producto['observacion'] ?: null,
+                ], null, 'A' . $fila, true);
+                $this->filaProductoExcel($hoja, $fila, $ultima, 'FFF3E0');
+                $fila++;
+            }
+        }
+        $ultimaDato = $fila - 1;
+
+        $hoja->setCellValue('A' . $fila, 'TOTAL');
+        $hoja->setCellValue('C' . $fila, $pedidos->count() . ' pedidos');
+        $hoja->setCellValue('P' . $fila, '=SUM(P6:P' . $ultimaDato . ')');
+        $hoja->getStyle('A' . $fila . ':' . $ultima . $fila)->applyFromArray([
+            'font' => ['bold' => true, 'size' => 11, 'color' => ['rgb' => 'FFFFFF']],
+            'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => '37474F']],
+        ]);
+
+        foreach ($columnas as $i => list($etiqueta, $ancho, $formato)) {
+            if ($formato) {
+                $letra = Coordinate::stringFromColumnIndex($i + 1);
+                $hoja->getStyle($letra . '6:' . $letra . $fila)->getNumberFormat()->setFormatCode($formato);
+            }
+        }
+        $hoja->getStyle('A5:' . $ultima . $fila)->getBorders()->getAllBorders()
+            ->setBorderStyle(Border::BORDER_HAIR)->getColor()->setRGB('BDBDBD');
+        $hoja->getStyle('A6:' . $ultima . $fila)->getAlignment()->setVertical(Alignment::VERTICAL_TOP);
+        $hoja->getStyle('Q6:Q' . $fila)->getAlignment()->setWrapText(true);
+        $hoja->getStyle('C6:C' . $fila)->getAlignment()->setWrapText(true);
+        $hoja->getStyle('A6:B' . $fila)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+        $hoja->getStyle('F6:I' . $fila)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+
+        $hoja->freezePane('D6');
+        $hoja->setAutoFilter('A5:' . $ultima . $ultimaDato);
+        $this->impresionHojaExcel($hoja, 5);
+    }
+
+    private function cuantosProductos($cantidad)
+    {
+        return $cantidad . ($cantidad === 1 ? ' producto' : ' productos');
+    }
+
+    /** Fila de un producto: letra gris para nro/cliente, nivel 1 del grupo. */
+    private function filaProductoExcel($hoja, $fila, $ultima, $fondo)
+    {
+        $hoja->getStyle('A' . $fila . ':C' . $fila)->getFont()->setSize(8)->getColor()->setRGB('9E9E9E');
+        if ($fondo) {
+            $hoja->getStyle('J' . $fila . ':' . $ultima . $fila)->getFill()
+                ->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB($fondo);
+        }
+        $hoja->getStyle('K' . $fila)->getAlignment()->setIndent(1);
+        $hoja->getRowDimension($fila)->setOutlineLevel(1);
+    }
+
+    private function hojaResumenPedidos($hoja, array $porTipo, $dia, $empresa)
+    {
+        $todos = collect($porTipo)->flatten(1);
+        $this->cabeceraHojaExcel(
+            $hoja, 'PEDIDOS DEL DÍA ' . $dia,
+            $empresa . ' · generado el ' . date('d/m/Y H:i'),
+            'Pedidos: ' . $todos->count() . '   ·   Total: Bs '
+                . number_format($todos->sum(function ($p) { return (float) $p->total_pedido; }), 2, '.', ','),
+            'I', '37474F'
+        );
+
+        // Por tipo de pedido.
+        $hoja->fromArray(['Tipo', 'Pedidos', 'Facturados', 'Pendientes', 'Contado', 'Crédito', 'QR', 'Total Bs', '% facturado'], null, 'A5', true);
+        $this->encabezadoTablaExcel($hoja, 'A5:I5');
+        $fila = 6;
+        foreach (self::HOJAS_EXCEL_PEDIDOS as $tipo => list($nombre, $color)) {
+            $pedidos = $porTipo[$tipo];
+            $pago = function ($texto) use ($pedidos) {
+                return $pedidos->filter(function ($p) use ($texto) { return $this->pagoExcel($p) === $texto; })->count();
+            };
+            $facturados = $pedidos->filter(function ($p) { return $p->factura_id; })->count();
+            $hoja->fromArray([
+                $nombre, $pedidos->count(), $facturados, $pedidos->count() - $facturados,
+                $pago('CONTADO'), $pago('CRÉDITO'), $pago('QR'),
+                round($pedidos->sum(function ($p) { return (float) $p->total_pedido; }), 2),
+                '=IF(B' . $fila . '=0,0,C' . $fila . '/B' . $fila . ')',
+            ], null, 'A' . $fila, true);
+            $this->pintarCeldaExcel($hoja, 'A' . $fila, $color);
+            $fila++;
+        }
+        $hoja->setCellValue('A' . $fila, 'TOTAL');
+        foreach (['B', 'C', 'D', 'E', 'F', 'G', 'H'] as $letra) {
+            $hoja->setCellValue($letra . $fila, '=SUM(' . $letra . '6:' . $letra . ($fila - 1) . ')');
+        }
+        $hoja->setCellValue('I' . $fila, '=IF(B' . $fila . '=0,0,C' . $fila . '/B' . $fila . ')');
+        $this->filaTotalExcel($hoja, 'A' . $fila . ':I' . $fila);
+        $hoja->getStyle('H6:H' . $fila)->getNumberFormat()->setFormatCode('#,##0.00');
+        $hoja->getStyle('I6:I' . $fila)->getNumberFormat()->setFormatCode('0%');
+        $hoja->getStyle('A5:I' . $fila)->getBorders()->getAllBorders()
+            ->setBorderStyle(Border::BORDER_THIN)->getColor()->setRGB('BDBDBD');
+        $hoja->getStyle('B6:I' . $fila)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+        $hoja->getStyle('H6:H' . $fila)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
+
+        // Por camion: cuantos pedidos de cada tipo lleva y por cuanto.
+        $inicio = $fila + 3;
+        $hoja->setCellValue('A' . ($inicio - 1), 'PEDIDOS POR CAMIÓN');
+        $hoja->getStyle('A' . ($inicio - 1))->getFont()->setBold(true)->setSize(12)->getColor()->setRGB('37474F');
+        $nombres = collect(self::HOJAS_EXCEL_PEDIDOS)->map(function ($h) { return $h[0]; })->values()->all();
+        $hoja->fromArray(array_merge(['Camión'], $nombres, ['Total pedidos', 'Total Bs']), null, 'A' . $inicio, true);
+        $this->encabezadoTablaExcel($hoja, 'A' . $inicio . ':H' . $inicio);
+
+        $camiones = [];
+        foreach ($porTipo as $tipo => $pedidos) {
+            foreach ($pedidos as $p) {
+                $placa = trim((string) $p->placa) ?: 'Sin camión';
+                if (!isset($camiones[$placa])) {
+                    $camiones[$placa] = ['color' => null, 'tipos' => array_fill_keys(array_keys(self::HOJAS_EXCEL_PEDIDOS), 0), 'total' => 0];
+                }
+                $camiones[$placa]['color'] = $camiones[$placa]['color'] ?: $this->hexColor($p->placa_color);
+                $camiones[$placa]['tipos'][$tipo]++;
+                $camiones[$placa]['total'] += (float) $p->total_pedido;
+            }
+        }
+        uksort($camiones, function ($a, $b) {
+            if ($a === 'Sin camión') return 1;
+            if ($b === 'Sin camión') return -1;
+            return strcmp($a, $b);
+        });
+
+        $fila = $inicio + 1;
+        foreach ($camiones as $placa => $camion) {
+            $hoja->fromArray(array_merge(
+                [$placa], array_values($camion['tipos']),
+                ['=SUM(B' . $fila . ':F' . $fila . ')', round($camion['total'], 2)]
+            ), null, 'A' . $fila, true);
+            $this->pintarCeldaExcel($hoja, 'A' . $fila, $camion['color']);
+            $fila++;
+        }
+        $hoja->setCellValue('A' . $fila, 'TOTAL');
+        foreach (['B', 'C', 'D', 'E', 'F', 'G', 'H'] as $letra) {
+            $hoja->setCellValue($letra . $fila, '=SUM(' . $letra . ($inicio + 1) . ':' . $letra . ($fila - 1) . ')');
+        }
+        $this->filaTotalExcel($hoja, 'A' . $fila . ':H' . $fila);
+        $hoja->getStyle('H' . ($inicio + 1) . ':H' . $fila)->getNumberFormat()->setFormatCode('#,##0.00');
+        $hoja->getStyle('A' . $inicio . ':H' . $fila)->getBorders()->getAllBorders()
+            ->setBorderStyle(Border::BORDER_THIN)->getColor()->setRGB('BDBDBD');
+        $hoja->getStyle('B' . ($inicio + 1) . ':G' . $fila)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+
+        $hoja->getColumnDimension('A')->setWidth(18);
+        foreach (['B', 'C', 'D', 'E', 'F', 'G', 'I'] as $letra) {
+            $hoja->getColumnDimension($letra)->setWidth(13);
+        }
+        $hoja->getColumnDimension('H')->setWidth(15);
+        $this->impresionHojaExcel($hoja, null);
+    }
+
+    private function filaTotalExcel($hoja, $rango)
+    {
+        $hoja->getStyle($rango)->applyFromArray([
+            'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
+            'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => '37474F']],
+        ]);
+    }
+
+    /** Carta horizontal, a lo ancho de una pagina, con el encabezado repetido. */
+    private function impresionHojaExcel($hoja, $filaEncabezado)
+    {
+        $pagina = $hoja->getPageSetup();
+        $pagina->setOrientation(\PhpOffice\PhpSpreadsheet\Worksheet\PageSetup::ORIENTATION_LANDSCAPE)
+            ->setPaperSize(\PhpOffice\PhpSpreadsheet\Worksheet\PageSetup::PAPERSIZE_LETTER)
+            ->setFitToWidth(1)->setFitToHeight(0);
+        if ($filaEncabezado) {
+            $pagina->setRowsToRepeatAtTopByStartAndEnd($filaEncabezado, $filaEncabezado);
+        }
+        $hoja->getPageMargins()->setTop(0.4)->setBottom(0.5)->setLeft(0.3)->setRight(0.3);
+        $hoja->getHeaderFooter()->setOddFooter('&L&8&A&R&8Página &P de &N');
+    }
+
+    /** Fondo de color con letra blanca o negra segun lo claro que sea. */
+    private function pintarCeldaExcel($hoja, $celda, $hex)
+    {
+        if (!$hex) return;
+        $valor = hexdec($hex);
+        $luz = (0.299 * (($valor >> 16) & 255) + 0.587 * (($valor >> 8) & 255) + 0.114 * ($valor & 255)) / 255;
+        $hoja->getStyle($celda)->applyFromArray([
+            'font' => ['bold' => true, 'color' => ['rgb' => $luz > 0.6 ? '212121' : 'FFFFFF']],
+            'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => $hex]],
+        ]);
+    }
+
+    /** colorStyle viene como 'background-color: #RRGGBB'. */
+    private function hexColor($estilo)
+    {
+        return preg_match('/#([0-9a-f]{6})/i', (string) $estilo, $m) ? strtoupper($m[1]) : null;
+    }
+
+    // Mismas reglas que las tarjetas de PedidosFactura.vue: antes de cobrar
+    // manda lo que pidio el preventista; ya emitido, lo que salio.
+    private function comprobanteExcel($pedido)
+    {
+        if ($pedido->factura_id) return $pedido->comprobante_emitido === 'FACTURA' ? 'Factura' : 'Recibo';
+        return strtoupper(trim((string) $pedido->fact)) === 'SI' ? 'Factura' : 'Recibo';
+    }
+
+    private function pagoExcel($pedido)
+    {
+        $valor = strtoupper((string) ($pedido->factura_id ? $pedido->pago_emitido : $pedido->pago));
+        if (strpos($valor, 'CR') !== false) return 'CRÉDITO';
+        if (strpos($valor, 'QR') !== false) return 'QR';
+        return 'CONTADO';
+    }
+
+    private function estadoExcel($pedido)
+    {
+        if ($pedido->factura_id) return 'LISTO · ' . $pedido->comprobante_emitido . ' #' . $pedido->factura_id;
+        if (!empty($pedido->borrador)) return 'GUARDADO';
+        if (!empty($pedido->anulada_id)) return 'RECUPERABLE';
+        return 'PENDIENTE';
     }
 
     /** Cabecera y productos editables de un pedido concreto. */
@@ -2642,12 +3030,35 @@ class FacturacionController extends Controller
         ]);
     }
 
+    /**
+     * La razon de verdad de una anulacion, para la oficina. El motivo de
+     * Impuestos es uno de cuatro fijos y no explica nada; este es opcional.
+     */
+    const MOTIVOS_ANULACION_INTERNOS = [
+        'CALIDAD DE PRODUCTO',
+        'CANCELO PEDIDO EL CLIENTE/VENDEDOR',
+        'CERRADO - NO CONTESTA',
+        'ERROR DE DIGITACION',
+        'FECHA PRONTO A VENCER',
+        'NO QUISO',
+        'NO RECOGIO',
+        'NO TIENE DINERO',
+        'PEDIDO INCORRECTO VENTAS',
+        'PEDIDO INCORRECTO DESPACHOS',
+        'TARDE',
+        'ERROR DE PRECIO',
+        'MERMA',
+        'LOCAL NO UBICADO',
+        'NO HAY SALIDAS A PROVINCIA',
+        'BLOQUEOS',
+    ];
+
     public function anular(Request $request, $id)
     {
         $datos = $request->validate([
             'codigo_motivo' => 'required|integer|between:1,4',
             // Por que se anulo, en palabras de quien lo hizo. Puede ir vacio.
-            'observacion'   => 'nullable|string|max:255',
+            'observacion'   => 'nullable|string|in:' . implode(',', self::MOTIVOS_ANULACION_INTERNOS),
         ]);
 
         $motivos = [
@@ -2720,7 +3131,9 @@ class FacturacionController extends Controller
             $factura->update([
                 'estado'                => 'ANULADO',
                 'motivo_anulacion'      => $motivos[$datos['codigo_motivo']],
+                'anulacion_observacion' => $observacion !== '' ? $observacion : null,
                 'anulado_at'            => now(),
+                'anulado_por'           => $usuario->CodAut ?? null,
             ]);
         });
 
@@ -3938,26 +4351,610 @@ class FacturacionController extends Controller
      * de la que pedia el pedido, que es lo que no se puede reconstruir mirando
      * la factura sola.
      */
+    /**
+     * Reporte general de los comprobantes del filtro en Excel plano: cada
+     * comprobante (activos y anulados) con su pedido, camion, cliente, quien
+     * lo cobro y quien lo anulo, de que comprobante salio (padre) y cual lo
+     * reemplazo (hijo), y una hoja con una fila por producto para filtrar.
+     *
+     * El filtro de estado se ignora: lo anulado tiene que salir siempre para
+     * poder seguir las cadenas de refacturacion.
+     */
+    public function reporteGeneral(Request $request)
+    {
+        @ini_set('memory_limit', '1024M');
+        @set_time_limit(300);
+
+        $request->merge(['estado' => '']);
+        $facturas = $this->filtrar($request)->reorder('id')->get();
+        if ($facturas->isEmpty()) {
+            return response()->json(['message' => 'No hay comprobantes en este filtro'], 422);
+        }
+
+        $cadenas = $this->cadenasFacturas($facturas);
+        $comprobantes = $this->filasGeneralComprobantes($facturas, $cadenas);
+        $empresa = config('siat.emisor')['nombre'] ?? 'Sofia';
+        list(, $rango) = $this->tituloReporte('ventas', $request);
+        $subtitulo = $empresa . ' · ' . $rango . ' · generado el ' . date('d/m/Y H:i');
+
+        $libro = new Spreadsheet();
+        $libro->getProperties()->setCreator($empresa)->setTitle('Reporte general de comprobantes');
+        $libro->getDefaultStyle()->getFont()->setName('Calibri')->setSize(10);
+
+        $resumen = $libro->getActiveSheet();
+        $resumen->setTitle('Resumen');
+        $this->hojaGeneralResumen($resumen, $comprobantes, $subtitulo);
+
+        $columnas = $this->columnasGeneralComprobante();
+        $hoja = $libro->createSheet();
+        $hoja->setTitle('Comprobantes');
+        $hoja->getTabColor()->setRGB('1565C0');
+        $this->tablaGeneralExcel($hoja, 'COMPROBANTES (UNA FILA POR BOLETA / FACTURA)', $subtitulo,
+            $columnas, $comprobantes, '1565C0',
+            ['efectivo', 'qr', 'subtotal', 'descuento', 'total', 'total_vigente'],
+            '"Total vigente" no suma lo anulado. El total de la fila final sigue a los filtros.');
+
+        $hoja = $libro->createSheet();
+        $hoja->setTitle('Productos (plano)');
+        $hoja->getTabColor()->setRGB('2E7D32');
+        $this->tablaGeneralExcel($hoja, 'DETALLE PLANO: UNA FILA POR PRODUCTO DE CADA COMPROBANTE', $subtitulo,
+            array_merge($columnas, $this->columnasGeneralProducto()),
+            $this->filasGeneralProductos($facturas, $comprobantes), '2E7D32',
+            ['importe', 'importe_vigente'],
+            'Los datos de la boleta se repiten en cada producto: para montos sume "Importe" o "Importe vigente", no "Total".');
+
+        $hoja = $libro->createSheet();
+        $hoja->setTitle('Padres e hijos');
+        $hoja->getTabColor()->setRGB('6A1B9A');
+        $this->hojaGeneralCadenas($hoja, $cadenas, $comprobantes, $subtitulo);
+
+        $libro->setActiveSheetIndex(0);
+        $writer = new Xlsx($libro);
+        return response()->streamDownload(function () use ($writer) {
+            $writer->save('php://output');
+        }, 'reporte_general_' . date('Y-m-d') . '.xlsx', [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        ]);
+    }
+
+    /**
+     * Padre e hijos de cada comprobante, mirando tambien los que quedan fuera
+     * del filtro (el original de una cadena puede ser de otro dia).
+     *
+     * - Retorno parcial: el hijo guarda de cual salio en factura_origen_id.
+     * - Refacturado (editar = anular y reemitir): el padre es la ultima venta
+     *   anulada del mismo pedido emitida antes, como en ModificacionFactura.
+     *
+     * Devuelve [id => datos] con padre, hijos, raiz, version y motivo.
+     */
+    private function cadenasFacturas($facturas)
+    {
+        $nros = $facturas->pluck('pedido_nro')->filter()->unique()->values()->all();
+        $ids = $facturas->pluck('id')->all();
+        $origenes = $facturas->pluck('factura_origen_id')->filter()->unique()->values()->all();
+
+        $todas = Factura::query()
+            ->where(function ($w) use ($nros, $ids, $origenes) {
+                $w->whereIn('pedido_nro', $nros)
+                    ->orWhereIn('factura_origen_id', $ids)
+                    ->orWhereIn('id', $origenes);
+            })
+            ->orderBy('id')
+            ->get(['id', 'nro_factura', 'pedido_nro', 'pedido_tipo', 'estado', 'factura_origen_id',
+                'tipo_comprobante', 'tipo_pago', 'fecha', 'hora', 'nombre', 'total', 'motivo_anulacion',
+                'anulacion_observacion', 'modificacion_campos'])
+            ->keyBy('id');
+        // Las del filtro ya vienen completas; se quedan esas.
+        foreach ($facturas as $f) {
+            $todas[$f->id] = $f;
+        }
+        $todas = $todas->sortKeys();
+
+        $nodos = [];
+        foreach ($todas as $f) {
+            $nodos[$f->id] = ['factura' => $f, 'padre' => null, 'motivo' => null, 'hijos' => []];
+        }
+        $anuladasPorPedido = [];
+        foreach ($todas as $f) {
+            $padre = null;
+            $motivo = null;
+            if ($f->factura_origen_id && isset($nodos[$f->factura_origen_id])) {
+                $padre = $f->factura_origen_id;
+                $motivo = 'RETORNO PARCIAL';
+            } elseif ($f->pedido_nro) {
+                $clave = $f->pedido_nro . '|' . strtoupper(trim((string) $f->pedido_tipo));
+                // Recorre en orden de id: la ultima anulada vista es la anterior.
+                if (!empty($anuladasPorPedido[$clave])) {
+                    $padre = $anuladasPorPedido[$clave];
+                    $motivo = 'REFACTURADO';
+                }
+            }
+            if ($padre && $padre !== $f->id) {
+                $nodos[$f->id]['padre'] = $padre;
+                $nodos[$f->id]['motivo'] = $motivo;
+                $nodos[$padre]['hijos'][] = $f->id;
+            }
+            if ($f->pedido_nro && $f->estado === 'ANULADO') {
+                $anuladasPorPedido[$f->pedido_nro . '|' . strtoupper(trim((string) $f->pedido_tipo))] = $f->id;
+            }
+        }
+
+        foreach ($nodos as $id => $nodo) {
+            $raiz = $id;
+            $version = 1;
+            $vistos = [$id => true];
+            while (($padre = $nodos[$raiz]['padre']) && !isset($vistos[$padre])) {
+                $vistos[$padre] = true;
+                $raiz = $padre;
+                $version++;
+            }
+            $nodos[$id]['raiz'] = $raiz;
+            $nodos[$id]['version'] = $version;
+        }
+
+        return $nodos;
+    }
+
+    /** Texto de la relacion de un comprobante dentro de su cadena. */
+    private function relacionCadena(array $nodo)
+    {
+        if (!$nodo['padre']) {
+            return $nodo['hijos'] ? 'PADRE (ORIGINAL)' : 'ÚNICO';
+        }
+        return ($nodo['hijos'] ? 'HIJO Y PADRE · ' : 'HIJO · ') . $nodo['motivo'];
+    }
+
+    private function columnasGeneralComprobante()
+    {
+        // [encabezado, clave, ancho, formato]
+        return [
+            ['ID venta', 'id', 9, '0'], ['Nro factura', 'nro_factura', 10, null],
+            ['Comprobante', 'comprobante', 11, null], ['Estado', 'estado', 10, null],
+            ['Vigente', 'vigente', 8, null], ['Estado SIAT', 'estado_siat', 12, null],
+            ['Fecha', 'fecha', 11, 'dd/mm/yyyy'], ['Hora', 'hora', 7, null],
+            ['Fecha entrega', 'fecha_entrega', 11, 'dd/mm/yyyy'],
+            ['Nro pedido', 'pedido', 10, null], ['Tipo pedido', 'pedido_tipo', 14, null],
+            ['Fecha/hora pedido', 'pedido_fecha', 16, null],
+            ['Camión', 'camion', 12, null], ['Cliente', 'cliente', 32, null], ['NIT / CI', 'nit', 13, null],
+            ['Cliente en sistema', 'cliente_sistema', 30, null], ['Zona', 'zona', 14, null],
+            ['Canal', 'canal', 12, null], ['Preventista', 'preventista', 24, null],
+            ['Cobrado por', 'usuario', 20, null], ['Pago', 'pago', 10, null],
+            ['Efectivo Bs', 'efectivo', 11, '#,##0.00'], ['QR Bs', 'qr', 10, '#,##0.00'],
+            ['Subtotal Bs', 'subtotal', 11, '#,##0.00'], ['Descuento Bs', 'descuento', 11, '#,##0.00'],
+            ['Total Bs', 'total', 12, '#,##0.00'], ['Total vigente Bs', 'total_vigente', 13, '#,##0.00'],
+            ['Nro productos', 'lineas', 9, '0'],
+            ['Cadena (ID original)', 'cadena', 11, '0'], ['Versión', 'version', 8, '0'],
+            ['Relación', 'relacion', 28, null], ['Padre (ID)', 'padre', 10, '0'],
+            ['Hijo (ID)', 'hijo', 10, null], ['Qué cambió vs. el padre', 'cambio_padre', 40, null],
+            ['¿Cambió vs. pedido?', 'cambio_pedido', 10, null], ['Cambios vs. pedido', 'cambios_pedido', 40, null],
+            ['Anulado el', 'anulado_at', 16, null], ['Anulado por', 'anulado_por', 20, null],
+            ['Motivo anulación', 'motivo', 30, null], ['Observación', 'observacion', 30, null],
+            ['Entregado camión', 'entregado', 10, null], ['Impreso', 'impreso', 8, null],
+        ];
+    }
+
+    private function columnasGeneralProducto()
+    {
+        return [
+            ['Código', 'cod_prod', 10, null], ['Producto', 'producto', 34, null],
+            ['Familia', 'familia', 18, null], ['Subfamilia', 'subfamilia', 18, null],
+            ['Unidad', 'unidad', 8, null], ['Cant. pedida', 'cant_pedida', 10, '#,##0.###'],
+            ['Cantidad', 'cantidad', 10, '#,##0.###'], ['Peso bruto', 'peso_bruto', 10, '#,##0.###'],
+            ['Canastillos', 'canastillos', 9, '0'], ['Peso neto', 'peso', 10, '#,##0.###'],
+            ['Cant. cobrada', 'cobrada', 10, '#,##0.###'], ['Precio Bs', 'precio', 10, '#,##0.00'],
+            ['Importe Bs', 'importe', 12, '#,##0.00'], ['Importe vigente Bs', 'importe_vigente', 13, '#,##0.00'],
+            ['¿Cambió vs. pedido?', 'linea_cambio', 10, null],
+        ];
+    }
+
+    private function filasGeneralComprobantes($facturas, array $cadenas)
+    {
+        $clientes = DB::table('tbclientes')
+            ->whereIn('Cod_Aut', $facturas->pluck('cliente_id')->filter()->unique()->values())
+            ->get(['Cod_Aut', DB::raw('TRIM(Nombres) as nombres'), DB::raw('TRIM(zona) as zona'), DB::raw('TRIM(Canal) as canal')])
+            ->keyBy('Cod_Aut');
+        $personal = DB::table('personal')
+            ->whereIn('CodAut', $facturas->pluck('user_id')->merge($facturas->pluck('anulado_por'))->filter()->unique()->values())
+            ->get(['CodAut', DB::raw("TRIM(CONCAT_WS(' ', NULLIF(TRIM(Nombre1), ''), NULLIF(TRIM(App1), ''))) as nombre")])
+            ->keyBy('CodAut');
+        $pedidos = DB::table('tbpedidos')
+            ->whereNull('deleted_at')
+            ->whereIn('NroPed', $facturas->pluck('pedido_nro')->filter()->unique()->values())
+            ->groupBy('NroPed')
+            ->get(['NroPed', DB::raw('MIN(fecha) as fecha')])
+            ->keyBy('NroPed');
+        $tipos = collect(self::HOJAS_EXCEL_PEDIDOS)->map(function ($h) { return $h[0]; });
+
+        $filas = [];
+        foreach ($facturas as $f) {
+            $nodo = $cadenas[$f->id];
+            $cliente = $clientes[$f->cliente_id] ?? null;
+            $activo = $f->estado !== 'ANULADO';
+            $vendedor = $f->vendedor
+                ? trim(preg_replace('/\s+/', ' ', implode(' ', [
+                    $f->vendedor->Nombre1, $f->vendedor->Nombre2, $f->vendedor->App1, $f->vendedor->Apm,
+                ])))
+                : '';
+            $tipoPedido = strtoupper(trim((string) $f->pedido_tipo));
+            $cambioPadre = $nodo['padre'] ? implode(' · ', (array) (($f->modificacion_campos ?? [])['resumen'] ?? [])) : '';
+            if ($nodo['padre'] && $nodo['motivo'] === 'RETORNO PARCIAL' && $cambioPadre === '') {
+                $cambioPadre = 'Retorno parcial: el cliente devolvió parte del pedido';
+            }
+
+            $filas[$f->id] = [
+                '_anulado'       => !$activo,
+                'id'             => $f->id,
+                'nro_factura'    => (string) ($f->nro_factura ?: ''),
+                'comprobante'    => $f->tipo_comprobante === 'FACTURA' ? 'FACTURA' : 'VOUCHER',
+                'estado'         => $f->estado,
+                'vigente'        => $activo ? 'SI' : 'NO',
+                'estado_siat'    => (string) $f->estado_siat,
+                'fecha'          => $this->fechaExcel($f->fecha),
+                'hora'           => substr((string) $f->hora, 0, 5),
+                'fecha_entrega'  => $this->fechaExcel($f->fecha_entrega),
+                'pedido'         => $f->pedido_nro ? (string) $f->pedido_nro : 'VENTA DIRECTA',
+                'pedido_tipo'    => $f->pedido_nro ? ($tipos[$tipoPedido] ?? $tipoPedido) : 'Venta directa',
+                'pedido_fecha'   => $f->pedido_nro && isset($pedidos[$f->pedido_nro])
+                    ? substr((string) $pedidos[$f->pedido_nro]->fecha, 0, 16) : '',
+                'camion'         => trim((string) $f->placa) ?: 'Sin camión',
+                'cliente'        => $f->nombre ?: 'Sin cliente',
+                'nit'            => (string) $f->nit,
+                'cliente_sistema'=> $cliente->nombres ?? '',
+                'zona'           => $cliente->zona ?? '',
+                'canal'          => $cliente->canal ?? '',
+                'preventista'    => $vendedor,
+                'usuario'        => $personal[$f->user_id]->nombre ?? '',
+                'pago'           => $f->tipo_pago,
+                'efectivo'       => (float) $f->monto_efectivo,
+                'qr'             => (float) $f->monto_qr,
+                'subtotal'       => (float) $f->subtotal,
+                'descuento'      => (float) $f->descuento,
+                'total'          => (float) $f->total,
+                'total_vigente'  => $activo ? (float) $f->total : 0,
+                'lineas'         => $f->detalles->count(),
+                'cadena'         => $nodo['raiz'],
+                'version'        => $nodo['version'],
+                'relacion'       => $this->relacionCadena($nodo),
+                'padre'          => $nodo['padre'],
+                'hijo'           => implode(', ', $nodo['hijos']),
+                'cambio_padre'   => $cambioPadre,
+                'cambio_pedido'  => $f->pedido_nro ? ($f->cambio_pedido ? 'SI' : 'NO') : '',
+                'cambios_pedido' => implode(' · ', (array) (($f->cambio_pedido_campos ?? [])['resumen'] ?? [])),
+                'anulado_at'     => $f->anulado_at ? $f->anulado_at->format('d/m/Y H:i') : '',
+                'anulado_por'    => $f->anulado_por ? ($personal[$f->anulado_por]->nombre ?? (string) $f->anulado_por) : '',
+                'motivo'         => trim((string) ($f->anulacion_observacion ?: $f->motivo_anulacion)),
+                'observacion'    => (string) $f->observacion,
+                'entregado'      => $f->entregado_camion ? 'SI' : 'NO',
+                'impreso'        => (int) $f->impreso_veces > 0 ? 'SI (' . (int) $f->impreso_veces . ')' : 'NO',
+            ];
+        }
+
+        return $filas;
+    }
+
+    private function filasGeneralProductos($facturas, array $comprobantes)
+    {
+        $codigos = $facturas->flatMap(function ($f) {
+            return $f->detalles->pluck('cod_prod');
+        })->map(function ($c) { return trim((string) $c); })->unique()->values();
+        $familias = DB::table('tbproductos as p')
+            ->leftJoin('tbgrupos as g', 'g.Cod_grup', '=', 'p.cod_grup')
+            ->leftJoin('tbgrupopadre as gp', 'gp.cod_grup', '=', 'g.Cod_pdr')
+            ->whereIn(DB::raw('TRIM(p.cod_prod)'), $codigos)
+            ->get([
+                DB::raw('TRIM(p.cod_prod) as cod_prod'),
+                DB::raw('TRIM(g.Descripcion) as familia'),
+                DB::raw('TRIM(gp.Descripcion) as subfamilia'),
+            ])
+            ->keyBy('cod_prod');
+
+        $filas = [];
+        foreach ($facturas as $f) {
+            $cabecera = $comprobantes[$f->id];
+            $detalles = $f->detalles->isEmpty() ? [null] : $f->detalles;
+            foreach ($detalles as $d) {
+                if (!$d) {
+                    $filas[] = $cabecera;
+                    continue;
+                }
+                $codigo = trim((string) $d->cod_prod);
+                $prod = $familias[$codigo] ?? null;
+                $pedida = $d->cantidad_pedida === null ? null : (float) $d->cantidad_pedida;
+                $filas[] = $cabecera + [
+                    'cod_prod'        => $codigo,
+                    'producto'        => $d->nombre,
+                    'familia'         => $prod->familia ?? '',
+                    'subfamilia'      => $prod->subfamilia ?? '',
+                    'unidad'          => $d->unidad,
+                    'cant_pedida'     => $pedida,
+                    'cantidad'        => (float) $d->cantidad,
+                    'peso_bruto'      => $d->peso_bruto === null ? null : (float) $d->peso_bruto,
+                    'canastillos'     => $d->canastillos,
+                    'peso'            => $d->peso === null ? null : (float) $d->peso,
+                    'cobrada'         => (float) $d->cantidad_facturada,
+                    'precio'          => (float) $d->precio,
+                    'importe'         => (float) $d->subtotal,
+                    'importe_vigente' => $cabecera['_anulado'] ? 0 : (float) $d->subtotal,
+                    'linea_cambio'    => $pedida === null ? '' : ($pedida == (float) $d->cantidad ? 'NO' : 'SI'),
+                ];
+            }
+        }
+
+        return $filas;
+    }
+
+    /** Fecha como numero de Excel, para que se pueda filtrar y ordenar. */
+    private function fechaExcel($fecha)
+    {
+        if (!$fecha) return null;
+        $ts = $fecha instanceof \DateTimeInterface ? $fecha->getTimestamp() : strtotime((string) $fecha);
+        return $ts ? \PhpOffice\PhpSpreadsheet\Shared\Date::PHPToExcel(date('Y-m-d', $ts)) : null;
+    }
+
+    /**
+     * Una tabla plana con titulo, encabezado fijo, filtros, totales y los
+     * anulados en rojo. $columnas: [encabezado, clave, ancho, formato].
+     */
+    private function tablaGeneralExcel($hoja, $titulo, $subtitulo, array $columnas, $filas, $color, array $sumables, $nota)
+    {
+        $ultima = Coordinate::stringFromColumnIndex(count($columnas));
+        $anulados = 0;
+        foreach ($filas as $fila) {
+            if ($fila['_anulado']) $anulados++;
+        }
+        $this->cabeceraHojaExcel($hoja, $titulo, $subtitulo,
+            'Filas: ' . count($filas) . '   ·   Anuladas (en rojo): ' . $anulados
+                . '   ·   ' . $nota,
+            $ultima, $color);
+
+        $claves = [];
+        foreach ($columnas as $i => list($etiqueta, $clave, $ancho)) {
+            $letra = Coordinate::stringFromColumnIndex($i + 1);
+            $hoja->setCellValue($letra . '5', $etiqueta);
+            $hoja->getColumnDimension($letra)->setWidth($ancho);
+            $claves[] = $clave;
+        }
+        $this->encabezadoTablaExcel($hoja, 'A5:' . $ultima . '5');
+        $hoja->getRowDimension(5)->setRowHeight(30);
+
+        // Textos que parecen numeros (NIT, nro de factura, codigo) van como texto.
+        $comoTexto = array_flip(['nro_factura', 'nit', 'pedido', 'cod_prod']);
+        $fila = 6;
+        foreach ($filas as $registro) {
+            $valores = [];
+            foreach ($claves as $clave) {
+                $valores[] = $registro[$clave] ?? null;
+            }
+            $hoja->fromArray($valores, null, 'A' . $fila, true);
+            foreach ($claves as $i => $clave) {
+                if (isset($comoTexto[$clave]) && ($registro[$clave] ?? '') !== '') {
+                    $hoja->getCellByColumnAndRow($i + 1, $fila)->setValueExplicit(
+                        (string) $registro[$clave], \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING
+                    );
+                }
+            }
+            if ($registro['_anulado']) {
+                $hoja->getStyle('A' . $fila . ':' . $ultima . $fila)->applyFromArray([
+                    'font' => ['color' => ['rgb' => 'B71C1C']],
+                    'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'FFEBEE']],
+                ]);
+            }
+            $fila++;
+        }
+        $ultimaDato = $fila - 1;
+
+        // Totales con SUBTOTAL: siguen lo que el usuario deja visible al filtrar.
+        $hoja->setCellValue('A' . $fila, 'TOTAL (filas visibles)');
+        foreach ($claves as $i => $clave) {
+            if (in_array($clave, $sumables, true)) {
+                $letra = Coordinate::stringFromColumnIndex($i + 1);
+                $hoja->setCellValue($letra . $fila, '=SUBTOTAL(109,' . $letra . '6:' . $letra . $ultimaDato . ')');
+            }
+        }
+        $this->filaTotalExcel($hoja, 'A' . $fila . ':' . $ultima . $fila);
+
+        foreach ($columnas as $i => $columna) {
+            if (!empty($columna[3])) {
+                $letra = Coordinate::stringFromColumnIndex($i + 1);
+                $hoja->getStyle($letra . '6:' . $letra . $fila)->getNumberFormat()->setFormatCode($columna[3]);
+            }
+        }
+        $hoja->getStyle('A5:' . $ultima . $fila)->getBorders()->getAllBorders()
+            ->setBorderStyle(Border::BORDER_HAIR)->getColor()->setRGB('BDBDBD');
+        $hoja->getStyle('A6:' . $ultima . $fila)->getAlignment()->setVertical(Alignment::VERTICAL_TOP);
+
+        $hoja->freezePane('C6');
+        $hoja->setAutoFilter('A5:' . $ultima . $ultimaDato);
+        $this->impresionHojaExcel($hoja, 5);
+    }
+
+    private function hojaGeneralResumen($hoja, array $comprobantes, $subtitulo)
+    {
+        $filas = collect($comprobantes);
+        $activas = $filas->where('_anulado', false);
+        $this->cabeceraHojaExcel($hoja, 'REPORTE GENERAL DE COMPROBANTES', $subtitulo,
+            'Comprobantes: ' . $filas->count() . '   ·   Vigentes: ' . $activas->count()
+                . '   ·   Anulados: ' . ($filas->count() - $activas->count()),
+            'F', '37474F');
+
+        $cifras = [
+            ['Comprobantes emitidos', $filas->count(), null],
+            ['Vigentes (activos)', $activas->count(), null],
+            ['Anulados', $filas->count() - $activas->count(), null],
+            ['Facturas vigentes', $activas->where('comprobante', 'FACTURA')->count(), null],
+            ['Vouchers vigentes', $activas->where('comprobante', 'VOUCHER')->count(), null],
+            ['Refacturados (hijos por edición)', $filas->filter(function ($f) { return strpos($f['relacion'], 'REFACTURADO') !== false; })->count(), null],
+            ['Retornos parciales (hijos)', $filas->filter(function ($f) { return strpos($f['relacion'], 'RETORNO PARCIAL') !== false; })->count(), null],
+            ['Ventas directas (sin pedido)', $filas->where('pedido', 'VENTA DIRECTA')->count(), null],
+            ['Total vigente Bs', round($activas->sum('total'), 2), '#,##0.00'],
+            ['Total anulado Bs', round($filas->where('_anulado', true)->sum('total'), 2), '#,##0.00'],
+            ['Vigente en efectivo Bs', round($activas->sum('efectivo'), 2), '#,##0.00'],
+            ['Vigente en QR Bs', round($activas->sum('qr'), 2), '#,##0.00'],
+        ];
+        $hoja->fromArray(['Indicador', 'Valor'], null, 'A5', true);
+        $this->encabezadoTablaExcel($hoja, 'A5:B5');
+        $fila = 6;
+        foreach ($cifras as list($etiqueta, $valor, $formato)) {
+            $hoja->fromArray([$etiqueta, $valor], null, 'A' . $fila, true);
+            if ($formato) $hoja->getStyle('B' . $fila)->getNumberFormat()->setFormatCode($formato);
+            $fila++;
+        }
+        $hoja->getStyle('A5:B' . ($fila - 1))->getBorders()->getAllBorders()
+            ->setBorderStyle(Border::BORDER_THIN)->getColor()->setRGB('BDBDBD');
+        $hoja->getStyle('A6:A' . ($fila - 1))->getFont()->setBold(true);
+
+        // Por camion y por tipo de pedido.
+        $fila += 2;
+        foreach ([['camion', 'POR CAMIÓN', 'Camión'], ['pedido_tipo', 'POR TIPO DE PEDIDO', 'Tipo de pedido']] as list($campo, $titulo, $encabezado)) {
+            $hoja->setCellValue('A' . $fila, $titulo);
+            $hoja->getStyle('A' . $fila)->getFont()->setBold(true)->setSize(12)->getColor()->setRGB('37474F');
+            $fila++;
+            $inicio = $fila;
+            $hoja->fromArray([$encabezado, 'Comprobantes', 'Vigentes', 'Anulados', 'Total vigente Bs', 'Total anulado Bs'], null, 'A' . $fila, true);
+            $this->encabezadoTablaExcel($hoja, 'A' . $fila . ':F' . $fila);
+            $fila++;
+            foreach ($filas->groupBy($campo)->sortKeys() as $clave => $grupo) {
+                $vigentes = $grupo->where('_anulado', false);
+                $hoja->fromArray([
+                    (string) $clave, $grupo->count(), $vigentes->count(), $grupo->count() - $vigentes->count(),
+                    round($vigentes->sum('total'), 2), round($grupo->where('_anulado', true)->sum('total'), 2),
+                ], null, 'A' . $fila, true);
+                $fila++;
+            }
+            $hoja->setCellValue('A' . $fila, 'TOTAL');
+            foreach (['B', 'C', 'D', 'E', 'F'] as $letra) {
+                $hoja->setCellValue($letra . $fila, '=SUM(' . $letra . ($inicio + 1) . ':' . $letra . ($fila - 1) . ')');
+            }
+            $this->filaTotalExcel($hoja, 'A' . $fila . ':F' . $fila);
+            $hoja->getStyle('E' . ($inicio + 1) . ':F' . $fila)->getNumberFormat()->setFormatCode('#,##0.00');
+            $hoja->getStyle('A' . $inicio . ':F' . $fila)->getBorders()->getAllBorders()
+                ->setBorderStyle(Border::BORDER_THIN)->getColor()->setRGB('BDBDBD');
+            $hoja->getStyle('B' . ($inicio + 1) . ':D' . $fila)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+            $fila += 3;
+        }
+
+        $hoja->getColumnDimension('A')->setWidth(34);
+        foreach (['B', 'C', 'D', 'E', 'F'] as $letra) {
+            $hoja->getColumnDimension($letra)->setWidth(16);
+        }
+        $this->impresionHojaExcel($hoja, null);
+    }
+
+    /**
+     * Solo las cadenas con mas de un comprobante: el original arriba y debajo
+     * cada hijo, con sangria segun la generacion. Incluye los que quedan
+     * fuera del filtro para que la cadena se lea completa.
+     */
+    private function hojaGeneralCadenas($hoja, array $cadenas, array $comprobantes, $subtitulo)
+    {
+        $raices = [];
+        foreach ($comprobantes as $fila) {
+            $raiz = $fila['cadena'];
+            if (!empty($cadenas[$raiz]['hijos'])) {
+                $raices[$raiz] = true;
+            }
+        }
+        ksort($raices);
+
+        $columnas = [
+            ['Cadena (ID original)', 11], ['Generación', 10], ['ID venta', 12], ['Relación', 28],
+            ['Padre (ID)', 10], ['Hijos (ID)', 12], ['Nro factura', 10], ['Comprobante', 11], ['Estado', 10],
+            ['Fecha', 11], ['Hora', 7], ['Nro pedido', 10], ['Cliente', 32], ['Pago', 10], ['Total Bs', 12],
+            ['Motivo anulación', 30], ['Qué cambió vs. el padre', 45], ['¿En el filtro?', 9],
+        ];
+        $ultima = Coordinate::stringFromColumnIndex(count($columnas));
+        $this->cabeceraHojaExcel($hoja, 'PADRES E HIJOS: REFACTURADOS Y RETORNOS PARCIALES', $subtitulo,
+            'Cadenas: ' . count($raices) . '   ·   El original (padre) va resaltado y debajo cada comprobante que lo reemplazó.',
+            $ultima, '6A1B9A');
+        foreach ($columnas as $i => list($etiqueta, $ancho)) {
+            $letra = Coordinate::stringFromColumnIndex($i + 1);
+            $hoja->setCellValue($letra . '5', $etiqueta);
+            $hoja->getColumnDimension($letra)->setWidth($ancho);
+        }
+        $this->encabezadoTablaExcel($hoja, 'A5:' . $ultima . '5');
+        $hoja->getRowDimension(5)->setRowHeight(30);
+
+        $fila = 6;
+        if (!$raices) {
+            $hoja->mergeCells('A6:' . $ultima . '6')->setCellValue('A6', 'Ningún comprobante del filtro fue refacturado ni tuvo retorno parcial');
+            $hoja->getStyle('A6')->getFont()->setItalic(true)->getColor()->setRGB('888888');
+            return;
+        }
+
+        foreach (array_keys($raices) as $raiz) {
+            // Recorrido en profundidad: cada hijo debajo de su padre.
+            $pila = [[$raiz, 0]];
+            while ($pila) {
+                list($id, $nivel) = array_shift($pila);
+                $nodo = $cadenas[$id];
+                $f = $nodo['factura'];
+                $motivo = trim((string) ($f->anulacion_observacion ?: $f->motivo_anulacion));
+                $cambio = $nodo['padre'] ? implode(' · ', (array) (($f->modificacion_campos ?? [])['resumen'] ?? [])) : '';
+                $hoja->fromArray([
+                    $raiz, $nivel + 1, str_repeat('    ', $nivel) . ($nivel ? '└ ' : '') . $id,
+                    $this->relacionCadena($nodo), $nodo['padre'], implode(', ', $nodo['hijos']),
+                    (string) ($f->nro_factura ?: ''), $f->tipo_comprobante === 'FACTURA' ? 'FACTURA' : 'VOUCHER',
+                    $f->estado, $this->fechaExcel($f->fecha), substr((string) $f->hora, 0, 5),
+                    $f->pedido_nro ? (string) $f->pedido_nro : 'VENTA DIRECTA', $f->nombre, $f->tipo_pago,
+                    (float) $f->total, $motivo, $cambio, isset($comprobantes[$id]) ? 'SI' : 'NO',
+                ], null, 'A' . $fila, true);
+                if (!$nivel) {
+                    $hoja->getStyle('A' . $fila . ':' . $ultima . $fila)->applyFromArray([
+                        'font' => ['bold' => true],
+                        'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'EDE7F6']],
+                        'borders' => ['top' => ['borderStyle' => Border::BORDER_THIN, 'color' => ['rgb' => '6A1B9A']]],
+                    ]);
+                }
+                $hoja->getStyle('I' . $fila)->getFont()->getColor()
+                    ->setRGB($f->estado === 'ANULADO' ? 'C62828' : '2E7D32');
+                $hoja->getStyle('I' . $fila)->getFont()->setBold(true);
+                $fila++;
+                $hijos = array_map(function ($h) use ($nivel) { return [$h, $nivel + 1]; }, $nodo['hijos']);
+                $pila = array_merge($hijos, $pila);
+            }
+        }
+
+        $hoja->getStyle('J6:J' . $fila)->getNumberFormat()->setFormatCode('dd/mm/yyyy');
+        $hoja->getStyle('O6:O' . $fila)->getNumberFormat()->setFormatCode('#,##0.00');
+        $hoja->getStyle('A5:' . $ultima . ($fila - 1))->getBorders()->getAllBorders()
+            ->setBorderStyle(Border::BORDER_HAIR)->getColor()->setRGB('BDBDBD');
+        $hoja->getStyle('A6:B' . $fila)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+        $hoja->getStyle('P6:Q' . $fila)->getAlignment()->setWrapText(true);
+        $hoja->freezePane('D6');
+        $hoja->setAutoFilter('A5:' . $ultima . ($fila - 1));
+        $this->impresionHojaExcel($hoja, 5);
+    }
+
     public function reporte(Request $request)
     {
         $datos = $request->validate([
             'formato'    => 'nullable|in:pdf,excel',
-            'contenido'  => 'nullable|in:ventas,cambios',
+            'contenido'  => 'nullable|in:ventas,cambios,anulados',
         ]);
 
         $contenido = $datos['contenido'] ?? 'ventas';
-        $facturas = $this->filtrar($request)->reorder('id')->get();
+        $query = $this->filtrar($request)->reorder('id');
+        // Los anulados salen solos, aunque el filtro de estado diga otra cosa.
+        if ($contenido === 'anulados') {
+            $query->where('estado', 'ANULADO');
+        }
+        $facturas = $query->get();
 
-        $filas = $contenido === 'cambios'
-            ? $this->filasCambios($facturas)
-            : $this->filasVentas($facturas);
+        if ($contenido === 'cambios') {
+            $filas = $this->filasCambios($facturas);
+        } elseif ($contenido === 'anulados') {
+            $filas = $this->filasAnulados($facturas);
+        } else {
+            $filas = $this->filasVentas($facturas);
+        }
 
         if (empty($filas)) {
-            return response()->json([
-                'message' => $contenido === 'cambios'
-                    ? 'Ningún pedido salió con cantidades distintas en este filtro'
-                    : 'No hay ventas en este filtro',
-            ], 422);
+            $mensajes = [
+                'cambios'  => 'Ningún pedido salió con cantidades distintas en este filtro',
+                'anulados' => 'No hay comprobantes anulados en este filtro',
+                'ventas'   => 'No hay ventas en este filtro',
+            ];
+            return response()->json(['message' => $mensajes[$contenido]], 422);
         }
 
         return ($datos['formato'] ?? 'pdf') === 'excel'
@@ -3984,6 +4981,74 @@ class FacturacionController extends Controller
                 'total'     => (float) $f->total,
             ];
         })->all();
+    }
+
+    /**
+     * Una fila por producto de cada comprobante anulado, con las mismas
+     * columnas que el reporte de anulados del sistema de caja: datos del
+     * cliente, familia y subfamilia del producto, vendedor, motivo y placa.
+     */
+    private function filasAnulados($facturas)
+    {
+        $clientes = DB::table('tbclientes')
+            ->whereIn('Cod_Aut', $facturas->pluck('cliente_id')->filter()->unique()->values())
+            ->get(['Cod_Aut', 'Canal', 'SupraCanal', 'subcanal', 'zona', 'Latitud', 'longitud'])
+            ->keyBy('Cod_Aut');
+
+        // Familia = grupo del producto; subfamilia = el grupo padre de ese grupo.
+        $codigos = $facturas->flatMap(function ($f) {
+            return $f->detalles->pluck('cod_prod');
+        })->map(function ($c) { return trim((string) $c); })->unique()->values();
+        $familias = DB::table('tbproductos as p')
+            ->leftJoin('tbgrupos as g', 'g.Cod_grup', '=', 'p.cod_grup')
+            ->leftJoin('tbgrupopadre as gp', 'gp.cod_grup', '=', 'g.Cod_pdr')
+            ->whereIn(DB::raw('TRIM(p.cod_prod)'), $codigos)
+            ->get([
+                DB::raw('TRIM(p.cod_prod) as cod_prod'),
+                DB::raw('TRIM(g.Descripcion) as familia'),
+                DB::raw('TRIM(gp.Descripcion) as subfamilia'),
+            ])
+            ->keyBy('cod_prod');
+
+        $filas = [];
+        foreach ($facturas as $f) {
+            $c = $clientes[$f->cliente_id] ?? null;
+            $vendedor = $f->vendedor
+                ? trim(preg_replace('/\s+/', ' ', implode(' ', [
+                    $f->vendedor->Nombre1, $f->vendedor->Nombre2, $f->vendedor->App1, $f->vendedor->Apm,
+                ])))
+                : '';
+            // El motivo de la oficina si se eligio; si no, el de Impuestos.
+            $motivo = trim((string) ($f->anulacion_observacion ?: $f->motivo_anulacion));
+
+            foreach ($f->detalles as $d) {
+                $prod = $familias[trim((string) $d->cod_prod)] ?? null;
+                $filas[] = [
+                    'boleta'     => (string) ($f->nro_factura ?: $f->id),
+                    'cliente'    => $f->nombre ?: 'Sin cliente',
+                    'canal'      => $c ? trim((string) $c->Canal) : '',
+                    'supracanal' => $c ? trim((string) $c->SupraCanal) : '',
+                    'subcanal'   => $c ? trim((string) $c->subcanal) : '',
+                    'zona'       => $c ? trim((string) $c->zona) : '',
+                    'latitud'    => $c && is_numeric(trim((string) $c->Latitud)) ? (float) $c->Latitud : '',
+                    'longitud'   => $c && is_numeric(trim((string) $c->longitud)) ? (float) $c->longitud : '',
+                    'fecha'      => $f->fecha->format('d/m/Y') . ' ' . substr((string) $f->hora, 0, 5),
+                    'familia'    => $prod->familia ?? '',
+                    'subfamilia' => $prod->subfamilia ?? '',
+                    'vendedor'   => $vendedor,
+                    'cod_prod'   => trim((string) $d->cod_prod),
+                    'producto'   => $d->nombre,
+                    // Lo vendido por peso va en kilos; lo demas, en su cantidad.
+                    'peso'       => (float) $d->peso > 0 ? (float) $d->peso : (float) $d->cantidad,
+                    'importe'    => (float) $d->subtotal,
+                    // Toda anulacion de Sofia es del comprobante completo.
+                    'motivo'     => $motivo !== '' ? $motivo . ' TOTAL' : '',
+                    'placa'      => trim((string) $f->placa),
+                ];
+            }
+        }
+
+        return $filas;
     }
 
     /** Una fila por producto que no salio como lo pedia el pedido. */
@@ -4035,6 +5100,20 @@ class FacturacionController extends Controller
             ];
         }
 
+        if ($contenido === 'anulados') {
+            return [
+                ['No BOLETA', 'boleta', 5, false], ['CLIENTE', 'cliente', 10, false],
+                ['CANAL', 'canal', 6, false], ['SUPRACANAL', 'supracanal', 4, false],
+                ['SUBCANAL', 'subcanal', 6, false], ['ZONA', 'zona', 5, false],
+                ['LATITUD', 'latitud', 5, false], ['LONGITUD', 'longitud', 5, false],
+                ['FECHA', 'fecha', 6, false], ['FAMILIA', 'familia', 6, false],
+                ['SUBFAMILIA', 'subfamilia', 6, false], ['VENDEDOR', 'vendedor', 8, false],
+                ['COD. PRODUCTO', 'cod_prod', 4, false], ['PRODUCTO', 'producto', 10, false],
+                ['PESO', 'peso', 4, true], ['IMPORTE', 'importe', 5, true],
+                ['MOTIVO ANUL', 'motivo', 8, false], ['PLACA', 'placa', 5, false],
+            ];
+        }
+
         return [
             ['Nº', 'nro', 8, false], ['Tipo', 'tipo', 10, false],
             ['Pedido', 'pedido', 9, false],
@@ -4045,12 +5124,33 @@ class FacturacionController extends Controller
         ];
     }
 
+    private function nombreReporte($contenido)
+    {
+        $nombres = [
+            'cambios'  => 'CAMBIOS EN LOS PEDIDOS',
+            'anulados' => 'COMPROBANTES ANULADOS',
+        ];
+
+        return $nombres[$contenido] ?? 'REPORTE DE VENTAS';
+    }
+
+    /** Solo se suman los importes: sumar cantidades de unidades distintas no dice nada. */
+    private function sumablesReporte($contenido)
+    {
+        $sumables = [
+            'cambios'  => ['importe'],
+            'anulados' => ['importe'],
+        ];
+
+        return $sumables[$contenido] ?? ['subtotal', 'descuento', 'total'];
+    }
+
     /** Titulo y rango, para que el papel diga que se esta mirando. */
     private function tituloReporte($contenido, Request $request)
     {
         if ($rango = $this->rangoEntregaFiltro($request)) {
             return [
-                $contenido === 'cambios' ? 'CAMBIOS EN LOS PEDIDOS' : 'REPORTE DE VENTAS',
+                $this->nombreReporte($contenido),
                 $rango[0] === $rango[1]
                     ? 'Entrega del ' . date('d/m/Y', strtotime($rango[0]))
                     : 'Entrega del ' . date('d/m/Y', strtotime($rango[0])) . ' al ' . date('d/m/Y', strtotime($rango[1])),
@@ -4068,7 +5168,7 @@ class FacturacionController extends Controller
                 . ($hasta ? ' al ' . date('d/m/Y', strtotime($hasta)) . ($horaHasta ? ' ' . $horaHasta : '') : ''));
 
         return [
-            $contenido === 'cambios' ? 'CAMBIOS EN LOS PEDIDOS' : 'REPORTE DE VENTAS',
+            $this->nombreReporte($contenido),
             $rango ?: 'Todas las fechas',
         ];
     }
@@ -4103,7 +5203,7 @@ class FacturacionController extends Controller
 
         // Solo se suman los importes; sumar cantidades de unidades distintas no
         // significa nada.
-        $sumables = $contenido === 'cambios' ? ['importe'] : ['subtotal', 'descuento', 'total'];
+        $sumables = $this->sumablesReporte($contenido);
         $pie = "<tr class='total'>";
         $primera = true;
         foreach ($columnas as list($etiqueta, $clave, $ancho, $esImporte)) {
@@ -4151,7 +5251,7 @@ class FacturacionController extends Controller
 
         $libro = new Spreadsheet();
         $hoja = $libro->getActiveSheet();
-        $hoja->setTitle($contenido === 'cambios' ? 'Cambios' : 'Ventas');
+        $hoja->setTitle(ucfirst($contenido));
 
         // Cabecera del reporte: titulo y rango, como en el PDF.
         $hoja->mergeCells('A1:' . $ultima . '1')->setCellValue('A1', $titulo);
@@ -4176,7 +5276,7 @@ class FacturacionController extends Controller
             $fila++;
         }
 
-        $sumables = $contenido === 'cambios' ? ['importe'] : ['subtotal', 'descuento', 'total'];
+        $sumables = $this->sumablesReporte($contenido);
         $hoja->setCellValue('A' . $fila, 'TOTAL (' . count($filas) . ')');
         foreach ($columnas as $i => list($etiqueta, $clave, $ancho, $esImporte)) {
             if (!in_array($clave, $sumables, true)) {

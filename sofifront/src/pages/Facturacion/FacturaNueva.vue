@@ -152,6 +152,12 @@
 
                 <div class="row q-col-gutter-xs items-center no-wrap">
                   <q-input
+                    v-if="porKiloSinCanastillos(item)"
+                    v-model.number="item.piezas"
+                    dense outlined type="number" class="col" label="Cant."
+                    step="1" min="1"
+                  />
+                  <q-input
                     v-model.number="item.cantidad"
                     dense outlined type="number" class="col"
                     :label="item.con_canastillos ? 'Piezas' : (item.unidad === 'KG' ? 'Kilos' : 'Cant.')"
@@ -250,16 +256,25 @@
           </q-card-section>
 
           <q-card-section class="row q-col-gutter-xs q-pa-sm">
+            <!-- Lo que va por kilo se cobra por el peso, pero el cliente cuenta
+                 piezas (barras, paquetes): las dos van en la boleta. -->
+            <q-input
+              v-if="porKiloSinCanastillos(elegido)"
+              v-model.number="piezasElegidas"
+              outlined dense autofocus type="number" class="col-6"
+              label="Cantidad (unid.)" step="1" min="1"
+              @focus="$event.target.select()"
+            />
             <q-input
               v-model.number="cantidadElegida"
-              outlined dense autofocus type="number" class="col-6"
+              outlined dense :autofocus="!porKiloSinCanastillos(elegido)" type="number" class="col-6"
               :label="elegido.con_canastillos ? 'Piezas' : (elegido.unidad === 'KG' ? 'Kilos' : 'Cantidad')"
               :step="elegido.con_canastillos ? 1 : paso(elegido)" :min="elegido.con_canastillos ? 1 : paso(elegido)"
               @focus="$event.target.select()"
             />
             <q-select
               v-model="precioElegido"
-              outlined dense class="col-6"
+              outlined dense :class="porKiloSinCanastillos(elegido) ? 'col-12' : 'col-6'"
               label="Precio"
               use-input fill-input hide-selected input-debounce="0"
               emit-value map-options
@@ -354,6 +369,11 @@
               </q-item>
             </template>
           </q-select>
+          <div v-if="cliente" class="text-caption text-grey-8 q-mt-xs q-pl-xs">
+            <q-icon name="place" size="16px" color="primary" />
+            {{ cliente.direccion || 'Sin dirección registrada' }}
+            <span v-if="cliente.zona">· {{ cliente.zona }}</span>
+          </div>
 
           <div class="row q-col-gutter-sm q-mt-xs">
             <q-input
@@ -503,6 +523,8 @@ export default {
       precioElegido: 0,
       brutoElegido: null,
       canastillosElegidos: 0,
+      // Piezas de lo que se cobra por kilo sin canastillos.
+      piezasElegidas: 1,
       // Cierre.
       dialogCobro: false,
       tipoComprobante: 'VENTA',
@@ -599,6 +621,11 @@ export default {
       const kg = Number(item.kg_canastillo) || 2
       return Math.round((bruto - this.canastillos(item) * kg) * 1000) / 1000
     },
+    // Lo que se cobra por kilo y no se pesa en canastillos: aparte de los
+    // kilos lleva la cantidad de piezas, que es lo que el cliente cuenta.
+    porKiloSinCanastillos (p) {
+      return !!p && p.unidad === 'KG' && !p.con_canastillos
+    },
     // Lo que multiplica al precio en cada linea.
     base (item) {
       return item.con_canastillos ? Math.max(this.neto(item), 0) : Number(item.cantidad || 0)
@@ -642,13 +669,16 @@ export default {
           const f = res.data
           this.carrito = (f.detalles || []).map(d => {
             const conCanastillos = d.peso_bruto !== null && d.peso_bruto !== undefined
+            // Por kilo con piezas: cantidad son las piezas y peso los kilos.
+            const conPiezas = !conCanastillos && d.unidad === 'KG' && Number(d.peso) > 0
             const item = {
               cod_prod: d.cod_prod,
               nombre: d.nombre,
               unidad: d.unidad,
               imagen: null,
               precios: [],
-              cantidad: Number(d.cantidad),
+              cantidad: conPiezas ? Number(d.peso) : Number(d.cantidad),
+              piezas: conPiezas ? Number(d.cantidad) : null,
               precio: Number(d.precio),
               con_canastillos: conCanastillos,
               kg_canastillo: 2,
@@ -770,6 +800,7 @@ export default {
 
       this.elegido = p
       this.cantidadElegida = this.paso(p)
+      this.piezasElegidas = 1
       this.precioElegido = p.precio
       this.brutoElegido = null
       this.canastillosElegidos = 0
@@ -818,6 +849,17 @@ export default {
       if (!cant || cant <= 0) {
         return
       }
+      const conPiezas = this.porKiloSinCanastillos(this.elegido)
+      const piezas = Math.trunc(Number(this.piezasElegidas) || 0)
+      if (conPiezas && piezas < 1) {
+        this.$q.notify({
+          message: 'Indica cuántas unidades lleva el cliente',
+          color: 'warning',
+          icon: 'info',
+          position: 'top'
+        })
+        return
+      }
       if (conCanastillos && !(this.netoElegido > 0)) {
         this.$q.notify({
           message: 'El peso bruto tiene que ser mayor a lo que pesan los canastillos',
@@ -835,6 +877,9 @@ export default {
 
       if (existente) {
         existente.cantidad = Number(existente.cantidad) + cant
+        if (conPiezas) {
+          existente.piezas = (Number(existente.piezas) || 0) + piezas
+        }
         if (conCanastillos) {
           existente.peso_bruto = Math.round((Number(existente.peso_bruto || 0) + Number(this.brutoElegido)) * 1000) / 1000
           existente.canastillos = this.canastillos(existente) + this.canastillos({ canastillos: this.canastillosElegidos })
@@ -848,6 +893,7 @@ export default {
           imagen: this.elegido.imagen,
           precios: this.elegido.precios || [],
           cantidad: cant,
+          piezas: conPiezas ? piezas : null,
           precio,
           con_canastillos: conCanastillos,
           kg_canastillo: this.elegido.kg_canastillo,
@@ -904,6 +950,8 @@ export default {
         pedido_nro: this.pedidoOrigen ? this.pedidoOrigen.nro_pedido : null,
         pedido_tipo: this.pedidoOrigen ? this.pedidoOrigen.tipo : null,
         // Con canastillos va el bruto: el backend recalcula el neto que se cobra.
+        // Por kilo con piezas: la cantidad son las piezas y el peso los kilos
+        // que se cobran (igual que lo pesado en canastillos).
         items: this.carrito.map(i => Object.assign({
           cod_prod: i.cod_prod,
           cantidad: Number(i.cantidad),
@@ -913,6 +961,10 @@ export default {
           peso: this.neto(i),
           peso_bruto: Number(i.peso_bruto),
           canastillos: this.canastillos(i)
+        } : {}, this.porKiloSinCanastillos(i) && Number(i.piezas) >= 1 ? {
+          por_peso: true,
+          cantidad: Math.trunc(Number(i.piezas)),
+          peso: Number(i.cantidad)
         } : {}))
       }).then(res => {
         // La venta se guardó igual; lo que puede haber fallado es el envío a

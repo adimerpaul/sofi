@@ -114,8 +114,33 @@
               </q-item-section>
               <q-item-section>Cambios en Excel</q-item-section>
             </q-item>
+
+            <q-separator class="q-my-xs"/>
+            <q-item-label header class="q-py-xs">Anulados</q-item-label>
+
+            <q-item clickable v-close-popup @click="reporte('anulados', 'excel')">
+              <q-item-section avatar><q-icon name="block" color="negative"/></q-item-section>
+              <q-item-section>
+                Anulados en Excel
+                <q-item-label caption>Una fila por producto anulado, con cliente, vendedor, motivo y placa</q-item-label>
+              </q-item-section>
+            </q-item>
           </q-list>
         </q-btn-dropdown>
+      </div>
+
+      <!-- Todo junto y en plano para filtrar en Excel: boletas, productos,
+           anulados, camion, pedido y la cadena padre/hijo de lo refacturado. -->
+      <div class="col-auto">
+        <q-btn
+          color="green-8" unelevated no-caps icon="table_view" label="Reporte general"
+          :loading="exportando" @click="reporteGeneral"
+        >
+          <q-tooltip max-width="320px">
+            Excel con todos los comprobantes del filtro (incluye anulados): productos, camión, pedido,
+            cliente, quién cobró y anuló, y padres/hijos de los refacturados
+          </q-tooltip>
+        </q-btn>
       </div>
 
       <div class="col-auto">
@@ -803,7 +828,10 @@
         <q-card-section v-if="sel.estado === 'ANULADO'" class="q-py-sm">
           <q-banner dense rounded class="bg-red-1 text-red-9">
             <template v-slot:avatar><q-icon name="block"/></template>
-            Anulada: {{ sel.motivo_anulacion }}
+            Anulada: {{ sel.anulacion_observacion || sel.motivo_anulacion }}
+            <div v-if="sel.anulacion_observacion" class="text-caption">
+              Impuestos: {{ sel.motivo_anulacion }}
+            </div>
           </q-banner>
         </q-card-section>
 
@@ -976,6 +1004,12 @@
             type="radio"
             color="negative"
           />
+          <!-- La razon de verdad, para la oficina. Opcional. -->
+          <q-select
+            v-model="motivoInterno" class="q-mt-sm"
+            outlined dense clearable options-dense
+            label="Motivo (opcional)" :options="motivosInternos"
+          />
         </q-card-section>
         <q-card-actions align="right" class="q-pa-sm">
           <q-btn flat dense no-caps label="Cancelar" v-close-popup/>
@@ -1069,6 +1103,26 @@ export default {
         { label: '2 - Datos de emisión incorrectos', value: 2 },
         { label: '3 - Factura o nota devuelta', value: 3 },
         { label: '4 - Sustitución de factura emitida en contingencia', value: 4 }
+      ],
+      // Los mismos de FacturacionController::MOTIVOS_ANULACION_INTERNOS.
+      motivoInterno: null,
+      motivosInternos: [
+        'CALIDAD DE PRODUCTO',
+        'CANCELO PEDIDO EL CLIENTE/VENDEDOR',
+        'CERRADO - NO CONTESTA',
+        'ERROR DE DIGITACION',
+        'FECHA PRONTO A VENCER',
+        'NO QUISO',
+        'NO RECOGIO',
+        'NO TIENE DINERO',
+        'PEDIDO INCORRECTO VENTAS',
+        'PEDIDO INCORRECTO DESPACHOS',
+        'TARDE',
+        'ERROR DE PRECIO',
+        'MERMA',
+        'LOCAL NO UBICADO',
+        'NO HAY SALIDAS A PROVINCIA',
+        'BLOQUEOS'
       ],
       anulando: false,
       // El dialogo de anulacion tambien sirve para Editar: anula y abre el pedido.
@@ -1714,6 +1768,17 @@ export default {
       )
     },
 
+    // Respeta fechas, camion, tipo y busqueda, pero no el estado: lo anulado
+    // tiene que salir para poder seguir las cadenas de refacturacion.
+    reporteGeneral () {
+      return this.bajarArchivo(
+        'facturacion/reporte-general',
+        Object.assign(this.paramsFiltro(), { estado: '' }),
+        'reporte_general_' + this.etiquetaFechas + '.xlsx',
+        false
+      )
+    },
+
     /** El mismo documento que se imprime, pero guardado como archivo. */
     descargarPdf (row) {
       const documento = row.tipo_comprobante === 'FACTURA' ? 'factura' : 'voucher'
@@ -1881,6 +1946,7 @@ export default {
       this.sel = row
       this.editando = false
       this.codigoMotivoAnulacion = null
+      this.motivoInterno = null
       this.dialogAnular = true
     },
 
@@ -1943,6 +2009,7 @@ export default {
       this.editando = true
       // Con retorno parcial el motivo es la nota devuelta; si no, mal emitida.
       this.codigoMotivoAnulacion = this.retornoPendiente(row) ? 3 : 1
+      this.motivoInterno = null
       this.dialogAnular = true
     },
 
@@ -1950,7 +2017,8 @@ export default {
       this.anulando = true
 
       this.$api.put('facturacion/' + this.sel.id + '/anular', {
-        codigo_motivo: this.codigoMotivoAnulacion
+        codigo_motivo: this.codigoMotivoAnulacion,
+        observacion: this.motivoInterno
       })
         .then(res => {
           this.dialogAnular = false

@@ -87,6 +87,8 @@ Route::group(['middleware'=>'auth:sanctum'],function (){
     Route::get('/facturacion/categorias',[\App\Http\Controllers\FacturacionController::class,'categorias']);
     Route::get('/facturacion/clientes',[\App\Http\Controllers\FacturacionController::class,'clientes']);
     Route::get('/facturacion/pedidos',[\App\Http\Controllers\FacturacionController::class,'pedidos']);
+    // Todos los pedidos del dia en Excel: resumen y una hoja por tipo.
+    Route::get('/facturacion/pedidos-excel',[\App\Http\Controllers\FacturacionController::class,'pedidosExcel']);
     Route::get('/facturacion/pedidos/{pedido}',[\App\Http\Controllers\FacturacionController::class,'pedido']);
     // Guarda el avance del cobro sin crear la venta ni descontar stock.
     Route::post('/facturacion/pedidos/{pedido}/borrador',[\App\Http\Controllers\FacturacionController::class,'guardarBorrador']);
@@ -98,6 +100,8 @@ Route::group(['middleware'=>'auth:sanctum'],function (){
     Route::get('/facturacion/lote/{documento}/ids',[\App\Http\Controllers\FacturacionController::class,'loteIds']);
     Route::post('/facturacion/impresos',[\App\Http\Controllers\FacturacionController::class,'marcarImpresos']);
     Route::get('/facturacion/reporte',[\App\Http\Controllers\FacturacionController::class,'reporte']);
+    // Todo en plano: comprobantes, productos, anulados, camion, pedido y cadenas padre/hijo.
+    Route::get('/facturacion/reporte-general',[\App\Http\Controllers\FacturacionController::class,'reporteGeneral']);
     Route::get('/facturacion/carga',[\App\Http\Controllers\FacturacionController::class,'carga']);
     // Caja aprueba la carga de todo un camion de una vez.
     Route::post('/facturacion/carga/aprobar',[\App\Http\Controllers\FacturacionController::class,'aprobarCarga']);
