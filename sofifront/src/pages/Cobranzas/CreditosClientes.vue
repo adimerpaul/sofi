@@ -303,12 +303,19 @@
             <q-tab-panel name="ventas" class="q-pa-none q-pt-sm">
               <div v-if="!detalle.ventas.length" class="text-center text-grey-6 q-pa-md">Sin ventas a crédito</div>
               <q-list v-else bordered separator class="rounded-borders">
-                <q-expansion-item v-for="venta in detalle.ventas" :key="venta.id" dense expand-separator>
+                <q-expansion-item v-for="venta in detalle.ventas" :key="venta.id || 'p' + venta.pedido" dense expand-separator>
                   <template #header>
                     <q-item-section>
                       <q-item-label class="text-weight-medium">
-                        {{ venta.comprobante === 'FACTURA' ? 'Factura' : 'Venta' }} #{{ venta.id }}
-                        <span v-if="venta.pedido" class="text-grey-7"> · Pedido #{{ venta.pedido }}</span>
+                        <template v-if="venta.comprobante === 'PEDIDO'">Pedido #{{ venta.pedido }} <span class="text-grey-7">· sin facturar</span></template>
+                        <template v-else>
+                          {{ venta.comprobante === 'FACTURA' ? 'Factura' : 'Venta' }} #{{ venta.id }}
+                          <span v-if="venta.pedido" class="text-grey-7"> · Pedido #{{ venta.pedido }}</span>
+                        </template>
+                      </q-item-label>
+                      <!-- En una cuenta de bajas: a que cliente se le bonifico. -->
+                      <q-item-label v-if="venta.cliente" class="text-purple-8 text-weight-medium">
+                        <q-icon name="person" size="14px"/> {{ venta.cliente }}
                       </q-item-label>
                       <q-item-label caption>
                         {{ venta.fecha }} {{ venta.hora }} · {{ venta.productos.length }} productos
@@ -322,7 +329,7 @@
                     </q-item-section>
                   </template>
                   <div class="contenedor-productos">
-                    <div class="row justify-end q-pa-sm"><acciones-reporte-credito :alcance="'venta #' + venta.id" :disable="reportando" @reporte="exportarVenta($event, venta)"/></div>
+                    <div v-if="venta.id" class="row justify-end q-pa-sm"><acciones-reporte-credito :alcance="'venta #' + venta.id" :disable="reportando" @reporte="exportarVenta($event, venta)"/></div>
                     <table class="tabla-productos">
                       <thead>
                         <tr><th class="text-left">Producto</th><th class="text-right">Cant.</th><th class="text-right">Precio</th><th class="text-right">Subtotal</th></tr>

@@ -896,6 +896,8 @@ class CreditoController extends Controller
                 })->values(),
             ];
         });
+        // En una cuenta de bajas, lo que se bonifico a los clientes a su cargo.
+        $ventas = $ventas->concat($this->bonificacionesDeCuenta((int) $id, $abonos));
 
         return [
             'cliente' => [
@@ -931,6 +933,86 @@ class CreditoController extends Controller
                 'vendido' => round($ventas->whereNotIn('estado', ['ANULADA', 'BONIFICACIÓN'])->sum('total'), 2),
             ],
         ];
+    }
+
+    /**
+     * Las bonificaciones cargadas a una cuenta de bajas (tbpedidos.bonificacionId).
+     *
+     * La venta bonificada se emite a nombre del cliente que la recibio y en su
+     * cuenta sale como BONIFICACION; la cuenta de bajas no tenia nada propio y
+     * se veia vacia. Aca va cada pedido bonificado con el cliente que lo tuvo:
+     * con su comprobante si ya se facturo, o con las lineas del pedido si
+     * todavia no. Nada de esto es deuda: saldo 0.
+     */
+    private function bonificacionesDeCuenta($cuenta, $abonos)
+    {
+        $tipo = TipoPedido::sql('p');
+        $lineas = DB::table('tbpedidos as p')
+            ->leftJoin('tbproductos as pr', DB::raw('TRIM(pr.cod_prod)'), '=', DB::raw('TRIM(p.cod_prod)'))
+            ->whereNull('p.deleted_at')
+            ->where('p.bonificacionId', $cuenta)
+            ->orderByDesc('p.NroPed')->orderBy('p.codAut')
+            ->get(['p.NroPed', 'p.idCli', 'p.fecha', 'p.hora', 'p.cod_prod', 'p.Cant', 'p.caja', 'p.precio', 'p.subtotal',
+                DB::raw("TRIM(COALESCE(pr.Producto, '')) as producto"), DB::raw($tipo . ' as tipo')]);
+        if ($lineas->isEmpty()) {
+            return collect();
+        }
+
+        $pedidos = $lineas->groupBy(function ($l) { return $l->NroPed . '|' . $l->tipo; });
+        $facturas = DB::table('facturas')->whereNull('deleted_at')->where('estado', '<>', 'ANULADO')
+            ->whereIn('pedido_nro', $lineas->pluck('NroPed')->unique()->values())
+            ->orderByDesc('id')
+            ->get(['id', 'fecha', 'hora', 'tipo_comprobante', 'total', 'pedido_nro', 'pedido_tipo', 'cliente_id', 'nombre', 'observacion'])
+            ->keyBy(function ($f) { return $f->pedido_nro . '|' . strtoupper(trim((string) $f->pedido_tipo)); });
+        $detalles = DB::table('factura_detalles')->whereIn('factura_id', $facturas->pluck('id'))->whereNull('deleted_at')
+            ->orderBy('id')->get(['factura_id', 'cod_prod', 'nombre', 'unidad', 'cantidad', 'peso', 'precio', 'subtotal'])
+            ->groupBy('factura_id');
+        $clientes = DB::table('tbclientes')
+            ->whereIn('Cod_Aut', $lineas->pluck('idCli')->merge($facturas->pluck('cliente_id'))->filter()->unique()->values())
+            ->pluck('Nombres', 'Cod_Aut');
+
+        return $pedidos->map(function ($grupo, $clave) use ($facturas, $detalles, $clientes, $abonos) {
+            $p = $grupo->first();
+            $f = $facturas->get($clave);
+            $clienteId = $f && $f->cliente_id ? (int) $f->cliente_id : (int) $p->idCli;
+            $cliente = trim((string) ($clientes[$clienteId] ?? ($f->nombre ?? '')));
+
+            if ($f) {
+                $productos = ($detalles->get($f->id) ?? collect())->map(function ($d) {
+                    return [
+                        'cod_prod' => trim((string) $d->cod_prod), 'nombre' => trim((string) $d->nombre),
+                        'unidad' => trim((string) $d->unidad), 'cantidad' => (float) $d->cantidad,
+                        'peso' => (float) $d->peso, 'precio' => (float) $d->precio, 'subtotal' => (float) $d->subtotal,
+                    ];
+                });
+            } else {
+                $productos = $grupo->map(function ($l) {
+                    return [
+                        'cod_prod' => trim((string) $l->cod_prod), 'nombre' => $l->producto ?: trim((string) $l->cod_prod),
+                        'unidad' => trim((string) $l->caja), 'cantidad' => (float) $l->Cant,
+                        'peso' => 0, 'precio' => (float) $l->precio, 'subtotal' => (float) $l->subtotal,
+                    ];
+                });
+            }
+
+            return [
+                'id' => $f ? $f->id : null,
+                'fecha' => substr((string) ($f ? $f->fecha : $p->fecha), 0, 10),
+                'hora' => substr((string) ($f ? $f->hora : $p->hora), 0, 5),
+                // Sin comprobante todavia: se muestra el pedido.
+                'comprobante' => $f ? $f->tipo_comprobante : 'PEDIDO',
+                'pedido' => (int) $p->NroPed,
+                'total' => $f ? (float) $f->total : round($grupo->sum(function ($l) { return (float) $l->subtotal; }), 2),
+                'pagado' => $f ? (float) ($abonos[$f->id] ?? 0) : 0,
+                'saldo' => 0,
+                'estado' => 'BONIFICACIÓN',
+                'observacion' => $f ? $f->observacion : null,
+                // El cliente que recibio la bonificacion.
+                'cliente_id' => $clienteId ?: null,
+                'cliente' => $cliente,
+                'productos' => $productos->values(),
+            ];
+        })->sortByDesc(function ($v) { return $v['fecha'] . ' ' . $v['hora']; })->values();
     }
 
     /**
