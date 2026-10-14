@@ -69,8 +69,10 @@ class ReporteVentasController extends Controller
      *   pedido (podium y huevo se facturan aparte del embutido). Si se edito,
      *   cuenta la ultima version; un retorno parcial no cuenta, porque eso lo
      *   devolvio el cliente despues de la venta y no es falta de stock.
-     * - Solo entran los pedidos que ya pasaron por caja: uno sin comprobante
-     *   todavia no se vendio, no se sabe si va a quebrar.
+     * - Un pedido ENVIADO que no tiene comprobante vigente (nunca se facturo,
+     *   o se anulo sin reemplazo) no le llego al cliente: entra entero como
+     *   QUIEBRE TOTAL, y 'situacion' dice por que. Los que siguen en CREADO
+     *   son borradores del preventista y no entran.
      *
      * QUIEBRE TOTAL: no se vendio nada de ese producto. QUIEBRE PARCIAL: se
      * vendio menos de lo pedido.
@@ -88,6 +90,7 @@ class ReporteVentasController extends Controller
             ->whereRaw(TipoPedido::sql('p') . " IN ('" . implode("','", $tipos) . "')")
             ->get([
                 'p.NroPed', DB::raw(TipoPedido::sql('p') . ' as tipo'), DB::raw('TRIM(p.cod_prod) as cod_prod'), 'p.Cant',
+                DB::raw('UPPER(TRIM(COALESCE(p.estado, ""))) as estado_pedido'),
                 DB::raw('UPPER(TRIM(COALESCE(p.caja, ""))) as caja'),
                 DB::raw('UPPER(TRIM(COALESCE(pr.codUnid, ""))) as unidad'),
                 DB::raw("COALESCE(NULLIF(TRIM(pr.Producto), ''), TRIM(p.cod_prod)) as producto"),
@@ -98,15 +101,19 @@ class ReporteVentasController extends Controller
         // Lo vendido por tipo: un mismo NroPed tiene su comprobante de embutido
         // y otro de podium y huevo.
         $vendidas = [];
+        $sinVenta = [];
         foreach ($pedidas->groupBy('tipo') as $t => $lineas) {
-            $vendidas[$t] = $this->vendido($lineas->pluck('NroPed')->unique()->values()->all(), $t);
+            $nros = $lineas->pluck('NroPed')->unique()->values()->all();
+            $vendidas[$t] = $this->vendido($nros, $t);
+            $sinVenta[$t] = $this->situacionSinVenta(array_values(array_diff($nros, array_keys($vendidas[$t]))), $t);
         }
 
         // Pedido agrupado por pedido y producto: un mismo codigo puede venir en
         // varias lineas (con otro precio).
         $filas = [];
         foreach ($pedidas as $l) {
-            if (!isset($vendidas[$l->tipo][$l->NroPed])) {
+            $vendido = isset($vendidas[$l->tipo][$l->NroPed]);
+            if (!$vendido && $l->estado_pedido !== 'ENVIADO') {
                 continue;
             }
             $clave = $l->tipo . '|' . $l->NroPed . '|' . $l->cod_prod;
@@ -123,6 +130,7 @@ class ReporteVentasController extends Controller
                     // demas con la cantidad de piezas.
                     'por_kilo'   => ($l->caja !== '' ? $l->caja : $l->unidad) === 'KG',
                     'pedido'     => 0.0,
+                    'situacion'  => $vendido ? '' : ($sinVenta[$l->tipo][$l->NroPed] ?? 'SIN COMPROBANTE'),
                 ];
             }
             $filas[$clave]['pedido'] += (float) $l->Cant;
@@ -168,6 +176,34 @@ class ReporteVentasController extends Controller
                 'clientes' => count(array_unique(array_column($resultado, 'pedido_nro'))),
             ],
         ];
+    }
+
+    /**
+     * Por que un pedido no tiene venta: [NroPed => texto]. Si su ultimo
+     * comprobante quedo anulado, el numero y el motivo; si nunca se facturo,
+     * SIN COMPROBANTE.
+     */
+    private function situacionSinVenta(array $pedidos, $tipo)
+    {
+        $situacion = array_fill_keys($pedidos, 'SIN COMPROBANTE');
+        if (!$pedidos) {
+            return $situacion;
+        }
+        $anulados = DB::table('facturas')
+            ->whereNull('deleted_at')
+            ->where('pedido_tipo', $tipo)
+            ->whereIn('pedido_nro', $pedidos)
+            ->orderBy('id')
+            ->get(['id', 'pedido_nro', 'estado', 'motivo_anulacion', 'anulacion_observacion']);
+        foreach ($anulados as $f) {
+            if ($f->estado !== 'ANULADO') {
+                continue;
+            }
+            $motivo = trim((string) ($f->anulacion_observacion ?: $f->motivo_anulacion));
+            $situacion[$f->pedido_nro] = 'ANULADO #' . $f->id . ($motivo !== '' ? ': ' . $motivo : '');
+        }
+
+        return $situacion;
     }
 
     /**
@@ -295,15 +331,15 @@ class ReporteVentasController extends Controller
             $dibujo = new Drawing();
             $dibujo->setPath($logo);
             $dibujo->setHeight(60);
-            $dibujo->setCoordinates('H1');
+            $dibujo->setCoordinates('I1');
             $dibujo->setWorksheet($hoja);
         }
 
-        $hoja->fromArray(['', '', '', '', '', 'PEDIDO', 'VENDIDO', 'QUIEBRE'], null, 'A7');
-        $hoja->fromArray(['ESTADO', 'VENDEDOR', 'CLIENTE', 'TIPO', 'PRODUCTO', 'Cant. pedida', 'Cant. vendida', 'Cant. quiebre'], null, 'A8');
+        $hoja->fromArray(['', '', '', '', '', 'PEDIDO', 'VENDIDO', 'QUIEBRE', ''], null, 'A7');
+        $hoja->fromArray(['ESTADO', 'VENDEDOR', 'CLIENTE', 'TIPO', 'PRODUCTO', 'Cant. pedida', 'Cant. vendida', 'Cant. quiebre', 'SITUACIÓN'], null, 'A8');
         $hoja->getStyle('F7:H7')->getFont()->setBold(true);
         $hoja->getStyle('F7:H7')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
-        $hoja->getStyle('A8:H8')->applyFromArray([
+        $hoja->getStyle('A8:I8')->applyFromArray([
             'font' => ['bold' => true, 'size' => 9],
             'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'D9D9D9']],
             'alignment' => ['vertical' => Alignment::VERTICAL_CENTER, 'wrapText' => true],
@@ -327,13 +363,15 @@ class ReporteVentasController extends Controller
                 $hoja->setCellValue('C' . $fila, $f['cliente']);
             }
             if ($nuevoEstado && $fila > 9) {
-                $hoja->getStyle("A{$fila}:H{$fila}")->getBorders()->getTop()->setBorderStyle(Border::BORDER_MEDIUM);
+                $hoja->getStyle("A{$fila}:I{$fila}")->getBorders()->getTop()->setBorderStyle(Border::BORDER_MEDIUM);
             }
             $hoja->setCellValue('D' . $fila, $f['tipo']);
             $hoja->setCellValue('E' . $fila, $f['producto']);
             $hoja->setCellValue('F' . $fila, $f['pedido']);
             $hoja->setCellValue('G' . $fila, $f['vendido']);
             $hoja->setCellValue('H' . $fila, $f['quiebre']);
+            // Vacia si hubo venta; si no, por que el pedido no le llego al cliente.
+            $hoja->setCellValue('I' . $fila, $f['situacion']);
             $anterior = $f;
             $fila++;
         }
@@ -342,7 +380,7 @@ class ReporteVentasController extends Controller
         $hoja->setCellValue('F' . $fila, $datos['totales']['pedido']);
         $hoja->setCellValue('G' . $fila, $datos['totales']['vendido']);
         $hoja->setCellValue('H' . $fila, $datos['totales']['quiebre']);
-        $hoja->getStyle("A{$fila}:H{$fila}")->applyFromArray([
+        $hoja->getStyle("A{$fila}:I{$fila}")->applyFromArray([
             'font' => ['bold' => true],
             'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'D9D9D9']],
         ]);
@@ -350,16 +388,17 @@ class ReporteVentasController extends Controller
         $hoja->getStyle('A9:E' . $fila)->getFont()->setSize(9);
         $hoja->getStyle('A9:B' . $fila)->getFont()->setBold(true);
         $hoja->getStyle('F8:H' . $fila)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
-        $hoja->getStyle('A8:H' . $fila)->getBorders()->getBottom()->setBorderStyle(Border::BORDER_HAIR);
+        $hoja->getStyle('A8:I' . $fila)->getBorders()->getBottom()->setBorderStyle(Border::BORDER_HAIR);
         $hoja->getStyle('G9:G' . max($fila - 1, 9))->getFont()->getColor()->setRGB('1F3864');
         $hoja->getStyle('H9:H' . max($fila - 1, 9))->getFont()->setBold(true)->getColor()->setRGB('C00000');
 
-        foreach (['A' => 16, 'B' => 28, 'C' => 36, 'D' => 14, 'E' => 46, 'F' => 11, 'G' => 11, 'H' => 11] as $col => $ancho) {
+        foreach (['A' => 16, 'B' => 28, 'C' => 36, 'D' => 14, 'E' => 46, 'F' => 11, 'G' => 11, 'H' => 11, 'I' => 40] as $col => $ancho) {
             $hoja->getColumnDimension($col)->setWidth($ancho);
         }
         $hoja->getRowDimension(8)->setRowHeight(28);
         $hoja->freezePane('A9');
-        $hoja->setAutoFilter('A8:H' . max($fila - 1, 8));
+        $hoja->setAutoFilter('A8:I' . max($fila - 1, 8));
+        $hoja->getStyle('I9:I' . $fila)->getFont()->setSize(9)->getColor()->setRGB('C00000');
 
         $hoja->getPageSetup()->setOrientation(PageSetup::ORIENTATION_LANDSCAPE)
             ->setPaperSize(PageSetup::PAPERSIZE_LETTER)

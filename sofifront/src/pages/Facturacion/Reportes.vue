@@ -8,6 +8,8 @@
       <q-tab name="detalle" icon="receipt_long" label="Detalle de ventas"/>
       <q-tab name="kardex" icon="inventory" label="Kardex por producto"/>
       <q-tab name="ranking" icon="leaderboard" label="Productos facturados"/>
+      <q-tab name="anulados" icon="block" label="Anulados de facturación"/>
+      <q-tab name="general" icon="table_view" label="Reporte general"/>
     </q-tabs>
     <q-separator/>
 
@@ -29,8 +31,8 @@
         </div>
 
         <div class="text-caption text-grey-7 q-mt-xs">
-          Lo que pidió cada cliente contra lo que se le vendió en caja. Solo entran los pedidos que ya
-          tienen comprobante.
+          Lo que pidió cada cliente contra lo que se le vendió en caja. Un pedido enviado que no se facturó, o
+          cuya venta se anuló sin reemplazo, entra entero como quiebre total; la columna Situación dice por qué.
         </div>
 
         <!-- Totales -->
@@ -89,11 +91,12 @@
             <th class="text-right">Pedido</th>
             <th class="text-right">Vendido</th>
             <th class="text-right">Quiebre</th>
+            <th class="text-left">Situación</th>
           </tr>
           </thead>
           <tbody>
           <tr v-if="!visibles.length">
-            <td colspan="8" class="text-center text-grey-7 q-pa-md">
+            <td colspan="9" class="text-center text-grey-7 q-pa-md">
               {{ cargando ? 'Cargando…' : 'No hay quiebres de stock en esta fecha' }}
             </td>
           </tr>
@@ -114,6 +117,11 @@
             <td class="text-right">{{ numero(f.pedido) }}</td>
             <td class="text-right text-blue-9">{{ numero(f.vendido) }}</td>
             <td class="text-right text-weight-bold text-negative">{{ numero(f.quiebre) }}</td>
+            <!-- Vacia si hubo venta; si no, por que el pedido no le llego al cliente. -->
+            <td>
+              <q-badge v-if="f.situacion" :color="f.situacion.startsWith('ANULADO') ? 'negative' : 'grey-7'"
+                       :label="f.situacion" class="situacion"/>
+            </td>
           </tr>
           </tbody>
           <tfoot v-if="visibles.length">
@@ -122,6 +130,7 @@
             <td class="text-right">{{ numero(suma('pedido')) }}</td>
             <td class="text-right">{{ numero(suma('vendido')) }}</td>
             <td class="text-right text-negative">{{ numero(suma('quiebre')) }}</td>
+            <td></td>
           </tr>
           </tfoot>
         </q-markup-table>
@@ -491,6 +500,93 @@
           </tbody>
         </q-markup-table>
       </q-tab-panel>
+
+      <!-- Anulados y reporte general comparten armado: comprobantes de
+           facturacion por fecha de entrega, con su cadena padre/hijo. -->
+      <q-tab-panel v-for="panel in ['anulados', 'general']" :key="panel" :name="panel" class="q-pa-none q-pt-sm">
+        <div class="row items-center q-gutter-sm">
+          <q-input v-model="comp[panel].desde" type="date" dense outlined label="Entrega desde" style="width: 160px"
+                   @update:model-value="consultarComp(panel)"/>
+          <q-input v-model="comp[panel].hasta" type="date" dense outlined label="Entrega hasta" style="width: 160px"
+                   @update:model-value="consultarComp(panel)"/>
+          <q-select v-model="comp[panel].pedidoTipo" :options="tiposComp" emit-value map-options dense outlined
+                    label="Tipo de pedido" style="width: 170px" @update:model-value="consultarComp(panel)"/>
+          <q-btn color="primary" icon="refresh" label="Actualizar" no-caps unelevated :loading="comp[panel].cargando"
+                 @click="consultarComp(panel)"/>
+          <q-btn color="green-8" icon="download" label="Excel completo" no-caps unelevated
+                 :loading="comp[panel].descargando === 'general'" :disable="!comp[panel].filas.length"
+                 @click="descargarComp(panel, 'general')">
+            <q-tooltip>Resumen, comprobantes, productos en plano y padres/hijos</q-tooltip>
+          </q-btn>
+          <q-btn v-if="panel === 'anulados'" color="blue-grey-7" icon="download" label="Excel por producto" no-caps
+                 unelevated :loading="comp[panel].descargando === 'caja'" :disable="!comp[panel].filas.length"
+                 @click="descargarComp(panel, 'caja')">
+            <q-tooltip>Una fila por producto anulado, como el reporte de anulados de caja</q-tooltip>
+          </q-btn>
+        </div>
+
+        <div class="text-caption text-grey-7 q-mt-xs">
+          <template v-if="panel === 'anulados'">
+            Comprobantes anulados en Facturación por fecha de entrega: quién y cuándo anuló, el motivo y con qué
+            comprobante se reemplazó (hijo).
+          </template>
+          <template v-else>
+            Todos los comprobantes de Facturación por fecha de entrega, incluidos los anulados (en rojo): pedido,
+            camión, cliente, quién cobró y la cadena padre/hijo de los refacturados y retornos parciales.
+          </template>
+        </div>
+
+        <div class="row q-col-gutter-sm q-mt-xs">
+          <div v-for="t in tarjetasComp(panel)" :key="t.titulo" class="col-6 col-sm">
+            <q-card flat bordered class="tarjeta">
+              <div class="tarjeta-titulo">{{ t.titulo }}</div>
+              <div class="tarjeta-valor" :class="t.clase">{{ t.valor }}</div>
+              <div v-if="t.sub" class="tarjeta-sub">{{ t.sub }}</div>
+            </q-card>
+          </div>
+        </div>
+
+        <div v-if="panel === 'general'" class="row items-center q-gutter-sm q-mt-xs">
+          <q-btn-toggle v-model="comp.general.relacion" dense no-caps unelevated toggle-color="primary" color="grey-3"
+                        text-color="grey-9" :options="[
+                          { label: 'Todos', value: '' },
+                          { label: 'Vigentes', value: 'VIGENTE' },
+                          { label: 'Anulados', value: 'ANULADO' },
+                          { label: 'Padres e hijos', value: 'CADENA' }
+                        ]"/>
+        </div>
+
+        <q-table
+          class="q-mt-sm tabla-detalle" flat bordered dense virtual-scroll
+          :rows="visiblesComp(panel)" :columns="panel === 'anulados' ? columnasAnulados : columnasGeneral"
+          :filter="comp[panel].buscar" :rows-per-page-options="[0]" row-key="id" :loading="comp[panel].cargando"
+          :no-data-label="panel === 'anulados' ? 'No hay anulados con esa fecha de entrega' : 'No hay comprobantes con esa fecha de entrega'"
+        >
+          <template v-slot:top-right>
+            <q-input v-model="comp[panel].buscar" dense outlined clearable debounce="300"
+                     placeholder="Cliente, pedido, camión, ID…" style="width: 280px">
+              <template v-slot:append><q-icon name="search"/></template>
+            </q-input>
+          </template>
+          <!-- Lo anulado del reporte general va en rojo, toda la fila. -->
+          <template v-slot:body-cell="props">
+            <q-td :props="props" :class="{ 'celda-anulada': panel === 'general' && props.row.anulado }">
+              {{ props.value }}
+            </q-td>
+          </template>
+          <template v-slot:body-cell-relacion="props">
+            <q-td :props="props" :class="{ 'celda-anulada': panel === 'general' && props.row.anulado }">
+              <q-badge v-if="props.value !== 'ÚNICO'" :color="colorRelacion(props.value)" :label="props.value"/>
+              <span v-else class="text-grey-6">ÚNICO</span>
+            </q-td>
+          </template>
+          <template v-slot:body-cell-estado="props">
+            <q-td :props="props" :class="{ 'celda-anulada': panel === 'general' && props.row.anulado }">
+              <q-badge :color="props.value === 'ANULADO' ? 'negative' : 'positive'" :label="props.value"/>
+            </q-td>
+          </template>
+        </q-table>
+      </q-tab-panel>
     </q-tab-panels>
   </q-page>
 </template>
@@ -573,7 +669,61 @@ export default {
       },
       buscarRanking: '',
       cargandoRanking: false,
-      descargandoRanking: ''
+      descargandoRanking: '',
+      // Anulados y reporte general: por fecha de entrega, por defecto hoy.
+      comp: {
+        anulados: this.nuevoComp(),
+        general: Object.assign(this.nuevoComp(), { relacion: '' })
+      },
+      tiposComp: [
+        { label: 'Todos', value: '' },
+        { label: 'Embutidos', value: 'NORMAL' },
+        { label: 'Pollo', value: 'POLLO' },
+        { label: 'Cerdo', value: 'CERDO' },
+        { label: 'Res', value: 'RES' },
+        { label: 'Podium y huevo', value: 'PODIUM' }
+      ],
+      columnasAnulados: [
+        { name: 'id', label: 'ID', field: 'id', align: 'right', sortable: true },
+        { name: 'comprobante', label: 'Comprob.', field: 'comprobante', align: 'left', sortable: true },
+        { name: 'nro_factura', label: 'Nro fact.', field: 'nro_factura', align: 'right', sortable: true },
+        { name: 'fecha', label: 'Emitido', field: f => f.fecha + ' ' + f.hora, align: 'left' },
+        { name: 'fecha_entrega', label: 'F. entrega', field: 'fecha_entrega', align: 'left', sortable: true },
+        { name: 'pedido', label: 'Pedido', field: 'pedido', align: 'left', sortable: true },
+        { name: 'pedido_tipo', label: 'Tipo', field: 'pedido_tipo', align: 'left', sortable: true },
+        { name: 'camion', label: 'Camión', field: 'camion', align: 'left', sortable: true },
+        { name: 'cliente', label: 'Cliente', field: 'cliente', align: 'left', sortable: true },
+        { name: 'preventista', label: 'Preventista', field: 'preventista', align: 'left', sortable: true },
+        { name: 'total', label: 'Total Bs', field: 'total', align: 'right', sortable: true, format: v => this.bs(v) },
+        { name: 'anulado_at', label: 'Anulado el', field: 'anulado_at', align: 'left' },
+        { name: 'anulado_por', label: 'Anulado por', field: 'anulado_por', align: 'left', sortable: true },
+        { name: 'motivo', label: 'Motivo', field: 'motivo', align: 'left', sortable: true },
+        { name: 'relacion', label: 'Relación', field: 'relacion', align: 'left', sortable: true },
+        { name: 'hijo', label: 'Reemplazado por', field: 'hijo', align: 'left' }
+      ],
+      columnasGeneral: [
+        { name: 'id', label: 'ID', field: 'id', align: 'right', sortable: true },
+        { name: 'estado', label: 'Estado', field: 'estado', align: 'left', sortable: true },
+        { name: 'comprobante', label: 'Comprob.', field: 'comprobante', align: 'left', sortable: true },
+        { name: 'nro_factura', label: 'Nro fact.', field: 'nro_factura', align: 'right', sortable: true },
+        { name: 'fecha', label: 'Emitido', field: f => f.fecha + ' ' + f.hora, align: 'left' },
+        { name: 'pedido', label: 'Pedido', field: 'pedido', align: 'left', sortable: true },
+        { name: 'pedido_tipo', label: 'Tipo', field: 'pedido_tipo', align: 'left', sortable: true },
+        { name: 'camion', label: 'Camión', field: 'camion', align: 'left', sortable: true },
+        { name: 'cliente', label: 'Cliente', field: 'cliente', align: 'left', sortable: true },
+        { name: 'nit', label: 'NIT / CI', field: 'nit', align: 'left' },
+        { name: 'pago', label: 'Pago', field: 'pago', align: 'left', sortable: true },
+        { name: 'total', label: 'Total Bs', field: 'total', align: 'right', sortable: true, format: v => this.bs(v) },
+        { name: 'lineas', label: 'Prod.', field: 'lineas', align: 'right' },
+        { name: 'cadena', label: 'Cadena', field: 'cadena', align: 'right', sortable: true },
+        { name: 'relacion', label: 'Relación', field: 'relacion', align: 'left', sortable: true },
+        { name: 'padre', label: 'Padre', field: 'padre', align: 'right' },
+        { name: 'hijo', label: 'Hijo', field: 'hijo', align: 'left' },
+        { name: 'cambio_padre', label: 'Qué cambió', field: 'cambio_padre', align: 'left',
+          style: 'max-width: 260px; white-space: normal' },
+        { name: 'usuario', label: 'Cobró', field: 'usuario', align: 'left', sortable: true },
+        { name: 'motivo', label: 'Motivo anulación', field: 'motivo', align: 'left' }
+      ]
     }
   },
   watch: {
@@ -584,6 +734,7 @@ export default {
       // Sin producto elegido arranca con todos los productos.
       if (valor === 'kardex' && !this.kardex.todos && !this.kardex.cod_prod) this.consultarKardex()
       if (valor === 'ranking' && !this.ranking.datos.filas.length) this.consultarRanking()
+      if ((valor === 'anulados' || valor === 'general') && !this.comp[valor].consultado) this.consultarComp(valor)
     }
   },
   computed: {
@@ -633,6 +784,95 @@ export default {
     this.consultar()
   },
   methods: {
+    nuevoComp () {
+      const hoy = date.formatDate(Date.now(), 'YYYY-MM-DD')
+      return { desde: hoy, hasta: hoy, pedidoTipo: '', filas: [], buscar: '', cargando: false, descargando: '', consultado: false }
+    },
+    // Los mismos filtros que la pantalla de Facturacion (por fecha de entrega).
+    paramsComp (panel) {
+      const c = this.comp[panel]
+      return {
+        fecha_entrega: c.desde,
+        fecha_entrega_hasta: c.hasta || c.desde,
+        pedido_tipo: c.pedidoTipo || '',
+        solo_anulados: panel === 'anulados' ? 1 : 0
+      }
+    },
+    consultarComp (panel) {
+      const c = this.comp[panel]
+      if (!c.desde) return
+      c.cargando = true
+      c.consultado = true
+      this.$api.get('facturacion/reporte-general', { params: Object.assign({ formato: 'json' }, this.paramsComp(panel)) })
+        .then(res => { c.filas = res.data.filas })
+        .catch(err => {
+          this.$q.notify({ type: 'negative', message: err.response?.data?.message || 'No se pudo cargar el reporte' })
+        })
+        .finally(() => { c.cargando = false })
+    },
+    // tipo: 'general' (el libro completo) o 'caja' (anulados por producto).
+    async descargarComp (panel, tipo) {
+      const c = this.comp[panel]
+      c.descargando = tipo
+      const params = this.paramsComp(panel)
+      const url = tipo === 'caja' ? 'facturacion/reporte' : 'facturacion/reporte-general'
+      if (tipo === 'caja') Object.assign(params, { contenido: 'anulados', formato: 'excel' })
+      try {
+        const res = await this.$api.get(url, { params, responseType: 'blob' })
+        const enlace = document.createElement('a')
+        enlace.href = window.URL.createObjectURL(res.data)
+        const rango = c.hasta && c.hasta !== c.desde ? c.desde + '_a_' + c.hasta : c.desde
+        enlace.download = (panel === 'anulados' ? (tipo === 'caja' ? 'anulados_por_producto_' : 'anulados_') : 'reporte_general_') +
+          rango + '.xlsx'
+        enlace.click()
+        window.URL.revokeObjectURL(enlace.href)
+      } catch (err) {
+        let mensaje = 'No se pudo descargar el Excel'
+        try {
+          mensaje = JSON.parse(await err.response.data.text()).message || mensaje
+        } catch (e) { /* el error no vino en JSON */ }
+        this.$q.notify({ type: 'negative', message: mensaje })
+      } finally {
+        c.descargando = ''
+      }
+    },
+    visiblesComp (panel) {
+      const filas = this.comp[panel].filas
+      if (panel !== 'general' || !this.comp.general.relacion) return filas
+      const relacion = this.comp.general.relacion
+      if (relacion === 'VIGENTE') return filas.filter(f => !f.anulado)
+      if (relacion === 'ANULADO') return filas.filter(f => f.anulado)
+      // Las cadenas completas, ordenadas para que cada hijo quede junto a su padre.
+      return filas.filter(f => f.relacion !== 'ÚNICO')
+        .slice().sort((a, b) => a.cadena - b.cadena || a.version - b.version)
+    },
+    tarjetasComp (panel) {
+      const filas = this.comp[panel].filas
+      const suma = lista => lista.reduce((s, f) => s + Number(f.total || 0), 0)
+      if (panel === 'anulados') {
+        const reemplazados = filas.filter(f => f.hijo).length
+        return [
+          { titulo: 'Anulados', valor: filas.length },
+          { titulo: 'Importe anulado Bs', valor: this.bs(suma(filas)), clase: 'text-negative' },
+          { titulo: 'Reemplazados', valor: reemplazados, sub: 'refacturados con otro comprobante' },
+          { titulo: 'Sin reemplazo', valor: filas.length - reemplazados, clase: 'text-orange-9' }
+        ]
+      }
+      const vigentes = filas.filter(f => !f.anulado)
+      const anulados = filas.filter(f => f.anulado)
+      return [
+        { titulo: 'Comprobantes', valor: filas.length, sub: vigentes.length + ' vigentes · ' + anulados.length + ' anulados' },
+        { titulo: 'Total vigente Bs', valor: this.bs(suma(vigentes)), clase: 'text-positive' },
+        { titulo: 'Total anulado Bs', valor: this.bs(suma(anulados)), clase: 'text-negative' },
+        { titulo: 'Refacturados', valor: filas.filter(f => f.relacion.includes('REFACTURADO')).length, sub: 'hijos por edición' },
+        { titulo: 'Retornos parciales', valor: filas.filter(f => f.relacion.includes('RETORNO')).length }
+      ]
+    },
+    colorRelacion (relacion) {
+      if (relacion.startsWith('PADRE')) return 'deep-purple-6'
+      if (relacion.includes('RETORNO')) return 'teal-7'
+      return 'indigo-5'
+    },
     paramsRanking () {
       return { desde: this.ranking.desde, hasta: this.ranking.hasta, orden: this.ranking.orden }
     },
@@ -865,6 +1105,14 @@ export default {
   font-size: 11px;
   padding: 2px 6px;
   height: 22px;
+}
+.tabla-detalle :deep(td.celda-anulada) {
+  background: #ffebee;
+  color: #b71c1c;
+}
+.situacion {
+  white-space: normal;
+  text-align: left;
 }
 .tabla-quiebre td,
 .tabla-quiebre th {

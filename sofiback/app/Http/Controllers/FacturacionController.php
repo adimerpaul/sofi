@@ -4365,14 +4365,32 @@ class FacturacionController extends Controller
         @ini_set('memory_limit', '1024M');
         @set_time_limit(300);
 
-        $request->merge(['estado' => '']);
+        // solo_anulados: la pestaña Anulados de Reportes usa este mismo armado.
+        $soloAnulados = $request->boolean('solo_anulados');
+        $request->merge(['estado' => $soloAnulados ? 'ANULADO' : '']);
         $facturas = $this->filtrar($request)->reorder('id')->get();
+        $comoJson = $request->input('formato') === 'json';
         if ($facturas->isEmpty()) {
-            return response()->json(['message' => 'No hay comprobantes en este filtro'], 422);
+            return $comoJson
+                ? response()->json(['filas' => []])
+                : response()->json(['message' => $soloAnulados ? 'No hay comprobantes anulados en este filtro' : 'No hay comprobantes en este filtro'], 422);
         }
 
         $cadenas = $this->cadenasFacturas($facturas);
         $comprobantes = $this->filasGeneralComprobantes($facturas, $cadenas);
+
+        // Para la pantalla: las mismas filas, con las fechas como texto.
+        if ($comoJson) {
+            $porId = $facturas->keyBy('id');
+            return response()->json(['filas' => collect($comprobantes)->map(function ($fila, $id) use ($porId) {
+                $f = $porId[$id];
+                $fila['anulado'] = $fila['_anulado'];
+                unset($fila['_anulado']);
+                $fila['fecha'] = optional($f->fecha)->format('d/m/Y');
+                $fila['fecha_entrega'] = $f->fecha_entrega ? date('d/m/Y', strtotime((string) $f->fecha_entrega)) : '';
+                return $fila;
+            })->values()]);
+        }
         $empresa = config('siat.emisor')['nombre'] ?? 'Sofia';
         list(, $rango) = $this->tituloReporte('ventas', $request);
         $subtitulo = $empresa . ' · ' . $rango . ' · generado el ' . date('d/m/Y H:i');
