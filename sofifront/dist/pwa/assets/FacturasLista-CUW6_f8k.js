@@ -1,4 +1,8 @@
+<<<<<<<< HEAD:sofifront/dist/pwa/assets/FacturasLista-CUW6_f8k.js
 import{b0 as Ls,a0 as Ws,a2 as Z,a3 as he,a4 as k,ac as re,a5 as C,aO as Ks,aP as Kn,a$ as He,a9 as G,ag as Xe,ah as fe,aj as Gs,aa as q,a_ as ar,J as Ze,ae as Be,aQ as Ye,a6 as ft,ad as Pe,ax as Ir,aZ as Hs,ai as Va,a7 as ve,a8 as Je,af as wr,ab as Sr,aJ as Gn,aB as Xs,am as cr,az as Hn,aK as Zs,b1 as fn,b2 as Ys,ak as Js,an as qt,b3 as Qs,aw as _t,aC as Zr,aI as kt,aR as Xn,ay as _s,aS as Zn,aU as $s,aV as el,av as tl,b4 as rl,ao as nl,aE as il,aG as hi}from"./index-D-D_mKrJ.js";import{Q as qa}from"./QPopupProxy-CGBe3VIA.js";import{i as Yn}from"./impresion-DlDZNZha.js";/*! *****************************************************************************
+========
+import{b0 as Ls,a0 as Ws,a2 as Z,a3 as he,a4 as k,ac as re,a5 as C,aO as Ks,aP as Kn,a$ as He,a9 as G,ag as Xe,ah as fe,aj as Gs,aa as q,a_ as ar,J as Ze,ae as Be,aQ as Ye,a6 as ft,ad as Pe,ax as Ir,aZ as Hs,ai as Va,a7 as ve,a8 as Je,af as wr,ab as Sr,aJ as Gn,aB as Xs,am as cr,az as Hn,aK as Zs,b1 as fn,b2 as Ys,ak as Js,an as qt,b3 as Qs,aw as _t,aC as Zr,aI as kt,aR as Xn,ay as _s,aS as Zn,aU as $s,aV as el,av as tl,b4 as rl,ao as nl,aE as il,aG as hi}from"./index-BAweE3DP.js";import{Q as qa}from"./QPopupProxy-uevW2GST.js";import{i as Yn}from"./impresion-DlDZNZha.js";/*! *****************************************************************************
+>>>>>>>> bda7dbfe56c802358ff91f487fcd78f0a2e82185:sofifront/dist/pwa/assets/FacturasLista-BFoKWU-N.js
 Copyright (c) Microsoft Corporation.
 
 Permission to use, copy, modify, and/or distribute this software for any

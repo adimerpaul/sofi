@@ -1,4 +1,8 @@
+<<<<<<<< HEAD:sofifront/dist/pwa/assets/firebase-Qre0-PJM.js
 import{b as Oi}from"./index-D-D_mKrJ.js";const Ni=()=>{};var Rn={};/**
+========
+import{b as Oi}from"./index-BAweE3DP.js";const Ni=()=>{};var Rn={};/**
+>>>>>>>> bda7dbfe56c802358ff91f487fcd78f0a2e82185:sofifront/dist/pwa/assets/firebase-5GCHghWq.js
  * @license
  * Copyright 2017 Google LLC
  *

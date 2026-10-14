@@ -88,8 +88,12 @@ const routes = [
       { path: '/cobranzas/recojo', component: () => import('pages/Cobranzas/RecojoCamiones.vue'), meta: { requiresAuth: true } },
       // GET /creditos y /creditos/clientes; POST /creditos; GET/POST /creditos/{origen}/{id}/abonos.
       { path: '/cobranzas/creditos', component: () => import('pages/Cobranzas/CreditosClientes.vue'), meta: { requiresAuth: true } },
+      // Cobros de vendedores por confirmar: GET /creditos/cobros-vendedor; POST /{id}/confirmar y /{id}/rechazar.
+      { path: '/cobranzas/creditos/cobros', component: () => import('pages/Cobranzas/CobrosVendedores.vue'), meta: { requiresAuth: true } },
       // Cobro simple: GET /vendedor/creditos/clientes y /{cliente}; POST /{cliente}/cobros.
       { path: '/vendedor/creditos', component: () => import('pages/Cobranzas/CobrarCreditosVendedor.vue'), meta: { requiresAuth: true } },
+      // Lo que cobro el vendedor y su estado: GET /vendedor/creditos/cobros?desde&hasta.
+      { path: '/vendedor/creditos/cobros', component: () => import('pages/Cobranzas/MisCobrosCreditos.vue'), meta: { requiresAuth: true } },
       { path: '/cobranzas/verificacion', component: () => import('pages/Cobranzas/VerificarFacturacion.vue'), meta: { requiresAuth: true } },
       // GET /cobranzas/verificacion/clientes y /clientes/{cliente}/facturas; el tilde usa POST /cobranzas/verificacion.
       { path: '/cobranzas/verificacion/clientes', component: () => import('pages/Cobranzas/VerificarCliente.vue'), meta: { requiresAuth: true } },

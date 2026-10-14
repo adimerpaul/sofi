@@ -181,6 +181,11 @@ Route::group(['middleware'=>'auth:sanctum'],function (){
     Route::get('/vendedor/creditos/clientes',[\App\Http\Controllers\CreditoController::class,'clientesVendedor']);
     Route::get('/vendedor/creditos/clientes/{cliente}',[\App\Http\Controllers\CreditoController::class,'deudasVendedor'])->where('cliente', '[0-9]+');
     Route::post('/vendedor/creditos/clientes/{cliente}/cobros',[\App\Http\Controllers\CreditoController::class,'cobrarVendedor'])->where('cliente', '[0-9]+');
+    Route::get('/vendedor/creditos/cobros',[\App\Http\Controllers\CreditoController::class,'misCobrosVendedor']);
+    // Lo que cobran los vendedores no descuenta hasta que cobranzas lo confirma.
+    Route::get('/creditos/cobros-vendedor',[\App\Http\Controllers\CreditoController::class,'cobrosVendedor']);
+    Route::post('/creditos/cobros-vendedor/{cobro}/confirmar',[\App\Http\Controllers\CreditoController::class,'confirmarCobroVendedor'])->where('cobro', '[0-9]+');
+    Route::post('/creditos/cobros-vendedor/{cobro}/rechazar',[\App\Http\Controllers\CreditoController::class,'rechazarCobroVendedor'])->where('cobro', '[0-9]+');
     // Todos los clientes con su deuda, y el detalle de uno (deudas y ventas a credito).
     Route::get('/creditos/resumen',[\App\Http\Controllers\CreditoController::class,'resumen']);
     Route::get('/creditos/excel-deudores',[\App\Http\Controllers\CreditoController::class,'excelDeudores']);
