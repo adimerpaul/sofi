@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Producto;
+use App\Services\TipoPedido;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -64,8 +65,9 @@ class PrecioController extends Controller
 
         $guardados = 0;
         $noExisten = [];
+        $lineasPedido = 0;
 
-        DB::transaction(function () use ($datos, &$guardados, &$noExisten) {
+        DB::transaction(function () use ($datos, &$guardados, &$noExisten, &$lineasPedido) {
             foreach ($datos['cambios'] as $cambio) {
                 $codigo = trim($cambio['cod_prod']);
                 $producto = Producto::whereRaw('TRIM(cod_prod) = ?', [$codigo])->first();
@@ -73,6 +75,7 @@ class PrecioController extends Controller
                     $noExisten[] = $codigo;
                     continue;
                 }
+                $antes = $producto->only(self::PRECIOS);
 
                 foreach (self::PRECIOS as $campo) {
                     if (array_key_exists($campo, $cambio)) {
@@ -89,6 +92,7 @@ class PrecioController extends Controller
                 if ($producto->isDirty()) {
                     $producto->save();
                     $guardados++;
+                    $lineasPedido += $this->actualizarPedidos($codigo, $antes, $producto->only(self::PRECIOS));
                 }
             }
         });
@@ -96,9 +100,63 @@ class PrecioController extends Controller
         return [
             'guardados' => $guardados,
             'no_existen' => $noExisten,
-            'message' => $guardados === 1
+            'lineas_pedido' => $lineasPedido,
+            'message' => ($guardados === 1
                 ? 'Se actualizaron los precios de 1 producto'
-                : 'Se actualizaron los precios de ' . $guardados . ' productos',
+                : 'Se actualizaron los precios de ' . $guardados . ' productos')
+                . ($lineasPedido ? ' y ' . $lineasPedido . ' línea(s) de pedidos sin facturar' : ''),
         ];
+    }
+
+    /**
+     * Lleva el precio nuevo a los pedidos que todavia no se facturaron.
+     *
+     * La linea del pedido guarda un solo precio y no dice de que lista salio:
+     * se reconoce por el valor. Si tenia el valor viejo del Precio N pasa al
+     * nuevo del Precio N. Un valor que estaba en dos listas que ahora quedan
+     * distintas no se sabe a cual seguir y no se toca; tampoco un precio
+     * puesto a mano que no coincide con ninguna lista.
+     *
+     * Solo pedidos validos: no borrados, sin bonificacion, que salen hoy o
+     * despues y sin comprobante vigente (lo facturado ya se cobro asi).
+     */
+    private function actualizarPedidos($codigo, array $antes, array $despues)
+    {
+        // valor viejo (2 decimales, como en tbpedidos) => valores nuevos
+        $destinos = [];
+        foreach (self::PRECIOS as $campo) {
+            $viejo = number_format((float) $antes[$campo], 2, '.', '');
+            $destinos[$viejo][number_format((float) $despues[$campo], 2, '.', '')] = true;
+        }
+
+        $tipo = TipoPedido::sql('p');
+        $lineas = 0;
+        foreach ($destinos as $viejo => $nuevos) {
+            $viejo = (string) $viejo;
+            if (count($nuevos) !== 1 || (float) $viejo <= 0) {
+                continue;
+            }
+            $nuevo = (string) array_keys($nuevos)[0];
+            if ($nuevo === $viejo) {
+                continue;
+            }
+            $lineas += DB::update("
+                UPDATE tbpedidos p
+                SET p.precio = ?, p.subtotal = ROUND(p.Cant * ?, 2)
+                WHERE p.deleted_at IS NULL
+                  AND TRIM(p.cod_prod) = ?
+                  AND ROUND(p.precio, 2) = ?
+                  AND COALESCE(p.bonificacion, 0) = 0
+                  AND p.fecha_entrega >= ?
+                  AND NOT EXISTS (
+                      SELECT 1 FROM facturas f
+                      WHERE f.deleted_at IS NULL AND f.estado <> 'ANULADO'
+                        AND f.pedido_nro = p.NroPed
+                        AND UPPER(TRIM(f.pedido_tipo)) = {$tipo}
+                  )
+            ", [$nuevo, $nuevo, $codigo, $viejo, date('Y-m-d')]);
+        }
+
+        return $lineas;
     }
 }
