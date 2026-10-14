@@ -408,8 +408,8 @@ class FacturacionController extends Controller
             ? date('Y-m-d', strtotime($desde . ' +1 day'))
             : $desde;
         // Con fecha de entrega: los pedidos de ese reparto, sin vueltas de hora.
-        if ($entrega = $this->fechaEntregaFiltro($request)) {
-            $entregaDesde = $hasta = $entrega;
+        if ($rango = $this->rangoEntregaFiltro($request)) {
+            list($entregaDesde, $hasta) = $rango;
         }
 
         // Una fila por pedido (numero y tipo), marcada si ya se cobro.
@@ -2167,8 +2167,10 @@ class FacturacionController extends Controller
     private function enVentana($query, Request $request)
     {
         // Con fecha de entrega manda esa: es el dia del reparto, sin cortes por hora.
-        if ($entrega = $this->fechaEntregaFiltro($request)) {
-            return $query->where('facturas.fecha_entrega', $entrega);
+        if ($rango = $this->rangoEntregaFiltro($request)) {
+            return $rango[0] === $rango[1]
+                ? $query->where('facturas.fecha_entrega', $rango[0])
+                : $query->whereBetween('facturas.fecha_entrega', $rango);
         }
         $horaDesde = $this->hora($request->input('hora_desde'));
         $horaHasta = $this->hora($request->input('hora_hasta'));
@@ -2195,7 +2197,28 @@ class FacturacionController extends Controller
     /** 'YYYY-MM-DD' valido del filtro fecha_entrega, o null. */
     private function fechaEntregaFiltro(Request $request)
     {
-        $valor = trim((string) $request->input('fecha_entrega', ''));
+        return $this->diaValido($request->input('fecha_entrega'));
+    }
+
+    /**
+     * Rango de entrega [desde, hasta] del filtro, o null sin fecha de entrega.
+     * Sin fecha_entrega_hasta (o igual a la de inicio) es un solo dia; si
+     * llegan al reves se dan vuelta.
+     */
+    private function rangoEntregaFiltro(Request $request)
+    {
+        $desde = $this->fechaEntregaFiltro($request);
+        if (!$desde) {
+            return null;
+        }
+        $hasta = $this->diaValido($request->input('fecha_entrega_hasta')) ?: $desde;
+
+        return $hasta < $desde ? [$hasta, $desde] : [$desde, $hasta];
+    }
+
+    private function diaValido($valor)
+    {
+        $valor = trim((string) $valor);
 
         return preg_match('/^\d{4}-\d{2}-\d{2}$/', $valor) && strtotime($valor) ? $valor : null;
     }
@@ -4025,10 +4048,12 @@ class FacturacionController extends Controller
     /** Titulo y rango, para que el papel diga que se esta mirando. */
     private function tituloReporte($contenido, Request $request)
     {
-        if ($entrega = $this->fechaEntregaFiltro($request)) {
+        if ($rango = $this->rangoEntregaFiltro($request)) {
             return [
                 $contenido === 'cambios' ? 'CAMBIOS EN LOS PEDIDOS' : 'REPORTE DE VENTAS',
-                'Entrega del ' . date('d/m/Y', strtotime($entrega)),
+                $rango[0] === $rango[1]
+                    ? 'Entrega del ' . date('d/m/Y', strtotime($rango[0]))
+                    : 'Entrega del ' . date('d/m/Y', strtotime($rango[0])) . ' al ' . date('d/m/Y', strtotime($rango[1])),
             ];
         }
         $desde = $request->input('desde');

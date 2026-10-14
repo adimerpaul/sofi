@@ -133,8 +133,14 @@
              eligio en la venta directa). Lo facturado de noche para manana
              sale en el dia de manana, sin cortes por hora. -->
         <div class="col-auto">
-          <q-input v-model="filtros.fechaEntrega" type="date" dense outlined label="Fecha entrega" class="campo-fecha"
+          <q-input v-model="filtros.fechaEntrega" type="date" dense outlined label="Entrega desde" class="campo-fecha"
                    @update:model-value="recargar"/>
+        </div>
+        <!-- Vacio (o igual al desde) es un solo dia, que es lo que deja ver la
+             carga del camion; con rango se mira mas de un reparto junto. -->
+        <div class="col-auto">
+          <q-input v-model="filtros.fechaEntregaHasta" type="date" dense outlined label="Entrega hasta" class="campo-fecha"
+                   :min="filtros.fechaEntrega || undefined" @update:model-value="recargar"/>
         </div>
         <div class="col-12 col-md">
           <q-input v-model="filtros.buscar" dense outlined clearable label="Cliente, NIT, número o pedido">
@@ -995,6 +1001,7 @@ function filtrosPorDefecto () {
   return {
     // Lo que sale hoy en los camiones, se haya facturado hoy o anoche.
     fechaEntrega: date.formatDate(new Date(), 'YYYY-MM-DD'),
+    fechaEntregaHasta: '',
     buscar: '',
     tipo: null,
     pedidoTipo: null,
@@ -1153,7 +1160,15 @@ export default {
     },
     /** El dia de entrega que se esta mirando (camiones y carga son de un dia). */
     diaUnico () {
-      return this.filtros.fechaEntrega || null
+      const { fechaEntrega, fechaEntregaHasta } = this.filtros
+      if (!fechaEntrega) return null
+      return !fechaEntregaHasta || fechaEntregaHasta === fechaEntrega ? fechaEntrega : null
+    },
+    /** Para el nombre de los archivos: el dia, o 'desde_hasta' con rango. */
+    etiquetaFechas () {
+      const { fechaEntrega, fechaEntregaHasta } = this.filtros
+      if (!fechaEntrega) return 'todo'
+      return this.diaUnico ? fechaEntrega : fechaEntrega + '_' + fechaEntregaHasta
     }
   },
   created () {
@@ -1384,6 +1399,7 @@ export default {
     paramsFiltro () {
       return {
         fecha_entrega: this.filtros.fechaEntrega || '',
+        fecha_entrega_hasta: (this.filtros.fechaEntrega && this.filtros.fechaEntregaHasta) || '',
         buscar: this.filtros.buscar || '',
         tipo: this.filtros.tipo || '',
         pedido_tipo: this.filtros.pedidoTipo || '',
@@ -1464,7 +1480,7 @@ export default {
       return this.pdfEnPartes(
         'todos',
         { ids: ids.join(',') },
-        'comprobantes_seleccionados_' + (this.filtros.fechaEntrega || 'todo') + '.pdf',
+        'comprobantes_seleccionados_' + this.etiquetaFechas + '.pdf',
         imprimir
       )
     },
@@ -1583,7 +1599,7 @@ export default {
       return this.pdfEnPartes(
         documento,
         this.paramsFiltro(),
-        nombre + '_' + (this.filtros.fechaEntrega || 'todo') + '.pdf',
+        nombre + '_' + this.etiquetaFechas + '.pdf',
         imprimir
       )
     },
@@ -1693,7 +1709,7 @@ export default {
       return this.bajarArchivo(
         'facturacion/reporte',
         Object.assign({ contenido, formato }, this.paramsFiltro()),
-        contenido + '_' + (this.filtros.fechaEntrega || 'todo') + (formato === 'excel' ? '.xlsx' : '.pdf'),
+        contenido + '_' + this.etiquetaFechas + (formato === 'excel' ? '.xlsx' : '.pdf'),
         false
       )
     },
