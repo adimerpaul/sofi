@@ -127,6 +127,8 @@ Route::group(['middleware'=>'auth:sanctum'],function (){
     // Reporte auxiliar del dia de pollo: stock, ventas por preventista y stock final.
     Route::get('/reportes/auxiliar-pollo',[\App\Http\Controllers\ReporteVentasController::class,'auxiliarPollo']);
     Route::get('/reportes/auxiliar-pollo/excel',[\App\Http\Controllers\ReporteVentasController::class,'auxiliarPolloExcel']);
+    // Planillas de cerdo (reporte=enteros|cortes); ?formato=excel para bajarla.
+    Route::get('/reportes/cerdo',[\App\Http\Controllers\ReporteVentasController::class,'cerdo']);
     // Kardex: entradas y salidas de un producto con su existencia.
     Route::get('/reportes/kardex/productos',[\App\Http\Controllers\ReporteVentasController::class,'kardexProductos']);
     Route::get('/reportes/kardex',[\App\Http\Controllers\ReporteVentasController::class,'kardex']);

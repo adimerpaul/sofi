@@ -5,6 +5,7 @@
             class="text-grey-8">
       <q-tab name="quiebre" icon="production_quantity_limits" label="Quiebre de stock"/>
       <q-tab name="pollo" icon="egg" label="Reporte auxiliar de pollo"/>
+      <q-tab name="cerdo" icon="savings" label="Reporte de cerdo"/>
       <q-tab name="detalle" icon="receipt_long" label="Detalle de ventas"/>
       <q-tab name="kardex" icon="inventory" label="Kardex por producto"/>
       <q-tab name="ranking" icon="leaderboard" label="Productos facturados"/>
@@ -138,6 +139,123 @@
 
       <!-- La planilla auxiliar del dia: stock con que se arranca, lo que vendio
            cada preventista por codigo y con cuanto se termina. -->
+      <!-- Las dos planillas de cerdo con lo vendido en facturacion: por
+           vendedor (entero, desmembrado, cortado) y por cortes. En cada codigo
+           la cantidad; NETO son los kilos cobrados. -->
+      <q-tab-panel name="cerdo" class="q-pa-none q-pt-sm">
+        <div class="row items-center q-gutter-sm">
+          <q-btn-toggle v-model="cerdo.reporte" dense no-caps unelevated toggle-color="primary" color="grey-3"
+                        text-color="grey-9" :options="[
+                          { label: 'Por vendedor (ENT/DES/COR)', value: 'enteros' },
+                          { label: 'Por cortes', value: 'cortes' }
+                        ]" @update:model-value="consultarCerdo"/>
+          <q-input v-model="cerdo.desde" type="date" dense outlined label="Entrega desde" style="width: 160px"
+                   @update:model-value="consultarCerdo"/>
+          <q-input v-model="cerdo.hasta" type="date" dense outlined label="Entrega hasta" style="width: 160px"
+                   @update:model-value="consultarCerdo"/>
+          <q-btn color="primary" icon="refresh" label="Actualizar" no-caps unelevated :loading="cerdo.cargando"
+                 @click="consultarCerdo"/>
+          <q-btn color="green-8" icon="download" label="Excel" no-caps unelevated :loading="cerdo.descargando"
+                 @click="descargarCerdo"/>
+        </div>
+
+        <div class="text-caption text-grey-7 q-mt-xs">
+          Ventas vigentes de Facturación por fecha de entrega. En cada código va la cantidad vendida y en NETO los
+          kilos cobrados. El stock va en kilos, que es como lo lleva el sistema; en el Excel, devolución y tránsito
+          quedan para llenar a mano y el stock final se recalcula solo.
+        </div>
+
+        <template v-if="cerdo.datos">
+          <div class="text-subtitle1 text-weight-bold text-red-9 q-mt-sm">{{ cerdo.datos.titulo }}</div>
+
+          <!-- Stock en kilos al inicio y al final del rango. -->
+          <q-markup-table flat bordered dense separator="cell" class="q-mt-xs tabla-cerdo">
+            <thead>
+            <tr class="cerdo-rosa">
+              <th class="text-left">Kilos</th>
+              <th v-for="c in cerdo.datos.columnas" :key="'h' + c.cod_prod">
+                {{ c.etiqueta }}<div class="cerdo-cod">{{ c.cod_prod }}</div>
+              </th>
+              <th>Peso kg</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr class="cerdo-verde text-weight-bold">
+              <td>Stock al inicio</td>
+              <td v-for="c in cerdo.datos.columnas" :key="'i' + c.cod_prod" class="text-center">{{ numero(c.stock_inicial) }}</td>
+              <td class="text-center">{{ numero(sumaColumnasCerdo('stock_inicial')) }}</td>
+            </tr>
+            <tr>
+              <td>Kilos vendidos</td>
+              <td v-for="c in cerdo.datos.columnas" :key="'k' + c.cod_prod" class="text-center text-negative">
+                {{ numero(cerdo.datos.totales.kilos[c.cod_prod]) }}
+              </td>
+              <td class="text-center text-negative">{{ numero(cerdo.datos.totales.neto) }}</td>
+            </tr>
+            <tr class="cerdo-amarillo text-weight-bold">
+              <td>Stock al final (sistema)</td>
+              <td v-for="c in cerdo.datos.columnas" :key="'f' + c.cod_prod" class="text-center"
+                  :class="{ 'text-negative': c.stock_final < 0 }">{{ numero(c.stock_final) }}</td>
+              <td class="text-center">{{ numero(sumaColumnasCerdo('stock_final')) }}</td>
+            </tr>
+            </tbody>
+          </q-markup-table>
+
+          <q-markup-table flat bordered dense separator="cell" class="q-mt-sm tabla-cerdo">
+            <thead>
+            <tr class="cerdo-azul">
+              <th class="text-left">Cliente</th>
+              <th v-if="cerdo.datos.con_total">Total</th>
+              <th v-for="c in cerdo.datos.columnas" :key="'s' + c.cod_prod">{{ c.etiqueta }}</th>
+              <th>Neto kg</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr v-if="!cerdo.datos.dias.length">
+              <td :colspan="cerdo.datos.columnas.length + (cerdo.datos.con_total ? 3 : 2)" class="text-center text-grey-7 q-pa-md">
+                {{ cerdo.cargando ? 'Cargando…' : 'Sin ventas de estos códigos en el rango' }}
+              </td>
+            </tr>
+            <template v-for="dia in cerdo.datos.dias" :key="dia.fecha">
+              <tr v-if="cerdo.datos.dias.length > 1" class="cerdo-azul">
+                <td :colspan="cerdo.datos.columnas.length + (cerdo.datos.con_total ? 3 : 2)" class="text-weight-bold">
+                  {{ fechaCorta(dia.fecha) }}
+                </td>
+              </tr>
+              <template v-for="v in dia.vendedores" :key="dia.fecha + v.vendedor">
+                <tr>
+                  <td :colspan="cerdo.datos.columnas.length + (cerdo.datos.con_total ? 3 : 2)" class="cerdo-vendedor">
+                    {{ v.vendedor }}
+                  </td>
+                </tr>
+                <tr v-for="f in v.filas" :key="f.id">
+                  <td>
+                    {{ f.cliente }}
+                    <span class="text-grey-6 text-caption">· #{{ f.id }}<template v-if="f.pedido"> · ped {{ f.pedido }}</template></span>
+                  </td>
+                  <td v-if="cerdo.datos.con_total" class="text-center text-weight-bold">{{ numero(f.total) }}</td>
+                  <td v-for="c in cerdo.datos.columnas" :key="f.id + c.cod_prod" class="text-center">
+                    {{ f.cantidades[c.cod_prod] ? numero(f.cantidades[c.cod_prod]) : '' }}
+                  </td>
+                  <td class="text-center text-weight-bold">{{ numero(f.neto) }}</td>
+                </tr>
+              </template>
+            </template>
+            </tbody>
+            <tfoot v-if="cerdo.datos.dias.length">
+            <tr class="cerdo-azul text-weight-bold text-red-9">
+              <td>TOTAL VENTAS ({{ cerdo.datos.totales.comprobantes }})</td>
+              <td v-if="cerdo.datos.con_total" class="text-center">{{ numero(cerdo.datos.totales.total) }}</td>
+              <td v-for="c in cerdo.datos.columnas" :key="'t' + c.cod_prod" class="text-center">
+                {{ numero(cerdo.datos.totales.cantidades[c.cod_prod]) }}
+              </td>
+              <td class="text-center">{{ numero(cerdo.datos.totales.neto) }}</td>
+            </tr>
+            </tfoot>
+          </q-markup-table>
+        </template>
+      </q-tab-panel>
+
       <q-tab-panel name="pollo" class="q-pa-none q-pt-sm">
         <div class="row items-center q-gutter-sm">
           <q-input v-model="fechaPollo" type="date" dense outlined label="Fecha de salida" style="width: 170px"
@@ -670,6 +788,15 @@ export default {
       buscarRanking: '',
       cargandoRanking: false,
       descargandoRanking: '',
+      // Reporte de cerdo: por fecha de entrega, por defecto hoy.
+      cerdo: {
+        reporte: 'enteros',
+        desde: date.formatDate(Date.now(), 'YYYY-MM-DD'),
+        hasta: date.formatDate(Date.now(), 'YYYY-MM-DD'),
+        datos: null,
+        cargando: false,
+        descargando: false
+      },
       // Anulados y reporte general: por fecha de entrega, por defecto hoy.
       comp: {
         anulados: this.nuevoComp(),
@@ -744,6 +871,7 @@ export default {
       // Sin producto elegido arranca con todos los productos.
       if (valor === 'kardex' && !this.kardex.todos && !this.kardex.cod_prod) this.consultarKardex()
       if (valor === 'ranking' && !this.ranking.datos.filas.length) this.consultarRanking()
+      if (valor === 'cerdo' && !this.cerdo.datos) this.consultarCerdo()
       if ((valor === 'anulados' || valor === 'general') && !this.comp[valor].consultado) this.consultarComp(valor)
     }
   },
@@ -794,6 +922,42 @@ export default {
     this.consultar()
   },
   methods: {
+    paramsCerdo () {
+      return { reporte: this.cerdo.reporte, desde: this.cerdo.desde, hasta: this.cerdo.hasta || this.cerdo.desde }
+    },
+    consultarCerdo () {
+      if (!this.cerdo.desde) return
+      this.cerdo.cargando = true
+      this.$api.get('reportes/cerdo', { params: this.paramsCerdo() })
+        .then(res => { this.cerdo.datos = res.data })
+        .catch(err => {
+          this.$q.notify({ type: 'negative', message: err.response?.data?.message || 'No se pudo cargar el reporte de cerdo' })
+        })
+        .finally(() => { this.cerdo.cargando = false })
+    },
+    async descargarCerdo () {
+      this.cerdo.descargando = true
+      try {
+        const params = Object.assign({ formato: 'excel' }, this.paramsCerdo())
+        const res = await this.$api.get('reportes/cerdo', { params, responseType: 'blob' })
+        const enlace = document.createElement('a')
+        enlace.href = window.URL.createObjectURL(res.data)
+        const rango = params.desde === params.hasta ? params.desde : params.desde + '_a_' + params.hasta
+        enlace.download = 'cerdo_' + params.reporte + '_' + rango + '.xlsx'
+        enlace.click()
+        window.URL.revokeObjectURL(enlace.href)
+      } catch (e) {
+        this.$q.notify({ type: 'negative', message: 'No se pudo descargar el Excel' })
+      } finally {
+        this.cerdo.descargando = false
+      }
+    },
+    sumaColumnasCerdo (campo) {
+      return (this.cerdo.datos?.columnas || []).reduce((s, c) => s + Number(c[campo] || 0), 0)
+    },
+    fechaCorta (fecha) {
+      return fecha ? date.formatDate(fecha + 'T00:00:00', 'DD/MM/YYYY') : ''
+    },
     nuevoComp () {
       const hoy = date.formatDate(Date.now(), 'YYYY-MM-DD')
       return { desde: hoy, hasta: hoy, pedidoTipo: '', filas: [], buscar: '', cargando: false, descargando: '', consultado: false }
@@ -1119,6 +1283,25 @@ export default {
 .tabla-detalle :deep(td.celda-anulada) {
   background: #ffebee;
   color: #b71c1c;
+}
+.tabla-cerdo th,
+.tabla-cerdo td {
+  font-size: 12px;
+}
+.tabla-cerdo .cerdo-cod {
+  font-size: 9px;
+  font-weight: 400;
+  color: #1155cc;
+}
+.cerdo-rosa th { background: #f4cccc; color: #c00000; }
+.cerdo-azul th, .cerdo-azul td { background: #c9daf8; }
+.cerdo-verde td { background: #d9ead3; }
+.cerdo-amarillo td { background: #fff2cc; }
+.cerdo-vendedor {
+  text-align: center;
+  font-weight: 700;
+  font-style: italic;
+  color: #e06666;
 }
 .situacion {
   white-space: normal;

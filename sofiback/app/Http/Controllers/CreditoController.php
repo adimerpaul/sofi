@@ -513,7 +513,17 @@ class CreditoController extends Controller
             $hoja->getColumnDimension($col)->setWidth($ancho);
         }
 
+        // Las bajas no son deuda cobrable: van aparte, en su hoja, y aca solo
+        // su total como referencia (no entra en el TOTAL de arriba).
+        $bajas = $this->filasBajas($clientes, $vendedores);
+        $total += 2;
+        $hoja->setCellValue('E' . $total, 'TOTAL BAJAS (ver hoja "Bajas", no es deuda)');
+        $hoja->setCellValue('I' . $total, round($bajas->sum('importe'), 2));
+        $hoja->getStyle("E{$total}:I{$total}")->getFont()->setBold(true)->getColor()->setRGB('6A1B9A');
+        $hoja->getStyle("I{$total}")->getNumberFormat()->setFormatCode('#,##0.00');
+
         $this->hojaDeudoresPorCliente($libro->createSheet(), $filas);
+        $this->hojaBajas($libro->createSheet(), $bajas);
         $libro->setActiveSheetIndex(0);
 
         $nombre = 'CUENTAS POR COBRAR ' . date('Y-m-d') . '.xlsx';
@@ -577,6 +587,130 @@ class CreditoController extends Controller
         $hoja->setAutoFilter("A3:F{$ultima}");
         $hoja->freezePane('A4');
         foreach (['A' => 40, 'B' => 28, 'C' => 13, 'D' => 13, 'E' => 13, 'F' => 40] as $col => $ancho) {
+            $hoja->getColumnDimension($col)->setWidth($ancho);
+        }
+    }
+
+    /**
+     * Una fila por baja de cada cuenta "BAJAS POR ...": lo bonificado a su
+     * nombre (tbpedidos.bonificacionId, con el cliente que lo recibio) y los
+     * comprobantes vigentes emitidos directo a la cuenta. Es lo mismo que
+     * muestra la pantalla de creditos en el filtro Bajas.
+     */
+    private function filasBajas($clientes, $vendedores)
+    {
+        $cuentas = DB::table('tbclientes')->where('Nombres', 'like', 'BAJAS POR %')
+            ->orderBy('Nombres')->get(['Cod_Aut', 'Nombres']);
+
+        $vendedorDe = function ($clienteId) use ($clientes, $vendedores) {
+            $cliente = $clientes->get($clienteId);
+            return $cliente ? $vendedores->get(trim((string) $cliente->CiVend), '') : '';
+        };
+        $productos = function ($lista) {
+            return collect($lista)->map(function ($p) {
+                return $p['nombre'] . ' x' . rtrim(rtrim(number_format($p['cantidad'], 3, '.', ''), '0'), '.');
+            })->implode(' · ');
+        };
+
+        $filas = collect();
+        foreach ($cuentas as $cuenta) {
+            $nombreCuenta = trim((string) $cuenta->Nombres);
+
+            foreach ($this->bonificacionesDeCuenta((int) $cuenta->Cod_Aut, collect()) as $b) {
+                $filas->push([
+                    'cuenta' => $nombreCuenta,
+                    'fecha' => $b['fecha'],
+                    'comanda' => $b['pedido'],
+                    'nro_venta' => $b['id'],
+                    'comprobante' => $b['comprobante'],
+                    'cliente' => $b['cliente'],
+                    'vendedor' => $vendedorDe($b['cliente_id']),
+                    'importe' => (float) $b['total'],
+                    'productos' => $productos($b['productos']),
+                ]);
+            }
+
+            // Lo emitido directo a la cuenta (degustacion, por ejemplo).
+            $propias = DB::table('facturas')->whereNull('deleted_at')->where('estado', 'ACTIVO')
+                ->where('cliente_id', $cuenta->Cod_Aut)->orderBy('id')
+                ->get(['id', 'fecha', 'tipo_comprobante', 'pedido_nro', 'total', 'observacion']);
+            $detalles = DB::table('factura_detalles')->whereIn('factura_id', $propias->pluck('id'))->whereNull('deleted_at')
+                ->get(['factura_id', 'nombre', 'cantidad'])->groupBy('factura_id');
+            foreach ($propias as $f) {
+                $filas->push([
+                    'cuenta' => $nombreCuenta,
+                    'fecha' => substr((string) $f->fecha, 0, 10),
+                    'comanda' => $f->pedido_nro,
+                    'nro_venta' => $f->id,
+                    'comprobante' => $f->tipo_comprobante,
+                    'cliente' => trim((string) $f->observacion) ?: $nombreCuenta,
+                    'vendedor' => '',
+                    'importe' => (float) $f->total,
+                    'productos' => $productos(($detalles->get($f->id) ?? collect())->map(function ($d) {
+                        return ['nombre' => trim((string) $d->nombre), 'cantidad' => (float) $d->cantidad];
+                    })),
+                ]);
+            }
+        }
+
+        return $filas->sortBy(function ($f) { return $f['cuenta'] . '|' . $f['fecha'] . '|' . str_pad((string) $f['comanda'], 10, '0', STR_PAD_LEFT); })->values();
+    }
+
+    /** Hoja "Bajas": resumen por cuenta y una fila por baja, con el cliente que la recibio. */
+    private function hojaBajas($hoja, $bajas)
+    {
+        $morado = ['fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID, 'startColor' => ['rgb' => 'E1BEE7']];
+        $hoja->setTitle('Bajas');
+        $hoja->getTabColor()->setRGB('6A1B9A');
+        $hoja->setCellValue('A1', 'BAJAS (BONIFICACION, CALIDAD, DEGUSTACION...) - NO ES DEUDA COBRABLE');
+        $hoja->getStyle('A1')->getFont()->setBold(true)->setSize(13);
+        $hoja->setCellValue('A2', 'Al ' . date('d/m/Y H:i'));
+
+        // Resumen por cuenta.
+        $hoja->fromArray(['CUENTA', 'CANTIDAD', 'IMPORTE'], null, 'A4');
+        $hoja->getStyle('A4:C4')->applyFromArray(['font' => ['bold' => true], 'fill' => $morado]);
+        $fila = 5;
+        foreach ($bajas->groupBy('cuenta') as $cuenta => $grupo) {
+            $hoja->setCellValueExplicit('A' . $fila, $cuenta, \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
+            $hoja->setCellValue('B' . $fila, $grupo->count());
+            $hoja->setCellValue('C' . $fila, round($grupo->sum('importe'), 2));
+            $fila++;
+        }
+        $hoja->setCellValue('A' . $fila, 'TOTAL');
+        $hoja->setCellValue('B' . $fila, $bajas->count());
+        $hoja->setCellValue('C' . $fila, round($bajas->sum('importe'), 2));
+        $hoja->getStyle("A{$fila}:C{$fila}")->getFont()->setBold(true);
+        $hoja->getStyle("C5:C{$fila}")->getNumberFormat()->setFormatCode('#,##0.00');
+
+        // Detalle: una fila por baja.
+        $inicio = $fila + 2;
+        $hoja->fromArray(['CUENTA', 'FECHA', 'COMANDA', 'NRO VENTA', 'COMPROBANTE', 'CLIENTE QUE RECIBIO',
+            'VENDEDOR', 'IMPORTE', 'PRODUCTOS'], null, 'A' . $inicio);
+        $hoja->getStyle("A{$inicio}:I{$inicio}")->applyFromArray(['font' => ['bold' => true], 'fill' => $morado]);
+        $fila = $inicio + 1;
+        foreach ($bajas as $b) {
+            $hoja->setCellValueExplicit('A' . $fila, $b['cuenta'], \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
+            if ($b['fecha']) {
+                $hoja->setCellValue('B' . $fila, \PhpOffice\PhpSpreadsheet\Shared\Date::PHPToExcel(new \DateTime($b['fecha'])));
+            }
+            $hoja->setCellValue('C' . $fila, $b['comanda']);
+            $hoja->setCellValue('D' . $fila, $b['nro_venta']);
+            $hoja->setCellValue('E' . $fila, $b['comprobante']);
+            $hoja->setCellValueExplicit('F' . $fila, $b['cliente'], \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
+            $hoja->setCellValueExplicit('G' . $fila, $b['vendedor'], \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
+            $hoja->setCellValue('H' . $fila, $b['importe']);
+            $hoja->setCellValueExplicit('I' . $fila, $b['productos'], \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
+            $fila++;
+        }
+        $ultima = max($fila - 1, $inicio);
+        $hoja->setCellValue('F' . $fila, 'TOTAL');
+        $hoja->setCellValue('H' . $fila, $ultima > $inicio ? '=SUBTOTAL(9,H' . ($inicio + 1) . ":H{$ultima})" : 0);
+        $hoja->getStyle("A{$fila}:I{$fila}")->getFont()->setBold(true);
+        $hoja->getStyle('B' . ($inicio + 1) . ":B{$ultima}")->getNumberFormat()->setFormatCode('d/m/yyyy');
+        $hoja->getStyle('H' . ($inicio + 1) . ":H{$fila}")->getNumberFormat()->setFormatCode('#,##0.00');
+        $hoja->setAutoFilter("A{$inicio}:I{$ultima}");
+
+        foreach (['A' => 30, 'B' => 11, 'C' => 10, 'D' => 10, 'E' => 13, 'F' => 38, 'G' => 26, 'H' => 12, 'I' => 70] as $col => $ancho) {
             $hoja->getColumnDimension($col)->setWidth($ancho);
         }
     }

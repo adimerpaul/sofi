@@ -414,6 +414,388 @@ class ReporteVentasController extends Controller
         ]);
     }
 
+    /**
+     * Las dos planillas de cerdo: [titulo, columnas [etiqueta, cod_prod],
+     * lleva columna TOTAL de piezas]. Los codigos y nombres son los de la
+     * hoja de papel (el 100004 en el sistema se llama COLUMNA).
+     */
+    private const REPORTES_CERDO = [
+        'enteros' => ['CANTIDAD DE CERDO POR VENDEDOR', [['ENT.', '503305'], ['DES.', '503303'], ['COR.', '503304']], true],
+        'cortes'  => ['REPORTE DEL CERDO POR CORTES', [['PALETAS', '100002'], ['COSTILLA', '100003'],
+            ['PIERNA', '100001'], ['CHULETA', '100004'], ['CARRE', '503632']], false],
+    ];
+
+    /** Reporte de cerdo (enteros o cortes) en pantalla; ?formato=excel para la planilla. */
+    public function cerdo(Request $request)
+    {
+        $datos = $this->datosCerdo($request);
+
+        return $request->input('formato') === 'excel' ? $this->cerdoExcel($datos) : $datos;
+    }
+
+    /**
+     * Lo vendido en facturacion de los codigos de la planilla, por dia de
+     * entrega, vendedor y cliente (un renglon por comprobante, como en la
+     * hoja). Por codigo: la cantidad (piezas) y los kilos cobrados; NETO es el
+     * total en kilos. Solo comprobantes vigentes.
+     *
+     * El stock va en kilos, que es como lo lleva el sistema: el de inicio es
+     * la existencia de tbstock antes del rango y el final la de despues.
+     */
+    private function datosCerdo(Request $request): array
+    {
+        $datos = $request->validate([
+            'reporte' => 'nullable|in:enteros,cortes',
+            'desde' => 'nullable|date',
+            'hasta' => 'nullable|date',
+        ]);
+        $reporte = $datos['reporte'] ?? 'enteros';
+        list($titulo, $columnas, $conTotal) = self::REPORTES_CERDO[$reporte];
+        $codigos = array_column($columnas, 1);
+        $desde = $datos['desde'] ?? date('Y-m-d');
+        $hasta = $datos['hasta'] ?? $desde;
+        if ($hasta < $desde) {
+            list($desde, $hasta) = [$hasta, $desde];
+        }
+
+        // El dia del reparto; lo emitido antes de existir fecha_entrega usa su fecha.
+        $dia = 'COALESCE(f.fecha_entrega, DATE(f.fecha))';
+        $lineas = DB::table('facturas as f')
+            ->join('factura_detalles as d', 'd.factura_id', '=', 'f.id')
+            ->leftJoin('personal as v', DB::raw('TRIM(v.ci)'), '=', DB::raw('TRIM(f.vendedor_ci)'))
+            ->whereNull('f.deleted_at')
+            ->whereNull('d.deleted_at')
+            ->where('f.estado', '<>', 'ANULADO')
+            ->whereRaw($dia . ' BETWEEN ? AND ?', [$desde, $hasta])
+            ->whereIn(DB::raw('TRIM(d.cod_prod)'), $codigos)
+            ->orderBy('f.id')
+            ->get([
+                'f.id', DB::raw($dia . ' as dia'), 'f.nombre', 'f.pedido_nro',
+                DB::raw("TRIM(CONCAT_WS(' ', NULLIF(TRIM(v.Nombre1), ''), NULLIF(TRIM(v.App1), ''))) as vendedor"),
+                DB::raw('TRIM(d.cod_prod) as cod_prod'), 'd.cantidad', 'd.peso',
+            ]);
+
+        $vacio = array_fill_keys($codigos, 0.0);
+        $comprobantes = [];
+        foreach ($lineas as $l) {
+            if (!isset($comprobantes[$l->id])) {
+                $comprobantes[$l->id] = [
+                    'id' => $l->id,
+                    'dia' => (string) $l->dia,
+                    'vendedor' => $l->vendedor !== '' ? $l->vendedor : 'SIN VENDEDOR',
+                    'cliente' => trim((string) $l->nombre) ?: 'SIN CLIENTE',
+                    'pedido' => $l->pedido_nro,
+                    'cantidades' => $vacio,
+                    'kilos' => $vacio,
+                ];
+            }
+            // Lo cobrado por peso son sus kilos; si no se peso, la cantidad.
+            $kilos = (float) $l->peso > 0 ? (float) $l->peso : (float) $l->cantidad;
+            $comprobantes[$l->id]['cantidades'][$l->cod_prod] += (float) $l->cantidad;
+            $comprobantes[$l->id]['kilos'][$l->cod_prod] += $kilos;
+        }
+
+        $totales = ['cantidades' => $vacio, 'kilos' => $vacio, 'total' => 0.0, 'neto' => 0.0, 'comprobantes' => count($comprobantes)];
+        $dias = [];
+        foreach ($comprobantes as $c) {
+            $c['cantidades'] = array_map(function ($v) { return round($v, 3); }, $c['cantidades']);
+            $c['kilos'] = array_map(function ($v) { return round($v, 3); }, $c['kilos']);
+            $c['total'] = round(array_sum($c['cantidades']), 3);
+            $c['neto'] = round(array_sum($c['kilos']), 3);
+            foreach ($codigos as $cod) {
+                $totales['cantidades'][$cod] += $c['cantidades'][$cod];
+                $totales['kilos'][$cod] += $c['kilos'][$cod];
+            }
+            $totales['total'] += $c['total'];
+            $totales['neto'] += $c['neto'];
+            $dias[$c['dia']][$c['vendedor']][] = $c;
+        }
+        foreach (['cantidades', 'kilos'] as $campo) {
+            $totales[$campo] = array_map(function ($v) { return round($v, 3); }, $totales[$campo]);
+        }
+        $totales['total'] = round($totales['total'], 3);
+        $totales['neto'] = round($totales['neto'], 3);
+
+        // Como la hoja: el dia mas reciente arriba; vendedores por nombre.
+        krsort($dias);
+        $grupos = [];
+        foreach ($dias as $fecha => $vendedores) {
+            ksort($vendedores);
+            $grupos[] = [
+                'fecha' => $fecha,
+                'vendedores' => array_map(function ($nombre, $filas) {
+                    return ['vendedor' => $nombre, 'filas' => $filas];
+                }, array_keys($vendedores), array_values($vendedores)),
+            ];
+        }
+
+        // Existencia en kilos antes y despues del rango (tbstock: cant - saldo).
+        $existencia = function ($antesDe) use ($codigos) {
+            return DB::table('tbstock')->whereIn('cod_prod', $codigos)->where('fecha', '<', $antesDe)
+                ->groupBy('cod_prod')->get([DB::raw('TRIM(cod_prod) as cod_prod'), DB::raw('SUM(cant - saldo) as kg')])
+                ->pluck('kg', 'cod_prod');
+        };
+        $inicio = $existencia($desde . ' 00:00:00');
+        $fin = $existencia(date('Y-m-d', strtotime($hasta . ' +1 day')) . ' 00:00:00');
+        $nombres = DB::table('tbproductos')->whereIn(DB::raw('TRIM(cod_prod)'), $codigos)
+            ->pluck(DB::raw('TRIM(Producto)'), DB::raw('TRIM(cod_prod)'));
+
+        return [
+            'reporte' => $reporte,
+            'titulo' => $titulo,
+            'con_total' => $conTotal,
+            'desde' => $desde,
+            'hasta' => $hasta,
+            'columnas' => array_map(function ($c) use ($inicio, $fin, $nombres) {
+                return [
+                    'etiqueta' => $c[0],
+                    'cod_prod' => $c[1],
+                    'producto' => $nombres[$c[1]] ?? '',
+                    'stock_inicial' => round((float) ($inicio[$c[1]] ?? 0), 3),
+                    'stock_final' => round((float) ($fin[$c[1]] ?? 0), 3),
+                ];
+            }, $columnas),
+            'dias' => $grupos,
+            'totales' => $totales,
+        ];
+    }
+
+    /**
+     * La planilla de cerdo con el formato de la hoja de papel: STOCK,
+     * DEVOLUCION y TRANSITO arriba (en kilos; devolucion y transito vacios
+     * para llenarlos a mano), las SALIDAS por dia, vendedor y cliente, el
+     * TOTAL VENTAS, el bloque de DEVOLUCION y el STOCK final, que se
+     * recalcula solo con lo que se escriba a mano.
+     */
+    private function cerdoExcel(array $datos)
+    {
+        $libro = new Spreadsheet();
+        $hoja = $libro->getActiveSheet();
+        $hoja->setTitle($datos['reporte'] === 'enteros' ? 'Cerdo por vendedor' : 'Cerdo por cortes');
+        $libro->getDefaultStyle()->getFont()->setName('Calibri')->setSize(10);
+
+        $codigos = array_column($datos['columnas'], 'cod_prod');
+        $n = count($codigos);
+        // A cliente, [B total piezas], luego un codigo por columna, al final NETO kg.
+        $primera = $datos['con_total'] ? 3 : 2;
+        $col = function ($i) use ($primera) { return Coordinate::stringFromColumnIndex($primera + $i); };
+        $colTotal = 'B';
+        $colNeto = $col($n);
+        $ultimaCod = $col($n - 1);
+
+        $azul = 'C9DAF8'; $rosa = 'F4CCCC'; $verde = 'D9EAD3'; $amarillo = 'FFF2CC'; $amarilloFuerte = 'FFE599'; $rojo = 'C00000';
+        $pintar = function ($rango, $fondo, $negrita = false, $color = null) use ($hoja) {
+            $estilo = ['fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => $fondo]]];
+            if ($negrita || $color) {
+                $estilo['font'] = array_filter(['bold' => $negrita, 'color' => $color ? ['rgb' => $color] : null]);
+            }
+            $hoja->getStyle($rango)->applyFromArray($estilo);
+        };
+        $diaTexto = function ($fecha) { return date('d/m/Y', strtotime($fecha)); };
+        $rangoTexto = $datos['desde'] === $datos['hasta']
+            ? $diaTexto($datos['desde'])
+            : $diaTexto($datos['desde']) . ' al ' . $diaTexto($datos['hasta']);
+
+        // Titulo.
+        $hoja->setCellValue('A1', $datos['titulo']);
+        $hoja->mergeCells('A1:' . $colNeto . '1');
+        $hoja->getStyle('A1')->getFont()->setBold(true)->setSize(16)->getColor()->setRGB($rojo);
+        $hoja->getStyle('A1')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+        $hoja->getRowDimension(1)->setRowHeight(26);
+
+        // Bloque de stock (kilos).
+        $fila = 3;
+        $hoja->setCellValue('A' . $fila, 'KILOS');
+        foreach ($datos['columnas'] as $i => $c) {
+            $hoja->setCellValue($col($i) . $fila, $c['etiqueta']);
+        }
+        $hoja->setCellValue($colNeto . $fila, 'PESO KG');
+        $pintar('A' . $fila . ':' . $colNeto . $fila, $rosa, true, $rojo);
+        $filaStock = $fila + 1;
+        $etiquetas = [['STOCK', $verde], ['DEVOLUCIÓN', $amarilloFuerte], ['TRÁNSITO', 'EFEFEF']];
+        foreach ($etiquetas as $k => list($etiqueta, $fondo)) {
+            $f = $filaStock + $k;
+            $hoja->setCellValue('A' . $f, $etiqueta);
+            if ($k === 0) {
+                foreach ($datos['columnas'] as $i => $c) {
+                    $hoja->setCellValue($col($i) . $f, $c['stock_inicial']);
+                }
+            }
+            $hoja->setCellValue($colNeto . $f, '=SUM(' . $col(0) . $f . ':' . $ultimaCod . $f . ')');
+            $pintar('A' . $f . ':' . $colNeto . $f, $fondo, $k === 0);
+        }
+        $filaTotalStock = $filaStock + 3;
+        $hoja->setCellValue('A' . $filaTotalStock, 'TOTAL');
+        for ($i = 0; $i <= $n; $i++) {
+            $letra = $i < $n ? $col($i) : $colNeto;
+            $hoja->setCellValue($letra . $filaTotalStock, '=SUM(' . $letra . $filaStock . ':' . $letra . ($filaStock + 2) . ')');
+        }
+        $pintar('A' . $filaTotalStock . ':' . $colNeto . $filaTotalStock, $rosa, true);
+        if ($datos['con_total']) {
+            $hoja->getStyle('B' . ($filaStock - 1) . ':B' . $filaTotalStock)->getFill()->setFillType(Fill::FILL_NONE);
+        }
+        $hoja->getStyle('A' . ($filaStock - 1) . ':' . $colNeto . $filaTotalStock)->getBorders()->getAllBorders()
+            ->setBorderStyle(Border::BORDER_THIN)->getColor()->setRGB('999999');
+
+        // Salidas.
+        $fila = $filaTotalStock + 2;
+        $hoja->setCellValue('A' . $fila, 'SALIDAS');
+        $hoja->setCellValue($col(0) . $fila, $rangoTexto);
+        $hoja->mergeCells($col(0) . $fila . ':' . $ultimaCod . $fila);
+        $hoja->setCellValue($colNeto . $fila, 'PESO');
+        $pintar('A' . $fila . ':' . $colNeto . $fila, $rosa, true, $rojo);
+        $hoja->getStyle($col(0) . $fila)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+        $inicioTabla = $fila;
+        $fila++;
+        $hoja->setCellValue('A' . $fila, 'CLIENTE');
+        if ($datos['con_total']) {
+            $hoja->setCellValue('B' . $fila, 'TOTAL');
+        }
+        foreach ($datos['columnas'] as $i => $c) {
+            $hoja->setCellValue($col($i) . $fila, $c['etiqueta']);
+        }
+        $hoja->setCellValue($colNeto . $fila, 'NETO');
+        $pintar('A' . $fila . ':' . $colNeto . $fila, $azul, true);
+        $hoja->getStyle('A' . $fila . ':' . $colNeto . $fila)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+        // Debajo de cada etiqueta, su codigo, como lo anotan en la hoja.
+        $fila++;
+        foreach ($datos['columnas'] as $i => $c) {
+            $hoja->setCellValueExplicit($col($i) . $fila, $c['cod_prod'], DataType::TYPE_STRING);
+        }
+        $hoja->setCellValue($colNeto . $fila, 'kg');
+        $hoja->getStyle('A' . $fila . ':' . $colNeto . $fila)->getFont()->setSize(8)->setItalic(true)->getColor()->setRGB('1155CC');
+        $hoja->getStyle('A' . $fila . ':' . $colNeto . $fila)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+        $fila++;
+
+        $primeraDato = $fila;
+        $varios = count($datos['dias']) > 1;
+        foreach ($datos['dias'] as $dia) {
+            if ($varios) {
+                $hoja->setCellValue('A' . $fila, $diaTexto($dia['fecha']));
+                $pintar('A' . $fila . ':' . $colNeto . $fila, $azul, true);
+                $hoja->getStyle('A' . $fila)->getFont()->setSize(12);
+                $fila++;
+            }
+            foreach ($dia['vendedores'] as $v) {
+                $hoja->setCellValue('A' . $fila, $v['vendedor']);
+                $hoja->getStyle('A' . $fila)->getFont()->setBold(true)->setItalic(true)->setSize(11)->getColor()->setRGB('E06666');
+                $hoja->getStyle('A' . $fila)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+                $fila++;
+                foreach ($v['filas'] as $c) {
+                    $hoja->setCellValue('A' . $fila, $c['cliente']);
+                    if ($datos['con_total']) {
+                        $hoja->setCellValue('B' . $fila, '=SUM(' . $col(0) . $fila . ':' . $ultimaCod . $fila . ')');
+                    }
+                    foreach ($codigos as $i => $cod) {
+                        if ($c['cantidades'][$cod] != 0) {
+                            $hoja->setCellValue($col($i) . $fila, $c['cantidades'][$cod]);
+                        }
+                    }
+                    $hoja->setCellValue($colNeto . $fila, $c['neto']);
+                    $fila++;
+                }
+            }
+        }
+        if ($fila === $primeraDato) {
+            $hoja->setCellValue('A' . $fila, 'Sin ventas en este rango');
+            $hoja->getStyle('A' . $fila)->getFont()->setItalic(true)->getColor()->setRGB('888888');
+            $fila++;
+        }
+        $ultimaDato = $fila - 1;
+
+        // TOTAL VENTAS (piezas) y los kilos de cada codigo, que son los que bajan el stock.
+        $filaVentas = $fila;
+        $hoja->setCellValue('A' . $filaVentas, 'TOTAL VENTAS');
+        $letras = array_merge($datos['con_total'] ? ['B'] : [], array_map($col, range(0, $n - 1)), [$colNeto]);
+        foreach ($letras as $letra) {
+            $hoja->setCellValue($letra . $filaVentas, '=SUM(' . $letra . $primeraDato . ':' . $letra . $ultimaDato . ')');
+        }
+        $pintar('A' . $filaVentas . ':' . $colNeto . $filaVentas, $azul, true, $rojo);
+        $filaKilos = $filaVentas + 1;
+        $hoja->setCellValue('A' . $filaKilos, 'KILOS VENDIDOS');
+        foreach ($codigos as $i => $cod) {
+            $hoja->setCellValue($col($i) . $filaKilos, $datos['totales']['kilos'][$cod]);
+        }
+        $hoja->setCellValue($colNeto . $filaKilos, '=SUM(' . $col(0) . $filaKilos . ':' . $ultimaCod . $filaKilos . ')');
+        $pintar('A' . $filaKilos . ':' . $colNeto . $filaKilos, 'EFEFEF', true);
+        $hoja->getStyle('A' . $inicioTabla . ':' . $colNeto . $filaKilos)->getBorders()->getAllBorders()
+            ->setBorderStyle(Border::BORDER_THIN)->getColor()->setRGB('999999');
+
+        // Devolucion (kilos, a mano).
+        $fila = $filaKilos + 2;
+        $hoja->setCellValue('A' . $fila, 'DEVOLUCIÓN (KG)');
+        foreach ($datos['columnas'] as $i => $c) {
+            $hoja->setCellValue($col($i) . $fila, $c['etiqueta']);
+        }
+        $pintar('A' . $fila . ':' . $colNeto . $fila, $amarilloFuerte, true, $rojo);
+        $inicioDev = $fila;
+        $filaTotalDev = $fila + 3;
+        $hoja->setCellValue('A' . $filaTotalDev, 'TOTAL');
+        foreach (array_merge(array_map($col, range(0, $n - 1)), [$colNeto]) as $letra) {
+            $hoja->setCellValue($letra . $filaTotalDev, '=SUM(' . $letra . ($fila + 1) . ':' . $letra . ($fila + 2) . ')');
+        }
+        $pintar('A' . $filaTotalDev . ':' . $colNeto . $filaTotalDev, 'FCE5CD', true);
+        $hoja->getStyle('A' . $inicioDev . ':' . $colNeto . $filaTotalDev)->getBorders()->getAllBorders()
+            ->setBorderStyle(Border::BORDER_THIN)->getColor()->setRGB('999999');
+
+        // Stock final: el total de arriba menos lo vendido mas lo devuelto.
+        $fila = $filaTotalDev + 2;
+        $hoja->setCellValue('A' . $fila, 'STOCK FINAL (KG)');
+        foreach ($datos['columnas'] as $i => $c) {
+            $hoja->setCellValue($col($i) . $fila, $c['etiqueta']);
+        }
+        $hoja->setCellValue($colNeto . $fila, 'PESO');
+        $pintar('A' . $fila . ':' . $colNeto . $fila, $amarilloFuerte, true);
+        $fila++;
+        $hoja->setCellValue('A' . $fila, 'Según esta hoja');
+        for ($i = 0; $i <= $n; $i++) {
+            $letra = $i < $n ? $col($i) : $colNeto;
+            $hoja->setCellValue($letra . $fila, '=' . $letra . $filaTotalStock . '-' . $letra . $filaKilos . '+' . $letra . $filaTotalDev);
+        }
+        $pintar('A' . $fila . ':' . $colNeto . $fila, $amarillo, true);
+        $fila++;
+        $hoja->setCellValue('A' . $fila, 'Según el sistema');
+        foreach ($datos['columnas'] as $i => $c) {
+            $hoja->setCellValue($col($i) . $fila, $c['stock_final']);
+        }
+        $hoja->setCellValue($colNeto . $fila, '=SUM(' . $col(0) . $fila . ':' . $ultimaCod . $fila . ')');
+        $hoja->getStyle('A' . $fila . ':' . $colNeto . $fila)->getFont()->setItalic(true)->getColor()->setRGB('666666');
+        $hoja->getStyle('A' . ($fila - 2) . ':' . $colNeto . $fila)->getBorders()->getAllBorders()
+            ->setBorderStyle(Border::BORDER_THIN)->getColor()->setRGB('999999');
+        $ultimaFila = $fila;
+
+        $hoja->getStyle('B3:' . $colNeto . $ultimaFila)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+        $hoja->getStyle('B' . $filaStock . ':' . $colNeto . $ultimaFila)->getNumberFormat()->setFormatCode('#,##0.##');
+        $hoja->getStyle($colNeto . $filaStock . ':' . $colNeto . $ultimaFila)->getNumberFormat()->setFormatCode('#,##0.00');
+        $hoja->getStyle($colNeto . $primeraDato . ':' . $colNeto . $filaVentas)->getFont()->setBold(true);
+        $hoja->getColumnDimension('A')->setWidth(38);
+        foreach (array_merge($datos['con_total'] ? ['B'] : [], array_map($col, range(0, $n - 1))) as $letra) {
+            $hoja->getColumnDimension($letra)->setWidth(11);
+        }
+        $hoja->getColumnDimension($colNeto)->setWidth(13);
+
+        $logo = public_path(config('siat.emisor.logo', 'logo-sofia.png'));
+        if (is_file($logo)) {
+            $dibujo = new Drawing();
+            $dibujo->setPath($logo);
+            $dibujo->setHeight(34);
+            $dibujo->setCoordinates('A1');
+            $dibujo->setWorksheet($hoja);
+        }
+
+        $hoja->getPageSetup()->setOrientation(PageSetup::ORIENTATION_PORTRAIT)
+            ->setPaperSize(PageSetup::PAPERSIZE_LETTER)
+            ->setFitToWidth(1)->setFitToHeight(0);
+
+        $rango = $datos['desde'] === $datos['hasta'] ? $datos['desde'] : $datos['desde'] . '_a_' . $datos['hasta'];
+
+        return response()->streamDownload(function () use ($libro) {
+            (new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($libro))->save('php://output');
+        }, 'cerdo_' . $datos['reporte'] . '_' . $rango . '.xlsx', [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        ]);
+    }
+
     /** Reporte auxiliar del dia de pollo en pantalla. */
     public function auxiliarPollo(Request $request)
     {
