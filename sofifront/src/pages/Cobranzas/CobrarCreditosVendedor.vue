@@ -2,6 +2,7 @@
   <q-page class="q-pa-sm">
     <div class="row items-center q-mb-sm">
       <div class="text-h6 col">Cobrar créditos y deudas</div>
+      <q-btn flat no-caps color="primary" icon="history" label="Mis cobros" to="/vendedor/creditos/cobros"/>
       <q-btn flat round icon="refresh" color="primary" :loading="cargando" @click="cargar"><q-tooltip>Actualizar</q-tooltip></q-btn>
     </div>
     <q-input v-model="buscar" outlined dense clearable placeholder="Buscar cliente o CI / NIT" class="q-mb-sm">
@@ -17,6 +18,7 @@
             <div class="text-weight-bold">{{ c.nombre }}</div>
             <div class="text-caption text-grey-7">CI / NIT: {{ c.nit }}</div>
             <div class="text-negative text-weight-bold">Deuda: Bs {{ money(c.saldo) }}</div>
+            <div v-if="c.pendiente > 0" class="text-caption text-orange-9">Por confirmar en cobranzas: Bs {{ money(c.pendiente) }}</div>
           </div>
           <q-btn unelevated no-caps color="positive" label="Cobrar" @click="abrir(c)"/>
         </q-card-section>
@@ -46,6 +48,7 @@
               <q-card-section class="q-pa-sm">
                 <div class="text-weight-medium">{{ d.concepto }}</div>
                 <div class="row justify-between text-caption q-mb-sm"><span>{{ String(d.fecha).slice(0, 10) }}</span><strong>Saldo: Bs {{ money(d.saldo) }}</strong></div>
+                <div v-if="d.pendiente > 0" class="text-caption text-orange-9 q-mb-sm">Ya cobrado, por confirmar: Bs {{ money(d.pendiente) }} · Puede cobrar hasta Bs {{ money(d.disponible) }}</div>
                 <!-- Saldo traido del sistema anterior: importe original, lo pagado y de quien era. -->
                 <div v-if="d.comanda" class="text-caption text-grey-8 q-mb-sm">
                   Importe Bs {{ money(d.importe) }} · A cuenta Bs {{ money(d.a_cuenta) }}
@@ -56,7 +59,7 @@
                   </div>
                 </div>
                 <div class="row q-col-gutter-sm">
-                  <div class="col-6"><q-input v-model="d.recogido" outlined dense type="number" min="0" :max="d.saldo" step="0.01" label="Monto recogido" prefix="Bs" :disable="guardando || enviado"/></div>
+                  <div class="col-6"><q-input v-model="d.recogido" outlined dense type="number" min="0" :max="d.disponible" step="0.01" label="Monto recogido" prefix="Bs" :disable="guardando || enviado || d.disponible <= 0"/></div>
                   <div class="col-6"><q-input v-model="d.boleta" outlined dense label="Nº de boleta" maxlength="100" :disable="guardando || enviado"/></div>
                 </div>
               </q-card-section>
@@ -68,7 +71,7 @@
         <q-card-section class="q-pa-sm">
           <div class="text-h6 text-positive q-mb-sm">Total a recoger: Bs {{ money(total) }}</div>
           <q-banner v-if="validacion" dense class="bg-orange-1 q-mb-sm">{{ validacion }}</q-banner>
-          <div class="text-caption text-grey-7 q-mb-sm">Cobro en efectivo. Se descontará del saldo y quedará visible para cobranzas.</div>
+          <div class="text-caption text-grey-7 q-mb-sm">Cobro en efectivo. No descuenta la deuda todavía: cobranzas lo confirma al recibir el dinero.</div>
           <q-btn color="positive" unelevated no-caps class="full-width" icon="save" :label="enviado ? 'Reintentar el cobro' : 'Guardar cobros'"
                  :loading="guardando" :disable="cargandoDetalle || (!enviado && (total <= 0 || !!validacion || !!errorDetalle))" @click="guardar"/>
         </q-card-section>
@@ -95,7 +98,7 @@ export default {
       for (const d of this.deudas) {
         if (d.recogido === '') continue
         if (!/^\d+(\.\d{1,2})?$/.test(String(d.recogido)) || Number(d.recogido) < 0) return 'Ingrese montos válidos con hasta dos decimales.'
-        if (Math.round(Number(d.recogido) * 100) > Math.round(Number(d.saldo) * 100)) return 'El monto recogido no puede superar el saldo.'
+        if (Math.round(Number(d.recogido) * 100) > Math.round(Number(d.disponible) * 100)) return 'El monto recogido no puede superar lo que queda por cobrar.'
       }
       return ''
     }
@@ -142,7 +145,7 @@ export default {
         await this.$api.post('vendedor/creditos/clientes/' + this.cliente.id + '/cobros', this.enviado)
         this.enviado = null
         this.dialog = false
-        this.$q.notify({ type: 'positive', message: 'Cobros guardados. Cobranzas ya puede verlos.' })
+        this.$q.notify({ type: 'positive', message: 'Cobros registrados. Se descontarán cuando cobranzas los confirme.' })
         await this.cargar()
       } catch (e) {
         this.errorDetalle = this.mensaje(e)

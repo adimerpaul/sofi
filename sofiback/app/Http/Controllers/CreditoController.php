@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Services\TipoPedido;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class CreditoController extends Controller
@@ -34,9 +35,19 @@ class CreditoController extends Controller
 
     public function __construct()
     {
-        $vendedor = ['clientesVendedor', 'deudasVendedor', 'cobrarVendedor'];
+        $vendedor = ['clientesVendedor', 'deudasVendedor', 'cobrarVendedor', 'misCobrosVendedor'];
         $this->middleware('permission:cobranzasrecojo')->except($vendedor);
         $this->middleware('permission:cobranza')->only($vendedor);
+    }
+
+    /** Lo cobrado por vendedores que todavia no se confirmo, por deuda ('origen:id' => monto). */
+    private function pendientesVendedor($cliente = null)
+    {
+        return DB::table('creditos_cobros_vendedor')->where('estado', 'PENDIENTE')
+            ->when($cliente, function ($q) use ($cliente) { $q->where('cliente_id', $cliente); })
+            ->select('origen', 'deuda_id', DB::raw('SUM(monto) as monto'))
+            ->groupBy('origen', 'deuda_id')->get()
+            ->mapWithKeys(function ($p) { return [$p->origen . ':' . $p->deuda_id => round((float) $p->monto, 2)]; });
     }
 
     public function clientesVendedor(Request $request)
@@ -45,8 +56,12 @@ class CreditoController extends Controller
         $clientes = DB::table('tbclientes')->orderBy('Nombres')
             ->get(['Cod_Aut as id', 'Nombres as nombre', 'Id as nit']);
         $deudas = $this->deudas(null)->whereIn('cliente_id', $clientes->pluck('id')->all())->groupBy('cliente_id');
-        return $clientes->map(function ($cliente) use ($deudas) {
+        $pendientes = DB::table('creditos_cobros_vendedor')->where('estado', 'PENDIENTE')
+            ->select('cliente_id', DB::raw('SUM(monto) as monto'))->groupBy('cliente_id')->pluck('monto', 'cliente_id');
+        return $clientes->map(function ($cliente) use ($deudas, $pendientes) {
             $cliente->saldo = round(($deudas->get($cliente->id) ?? collect())->sum('saldo'), 2);
+            // Cobrado por un vendedor, esperando que cobranzas lo confirme.
+            $cliente->pendiente = round((float) ($pendientes[$cliente->id] ?? 0), 2);
             return $cliente;
         })->where('saldo', '>', 0)->values();
     }
@@ -54,10 +69,21 @@ class CreditoController extends Controller
     public function deudasVendedor(Request $request, $cliente)
     {
         abort_unless(DB::table('tbclientes')->where('Cod_Aut', $cliente)->exists(), 404, 'El cliente no existe.');
-        return $this->deudas((int) $cliente)->where('saldo', '>', 0)->sortBy('fecha')->values();
+        $pendientes = $this->pendientesVendedor((int) $cliente);
+        return $this->deudas((int) $cliente)->where('saldo', '>', 0)->sortBy('fecha')->values()
+            ->map(function ($d) use ($pendientes) {
+                $d->pendiente = $pendientes->get($d->clave, 0);
+                // Lo que todavia se puede cobrar sin pasarse del saldo.
+                $d->disponible = max(0, round($d->saldo - $d->pendiente, 2));
+                return $d;
+            });
     }
 
-    /** Lote atomico: un error no deja cobros guardados a medias. */
+    /**
+     * El vendedor anota lo que cobro. No descuenta la deuda: queda PENDIENTE
+     * hasta que cobranzas lo confirma en "Confirmar cobros de vendedores".
+     * Lote atomico: un error no deja cobros guardados a medias.
+     */
     public function cobrarVendedor(Request $request, $cliente)
     {
         $datos = $request->validate([
@@ -68,23 +94,167 @@ class CreditoController extends Controller
             'cobros.*.referencia' => 'nullable|string|max:100',
             'cobros.*.solicitud_id' => 'required|uuid|distinct',
         ]);
-        return DB::transaction(function () use ($request, $cliente, $datos) {
+        $usuario = (int) $request->user()->CodAut;
+        return DB::transaction(function () use ($usuario, $cliente, $datos) {
             abort_unless(DB::table('tbclientes')->where('Cod_Aut', $cliente)->lockForUpdate()->first(), 404, 'El cliente no existe.');
             $cobros = collect($datos['cobros'])->sortBy(function ($c) { return $c['origen'] . ':' . $c['id']; });
             $claves = $cobros->map(function ($c) { return $c['origen'] . ':' . $c['id']; });
             abort_if($claves->unique()->count() !== $claves->count(), 422, 'Hay deudas repetidas en el cobro.');
+            $saldos = $this->deudas((int) $cliente)->keyBy('clave');
+            $pendientes = $this->pendientesVendedor((int) $cliente);
             foreach ($cobros as $cobro) {
-                $deuda = DB::table($cobro['origen'] === 'factura' ? 'facturas' : 'creditos_manuales')
-                    ->where('id', $cobro['id'])->lockForUpdate()->first();
+                $clave = $cobro['origen'] . ':' . $cobro['id'];
+                $referencia = trim((string) ($cobro['referencia'] ?? ''));
+                $previo = DB::table('creditos_cobros_vendedor')->where('solicitud_id', $cobro['solicitud_id'])->first();
+                if ($previo) {
+                    // Reintento del mismo cobro: no se anota dos veces.
+                    abort_unless($previo->origen . ':' . $previo->deuda_id === $clave && (int) $previo->user_id === $usuario
+                        && (float) $previo->monto === (float) $cobro['monto'], 409,
+                        'Esta solicitud ya fue registrada con otros datos. Cierre el formulario y actualice.');
+                    continue;
+                }
+                $deuda = $saldos->get($clave);
                 abort_unless($deuda && (int) $deuda->cliente_id === (int) $cliente, 403, 'La deuda no pertenece al cliente.');
-                $abono = Request::create('/', 'POST', [
-                    'monto' => $cobro['monto'], 'referencia' => $cobro['referencia'] ?? null,
-                    'solicitud_id' => $cobro['solicitud_id'], 'forma_pago' => 'EFECTIVO',
+                // No se puede anotar mas de lo que queda, contando lo que ya espera confirmacion.
+                $disponible = (int) round($deuda->saldo * 100) - (int) round($pendientes->get($clave, 0) * 100);
+                if ((int) round($cobro['monto'] * 100) > $disponible) {
+                    throw ValidationException::withMessages(['monto' => 'El cobro de "' . $deuda->concepto
+                        . '" supera lo que queda por cobrar (Bs ' . number_format(max(0, $disponible) / 100, 2) . '). Actualice.']);
+                }
+                DB::table('creditos_cobros_vendedor')->insert([
+                    'origen' => $cobro['origen'], 'deuda_id' => $cobro['id'], 'cliente_id' => (int) $cliente,
+                    'monto' => $cobro['monto'], 'referencia' => $referencia !== '' ? $referencia : null, 'user_id' => $usuario,
+                    'solicitud_id' => $cobro['solicitud_id'], 'estado' => 'PENDIENTE',
+                    'created_at' => now(), 'updated_at' => now(),
                 ]);
-                $abono->setUserResolver(function () use ($request) { return $request->user(); });
-                $this->abonar($abono, $cobro['origen'], $cobro['id']);
             }
-            return response()->json(['message' => 'Cobros registrados. Cobranzas ya puede consultarlos.']);
+            return response()->json(['message' => 'Cobros registrados. Cobranzas debe confirmarlos para descontar la deuda.']);
+        });
+    }
+
+    /** Lo que cobro el vendedor que entra en el rango (por defecto hoy), con lo que hizo cobranzas. */
+    public function misCobrosVendedor(Request $request)
+    {
+        $datos = $request->validate([
+            'desde' => 'nullable|date_format:Y-m-d',
+            'hasta' => 'nullable|date_format:Y-m-d',
+        ]);
+        $desde = $datos['desde'] ?? date('Y-m-d');
+        $hasta = $datos['hasta'] ?? $desde;
+        $cobros = $this->consultaCobrosVendedor()
+            ->where('v.user_id', $request->user()->CodAut)
+            ->whereBetween('v.created_at', [$desde . ' 00:00:00', $hasta . ' 23:59:59'])
+            ->get();
+        $deudas = $this->deudasDeClientes($cobros->pluck('cliente_id'));
+
+        return $cobros->map(function ($c) use ($deudas) {
+            $d = $deudas->get($c->origen . ':' . $c->deuda_id);
+            $c->monto = (float) $c->monto;
+            $c->concepto = $d ? (string) $d->concepto : '';
+            return $c;
+        })->values();
+    }
+
+    /** Las deudas de unos pocos clientes, por clave: mas rapido que calcular las de todos. */
+    private function deudasDeClientes($clientes)
+    {
+        return collect($clientes)->filter()->unique()->flatMap(function ($cliente) {
+            return $this->deudas((int) $cliente);
+        })->keyBy('clave');
+    }
+
+    private function consultaCobrosVendedor()
+    {
+        return DB::table('creditos_cobros_vendedor as v')
+            ->leftJoin('tbclientes as c', 'c.Cod_Aut', '=', 'v.cliente_id')
+            ->leftJoin('personal as p', 'p.CodAut', '=', 'v.user_id')
+            ->leftJoin('personal as r', 'r.CodAut', '=', 'v.revisado_por')
+            ->orderByDesc('v.created_at')->orderByDesc('v.id')
+            ->select(['v.id', 'v.origen', 'v.deuda_id', 'v.cliente_id', 'v.monto', 'v.referencia', 'v.estado',
+                'v.created_at', 'v.revisado_at', 'v.motivo_rechazo', 'v.abono_id', 'v.user_id',
+                DB::raw("TRIM(COALESCE(c.Nombres, '')) as cliente"),
+                DB::raw("TRIM(COALESCE(c.Id, '')) as nit"),
+                DB::raw("UPPER(TRIM(CONCAT(COALESCE(p.Nombre1, ''), ' ', COALESCE(p.App1, '')))) as vendedor"),
+                DB::raw("UPPER(TRIM(CONCAT(COALESCE(r.Nombre1, ''), ' ', COALESCE(r.App1, '')))) as revisado_por")]);
+    }
+
+    /**
+     * Para cobranzas: los cobros de los vendedores. Los PENDIENTE todos (hay
+     * que resolverlos sin importar la fecha); confirmados y rechazados, los
+     * revisados en el rango. Cada uno con su deuda y el saldo actual.
+     */
+    public function cobrosVendedor(Request $request)
+    {
+        $datos = $request->validate([
+            'estado' => 'nullable|in:PENDIENTE,CONFIRMADO,RECHAZADO',
+            'desde' => 'nullable|date_format:Y-m-d',
+            'hasta' => 'nullable|date_format:Y-m-d',
+        ]);
+        $estado = $datos['estado'] ?? 'PENDIENTE';
+        $consulta = $this->consultaCobrosVendedor()->where('v.estado', $estado);
+        if ($estado !== 'PENDIENTE') {
+            $desde = $datos['desde'] ?? date('Y-m-d');
+            $hasta = $datos['hasta'] ?? $desde;
+            $consulta->whereBetween('v.revisado_at', [$desde . ' 00:00:00', $hasta . ' 23:59:59']);
+        }
+        $cobros = $consulta->get();
+        $deudas = $this->deudasDeClientes($cobros->pluck('cliente_id'));
+
+        return $cobros->map(function ($c) use ($deudas) {
+            $d = $deudas->get($c->origen . ':' . $c->deuda_id);
+            $c->monto = (float) $c->monto;
+            $c->concepto = $d ? (string) $d->concepto : '(deuda no encontrada)';
+            $c->saldo = $d ? (float) $d->saldo : 0;
+            return $c;
+        })->values();
+    }
+
+    /**
+     * Cobranzas recibe la plata del vendedor y confirma: recien ahi se crea el
+     * abono y la deuda baja. El abono queda a nombre de quien confirma (entra
+     * en su cierre de caja) con la boleta que anoto el vendedor.
+     */
+    public function confirmarCobroVendedor(Request $request, $cobro)
+    {
+        return DB::transaction(function () use ($request, $cobro) {
+            $fila = DB::table('creditos_cobros_vendedor')->where('id', $cobro)->lockForUpdate()->first();
+            abort_unless($fila, 404, 'El cobro no existe.');
+            if ($fila->estado !== 'PENDIENTE') {
+                throw ValidationException::withMessages(['cobro' => 'Este cobro ya fue ' . strtolower($fila->estado) . '.']);
+            }
+            $abono = Request::create('/', 'POST', [
+                'monto' => number_format((float) $fila->monto, 2, '.', ''), 'referencia' => $fila->referencia,
+                'solicitud_id' => (string) Str::uuid(), 'forma_pago' => 'EFECTIVO',
+            ]);
+            $abono->setUserResolver(function () use ($request) { return $request->user(); });
+            $resultado = $this->abonar($abono, $fila->origen, $fila->deuda_id)->getData(true);
+
+            DB::table('creditos_cobros_vendedor')->where('id', $cobro)->update([
+                'estado' => 'CONFIRMADO', 'abono_id' => $resultado['id'],
+                'revisado_por' => $request->user()->CodAut, 'revisado_at' => now(), 'updated_at' => now(),
+            ]);
+            return response()->json([
+                'message' => 'Cobro confirmado: la deuda queda en Bs ' . number_format($resultado['saldo'], 2),
+                'saldo' => $resultado['saldo'],
+            ]);
+        });
+    }
+
+    /** El cobro no llego o estaba mal: no se descuenta nada y queda el motivo. */
+    public function rechazarCobroVendedor(Request $request, $cobro)
+    {
+        $datos = $request->validate(['motivo' => 'required|string|max:150']);
+        return DB::transaction(function () use ($request, $cobro, $datos) {
+            $fila = DB::table('creditos_cobros_vendedor')->where('id', $cobro)->lockForUpdate()->first();
+            abort_unless($fila, 404, 'El cobro no existe.');
+            if ($fila->estado !== 'PENDIENTE') {
+                throw ValidationException::withMessages(['cobro' => 'Este cobro ya fue ' . strtolower($fila->estado) . '.']);
+            }
+            DB::table('creditos_cobros_vendedor')->where('id', $cobro)->update([
+                'estado' => 'RECHAZADO', 'motivo_rechazo' => trim($datos['motivo']),
+                'revisado_por' => $request->user()->CodAut, 'revisado_at' => now(), 'updated_at' => now(),
+            ]);
+            return response()->json(['message' => 'Cobro rechazado. La deuda no cambió.']);
         });
     }
 
