@@ -2061,7 +2061,9 @@ ${primera.comentario ? `<div class="coment"><b>Comentario:</b> ${esc(primera.com
     unidadesCaja(p) {
       if (String(p.codUnid || '').trim() != 'CAJA') return []
       if (String(p.cod_grup || '').trim() == GRUPO_FRIAL) return ['U']
-      if (p.tipo == 'CERDO') return ['U', 'KG']
+      // El cerdo ya solo se pide por unidades; KG solo se deja en los pedidos
+      // viejos que ya lo tenian, para no cambiarles la unidad al editarlos.
+      if (p.tipo == 'CERDO') return p.caja == 'KG' ? ['U', 'KG'] : ['U']
       return ['U', 'CAJA', 'KG']
     },
     unidadPorDefecto(p) {

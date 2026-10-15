@@ -1258,7 +1258,8 @@ export default {
     unidadesCaja(p) {
       if (p.codUnid != 'CAJA') return []
       if (String(p.cod_grup || '').trim() == GRUPO_FRIAL) return ['U']
-      if (p.tipo == 'CERDO') return ['U', 'KG']
+      // El cerdo ya solo se pide por unidades (antes tambien KG).
+      if (p.tipo == 'CERDO') return ['U']
       return ['U', 'CAJA', 'KG']
     },
     unidadPorDefecto(p) {
