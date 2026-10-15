@@ -721,6 +721,7 @@
         </q-card-section>
         <q-card-section class="q-pt-none">
           <div class="row">
+            <!-- Ocultos a pedido del cliente: solo usan observacion. Se dejan por si se usan en el futuro.
             <div class="col-4">
               <q-input dense outlined label="precio" v-model="miproducto.pfrial"/>
             </div>
@@ -739,6 +740,7 @@
             <div class="col-4">
               <q-input dense outlined label="kilo" v-model="miproducto.kilo"/>
             </div>
+            -->
             <div class="col-12">
               <q-input dense outlined label="observacion" v-model="miproducto.observacion"/>
             </div>
@@ -1677,7 +1679,11 @@ export default {
   text-align: right
 
 .entrada-cantidad
-  width: 3em
+  width: 5em
+  -moz-appearance: textfield
+  &::-webkit-outer-spin-button, &::-webkit-inner-spin-button
+    -webkit-appearance: none
+    margin: 0
 
 .entrada-caja
   text-align: left

@@ -2336,7 +2336,11 @@ ${primera.comentario ? `<div class="coment"><b>Comentario:</b> ${esc(primera.com
   text-align: right
 
 .entrada-cantidad
-  width: 3em
+  width: 5em
+  -moz-appearance: textfield
+  &::-webkit-outer-spin-button, &::-webkit-inner-spin-button
+    -webkit-appearance: none
+    margin: 0
 
 .entrada-caja
   text-align: left
