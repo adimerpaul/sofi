@@ -3154,7 +3154,9 @@ class FacturacionController extends Controller
                 ], 422);
             }
 
-            if (empty($respuestaSiat['transaccion'])) {
+            // Si el SIN dice que no la tiene, no hay nada que anular alli y
+            // se sigue con la anulacion local (y la devolucion de stock).
+            if (empty($respuestaSiat['transaccion']) && empty($respuestaSiat['no_existe'])) {
                 return response()->json([
                     'message' => 'Impuestos rechazó la anulación: ' . $respuestaSiat['mensaje'],
                     'siat' => $respuestaSiat,
@@ -3198,9 +3200,11 @@ class FacturacionController extends Controller
         });
 
         return response()->json([
-            'message' => $respuestaSiat
+            'message' => $respuestaSiat && !empty($respuestaSiat['no_existe'])
+                ? 'No existía en Impuestos: anulada solo en Sofia; el stock descontado fue devuelto'
+                : ($respuestaSiat
                 ? 'Anulada en Impuestos y en Sofia; el stock descontado fue devuelto'
-                : 'Anulada en Sofia; el stock descontado fue devuelto',
+                : 'Anulada en Sofia; el stock descontado fue devuelto'),
             'factura' => $factura->fresh(),
             'siat' => $respuestaSiat,
         ]);
@@ -3376,7 +3380,9 @@ class FacturacionController extends Controller
                 ], 422);
             }
 
-            if (empty($respuestaSiat['transaccion'])) {
+            // Si el SIN dice que no la tiene, no hay nada que anular alli y
+            // se sigue con la anulacion local (y la devolucion de stock).
+            if (empty($respuestaSiat['transaccion']) && empty($respuestaSiat['no_existe'])) {
                 return response()->json([
                     'message' => 'Impuestos rechazó la anulación: ' . $respuestaSiat['mensaje'],
                     'siat' => $respuestaSiat,

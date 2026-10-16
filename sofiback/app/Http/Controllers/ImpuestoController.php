@@ -339,6 +339,11 @@ class ImpuestoController extends Controller
             return response()->json(['message' => 'Esa venta se entregó como voucher'], 422);
         }
 
+        // Anulada en Sofia: mandarla ahora crearia en Impuestos una venta que no existe.
+        if ($factura->estado === 'ANULADO') {
+            return response()->json(['message' => 'La factura está anulada; no se reenvía'], 422);
+        }
+
         if ($factura->online && $factura->estado_siat === 'VALIDADA') {
             return response()->json([
                 'message' => 'La factura ya está validada en el SIAT; no hace falta reenviarla',

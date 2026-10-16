@@ -54,6 +54,7 @@ class SiatService
 
     /** Marca de la factura que se relleno sin enviarla a Impuestos. */
     const ESTADO_SIMULADO = 'SIMULADO';
+    const CODIGO_NO_EXISTE = 924;
 
     /** @var SiatConfiguracion */
     private $config;
@@ -506,7 +507,27 @@ class SiatService
             'transaccion' => $transaccion,
             'estado'      => $estado,
             'mensaje'     => $mensaje,
+            // 924: el SIN no la conoce (nunca llego, p. ej. emitida sin
+            // conexion y no reenviada). No hay nada que anular alli.
+            'no_existe'   => !$transaccion && $this->tieneCodigo($respuesta, self::CODIGO_NO_EXISTE),
         ];
+    }
+
+    /** Si alguno de los mensajes del SIAT trae ese codigo. */
+    private function tieneCodigo($respuesta, $codigo)
+    {
+        $mensajes = isset($respuesta->mensajesList) ? $respuesta->mensajesList : [];
+        if (!is_array($mensajes)) {
+            $mensajes = [$mensajes];
+        }
+
+        foreach ($mensajes as $mensaje) {
+            if (isset($mensaje->codigo) && (int) $mensaje->codigo === $codigo) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /* ---------------------------------------------------------------- */
