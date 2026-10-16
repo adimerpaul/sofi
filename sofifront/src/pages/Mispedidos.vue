@@ -12,6 +12,10 @@
                :href="url+'excel/r/'+fecha1+'/'+fecha2+'/'+$store.state.login.user.CodAut" target="_blank"/>
         <q-btn :loading="loading" dense unelevated no-caps color="teal" type="a" icon="list" label="Cerdo"
                :href="url+'excel/c/'+fecha1+'/'+fecha2+'/'+$store.state.login.user.CodAut" target="_blank"/>
+        <q-btn :loading="loading" dense unelevated no-caps color="green-7" type="a" icon="scale" label="Preparación Pollo"
+               :href="url+'generarXlsPreparacion/'+fecha1+'/pollo?vendedor='+$store.state.login.user.CodAut" target="_blank">
+          <q-tooltip>Hoja de pesos del pollo de mis pedidos enviados</q-tooltip>
+        </q-btn>
         <q-btn dense unelevated no-caps color="red-8" icon="picture_as_pdf" label="PDF" @click="exportarPdf"
                :disable="!clientes.length"/>
         <q-input outlined dense debounce="300" v-model="filter" placeholder="Buscar" class="col barra-buscar">
@@ -230,6 +234,21 @@
                         </select>
                         <q-btn flat dense @click="quitar(props.row,props.rowIndex)" class="q-ma-none q-pa-none"
                                color="negative" icon="remove_circle"/>
+                      </div>
+                    </q-td>
+                  </template>
+                  <!-- Rango de peso de la linea (tbpedidos.rango_kg), igual que en Visita. -->
+                  <template v-slot:body-cell-rango="props">
+                    <q-td :props="props" auto-width>
+                      <div class="row items-center no-wrap">
+                        <q-toggle v-model="props.row.con_rango" dense size="sm" color="orange-8"
+                                  @update:model-value="v => { if (!v) props.row.rango_kg = null }"/>
+                        <div v-if="props.row.con_rango" class="column q-ml-xs">
+                          <input type="number" min="0" step="0.01" inputmode="decimal"
+                                 v-model="props.row.rango_kg" placeholder="kg"
+                                 class="entrada-pedido entrada-cantidad">
+                          <span class="text-caption text-grey-7" style="line-height: 1">± 100 g</span>
+                        </div>
                       </div>
                     </q-td>
                   </template>
@@ -848,6 +867,7 @@ export default {
       columnsproducto: [
         {label: 'subtotal', name: 'subtotal', field: 'subtotal'},
         {label: 'cantidad', name: 'cantidad', field: 'cantidad'},
+        {label: 'rango', name: 'rango', field: 'rango_kg', align: 'left'},
         {label: 'precio', name: 'precio', field: 'precio', align: 'left'},
         {label: 'cod_prod', name: 'cod_prod', field: 'cod_prod', align: 'left'},
         {label: 'nombre', name: 'nombre', field: 'nombre', align: 'left'},
@@ -1752,6 +1772,16 @@ export default {
     modificarcomanda() {
       // console.log(this.misproductos)
       console.log(this.cliente)
+      const sinRango = this.misproductos.find(p => p.con_rango && !(parseFloat(p.rango_kg) > 0))
+      if (sinRango) {
+        this.$q.notify({
+          message: 'Escriba el rango (kg) de ' + sinRango.nombre + ' o apague el switch',
+          color: 'red',
+          icon: 'error',
+          position: 'top'
+        })
+        return
+      }
       this.$q.loading.show()
       this.$api.post('updatecomanda', {
         comanda: this.cliente.NroPed,
@@ -1952,6 +1982,8 @@ ${primera.comentario ? `<div class="coment"><b>Comentario:</b> ${esc(primera.com
         bs2: '',
         contado: '',
         pfrial: '',
+        con_rango: false,
+        rango_kg: null,
 
         tipo: this.producto.tipo,
         nombre: this.producto.Producto,
@@ -2038,6 +2070,9 @@ ${primera.comentario ? `<div class="coment"><b>Comentario:</b> ${esc(primera.com
             p.precios = this.listaPrecios(prod)
             p.codUnid = String(p.codUnid || (prod ? prod.codUnid : '') || '').trim()
             p.cod_grup = p.cod_grup || (prod ? prod.cod_grup : null)
+            // Con rango guardado el switch arranca encendido.
+            p.con_rango = p.rango_kg !== null && p.rango_kg !== undefined && p.rango_kg !== ''
+            p.rango_kg = p.con_rango ? Number(p.rango_kg) : null
             // Una unidad que la visita no deja elegir vuelve a la de por defecto.
             if (p.codUnid == 'CAJA' && !this.unidadesCaja(p).includes(p.caja)) {
               p.caja = this.unidadPorDefecto(p)

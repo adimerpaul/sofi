@@ -259,6 +259,7 @@ class PedidoController extends Controller{
                 "pago" => $p['pago'],
                 "fact" => $p['fact'],
                 "rango" => $p['rango'],
+                "rango_kg" => $p['rango_kg'],
                 "horario" => $p['horario'],
                 "comentario" => $p['comentario'],
             ];
@@ -1012,6 +1013,18 @@ $resPedido = $rows->groupBy('NroPed')->map(function ($g) use ($bonis) {
 
     public function store(Request $request)
     {
+        // Solo pide a credito el cliente marcado en Clientes ("Acepta crédito");
+        // la pantalla ya no ofrece la opcion, esto cubre una app desactualizada.
+        if (strtoupper(trim((string) $request->pago)) === 'CREDITO') {
+            $aceptaCredito = DB::table('tbclientes')->where('Cod_Aut', $request->idCli)->value('acepta_credito');
+            if (!(int) $aceptaCredito) {
+                return response()->json(['message' => 'Este cliente no tiene crédito habilitado: el pedido solo puede ser al contado'], 422);
+            }
+        }
+        if ($error = $this->validarRangos($request->productos)) {
+            return $error;
+        }
+
         $numpedido = $this->siguienteComanda();
 
         /*
@@ -1288,6 +1301,7 @@ $resPedido = $rows->groupBy('NroPed')->map(function ($g) use ($bonis) {
                 "pago" => $request->pago,
                 "fact" => $request->fact,
                 "rango" => $p['rango'],
+                "rango_kg" => $this->rangoKg($p),
                 "horario" => $request->horario,
                 "comentario" => $comentario,
                 "bonificacion" => $bonificacion,
@@ -1739,6 +1753,9 @@ $resPedido = $rows->groupBy('NroPed')->map(function ($g) use ($bonis) {
     public function updatecomanda(Request $request)
     {
 //        return $request;
+        if ($error = $this->validarRangos($request->productos)) {
+            return $error;
+        }
         $numpedido = $request->comanda;
         // Al modificar se conserva el numero del dia; solo se renumera si la
         // comanda cambia de fecha o de vendedor (o si es anterior a la columna).
@@ -1858,6 +1875,7 @@ $resPedido = $rows->groupBy('NroPed')->map(function ($g) use ($bonis) {
                 "pago" => $request->pago,
                 "fact" => $request->fact,
                 "rango" => $p['rango'],
+                "rango_kg" => $this->rangoKg($p),
                 "horario" => $request->horario,
                 "comentario" => $request->comentario,
             ];
@@ -1882,6 +1900,32 @@ $resPedido = $rows->groupBy('NroPed')->map(function ($g) use ($bonis) {
      * Reserva el siguiente numero de comanda. El bloqueo evita que dos
      * vendedores guardando a la vez reciban el mismo NroPed.
      */
+    /**
+     * Rango de peso de una linea (tbpedidos.rango_kg): solo con el switch
+     * "Rango" encendido y un numero mayor a 0; si no, NULL.
+     */
+    /** Con el switch "Rango" encendido el numero es obligatorio. */
+    private function validarRangos($productos)
+    {
+        foreach ((array) $productos as $p) {
+            if (!empty($p['con_rango']) && $this->rangoKg($p) === null) {
+                return response()->json([
+                    'message' => 'Escriba el rango (kg) de ' . trim((string) ($p['nombre'] ?? $p['cod_prod'] ?? '')) . ' o apague el switch',
+                ], 422);
+            }
+        }
+        return null;
+    }
+
+    private function rangoKg($p)
+    {
+        $valor = $p['rango_kg'] ?? null;
+        if (empty($p['con_rango']) || !is_numeric($valor) || (float) $valor <= 0) {
+            return null;
+        }
+        return round((float) $valor, 3);
+    }
+
     private function siguienteComanda()
     {
         return DB::transaction(function () {
@@ -2049,6 +2093,7 @@ $resPedido = $rows->groupBy('NroPed')->map(function ($g) use ($bonis) {
             pago,
             fact,
             rango,
+            rango_kg,
             horario,
             comentario,
             tbproductos.Producto as nombre
@@ -2109,6 +2154,7 @@ $resPedido = $rows->groupBy('NroPed')->map(function ($g) use ($bonis) {
                             'pago'        => $p->pago,
                             'fact'        => $p->fact,
                             'rango'       => $p->rango,
+                            'rango_kg'    => $p->rango_kg,
                             'horario'     => $p->horario,
                             'comentario'  => $p->comentario,
                             'cbrasa5'    => $p->cbrasa5,

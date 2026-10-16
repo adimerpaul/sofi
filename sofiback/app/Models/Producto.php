@@ -50,6 +50,7 @@ class Producto extends Model implements Auditable{
         'CantPren',
         'Peso',
         'tipo',
+        'tipo_producto_id',
         'imagen',
         'trozado',
         'oferta',

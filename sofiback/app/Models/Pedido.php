@@ -56,6 +56,7 @@ class Pedido extends Model implements Auditable{
         'c109',
         'u109',
         'rango',
+        'rango_kg',
         'ala',
         'unidala',
         'cadera',

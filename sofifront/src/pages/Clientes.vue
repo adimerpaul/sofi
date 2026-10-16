@@ -98,6 +98,14 @@
             </q-toggle>
           </q-td>
         </template>
+        <template #body-cell-acepta_credito="props">
+          <q-td :props="props">
+            <q-toggle dense size="xs" color="orange-8" :model-value="Number(props.row.acepta_credito) === 1"
+                      :disable="cambiandoCredito === props.row.Cod_Aut" @update:model-value="cambiarCredito(props.row, $event)">
+              <q-tooltip>Acepta crédito: en el pedido puede elegir crédito</q-tooltip>
+            </q-toggle>
+          </q-td>
+        </template>
         <template #body-cell-venta="props">
           <q-td :props="props">
             <q-badge class="cursor-pointer" @click="hablitar(props.row)"
@@ -200,6 +208,12 @@
                     <q-card flat bordered class="q-pa-sm bg-purple-1">
                       <q-toggle v-model="cliente.excepcion_deuda" :true-value="1" :false-value="0" color="purple"
                                 label="Excepción de deuda: puede hacer pedidos aunque deba (no se bloquea)"/>
+                    </q-card>
+                  </div>
+                  <div class="col-12">
+                    <q-card flat bordered class="q-pa-sm bg-orange-1">
+                      <q-toggle v-model="cliente.acepta_credito" :true-value="1" :false-value="0" color="orange-8"
+                                label="Acepta crédito: en el pedido puede elegir crédito (sin marcar, solo contado)"/>
                     </q-card>
                   </div>
 
@@ -353,7 +367,7 @@ const ZONAS = ['NORTE', 'SUD', 'ESTE', 'CENTRO', 'PROVINCIA', 'COLQUIRI', 'HUANU
 const camposNumero = [
   'Tipodocu', 'cod_car', 'Categoria', 'codcli', 'Imp_pieza', 'ctasMont', 'ctasdias',
   'lu', 'Ma', 'Mi', 'Ju', 'Vi', 'Sa', 'do',
-  'ListBlack', 'ListBlanck', 'canmayni', 'baja', 'waths', 'ctasActivo', 'noesempre', 'excepcion_deuda'
+  'ListBlack', 'ListBlanck', 'canmayni', 'baja', 'waths', 'ctasActivo', 'noesempre', 'excepcion_deuda', 'acepta_credito'
 ]
 
 const clienteVacio = () => ({
@@ -363,7 +377,8 @@ const clienteVacio = () => ({
   subcanal: '', zona: '', territorio: '', transporte: '', venta: 'ACTIVO', tarjeta: '', TipoPaciente: '',
   ctasMont: 0, ctasdias: 0, MotivoListBlack: '', Latitud: '', longitud: '',
   lu: 0, Ma: 0, Mi: 0, Ju: 0, Vi: 0, Sa: 0, do: 0,
-  ListBlack: 0, ListBlanck: 0, canmayni: 0, baja: 0, waths: 0, ctasActivo: 0, noesempre: 0, excepcion_deuda: 0
+  ListBlack: 0, ListBlanck: 0, canmayni: 0, baja: 0, waths: 0, ctasActivo: 0, noesempre: 0, excepcion_deuda: 0,
+  acepta_credito: 0
 })
 
 export default {
@@ -386,6 +401,7 @@ export default {
       subiendo: false,
       borrandoFoto: null,
       cambiandoExcepcion: null,
+      cambiandoCredito: null,
       map: null,
       marker: null,
       // Pestaña Precios: un precio (1 a 13) por grupo de productos.
@@ -418,6 +434,7 @@ export default {
           sort: (a, b) => Number(a || 0) - Number(b || 0)},
         {label: 'Días', name: 'dias', field: 'dias', align: 'left'},
         {label: 'Excep.', name: 'excepcion_deuda', field: 'excepcion_deuda', align: 'center', sortable: true},
+        {label: 'Crédito', name: 'acepta_credito', field: 'acepta_credito', align: 'center', sortable: true},
         {label: 'Estado', name: 'venta', field: 'venta', align: 'center', sortable: true}
       ],
       vendedoresFiltrados: []
@@ -532,6 +549,22 @@ export default {
         this.$q.notify({type: 'negative', message: e.response?.data?.message || 'No se pudo guardar'})
       }).finally(() => {
         this.cambiandoExcepcion = null
+      })
+    },
+    // Igual que la excepcion: se guarda el cliente con el endpoint de editar.
+    cambiarCredito (row, valor) {
+      const datos = {...row, acepta_credito: valor ? 1 : 0}
+      this.cambiandoCredito = row.Cod_Aut
+      this.$api.put('cliente/' + row.Cod_Aut, datos).then(() => {
+        row.acepta_credito = datos.acepta_credito
+        this.$q.notify({
+          type: 'positive',
+          message: valor ? 'Crédito habilitado: puede pedir a crédito' : 'Crédito quitado: solo contado'
+        })
+      }).catch(e => {
+        this.$q.notify({type: 'negative', message: e.response?.data?.message || 'No se pudo guardar'})
+      }).finally(() => {
+        this.cambiandoCredito = null
       })
     },
     misclientes () {

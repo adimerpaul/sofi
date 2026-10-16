@@ -35,7 +35,7 @@
 
     <q-card flat bordered class="q-pa-sm q-mb-md">
       <div class="row q-col-gutter-sm">
-        <div class="col-12 col-md-4">
+        <div class="col-12 col-md-3">
           <q-input
             v-model="filtros.search"
             dense outlined clearable debounce="400"
@@ -45,7 +45,16 @@
             <template v-slot:append><q-icon name="search"/></template>
           </q-input>
         </div>
-        <div class="col-12 col-sm-6 col-md-3">
+        <div class="col-12 col-sm-6 col-md-2">
+          <q-select
+            v-model="filtros.tipo"
+            dense outlined clearable emit-value map-options
+            label="Tipo"
+            :options="opcionesTipo"
+            @update:model-value="recargar"
+          />
+        </div>
+        <div class="col-12 col-sm-6 col-md-2">
           <q-select
             v-model="filtros.grupo"
             dense outlined clearable emit-value map-options
@@ -117,6 +126,12 @@
           <q-badge :color="Number(props.value) > 0 ? 'green-6' : 'grey-5'" text-color="white">
             {{ num(props.value) }}
           </q-badge>
+        </q-td>
+      </template>
+
+      <template v-slot:body-cell-tipo_nombre="props">
+        <q-td :props="props" class="text-center">
+          <q-badge v-if="props.value" :color="props.row.tipo_color || 'primary'" :label="props.value"/>
         </q-td>
       </template>
 
@@ -293,10 +308,27 @@
             v-model="edicion.codUnid" outlined dense clearable
             class="col-6 col-sm-3" :label="creando ? 'Unidad *' : 'Unidad'" :options="unidades"
           />
-          <q-select
-            v-model="edicion.tipo" outlined dense
-            class="col-6 col-sm-3" label="Tipo" :options="['NORMAL', 'POLLO', 'RES', 'CERDO']"
-          />
+          <!-- Tipo administrable: el backend copia su "forma de pedido" a
+               tbproductos.tipo, que es lo que usan pedidos y facturacion. -->
+          <div class="col-6 col-sm-3 row no-wrap items-start">
+            <q-select
+              v-model="edicion.tipo_producto_id" outlined dense emit-value map-options
+              class="col" label="Tipo" :options="opcionesTipo"
+            >
+              <template #option="scope">
+                <q-item v-bind="scope.itemProps" dense>
+                  <q-item-section avatar style="min-width: 0">
+                    <q-badge rounded :color="scope.opt.color" style="width: 10px; height: 10px; padding: 0"/>
+                  </q-item-section>
+                  <q-item-section>{{ scope.opt.label }}</q-item-section>
+                  <q-item-section side class="text-caption">{{ scope.opt.modo }}</q-item-section>
+                </q-item>
+              </template>
+            </q-select>
+            <q-btn unelevated color="primary" icon="tune" class="q-ml-xs" style="height: 40px; padding: 0 6px" @click="abrirTipos">
+              <q-tooltip>Administrar tipos</q-tooltip>
+            </q-btn>
+          </div>
 
           <!-- Lo trozado se entrega en piezas: en la boleta la columna Cant
                sale con un guion en vez del numero. -->
@@ -363,6 +395,79 @@
           <q-card-actions align="right">
             <q-btn flat no-caps label="Cancelar" v-close-popup/>
             <q-btn unelevated no-caps color="primary" icon="add" label="Agregar" type="submit" :loading="creandoGrupo"/>
+          </q-card-actions>
+        </q-form>
+      </q-card>
+    </q-dialog>
+
+    <!-- Tipos de producto: se ven como chips en el pedido de Visita. La forma
+         de pedido decide que formulario se abre al pedir (piezas de pollo,
+         cerdo, res) o si se pide solo por cantidad (NORMAL). -->
+    <q-dialog v-model="tipos.abierto">
+      <q-card style="width: 520px; max-width: 96vw">
+        <q-card-section class="bg-primary text-white q-py-sm row items-center">
+          <div class="text-subtitle1 text-weight-bold">Tipos de producto</div>
+          <q-space/>
+          <q-btn icon="close" flat round dense v-close-popup/>
+        </q-card-section>
+
+        <q-list separator dense>
+          <q-item v-for="t in tiposProducto" :key="t.id">
+            <q-item-section avatar>
+              <q-badge :color="t.color" :label="t.nombre"/>
+            </q-item-section>
+            <q-item-section>
+              <q-item-label caption>Pedido: {{ modoTexto(t.modo) }} · {{ t.productos }} productos</q-item-label>
+            </q-item-section>
+            <q-item-section side class="row no-wrap">
+              <div>
+                <q-btn flat round dense size="sm" icon="edit" color="primary" @click="editarTipo(t)"/>
+                <q-btn flat round dense size="sm" icon="delete" color="negative" :disable="t.productos > 0" @click="borrarTipo(t)">
+                  <q-tooltip v-if="t.productos > 0">Lo usan productos: no se puede borrar</q-tooltip>
+                </q-btn>
+              </div>
+            </q-item-section>
+          </q-item>
+        </q-list>
+
+        <q-separator/>
+        <q-form @submit="guardarTipo">
+          <q-card-section class="q-gutter-sm">
+            <div class="text-caption text-grey-7">{{ tipos.form.id ? 'Editar ' + tipos.form.original : 'Nuevo tipo' }}</div>
+            <div class="row q-col-gutter-sm">
+              <q-input
+                v-model="tipos.form.nombre" outlined dense class="col-12 col-sm-5" label="Nombre *" maxlength="30"
+                :rules="[v => !!(v || '').trim() || 'Escribí el nombre']" hide-bottom-space
+                @update:model-value="v => { tipos.form.nombre = (v || '').toUpperCase() }"
+              />
+              <q-select
+                v-model="tipos.form.modo" outlined dense emit-value map-options class="col-7 col-sm-4"
+                label="Forma de pedido" :options="modos"
+              />
+              <q-select
+                v-model="tipos.form.color" outlined dense emit-value map-options class="col-5 col-sm-3"
+                label="Color" :options="colores"
+              >
+                <template #selected>
+                  <q-badge :color="tipos.form.color" :label="tipos.form.nombre || 'ABC'"/>
+                </template>
+                <template #option="scope">
+                  <q-item v-bind="scope.itemProps" dense>
+                    <q-item-section><q-badge :color="scope.opt.value" :label="scope.opt.label"/></q-item-section>
+                  </q-item>
+                </template>
+              </q-select>
+            </div>
+            <div v-if="tipos.form.id" class="text-caption text-orange-9">
+              Cambiar la forma de pedido cambia el formulario de todos los productos de este tipo.
+            </div>
+          </q-card-section>
+          <q-card-actions align="right">
+            <q-btn v-if="tipos.form.id" flat no-caps label="Cancelar edición" @click="limpiarTipo"/>
+            <q-btn
+              unelevated no-caps color="primary" type="submit" :loading="tipos.guardando"
+              :icon="tipos.form.id ? 'save' : 'add'" :label="tipos.form.id ? 'Guardar' : 'Agregar'"
+            />
           </q-card-actions>
         </q-form>
       </q-card>
@@ -493,6 +598,20 @@ export default {
         { name: 'motivo_stock', label: 'Motivo ingr. stock', field: 'motivo_stock', align: 'left' }
       ],
       productos: [],
+      tiposProducto: [],
+      tipos: {
+        abierto: false,
+        guardando: false,
+        form: { id: null, original: '', nombre: '', modo: 'NORMAL', color: 'primary' }
+      },
+      modos: [
+        { value: 'NORMAL', label: 'Por cantidad' },
+        { value: 'POLLO', label: 'Piezas de pollo' },
+        { value: 'CERDO', label: 'Piezas de cerdo' },
+        { value: 'RES', label: 'Piezas de res' }
+      ],
+      colores: ['primary', 'orange-8', 'pink-6', 'red-9', 'brown-6', 'amber-9', 'teal-6', 'green-7', 'blue-7', 'purple-6', 'indigo-6', 'cyan-8', 'grey-7']
+        .map(c => ({ value: c, label: c })),
       grupos: [],
       padres: [],
       dialogGrupo: false,
@@ -503,6 +622,7 @@ export default {
       filtros: {
         search: '',
         grupo: null,
+        tipo: null,
         unidad: null,
         conStock: false,
         incluirInactivos: false
@@ -516,7 +636,7 @@ export default {
       },
       // Precio3..Precio13 quedan ocultas por defecto: son 11 columnas que
       // hacen ilegible la tabla, pero el usuario puede activarlas.
-      visibleColumns: ['acciones', 'imagen', 'cod_prod', 'Producto', 'grupo', 'codUnid', 'trozado', 'precio_compra', 'Precio', 'Precio_Costo', 'precioAprox', 'cantidad'],
+      visibleColumns: ['acciones', 'imagen', 'cod_prod', 'Producto', 'grupo', 'tipo_nombre', 'codUnid', 'trozado', 'precio_compra', 'Precio', 'Precio_Costo', 'precioAprox', 'cantidad'],
       // Producto cuya foto se está subiendo, para el spinner de la miniatura.
       subiendo: null,
       productoImagen: null,
@@ -538,6 +658,7 @@ export default {
         { name: 'cod_prod', label: 'Código', field: 'cod_prod', align: 'left', sortable: true },
         { name: 'Producto', label: 'Producto', field: 'Producto', align: 'left', sortable: true },
         { name: 'grupo', label: 'Grupo', field: 'grupo', align: 'left', sortable: true },
+        { name: 'tipo_nombre', label: 'Tipo', field: 'tipo_nombre', align: 'center' },
         { name: 'codUnid', label: 'Unidad', field: 'codUnid', align: 'center', sortable: true },
         { name: 'trozado', label: 'Trozado', field: 'trozado', align: 'center' },
         // El de la ultima compra; sin compras se ve un guion, no 0.
@@ -551,6 +672,9 @@ export default {
     }
   },
   computed: {
+    opcionesTipo () {
+      return this.tiposProducto.map(t => ({ value: t.id, label: t.nombre, modo: t.modo, color: t.color }))
+    },
     columnasOpcionales () {
       return this.columns.map(c => ({ name: c.name, label: c.label }))
     },
@@ -572,9 +696,60 @@ export default {
       })
     }
     this.cargarFiltros()
+    this.cargarTipos()
     this.onRequest({ pagination: this.pagination })
   },
   methods: {
+    cargarTipos () {
+      return this.$api.get('tipos-producto').then(res => { this.tiposProducto = res.data })
+        .catch(() => {})
+    },
+    modoTexto (modo) {
+      const m = this.modos.find(x => x.value === modo)
+      return m ? m.label : modo
+    },
+    abrirTipos () {
+      this.limpiarTipo()
+      this.cargarTipos()
+      this.tipos.abierto = true
+    },
+    limpiarTipo () {
+      this.tipos.form = { id: null, original: '', nombre: '', modo: 'NORMAL', color: 'primary' }
+    },
+    editarTipo (t) {
+      this.tipos.form = { id: t.id, original: t.nombre, nombre: t.nombre, modo: t.modo, color: t.color }
+    },
+    guardarTipo () {
+      const f = this.tipos.form
+      const datos = { nombre: f.nombre.trim(), modo: f.modo, color: f.color }
+      const peticion = f.id ? this.$api.put('tipos-producto/' + f.id, datos) : this.$api.post('tipos-producto', datos)
+      this.tipos.guardando = true
+      peticion.then(res => {
+        this.$q.notify({ message: res.data.message, color: 'positive', icon: 'check_circle', position: 'top' })
+        // Un tipo recien creado queda elegido en el producto que se edita.
+        if (!f.id && this.dialogEditar) this.edicion.tipo_producto_id = res.data.tipo.id
+        this.limpiarTipo()
+        this.cargarTipos()
+        // El nombre o el color se ven en la tabla.
+        this.onRequest({ pagination: this.pagination })
+      }).catch(err => { this.avisarError(err, 'No se pudo guardar el tipo') })
+        .finally(() => { this.tipos.guardando = false })
+    },
+    borrarTipo (t) {
+      this.$q.dialog({
+        title: 'Borrar tipo',
+        message: '¿Borrar el tipo ' + t.nombre + '?',
+        cancel: { flat: true, noCaps: true, label: 'Cancelar' },
+        ok: { label: 'Borrar', color: 'negative', noCaps: true, unelevated: true }
+      }).onOk(() => {
+        this.$api.delete('tipos-producto/' + t.id)
+          .then(res => {
+            this.$q.notify({ message: res.data.message, color: 'positive', icon: 'check_circle', position: 'top' })
+            this.cargarTipos()
+          })
+          .catch(err => { this.avisarError(err, 'No se pudo borrar el tipo') })
+      })
+    },
     // producto null = todos los productos que se movieron.
     abrirEntradasSalidas (producto) {
       this.es.producto = producto ? { cod_prod: producto.cod_prod, Producto: producto.Producto } : null
@@ -709,6 +884,7 @@ export default {
       return {
         search: this.filtros.search || '',
         grupo: this.filtros.grupo || '',
+        tipo_producto_id: this.filtros.tipo || '',
         unidad: this.filtros.unidad || '',
         conStock: this.filtros.conStock ? 1 : 0,
         incluirInactivos: this.filtros.incluirInactivos ? 1 : 0
@@ -825,6 +1001,7 @@ export default {
         cod_grup: this.filtros.grupo || '',
         codUnid: this.filtros.unidad || '',
         tipo: 'NORMAL',
+        tipo_producto_id: (this.tiposProducto.find(t => t.nombre === 'EMBUTIDO') || {}).id || null,
         Precio: 0,
         Precio_Costo: 0,
         precioAprox: 0,
@@ -860,6 +1037,7 @@ export default {
         cod_grup: row.cod_grup || '',
         codUnid: row.codUnid || '',
         tipo: row.tipo || '',
+        tipo_producto_id: row.tipo_producto_id ? Number(row.tipo_producto_id) : null,
         Precio: Number(row.Precio) || 0,
         Precio_Costo: Number(row.Precio_Costo) || 0,
         precioAprox: Number(row.precioAprox) || 0,
@@ -1018,6 +1196,7 @@ export default {
           descending,
           search: this.filtros.search || '',
           grupo: this.filtros.grupo || '',
+          tipo_producto_id: this.filtros.tipo || '',
           unidad: this.filtros.unidad || '',
           conStock: this.filtros.conStock ? 1 : 0,
           incluirInactivos: this.filtros.incluirInactivos ? 1 : 0

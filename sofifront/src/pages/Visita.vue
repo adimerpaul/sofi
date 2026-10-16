@@ -276,11 +276,8 @@
                            label="Contado"/>
                   <!--                <pre>{{pago}}</pre>-->
                 </div>
-                <div>
-                  <q-radio v-model="pago" checked-icon="task_alt" dense unchecked-icon="panorama_fish_eye" val="PAGO QR"
-                           label="Pago QR"/>
-                </div>
-                <div>
+                <!-- Credito solo para el cliente marcado en Clientes ("Acepta crédito"). -->
+                <div v-if="aceptaCredito">
                   <q-radio v-model="pago" checked-icon="task_alt" dense unchecked-icon="panorama_fish_eye" val="CREDITO"
                            label="Credito"/>
                 </div>
@@ -333,6 +330,17 @@
         </q-card-section>
         <q-card-section class="q-pt-none">
           <div class="row">
+            <!-- Tipos administrados en Productos: tocar uno limita el buscador
+                 a ese tipo; tocarlo de nuevo vuelve a todos. -->
+            <div v-if="tiposProducto.length" class="col-12 row no-wrap q-px-xs tipos-pedido">
+              <q-chip
+                v-for="t in tiposProducto" :key="t.id" dense clickable
+                :outline="tipoFiltro !== t.id" :color="t.color"
+                :text-color="tipoFiltro === t.id ? 'white' : t.color"
+                :icon="tipoFiltro === t.id ? 'check' : undefined"
+                :label="t.nombre" @click="elegirTipo(t.id)"
+              />
+            </div>
             <div class="col-10">
               <q-select label="Producto" dense outlined class="q-ma-xs" use-input input-debounce="0"
                         @filter="filterFn" :options="productos" v-model="producto"
@@ -357,6 +365,9 @@
                       <q-item-label caption class="row items-center no-wrap">
                         <span class="cod-producto">{{ scope.opt.cod_prod }}</span>
                         <q-badge outline color="blue-grey-6" class="q-ml-xs" :label="scope.opt.codUnid"/>
+                        <q-badge v-if="scope.opt.tipo_nombre" :color="scope.opt.tipo_color || 'primary'"
+                                 class="q-ml-xs" :label="scope.opt.tipo_nombre"/>
+                        <span v-if="scope.opt.grupoNombre" class="q-ml-xs text-grey-7 ellipsis">{{ scope.opt.grupoNombre }}</span>
                         <span class="q-ml-xs" :class="scope.opt.cantidad > 0 ? 'text-positive' : 'text-grey-6'">
                           {{ scope.opt.cantidad > 0 ? scope.opt.stockTxt : 'sin stock' }}
                         </span>
@@ -394,7 +405,9 @@
                     <q-btn flat @click="seleccionartipo(props.row)" class="q-ma-none q-pa-none" color="accent"
                            icon="tune"/>
                     {{ props.row.subtotal }}
-                    <q-badge
+                    <q-badge v-if="props.row.tipo_nombre" :color="props.row.tipo_color || 'primary'"
+                             :label="props.row.tipo_nombre"/>
+                    <q-badge v-else
                       :color="props.row.tipo=='NORMAL'?'primary':props.row.tipo=='POLLO'?'secondary':props.row.tipo=='CERDO'?'info':'positive'">
                       {{ props.row.tipo.substring(0, 1) }}
                     </q-badge>
@@ -425,6 +438,22 @@
                       </select>
                        <q-btn flat dense @click="quitar(props.row,props.rowIndex)" class="q-ma-none q-pa-none"
                              color="negative" icon="remove_circle"/>
+                    </div>
+                  </q-td>
+                </template>
+                <!-- Rango de peso de la linea (2.8, 2.1...) con +-100 g: con el
+                     switch apagado se guarda NULL en tbpedidos.rango_kg. -->
+                <template v-slot:body-cell-rango="props">
+                  <q-td :props="props" auto-width>
+                    <div class="row items-center no-wrap">
+                      <q-toggle v-model="props.row.con_rango" dense size="sm" color="orange-8"
+                                @update:model-value="v => { if (!v) props.row.rango_kg = null }"/>
+                      <div v-if="props.row.con_rango" class="column q-ml-xs">
+                        <input type="number" min="0" step="0.01" inputmode="decimal"
+                               v-model="props.row.rango_kg" placeholder="kg"
+                               class="entrada-pedido entrada-cantidad">
+                        <span class="text-caption text-grey-7" style="line-height: 1">± 100 g</span>
+                      </div>
                     </div>
                   </q-td>
                 </template>
@@ -832,7 +861,7 @@ export default {
     return {
       clienteBonificacion: null,
       horarios: ['06:00-07:30', '07:30-09:00', '09:00-10:30', '10:30-12:00', 'SEGUNDA VUELTA', 'SE RECOGE'],
-      tipopagos: ['CONTADO', 'PAGO QR', 'CREDITO', 'BOLETA ANTERIOR'],
+      tipopagos: ['CONTADO', 'CREDITO', 'BOLETA ANTERIOR'],
       horario: '',
       coment: '',
       fecha: date.formatDate(new Date(), 'YYYY-MM-DD'),
@@ -858,6 +887,9 @@ export default {
       cliente: {},
       productos: [],
       productos2: [],
+      // Tipos de producto (Productos > Tipo) y el elegido en el pedido.
+      tiposProducto: [],
+      tipoFiltro: null,
       misproductos: [],
       miproducto: {},
       producto: {label: ''},
@@ -873,6 +905,7 @@ export default {
       columnsproducto: [
         {label: 'subtotal', name: 'subtotal', field: 'subtotal'},
         {label: 'cantidad', name: 'cantidad', field: 'cantidad'},
+        {label: 'rango', name: 'rango', field: 'rango_kg', align: 'left'},
         {label: 'precio', name: 'precio', field: 'precio', align: 'left'},
         {label: 'cod_prod', name: 'cod_prod', field: 'cod_prod', align: 'left'},
         {label: 'nombre', name: 'nombre', field: 'nombre', align: 'left'},
@@ -1024,6 +1057,10 @@ export default {
       })
     },
     consultamisproductos() {
+      // Solo para los chips: si falla, el pedido funciona igual sin ellos.
+      this.$api.get('tipos-producto').then(res => {
+        this.tiposProducto = res.data
+      }).catch(() => {})
       this.$api.get('producto').then(res => {
         // console.log(res.data)
         this.productos = []
@@ -1044,12 +1081,13 @@ export default {
           d.stockTxt = (parseFloat(d.cantidad) || 0).toFixed(2) + ' ' + d.codUnid
           // Lo que queda escrito en el campo al elegir.
           d.label = d.cod_prod + ' · ' + d.Producto
-          // El buscador mira solo codigo y nombre: si mirara la linea entera,
-          // escribir "23" tambien traeria todo lo que cuesta 23 Bs.
+          // El buscador mira codigo, nombre y grupo (cargarGruposPedido): si
+          // mirara la linea entera, "23" traeria todo lo que cuesta 23 Bs.
           d.busqueda = this.normalizar(d.cod_prod + ' ' + d.Producto)
           this.productos.push(d)
         })
         this.productos2 = this.productos
+        this.cargarGruposPedido()
         // this.producto=this.productos[0]
         // this.$q.loading.hide()
       }).catch(err => {
@@ -1203,6 +1241,17 @@ export default {
       if (this.pago == '' || this.pago == undefined) {
         this.$q.notify({
           message: 'Debe Seleccionar tipo pago',
+          color: 'red',
+          icon: 'error',
+          position: 'top'
+        })
+        this.loading = false
+        return false
+      }
+      const sinRango = this.misproductos.find(p => p.con_rango && !(parseFloat(p.rango_kg) > 0))
+      if (sinRango) {
+        this.$q.notify({
+          message: 'Escriba el rango (kg) de ' + sinRango.nombre + ' o apague el switch',
           color: 'red',
           icon: 'error',
           position: 'top'
@@ -1457,7 +1506,12 @@ export default {
         bs2: '',
         contado: '',
         pfrial: '',
+        // Switch "Rango" de la linea y su peso (tbpedidos.rango_kg).
+        con_rango: false,
+        rango_kg: null,
         tipo: this.producto.tipo,
+        tipo_nombre: this.producto.tipo_nombre,
+        tipo_color: this.producto.tipo_color,
         nombre: this.producto.Producto,
         cod_prod: this.producto.cod_prod,
         codUnid: this.producto.codUnid,
@@ -1491,7 +1545,8 @@ export default {
         this.pago = 'CREDITO'
         this.fact = 'NO'
       } else {
-        this.pago = ''
+        // Ya marcado: credito si el cliente acepta credito, si no contado.
+        this.pago = this.aceptaCredito ? 'CREDITO' : 'CONTADO'
         this.fact = ''
       }
 
@@ -1568,11 +1623,32 @@ export default {
       // Un cliente con coordenadas mal cargadas no mueve el mapa.
       if (this.coordValida(c.Latitud, c.longitud)) this.center = [Number(c.Latitud), Number(c.longitud)]
     },
+    // Chip de tipo del dialogo del pedido; el mismo chip otra vez lo quita.
+    elegirTipo(id) {
+      this.tipoFiltro = this.tipoFiltro === id ? null : id
+      this.productos = this.productosDelTipo()
+    },
+    productosDelTipo() {
+      if (!this.tipoFiltro) return this.productos2
+      return this.productos2.filter(p => Number(p.tipo_producto_id) === this.tipoFiltro)
+    },
+    // El nombre del grupo entra al texto del buscador: escribir "frial" trae
+    // todo el grupo FRIAL aunque el producto no lo diga en su nombre.
+    cargarGruposPedido() {
+      this.$api.get('filtrosProducto').then(res => {
+        const nombres = {}
+        ;(res.data.grupos || []).forEach(g => { nombres[String(g.value).trim()] = g.label })
+        this.productos2.forEach(p => {
+          p.grupoNombre = nombres[String(p.cod_grup || '').trim()] || ''
+          p.busqueda = this.normalizar(p.cod_prod + ' ' + p.Producto + ' ' + p.grupoNombre)
+        })
+      }).catch(() => {})
+    },
     filterFn(val, update) {
       const texto = this.normalizar(val).trim()
       if (texto === '') {
         update(() => {
-          this.productos = this.productos2
+          this.productos = this.productosDelTipo()
         })
         return
       }
@@ -1581,7 +1657,7 @@ export default {
         // Palabra por palabra: "pollo entero" encuentra igual aunque en el
         // nombre del producto esas dos palabras no esten pegadas ni en ese orden.
         const terminos = texto.split(/\s+/)
-        const encontrados = this.productos2.filter(p => terminos.every(t => p.busqueda.indexOf(t) > -1))
+        const encontrados = this.productosDelTipo().filter(p => terminos.every(t => p.busqueda.indexOf(t) > -1))
         // El que empieza con el codigo tecleado va arriba: el vendedor que se
         // sabe el codigo lo escribe y lo quiere en la primera fila. El sort es
         // estable, asi que el resto conserva el orden por stock del backend.
@@ -1636,6 +1712,11 @@ export default {
     },
   },
   computed: {
+    // Clientes > "Acepta crédito". Los dos de cambio/bonificacion siempre van a credito.
+    aceptaCredito() {
+      return Number(this.cliente.acepta_credito) === 1 ||
+        this.cliente.Id == '61839000' || this.cliente.Id == '0023456'
+    },
     // El pedido se entrega al dia siguiente; el backend guarda la misma fecha.
     fechaEntrega() {
       if (!this.fecha) return ''
@@ -1689,6 +1770,10 @@ export default {
 .entrada-caja
   text-align: left
   background: white
+
+// En el celular los chips de tipo se deslizan en vez de partir la fila.
+.tipos-pedido
+  overflow-x: auto
 
 .lista-productos
   max-height: 60vh
