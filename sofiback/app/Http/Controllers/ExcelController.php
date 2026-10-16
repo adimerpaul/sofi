@@ -1177,6 +1177,13 @@ class ExcelController extends Controller
         $especie = strtolower($especie) === 'cerdo' ? 'cerdo' : 'pollo';
         $codigos = $especie === 'cerdo' ? self::CERDO_PREPARACION : self::POLLO_PREPARACION;
         $filtro = 'TRIM(p.cod_prod) IN (' . implode(', ', array_fill(0, count($codigos), '?')) . ')';
+        $params = array_merge([$fecha], $codigos);
+        // ?vendedor=CodAut: solo los pedidos de ese preventista (Mis pedidos).
+        $vendedor = request()->query('vendedor');
+        if ($vendedor !== null && $vendedor !== '') {
+            $filtro .= ' AND p.CIfunc = ?';
+            $params[] = (int) $vendedor;
+        }
         $lineas = DB::select(
             "SELECT p.NroPed, p.CIfunc, TRIM(p.cod_prod) AS cod_prod, p.Cant, UPPER(TRIM(p.caja)) AS caja,
                     p.Observaciones, p.fact, p.pago, p.bs, p.bs2, p.horario, p.color, p.bonificacionId,
@@ -1195,7 +1202,7 @@ class ExcelController extends Controller
                AND " . $filtro . "
                AND TRIM(p.cod_prod) NOT IN ('501607', '100005')
              ORDER BY COALESCE(z.id, 999), p.NroPed, p.codAut",
-            array_merge([$fecha], $codigos)
+            $params
         );
 
         // Zona -> pedidos -> lineas, respetando el orden de la consulta (el de

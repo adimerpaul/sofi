@@ -1613,6 +1613,8 @@ class FacturacionController extends Controller
                 // Unidad que eligio el preventista para lo que se vende por
                 // caja (U, CAJA o KG); null en el resto.
                 DB::raw("NULLIF(TRIM(p.caja), '') as caja"),
+                // Peso aproximado que pidio el cliente (+-100 g); null sin rango.
+                'p.rango_kg',
                 DB::raw('COALESCE(p.precio, 0) as precio'),
                 // La lista de precios del producto, para el select del carrito.
                 DB::raw('pr.Precio as precio1'), 'pr.Precio_Costo',
@@ -1640,6 +1642,14 @@ class FacturacionController extends Controller
                 $item->total = round($item->cantidad * $item->precio, 2);
                 return $item;
             });
+
+        // Rango (kg) que pidio el cliente por producto. Va aparte de los items
+        // porque el borrador o la venta anulada pueden reemplazar las lineas.
+        $cabecera->rangos = $items->filter(function ($item) {
+            return $item->rango_kg !== null;
+        })->mapWithKeys(function ($item) {
+            return [$item->cod_prod => (float) $item->rango_kg];
+        });
 
         // Pollo, cerdo y res se pesan en canastillos: la pantalla pide bruto y
         // canastillos en vez del peso directo.

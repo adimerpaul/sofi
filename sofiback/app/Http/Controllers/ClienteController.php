@@ -417,6 +417,8 @@ class ClienteController extends Controller{
         'Tipodocu', 'cod_car', 'Categoria', 'codcli', 'Imp_pieza', 'ctasMont', 'ctasdias',
         'lu', 'Ma', 'Mi', 'Ju', 'Vi', 'Sa', 'do',
         'ListBlack', 'ListBlanck', 'canmayni', 'baja', 'waths', 'ctasActivo', 'noesempre', 'excepcion_deuda',
+        // Permiso para pedir a credito (en Visita, sin el solo contado).
+        'acepta_credito',
     ];
 
     private function datosCliente(Request $request, $codAut = null)

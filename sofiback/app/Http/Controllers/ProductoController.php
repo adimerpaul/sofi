@@ -29,6 +29,10 @@ class ProductoController extends Controller{
             'precioAprox',
             DB::raw('TRIM(codUnid) as codUnid'),
             'tipo',
+            // Tipo administrable: chips de filtro y marca de cada linea del pedido.
+            'tipo_producto_id',
+            DB::raw('(SELECT tp.nombre FROM tipos_producto tp WHERE tp.id = tbproductos.tipo_producto_id) as tipo_nombre'),
+            DB::raw('(SELECT tp.color FROM tipos_producto tp WHERE tp.id = tbproductos.tipo_producto_id) as tipo_color'),
             // El grupo decide en que unidades se puede pedir (el FRIAL, solo U).
             DB::raw('TRIM(cod_grup) as cod_grup'),
             'trozado',
@@ -116,6 +120,8 @@ class ProductoController extends Controller{
             'cod_grup'     => 'nullable|string|max:25',
             'codUnid'      => 'nullable|string|max:15',
             'tipo'         => 'nullable|string|max:255',
+            // Tipo administrable; su modo se copia a tbproductos.tipo.
+            'tipo_producto_id' => 'nullable|integer|exists:tipos_producto,id',
             'Precio'       => 'nullable|numeric|min:0',
             'Precio_Costo' => 'nullable|numeric|min:0',
             'Precio3'      => 'nullable|numeric|min:0',
@@ -159,7 +165,13 @@ class ProductoController extends Controller{
             }
         }
 
+        $this->aplicarTipo($datos);
+
         foreach ($datos as $campo => $valor) {
+            if ($campo === 'tipo_producto_id') {
+                $producto->tipo_producto_id = $valor;
+                continue;
+            }
             // Unica columna numerica que admite null: vacio = sin precio de compra.
             if ($campo === 'precio_compra') {
                 $producto->precio_compra = $valor === null ? null : round((float) $valor, 2);
@@ -201,7 +213,11 @@ class ProductoController extends Controller{
     {
         $actualizados = DB::table('tbproductos')
             ->whereIn(DB::raw('TRIM(cod_prod)'), self::CODIGOS_POLLO)
-            ->update(['tipo' => 'POLLO', 'codUnid' => 'CAJA']);
+            ->update([
+                'tipo' => 'POLLO',
+                'codUnid' => 'CAJA',
+                'tipo_producto_id' => DB::table('tipos_producto')->where('nombre', 'POLLO')->value('id'),
+            ]);
 
         return response()->json([
             'message'      => count(self::CODIGOS_POLLO) . ' pollos quedaron como POLLO / CAJA',
@@ -250,6 +266,8 @@ class ProductoController extends Controller{
             'cod_grup'     => 'required|string|max:25',
             'codUnid'      => 'required|string|max:15',
             'tipo'         => 'nullable|string|max:255',
+            // Tipo administrable; su modo se copia a tbproductos.tipo.
+            'tipo_producto_id' => 'nullable|integer|exists:tipos_producto,id',
             'Precio'       => 'nullable|numeric|min:0',
             'Precio_Costo' => 'nullable|numeric|min:0',
             'Precio3'      => 'nullable|numeric|min:0',
@@ -298,7 +316,9 @@ class ProductoController extends Controller{
         // como null (ConvertEmptyStringsToNull) y hay que bajarlo a cadena.
         $producto->Nomcomer = trim((string) ($datos['Nomcomer'] ?? ''));
         $producto->codUnid = trim((string) $datos['codUnid']);
+        $this->aplicarTipo($datos);
         $producto->tipo = trim((string) ($datos['tipo'] ?? '')) ?: 'NORMAL';
+        $producto->tipo_producto_id = $datos['tipo_producto_id'] ?? null;
         $producto->trozado = $request->boolean('trozado') ? 'SI' : 'NO';
 
         foreach (self::CAMPOS_NUMERICOS as $campo) {
@@ -312,6 +332,18 @@ class ProductoController extends Controller{
             'message'  => 'Producto creado',
             'producto' => $producto->fresh(),
         ], 201);
+    }
+
+    /**
+     * Con un tipo administrable elegido, tbproductos.tipo (el formulario del
+     * pedido, que copian tbpedidos y la facturacion) sale de su modo y no de
+     * lo que mande el formulario.
+     */
+    private function aplicarTipo(array &$datos)
+    {
+        if (!empty($datos['tipo_producto_id'])) {
+            $datos['tipo'] = \App\Models\TipoProducto::find($datos['tipo_producto_id'])->modo;
+        }
     }
 
     /**
@@ -413,6 +445,7 @@ class ProductoController extends Controller{
             ->leftJoin('tbgrupos as g', function ($join) {
                 $join->on(DB::raw('TRIM(g.Cod_grup)'), '=', DB::raw('TRIM(p.cod_grup)'));
             })
+            ->leftJoin('tipos_producto as tp', 'tp.id', '=', 'p.tipo_producto_id')
             ->select([
                 'p.CodAut',
                 DB::raw('TRIM(p.cod_prod) as cod_prod'),
@@ -422,6 +455,9 @@ class ProductoController extends Controller{
                 DB::raw('TRIM(g.Descripcion) as grupo'),
                 DB::raw('TRIM(p.codUnid) as codUnid'),
                 'p.tipo',
+                'p.tipo_producto_id',
+                'tp.nombre as tipo_nombre',
+                'tp.color as tipo_color',
                 'p.Precio', 'p.Precio_Costo', 'p.Precio3', 'p.Precio4', 'p.Precio5',
                 'p.Precio6', 'p.Precio7', 'p.Precio8', 'p.Precio9', 'p.Precio10',
                 'p.Precio11', 'p.Precio12', 'p.Precio13', 'p.PreCosto',
@@ -444,6 +480,9 @@ class ProductoController extends Controller{
 
         if ($grupo = trim((string) $request->input('grupo', ''))) {
             $query->whereRaw('TRIM(p.cod_grup) = ?', [$grupo]);
+        }
+        if ($tipoProducto = (int) $request->input('tipo_producto_id', 0)) {
+            $query->where('p.tipo_producto_id', $tipoProducto);
         }
         if ($unidad = trim((string) $request->input('unidad', ''))) {
             $query->whereRaw('TRIM(p.codUnid) = ?', [$unidad]);

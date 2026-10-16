@@ -68,6 +68,11 @@ Route::group(['middleware'=>'auth:sanctum'],function (){
     Route::get('/productos/pdf',[\App\Http\Controllers\ProductoController::class,'exportarPdf']);
     Route::post('/productos/actualizarPollos',[\App\Http\Controllers\ProductoController::class,'actualizarPollos']);
     Route::post('/productos/grupos',[\App\Http\Controllers\ProductoController::class,'crearGrupo']);
+    // Tipos de producto administrables (POLLO, EMBUTIDO, HUEVO...).
+    Route::get('/tipos-producto',[\App\Http\Controllers\TipoProductoController::class,'index']);
+    Route::post('/tipos-producto',[\App\Http\Controllers\TipoProductoController::class,'store']);
+    Route::put('/tipos-producto/{id}',[\App\Http\Controllers\TipoProductoController::class,'update']);
+    Route::delete('/tipos-producto/{id}',[\App\Http\Controllers\TipoProductoController::class,'destroy']);
     // Cambio de precios: los 13 precios y el de compra de todos los productos en una grilla.
     Route::get('/precios',[\App\Http\Controllers\PrecioController::class,'index']);
     Route::put('/precios',[\App\Http\Controllers\PrecioController::class,'guardar']);

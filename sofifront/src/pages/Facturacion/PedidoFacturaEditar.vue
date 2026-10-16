@@ -199,6 +199,11 @@
                 <span v-if="esPeso(item)" class="text-orange-9">· se cobra por peso</span>
                 <!-- Lo que se vende por caja: en que unidad lo pidio el preventista. -->
                 <q-badge v-if="item.caja" color="indigo-6" class="q-ml-xs" :label="'Pedido en ' + item.caja"/>
+                <!-- Peso aproximado que pidio el cliente (Visita / Mis pedidos). -->
+                <q-badge v-if="rangoDe(item) !== null" color="orange-9" class="q-ml-xs">
+                  <q-icon name="straighten" size="12px" class="q-mr-xs"/>
+                  Rango {{ rangoDe(item) }} kg ± 100 g
+                </q-badge>
               </q-item-label>
 
               <!-- Aviso de que lo que se entrega ya no es lo que pidio el
@@ -618,6 +623,10 @@ export default {
         item.peso = bruto > 0 ? Math.round((bruto - this.kgCanastillos(item)) * 1000) / 1000 : null
       }
       item.total = Math.round(this.facturable(item) * Number(item.precio || 0) * 100) / 100
+    },
+    rangoDe (item) {
+      const rango = (this.pedido?.rangos || {})[String(item.cod_prod || '').trim()]
+      return rango === undefined || rango === null ? null : rango
     },
     cargarPedido () {
       this.$api.get('facturacion/pedidos/' + this.numeroPedido, { params: { tipo: this.tipoPedido } })
