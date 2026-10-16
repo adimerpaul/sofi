@@ -265,7 +265,7 @@ import 'leaflet/dist/leaflet.css'
 import xlsx from 'json-as-xlsx'
 import { Printd } from 'printd'
 
-const NOMBRES_TIPO = { NORMAL: 'Embutidos', POLLO: 'Pollo', CERDO: 'Cerdo', RES: 'Res', PODIUM: 'Podium y huevo' }
+const NOMBRES_TIPO = { NORMAL: 'Embutidos', POLLO: 'Pollo', CERDO: 'Cerdo', RES: 'Res', PODIUM: 'Podium', HUEVO: 'Huevo' }
 
 export default {
   name: 'EntregaFactura',
@@ -274,7 +274,7 @@ export default {
     return {
       fecha: date.formatDate(new Date(), 'YYYY-MM-DD'),
       tipo: '',
-      tipos: ['NORMAL', 'POLLO', 'CERDO', 'RES', 'PODIUM'],
+      tipos: ['NORMAL', 'POLLO', 'CERDO', 'RES', 'PODIUM', 'HUEVO'],
       jornada: '',
       cargando: false,
       totales: { total: 0, cerrados: 0, porcentaje: 0, efectivo: 0, qr: 0, credito: 0 },

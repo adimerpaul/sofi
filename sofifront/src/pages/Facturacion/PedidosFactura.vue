@@ -7,7 +7,20 @@
         <q-input v-model="fecha" type="date" dense outlined/>
       </div>
       <div class="col-6 col-md-2">
-        <q-select v-model="tipo" dense outlined emit-value map-options :options="tipos"/>
+        <!-- Tipos de Productos > Tipo: filtra los pedidos que traen algun
+             producto de ese tipo. La venta sigue siendo el pedido entero. -->
+        <q-select v-model="tipo" dense outlined emit-value map-options :options="tipos">
+          <template v-slot:option="scope">
+            <q-item v-bind="scope.itemProps" dense>
+              <q-item-section>
+                <q-item-label>
+                  <q-badge v-if="scope.opt.color" :color="scope.opt.color" class="q-mr-xs">&nbsp;</q-badge>
+                  {{ scope.opt.label }}
+                </q-item-label>
+              </q-item-section>
+            </q-item>
+          </template>
+        </q-select>
       </div>
       <div class="col">
         <q-input v-model.trim="buscar" dense outlined clearable debounce="400" placeholder="Pedido o cliente"/>
@@ -101,6 +114,9 @@
           <q-card-section class="q-pa-xs">
             <div class="row items-center no-wrap q-mb-xs">
               <q-badge color="primary" class="text-body2 q-pa-xs">#{{ pedido.nro_pedido }}</q-badge>
+              <!-- Con varios tipos en la lista, un mismo numero puede salir
+                   dos veces (embutidos y podium): se factura cada uno aparte. -->
+              <q-badge outline color="grey-8" class="q-ml-xs">{{ nombreTipoPedido(pedido.tipo) }}</q-badge>
               <div class="text-caption q-ml-sm ellipsis" :class="pedido.factura_id ? 'text-green-9' : 'text-grey-7'">
                 {{ hora(pedido.fecha) }} · {{ pedido.estado }}
               </div>
@@ -152,6 +168,25 @@
               </q-chip>
             </div>
 
+            <!-- Tipos de producto (Productos > Tipo) que trae el pedido, con
+                 cuantas lineas de cada uno: separa huevo, PET, embutido... -->
+            <div v-if="tiposDelPedido(pedido).length" class="q-mt-xs">
+              <q-chip
+                v-for="t in tiposDelPedido(pedido)" :key="t.nombre"
+                dense square size="sm" text-color="white" :color="t.color"
+              >
+                {{ t.nombre }} · {{ t.lineas }}
+              </q-chip>
+            </div>
+
+            <!-- Los productos que trae, a la vista sin abrir el pedido. -->
+            <div v-if="pedido.items.length" class="q-mt-xs text-caption productos-tarjeta">
+              <div v-for="item in pedido.items.slice(0, 4)" :key="'v-' + item.cod_prod" class="ellipsis">
+                <span class="text-weight-bold">{{ cantidad(item.cantidad) }}</span> × {{ item.nombre }}
+              </div>
+              <div v-if="pedido.items.length > 4" class="text-grey-7">y {{ pedido.items.length - 4 }} más…</div>
+            </div>
+
             <q-banner v-if="pedido.detalle_pollo.observaciones.length" dense rounded class="bg-amber-1 text-amber-10 q-mt-xs">
               <template v-slot:avatar><q-icon name="sticky_note_2" color="amber-9"/></template>
               {{ pedido.detalle_pollo.observaciones.join(' · ') }}
@@ -193,7 +228,11 @@
               <q-item v-for="item in pedido.items" :key="item.cod_prod" class="q-px-sm">
                 <q-item-section>
                   <q-item-label lines="2">{{ item.nombre }}</q-item-label>
-                  <q-item-label caption>{{ item.cod_prod }}</q-item-label>
+                  <q-item-label caption>
+                    {{ item.cod_prod }}
+                    <q-badge v-if="item.tipo_nombre" :color="item.tipo_color || 'primary'"
+                             class="q-ml-xs" :label="item.tipo_nombre"/>
+                  </q-item-label>
                 </q-item-section>
                 <q-item-section side class="text-right">
                   <q-item-label>{{ cantidad(item.cantidad) }} × Bs {{ money(item.precio) }}</q-item-label>
@@ -288,7 +327,9 @@ export default {
   data () {
     return {
       fecha: this.$route.query.fecha || date.formatDate(new Date(), 'YYYY-MM-DD'),
-      tipo: this.$route.query.tipo || 'NORMAL',
+      // Id del tipo de producto, o TODOS. Un enlace viejo con NORMAL/POLLO...
+      // cae en TODOS.
+      tipo: /^\d+$/.test(this.$route.query.tipo || '') ? Number(this.$route.query.tipo) : 'TODOS',
       // El PDF se abre en otra pestana, directo contra la API.
       urlApi: process.env.API,
       camion: this.$route.query.camion || null,
@@ -298,17 +339,11 @@ export default {
       imprimiendo: null,
       exportando: false,
       pedidos: [],
-      tipos: [
-        { label: 'Embutidos', value: 'NORMAL' },
-        { label: 'Pollo', value: 'POLLO' },
-        { label: 'Cerdo', value: 'CERDO' },
-        { label: 'Res', value: 'RES' },
-        // Sale de los pedidos de embutidos, por codigo de producto.
-        { label: 'Podium y Huevo', value: 'PODIUM' }
-      ]
+      tiposProducto: []
     }
   },
   created () {
+    this.cargarTipos()
     this.cargar()
   },
   // Fecha y tipo buscan apenas cambian; el texto, 400 ms despues de dejar de
@@ -326,6 +361,11 @@ export default {
     camion () { this.sincronizarUrl() }
   },
   computed: {
+    tipos () {
+      return [{ label: 'Todos', value: 'TODOS' }].concat(
+        this.tiposProducto.map(t => ({ label: t.nombre, value: t.id, color: t.color }))
+      )
+    },
     // Las opciones salen de los pedidos ya cargados: solo se listan los
     // camiones que de verdad tienen pedidos ese dia y de ese tipo, cada uno
     // con cuanto lleva cobrado hasta ahora.
@@ -406,13 +446,23 @@ export default {
       const datos = (detalle.datos || []).filter(dato => dato.valor && dato.valor !== '—')
       return [...productos, ...datos]
     },
+    tiposDelPedido (pedido) {
+      const tipos = new Map()
+      ;(pedido.items || []).forEach(item => {
+        if (!item.tipo_nombre) return
+        const tipo = tipos.get(item.tipo_nombre) || { nombre: item.tipo_nombre, color: item.tipo_color || 'primary', lineas: 0 }
+        tipo.lineas += 1
+        tipos.set(item.tipo_nombre, tipo)
+      })
+      return Array.from(tipos.values())
+    },
     cantidad (valor) {
       return Number(valor || 0).toLocaleString('es-BO', { maximumFractionDigits: 3 })
     },
     // Los filtros viven en la URL: asi al volver del detalle de un pedido, al
     // recargar o al usar el boton atras se vuelve a la misma vista filtrada.
     sincronizarUrl () {
-      const query = { fecha: this.fecha, tipo: this.tipo }
+      const query = { fecha: this.fecha, tipo: String(this.tipo) }
       if (this.camion) query.camion = this.camion
       const actual = this.$route.query
       if (actual.fecha === query.fecha && actual.tipo === query.tipo &&
@@ -441,6 +491,12 @@ export default {
       const partes = String(valor || '').split(' ')
       return partes.length > 1 ? partes[1].substr(0, 5) : ''
     },
+    nombreTipoPedido (tipo) {
+      return { NORMAL: 'Embutidos', POLLO: 'Pollo', CERDO: 'Cerdo', RES: 'Res', PODIUM: 'Podium', HUEVO: 'Huevo' }[tipo] || tipo
+    },
+    cargarTipos () {
+      this.$api.get('tipos-producto').then(res => { this.tiposProducto = res.data })
+    },
     cargar () {
       if (!this.fecha) return
       // Con varias busquedas seguidas solo vale la ultima: si una anterior
@@ -449,7 +505,11 @@ export default {
       this.consultaActual = consulta
       this.cargando = true
       this.$api.get('facturacion/pedidos', {
-        params: { fecha: this.fecha, tipo: this.tipo, buscar: this.buscar || '' }
+        params: {
+          fecha: this.fecha,
+          tipo_producto: this.tipo === 'TODOS' ? undefined : this.tipo,
+          buscar: this.buscar || ''
+        }
       }).then(res => {
         if (consulta !== this.consultaActual) return
         this.pedidos = res.data
@@ -498,7 +558,7 @@ export default {
       // Fecha y camion viajan en la query para que el boton volver del detalle
       // devuelva al listado tal como estaba: la fecha elegida es la de
       // entrega, que no siempre coincide con la del pedido.
-      const query = { fecha: this.fecha }
+      const query = { fecha: this.fecha, lista: String(this.tipo) }
       if (this.camion) query.camion = this.camion
       this.$router.push({
         path: '/facturacion/pedidos/' + pedido.nro_pedido + '/' + pedido.tipo,

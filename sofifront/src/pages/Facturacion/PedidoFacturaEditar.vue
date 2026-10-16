@@ -435,7 +435,7 @@ export default {
   computed: {
     numeroPedido () { return this.$route.params.pedido },
     tipoPedido () { return String(this.$route.params.tipo || '').toUpperCase() },
-    nombreTipo () { return { NORMAL: 'EMBUTIDOS', PODIUM: 'PODIUM Y HUEVO' }[this.tipoPedido] || this.tipoPedido },
+    nombreTipo () { return { NORMAL: 'EMBUTIDOS' }[this.tipoPedido] || this.tipoPedido },
     // Lo dice el backend: pollo, cerdo y res se pesan en canastillos.
     conCanastillos () { return !!(this.pedido && this.pedido.con_canastillos) },
     kgCanastillo () { return Number((this.pedido && this.pedido.kg_canastillo) || 2) },
@@ -672,7 +672,8 @@ export default {
       // ella, a la de entrega del pedido, que es por la que filtra el listado.
       const fecha = this.$route.query.fecha ||
         String(this.pedido?.fecha_entrega || this.pedido?.fecha || '').substr(0, 10)
-      const query = { fecha, tipo: this.tipoPedido }
+      // El listado filtra por tipo de producto: vuelve al que estaba elegido.
+      const query = { fecha, tipo: this.$route.query.lista || 'TODOS' }
       // Se devuelve el camion con el que venia filtrado el listado.
       if (this.$route.query.camion) query.camion = this.$route.query.camion
       this.$router.push({ path: '/facturacion/pedidos', query })

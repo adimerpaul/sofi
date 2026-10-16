@@ -1155,7 +1155,8 @@ export default {
         { label: 'Pollo', value: 'POLLO' },
         { label: 'Cerdo', value: 'CERDO' },
         { label: 'Res', value: 'RES' },
-        { label: 'Podium y Huevo', value: 'PODIUM' }
+        { label: 'Podium', value: 'PODIUM' },
+        { label: 'Huevo', value: 'HUEVO' }
       ],
       // Cuantos comprobantes de cada tipo hay con los filtros puestos; el
       // backend los cuenta ignorando el chip elegido.
@@ -1253,7 +1254,7 @@ export default {
     nombreTipoPedido (tipo) {
       const valor = String(tipo || '').toUpperCase()
       if (!valor) return ''
-      return { NORMAL: 'EMBUTIDOS', PODIUM: 'PODIUM Y HUEVO' }[valor] || valor
+      return { NORMAL: 'EMBUTIDOS' }[valor] || valor
     },
     /** La hora del legado viene con segundos; en la grilla sobran. */
     horaCorta (valor) {

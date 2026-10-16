@@ -725,7 +725,8 @@ export default {
         { label: 'Pollo', value: 'POLLO' },
         { label: 'Cerdo', value: 'CERDO' },
         { label: 'Res', value: 'RES' },
-        { label: 'Podium y huevo', value: 'PODIUM' }
+        { label: 'Podium', value: 'PODIUM' },
+        { label: 'Huevo', value: 'HUEVO' }
       ],
       ciudad: '',
       semana: '',
@@ -810,7 +811,8 @@ export default {
         { label: 'Pollo', value: 'POLLO' },
         { label: 'Cerdo', value: 'CERDO' },
         { label: 'Res', value: 'RES' },
-        { label: 'Podium y huevo', value: 'PODIUM' }
+        { label: 'Podium', value: 'PODIUM' },
+        { label: 'Huevo', value: 'HUEVO' }
       ],
       columnasAnulados: [
         { name: 'id', label: 'ID', field: 'id', align: 'right', sortable: true },

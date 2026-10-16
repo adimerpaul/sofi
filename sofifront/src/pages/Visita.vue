@@ -271,7 +271,8 @@
               <q-btn icon="close" flat @click="modalpedido=false" class="q-ma-xs" color="negative"/>
             </div>
               <div :class="`col-md-6 col-xs-6 ${cliente.Id == '61839000' || cliente.Id == '0023456' ? 'hidden' : ''}`">
-                <div>
+                <!-- Las bajas (cuentas "BAJAS POR ...") van si o si a credito. -->
+                <div v-if="!esBaja">
                   <q-radio v-model="pago" checked-icon="task_alt" dense unchecked-icon="panorama_fish_eye" val="CONTADO"
                            label="Contado"/>
                   <!--                <pre>{{pago}}</pre>-->
@@ -281,7 +282,7 @@
                   <q-radio v-model="pago" checked-icon="task_alt" dense unchecked-icon="panorama_fish_eye" val="CREDITO"
                            label="Credito"/>
                 </div>
-                <div>
+                <div v-if="!esBaja">
                   <q-radio v-model="pago" checked-icon="task_alt" dense unchecked-icon="panorama_fish_eye"
                            val="BOLETA ANTERIOR" label="Boleta anterior"/>
                 </div>
@@ -445,7 +446,8 @@
                      switch apagado se guarda NULL en tbpedidos.rango_kg. -->
                 <template v-slot:body-cell-rango="props">
                   <q-td :props="props" auto-width>
-                    <div class="row items-center no-wrap">
+                    <!-- Solo el grupo FRIAL lleva rango. -->
+                    <div v-if="esFrial(props.row)" class="row items-center no-wrap">
                       <q-toggle v-model="props.row.con_rango" dense size="sm" color="orange-8"
                                 @update:model-value="v => { if (!v) props.row.rango_kg = null }"/>
                       <div v-if="props.row.con_rango" class="column q-ml-xs">
@@ -1304,6 +1306,9 @@ export default {
      * guarda en tbpedidos.caja): el FRIAL solo por unidad, el cerdo por unidad
      * o kilo y lo demas tambien por caja. Los que no son por caja no eligen.
      */
+    esFrial(p) {
+      return String(p.cod_grup || '').trim() == GRUPO_FRIAL
+    },
     unidadesCaja(p) {
       if (p.codUnid != 'CAJA') return []
       if (String(p.cod_grup || '').trim() == GRUPO_FRIAL) return ['U']
@@ -1545,7 +1550,7 @@ export default {
         this.pago = 'CREDITO'
         this.fact = 'NO'
       } else {
-        // Ya marcado: credito si el cliente acepta credito, si no contado.
+        // Ya marcado: credito si el cliente acepta credito (las bajas siempre), si no contado.
         this.pago = this.aceptaCredito ? 'CREDITO' : 'CONTADO'
         this.fact = ''
       }
@@ -1712,9 +1717,14 @@ export default {
     },
   },
   computed: {
-    // Clientes > "Acepta crédito". Los dos de cambio/bonificacion siempre van a credito.
+    // Clientes > "Acepta crédito". Las bajas siempre van a credito.
     aceptaCredito() {
-      return Number(this.cliente.acepta_credito) === 1 ||
+      return Number(this.cliente.acepta_credito) === 1 || this.esBaja
+    },
+    // Cuentas "BAJAS POR ..." (bonificaciones, calidad, merma, vencimiento,
+    // degustacion): se reconocen por el nombre, como en CreditoController.
+    esBaja() {
+      return String(this.cliente.Nombres || '').trim().toUpperCase().startsWith('BAJAS POR ') ||
         this.cliente.Id == '61839000' || this.cliente.Id == '0023456'
     },
     // El pedido se entrega al dia siguiente; el backend guarda la misma fecha.
