@@ -588,8 +588,23 @@ class PedidoController extends Controller{
      */
     public function reportePedidoTipo($fecha, $tipo)
     {
+        // Facturacion > Pedidos manda el tipo de producto (su id, o TODOS);
+        // los tipos de pedido (NORMAL, POLLO...) se siguen aceptando.
         $tipo = strtoupper(trim($tipo));
-        abort_unless(in_array($tipo, \App\Services\TipoPedido::TIPOS, true), 404, 'Tipo de pedido no valido');
+        $codigos = null;
+        if ($tipo === 'TODOS') {
+            $tipoNombre = 'TODOS';
+        } elseif (ctype_digit($tipo)) {
+            $tipoProducto = DB::table('tipos_producto')->where('id', $tipo)->first();
+            abort_unless($tipoProducto, 404, 'Tipo de producto no valido');
+            $tipoNombre = $tipoProducto->nombre;
+            $codigos = DB::table('tbproductos')->where('tipo_producto_id', $tipoProducto->id)
+                ->pluck(DB::raw('TRIM(cod_prod) as cod'))->filter()->unique()->values()->all();
+        } else {
+            abort_unless(in_array($tipo, \App\Services\TipoPedido::TIPOS, true), 404, 'Tipo de pedido no valido');
+            $nombres = ['NORMAL' => 'EMBUTIDOS', 'PODIUM' => 'PODIUM', 'HUEVO' => 'HUEVO'];
+            $tipoNombre = $nombres[$tipo] ?? $tipo;
+        }
 
         $filas = DB::table('tbpedidos as p')
             ->leftJoin('tbclientes as c', 'c.Cod_Aut', '=', 'p.idCli')
@@ -598,7 +613,19 @@ class PedidoController extends Controller{
             // Mismo dia que la lista de pedidos por facturar: el de entrega.
             ->where('p.fecha_entrega', $fecha)
             ->where('p.estado', 'ENVIADO')
-            ->whereRaw(\App\Services\TipoPedido::sql('p') . ' = ?', [$tipo])
+            ->when(in_array($tipo, \App\Services\TipoPedido::TIPOS, true), function ($q) use ($tipo) {
+                $q->whereRaw(\App\Services\TipoPedido::sql('p') . ' = ?', [$tipo]);
+            })
+            // Una cabecera por pedido que lleve algun producto de ese tipo.
+            ->when($codigos !== null, function ($q) use ($codigos) {
+                $q->whereIn('p.NroPed', function ($sub) use ($codigos) {
+                    $sub->from('tbpedidos as p2')->select('p2.NroPed')
+                        ->whereNull('p2.deleted_at')
+                        ->where('p2.estado', 'ENVIADO')
+                        ->where('p2.bonificacion', 0)
+                        ->whereIn(DB::raw('TRIM(p2.cod_prod)'), $codigos ?: ['']);
+                });
+            })
             ->where('p.bonificacion', 0)
             ->groupBy('p.NroPed')
             // Por ruta (el camion), para que las cabeceras de un mismo camion
@@ -617,9 +644,6 @@ class PedidoController extends Controller{
             ->map(function ($f) {
                 return ['nro' => $f->nro, 'cliente' => $f->cliente, 'color' => $f->color];
             });
-
-        $nombres = ['NORMAL' => 'EMBUTIDOS', 'PODIUM' => 'PODIUM Y HUEVO'];
-        $tipoNombre = $nombres[$tipo] ?? $tipo;
 
         return \PDF::loadView('pdf.cabecerasPedido', [
             'pedidos' => $filas,
@@ -1015,9 +1039,12 @@ $resPedido = $rows->groupBy('NroPed')->map(function ($g) use ($bonis) {
     {
         // Solo pide a credito el cliente marcado en Clientes ("Acepta crédito");
         // la pantalla ya no ofrece la opcion, esto cubre una app desactualizada.
-        if (strtoupper(trim((string) $request->pago)) === 'CREDITO') {
-            $aceptaCredito = DB::table('tbclientes')->where('Cod_Aut', $request->idCli)->value('acepta_credito');
-            if (!(int) $aceptaCredito) {
+        // Las cuentas "BAJAS POR ..." van si o si a credito.
+        $cli = DB::table('tbclientes')->where('Cod_Aut', $request->idCli)->first(['Nombres', 'acepta_credito']);
+        if ($cli && strpos(strtoupper(trim((string) $cli->Nombres)), 'BAJAS POR ') === 0) {
+            $request->merge(['pago' => 'CREDITO']);
+        } elseif (strtoupper(trim((string) $request->pago)) === 'CREDITO') {
+            if (!$cli || !(int) $cli->acepta_credito) {
                 return response()->json(['message' => 'Este cliente no tiene crédito habilitado: el pedido solo puede ser al contado'], 422);
             }
         }

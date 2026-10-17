@@ -155,7 +155,7 @@
                     v-if="porKiloSinCanastillos(item)"
                     v-model.number="item.piezas"
                     dense outlined type="number" class="col" label="Cant."
-                    step="1" min="1"
+                    step="0.001" min="0.001"
                   />
                   <q-input
                     v-model.number="item.cantidad"
@@ -262,7 +262,7 @@
               v-if="porKiloSinCanastillos(elegido)"
               v-model.number="piezasElegidas"
               outlined dense autofocus type="number" class="col-6"
-              label="Cantidad (unid.)" step="1" min="1"
+              label="Cantidad (unid.)" step="0.001" min="0.001"
               @focus="$event.target.select()"
             />
             <q-input
@@ -602,12 +602,17 @@ export default {
     urlImagen (ruta) {
       return String(this.$url || '').replace(/api\/?$/, '') + ruta
     },
-    // Lo que va a granel se vende con decimales; el resto por unidad.
-    paso (p) {
+    // Todo se puede vender con decimales (media unidad, por ejemplo).
+    paso () {
+      return 0.001
+    },
+    // Lo que va por unidad arranca en 1; lo de granel, vacio para pesar.
+    inicial (p) {
       return p && p.unidad === 'KG' ? 0.001 : 1
     },
     cantidad (v, unidad) {
-      return Number(v || 0).toFixed(unidad === 'KG' ? 3 : 0)
+      if (unidad === 'KG') return Number(v || 0).toFixed(3)
+      return String(Math.round(Number(v || 0) * 1000) / 1000)
     },
     sinStock (p) {
       return Number(p.stock || 0) <= 0
@@ -799,7 +804,7 @@ export default {
       }
 
       this.elegido = p
-      this.cantidadElegida = this.paso(p)
+      this.cantidadElegida = this.inicial(p)
       this.piezasElegidas = 1
       this.precioElegido = p.precio
       this.brutoElegido = null
@@ -850,8 +855,8 @@ export default {
         return
       }
       const conPiezas = this.porKiloSinCanastillos(this.elegido)
-      const piezas = Math.trunc(Number(this.piezasElegidas) || 0)
-      if (conPiezas && piezas < 1) {
+      const piezas = Math.round((Number(this.piezasElegidas) || 0) * 1000) / 1000
+      if (conPiezas && !(piezas > 0)) {
         this.$q.notify({
           message: 'Indica cuántas unidades lleva el cliente',
           color: 'warning',
@@ -961,9 +966,9 @@ export default {
           peso: this.neto(i),
           peso_bruto: Number(i.peso_bruto),
           canastillos: this.canastillos(i)
-        } : {}, this.porKiloSinCanastillos(i) && Number(i.piezas) >= 1 ? {
+        } : {}, this.porKiloSinCanastillos(i) && Number(i.piezas) > 0 ? {
           por_peso: true,
-          cantidad: Math.trunc(Number(i.piezas)),
+          cantidad: Math.round(Number(i.piezas) * 1000) / 1000,
           peso: Number(i.cantidad)
         } : {}))
       }).then(res => {

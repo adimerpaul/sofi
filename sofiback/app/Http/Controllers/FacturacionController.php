@@ -1011,20 +1011,47 @@ class FacturacionController extends Controller
     {
         $datos = $request->validate([
             'fecha' => 'required|date',
-            'tipo' => 'required|' . TipoPedido::regla(),
+            // La pantalla filtra por tipo de producto (Productos > Tipo); el
+            // tipo de pedido queda opcional para quien lo siga mandando.
+            'tipo' => 'nullable|' . TipoPedido::regla(),
+            'tipo_producto' => 'nullable|integer',
             'buscar' => 'nullable|string|max:100',
         ]);
 
-        return $this->pedidosDelDia($datos['fecha'], $datos['tipo'], $datos['buscar'] ?? '');
+        return $this->pedidosDelDia(
+            $datos['fecha'], $datos['tipo'] ?? null, $datos['buscar'] ?? '', $datos['tipo_producto'] ?? null
+        );
+    }
+
+    /**
+     * Codigos de los productos de un tipo administrable (Productos > Tipo).
+     * Se buscan aparte para no cruzar tbpedidos con tbproductos por TRIM
+     * dentro de la consulta agrupada.
+     */
+    private function codigosTipoProducto($tipoProducto)
+    {
+        return DB::table('tbproductos')
+            ->where('tipo_producto_id', $tipoProducto)
+            ->pluck(DB::raw('TRIM(cod_prod) as cod'))
+            ->filter(function ($c) { return $c !== ''; })
+            ->unique()->values()->all();
     }
 
     /**
      * Lo que lista la pantalla de pedidos por facturar para un dia de entrega
      * y un tipo. Lo usan la pantalla y el Excel del dia, que deben coincidir.
+     *
+     * Sin $tipo salen todos los tipos de pedido. Con $tipoProducto solo los
+     * pedidos que traen al menos un producto de ese tipo; la tarjeta sigue
+     * siendo el pedido entero (NroPed + tipo de pedido), que es lo que se
+     * factura.
      */
-    private function pedidosDelDia($fecha, $tipo, $buscar = '')
+    private function pedidosDelDia($fecha, $tipo, $buscar = '', $tipoProducto = null)
     {
         $datos = ['fecha' => $fecha, 'tipo' => $tipo, 'buscar' => $buscar];
+        $clave = function ($nro, $tipoPedido) {
+            return $nro . '|' . strtoupper(trim((string) $tipoPedido));
+        };
 
         $query = DB::table('tbpedidos as p')
             ->whereNull('p.deleted_at')
@@ -1041,11 +1068,31 @@ class FacturacionController extends Controller
             })
             // La lista va por dia de entrega: es el dia en que se hace la venta.
             ->where('p.fecha_entrega', $datos['fecha'])
-            ->whereRaw(TipoPedido::sql('p') . ' = ?', [$datos['tipo']])
+            ->when($tipo, function ($q) use ($tipo) {
+                $q->whereRaw(TipoPedido::sql('p') . ' = ?', [$tipo]);
+            })
             // Un pedido en CREADO todavia lo esta armando el preventista: solo
             // se factura lo que ya fue enviado.
             ->whereRaw("UPPER(TRIM(p.estado)) = 'ENVIADO'")
             ->where('p.bonificacion', 0);
+
+        if ($tipoProducto) {
+            $codigos = $this->codigosTipoProducto($tipoProducto);
+            if (empty($codigos)) {
+                return collect();
+            }
+            // Todas las filas del pedido pasan o ninguna: asi los totales y
+            // el conteo de productos siguen siendo los del pedido completo.
+            $query->whereExists(function ($sub) use ($codigos) {
+                $sub->from('tbpedidos as p2')->selectRaw('1')
+                    ->whereColumn('p2.NroPed', 'p.NroPed')
+                    ->whereRaw(TipoPedido::sql('p2') . ' = ' . TipoPedido::sql('p'))
+                    ->whereNull('p2.deleted_at')
+                    ->whereRaw("UPPER(TRIM(p2.estado)) = 'ENVIADO'")
+                    ->where('p2.bonificacion', 0)
+                    ->whereIn(DB::raw('TRIM(p2.cod_prod)'), $codigos);
+            });
+        }
 
         if ($buscar = trim((string) ($datos['buscar'] ?? ''))) {
             $like = '%' . $buscar . '%';
@@ -1108,60 +1155,78 @@ class FacturacionController extends Controller
             ->leftJoin('tbproductos as pr', function ($join) {
                 $join->on(DB::raw('TRIM(pr.cod_prod)'), '=', DB::raw('TRIM(p.cod_prod)'));
             })
+            // El tipo administrable (Productos > Tipo) distingue en la tarjeta
+            // embutido, huevo, PET... dentro de un mismo pedido.
+            ->leftJoin('tipos_producto as tp', 'tp.id', '=', 'pr.tipo_producto_id')
             ->whereIn('p.NroPed', $numeros)
-            ->whereRaw(TipoPedido::sql('p') . ' = ?', [$datos['tipo']])
+            ->when($tipo, function ($q) use ($tipo) {
+                $q->whereRaw(TipoPedido::sql('p') . ' = ?', [$tipo]);
+            })
             ->whereRaw("UPPER(TRIM(p.estado)) = 'ENVIADO'")
             ->where('p.bonificacion', 0)
             ->orderBy('p.codAut')
             ->get([
                 'p.NroPed as nro_pedido',
+                DB::raw(TipoPedido::sql('p') . ' as tipo_pedido'),
                 DB::raw('TRIM(p.cod_prod) as cod_prod'),
                 DB::raw("COALESCE(NULLIF(TRIM(pr.Producto), ''), CONCAT('Producto ', TRIM(p.cod_prod))) as nombre"),
                 DB::raw('COALESCE(p.Cant, 0) as cantidad'),
                 DB::raw('COALESCE(p.precio, 0) as precio'),
+                'tp.nombre as tipo_nombre',
+                'tp.color as tipo_color',
             ])
-            ->groupBy('nro_pedido');
+            ->groupBy(function ($item) use ($clave) {
+                return $clave($item->nro_pedido, $item->tipo_pedido);
+            });
 
         $filasPedido = DB::table('tbpedidos')->whereNull('tbpedidos.deleted_at')->whereIn('NroPed', $numeros)
-            ->whereRaw(TipoPedido::sql('') . ' = ?', [$datos['tipo']])
+            ->when($tipo, function ($q) use ($tipo) {
+                $q->whereRaw(TipoPedido::sql('') . ' = ?', [$tipo]);
+            })
             ->whereRaw("UPPER(TRIM(estado)) = 'ENVIADO'")
             ->where('bonificacion', 0)
-            ->orderBy('codAut')->get()->groupBy('NroPed');
+            ->orderBy('codAut')
+            ->get(['tbpedidos.*', DB::raw(TipoPedido::sql('') . ' as tipo_pedido')])
+            ->groupBy(function ($fila) use ($clave) {
+                return $clave($fila->NroPed, $fila->tipo_pedido);
+            });
 
         // Los que ya se habian cobrado y se anularon vuelven a salir como
         // pendientes: la tarjeta lo avisa para que el cajero sepa que al
         // entrar va a encontrar recuperado lo de la venta dada de baja.
-        $anuladas = Factura::where('pedido_tipo', $datos['tipo'])
+        $anuladas = Factura::when($tipo, function ($q) use ($tipo) { $q->where('pedido_tipo', $tipo); })
             ->where('estado', 'ANULADO')
             ->whereIn('pedido_nro', $numeros)
             ->orderBy('id')
-            ->get(['id', 'pedido_nro', 'total'])
-            ->keyBy('pedido_nro');
+            ->get(['id', 'pedido_nro', 'pedido_tipo', 'total'])
+            ->keyBy(function ($f) use ($clave) { return $clave($f->pedido_nro, $f->pedido_tipo); });
 
         // Los guardados sin finalizar: todavia no son venta ni bajaron stock.
         $borradores = DB::table('pedido_borradores')
-            ->where('pedido_tipo', $datos['tipo'])
+            ->when($tipo, function ($q) use ($tipo) { $q->where('pedido_tipo', $tipo); })
             ->whereIn('pedido_nro', $numeros)
-            ->get(['pedido_nro', 'total', 'usuario', 'updated_at'])
-            ->keyBy('pedido_nro');
+            ->get(['pedido_nro', 'pedido_tipo', 'total', 'usuario', 'updated_at'])
+            ->keyBy(function ($b) use ($clave) { return $clave($b->pedido_nro, $b->pedido_tipo); });
 
-        return $pedidos->map(function ($pedido) use ($items, $filasPedido, $anuladas, $borradores) {
-            $borrador = $pedido->factura_id ? null : $borradores->get($pedido->nro_pedido);
+        return $pedidos->map(function ($pedido) use ($items, $filasPedido, $anuladas, $borradores, $clave) {
+            $llave = $clave($pedido->nro_pedido, $pedido->tipo);
+            $borrador = $pedido->factura_id ? null : $borradores->get($llave);
             $pedido->borrador = $borrador ? [
                 'total'    => (float) $borrador->total,
                 'usuario'  => $borrador->usuario,
                 'guardado' => substr((string) $borrador->updated_at, 0, 16),
             ] : null;
-            $pedido->items = ($items->get($pedido->nro_pedido) ?? collect())
+            $pedido->items = ($items->get($llave) ?? collect())
                 ->map(function ($item) {
+                    unset($item->tipo_pedido);
                     $item->cantidad = (float) $item->cantidad;
                     $item->precio = (float) $item->precio;
                     $item->total = round($item->cantidad * $item->precio, 2);
                     return $item;
                 })->values();
-            $pedido->detalle_pollo = $this->detallePollo($filasPedido->get($pedido->nro_pedido) ?? collect());
+            $pedido->detalle_pollo = $this->detallePollo($filasPedido->get($llave) ?? collect());
             // keyBy se queda con la ultima, que es la anulacion mas reciente.
-            $anulada = $pedido->factura_id ? null : $anuladas->get($pedido->nro_pedido);
+            $anulada = $pedido->factura_id ? null : $anuladas->get($llave);
             $pedido->anulada_id = $anulada->id ?? null;
             $pedido->anulada_total = $anulada ? (float) $anulada->total : null;
             return $pedido;
@@ -1174,7 +1239,8 @@ class FacturacionController extends Controller
         'NORMAL' => ['Embutidos', 'C62828'],
         'CERDO'  => ['Cerdo', 'AD1457'],
         'RES'    => ['Res', '4E342E'],
-        'PODIUM' => ['Podium y Huevo', 'F9A825'],
+        'PODIUM' => ['Podium', 'F9A825'],
+        'HUEVO'  => ['Huevo', 'FF8F00'],
     ];
 
     /**
@@ -4274,7 +4340,7 @@ class FacturacionController extends Controller
             ->reorder()
             ->orderByRaw("CASE UPPER(TRIM(COALESCE(facturas.pedido_tipo, '')))
                 WHEN 'NORMAL' THEN 1 WHEN 'POLLO' THEN 2 WHEN 'CERDO' THEN 3
-                WHEN 'PODIUM' THEN 4 WHEN 'RES' THEN 5 ELSE 6 END")
+                WHEN 'PODIUM' THEN 4 WHEN 'HUEVO' THEN 5 WHEN 'RES' THEN 6 ELSE 7 END")
             ->orderBy('facturas.id')
             // Uno de mas para saber si el filtro se pasa del tope: antes se
             // cortaba en silencio y quedaban ventas sin imprimir.

@@ -6,16 +6,22 @@ namespace App\Services;
  * Tipo de un pedido para facturacion.
  *
  * tbpedidos.tipo dice NORMAL (embutidos), POLLO, CERDO o RES. Podium y huevo
- * se piden dentro de un pedido de embutidos, pero se facturan aparte y juntos:
- * cada linea con un codigo de estas listas cuenta como un pedido PODIUM
- * ("Podium y Huevo") con el mismo NroPed, y deja de aparecer en EMBUTIDOS.
- * El valor es PODIUM a secas porque alguna columna pedido_tipo es varchar(10).
+ * se piden dentro de un pedido de embutidos, pero se facturan aparte: cada
+ * linea con un codigo de PODIUM cuenta como un pedido PODIUM con el mismo
+ * NroPed, y cada una de HUEVO como un pedido HUEVO; dejan de aparecer en
+ * EMBUTIDOS. Hasta SEPARA_HUEVO (fecha de entrega) huevo iba junto con
+ * podium en PODIUM ("Podium y Huevo"): asi se facturo y asi se sigue
+ * leyendo, para que lo ya cobrado no reaparezca como pendiente.
+ * Los valores son cortos porque alguna columna pedido_tipo es varchar(10).
  *
  * No se toca tbpedidos: el tipo se calcula al consultar, con sql().
  */
 class TipoPedido
 {
-    const TIPOS = ['NORMAL', 'POLLO', 'CERDO', 'RES', 'PODIUM'];
+    const TIPOS = ['NORMAL', 'POLLO', 'CERDO', 'RES', 'PODIUM', 'HUEVO'];
+
+    /** Primer dia de entrega en que huevo se factura aparte de podium. */
+    const SEPARA_HUEVO = '2026-10-17';
 
     const HUEVO = [
         '590209', '590210', '590211', '590144', '590104', '590105', '590228', '590108', '590208',
@@ -43,8 +49,10 @@ class TipoPedido
     public static function sql($alias = 'p')
     {
         $a = $alias !== '' ? $alias . '.' : '';
-        return "(CASE WHEN TRIM({$a}cod_prod) IN (" . self::lista(array_merge(self::PODIUM, self::HUEVO)) . ")"
-            . " THEN 'PODIUM' ELSE UPPER(TRIM({$a}tipo)) END)";
+        return "(CASE WHEN TRIM({$a}cod_prod) IN (" . self::lista(self::PODIUM) . ") THEN 'PODIUM'"
+            . " WHEN TRIM({$a}cod_prod) IN (" . self::lista(self::HUEVO) . ")"
+            . " THEN (CASE WHEN {$a}fecha_entrega >= '" . self::SEPARA_HUEVO . "' THEN 'HUEVO' ELSE 'PODIUM' END)"
+            . " ELSE UPPER(TRIM({$a}tipo)) END)";
     }
 
     /**

@@ -33,7 +33,8 @@ class ReporteVentasController extends Controller
         'POLLO'  => 'POLLO',
         'CERDO'  => 'CERDO',
         'RES'    => 'RES',
-        'PODIUM' => 'PODIUM Y HUEVO',
+        'PODIUM' => 'PODIUM',
+        'HUEVO'  => 'HUEVO',
     ];
 
     /** Quiebre de stock en pantalla. */
@@ -63,7 +64,7 @@ class ReporteVentasController extends Controller
      * cada producto de cada pedido, pedido - vendido en caja.
      *
      * - Pedido: tbpedidos de la fecha, del tipo pedido ($tipo: NORMAL =
-     *   embutidos, POLLO, CERDO, RES, PODIUM = podium y huevo; '' = todos),
+     *   embutidos, POLLO, CERDO, RES, PODIUM, HUEVO; '' = todos),
      *   sin bonificaciones.
      * - Vendido: el comprobante del mismo tipo que emitio caja para ese
      *   pedido (podium y huevo se facturan aparte del embutido). Si se edito,
