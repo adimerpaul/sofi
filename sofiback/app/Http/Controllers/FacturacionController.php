@@ -8,6 +8,7 @@ use App\Models\FacturaDetalle;
 use App\Services\CambioPedido;
 use App\Services\CargaCamion;
 use App\Services\ModificacionFactura;
+use App\Services\NumeroCamion;
 use App\Services\SiatService;
 use App\Services\TipoPedido;
 use Illuminate\Http\Request;
@@ -58,6 +59,7 @@ class FacturacionController extends Controller
         $this->adjuntarCarga($pagina->getCollection());
         $this->adjuntarEntrega($pagina->getCollection());
         $this->adjuntarZonaDirecta($pagina->getCollection());
+        $this->adjuntarNumeroCamion($pagina->getCollection());
 
         // Los conteos van pegados a la pagina y no en otra ruta: la pantalla
         // los muestra junto a los filtros y pedirlos aparte era una segunda
@@ -115,6 +117,45 @@ class FacturacionController extends Controller
                 $factura->zona_color = $cache[$clave]['color'] . '|' . $cache[$clave]['colorStyle'];
             }
         }
+    }
+
+    /**
+     * El numero de salida del camion en su dia de reparto (0001, 0002...),
+     * el mismo que muestra la lista de pedidos y sale impreso en el papel.
+     */
+    private function adjuntarNumeroCamion($facturas)
+    {
+        $cache = [];
+        foreach ($facturas as $factura) {
+            $placa = trim((string) $factura->placa);
+            $clave = $placa . '|' . $factura->fecha_entrega;
+            if (!array_key_exists($clave, $cache)) {
+                $cache[$clave] = $this->numeroCamionDe($factura, $placa);
+            }
+            $factura->nro_camion = $cache[$clave];
+        }
+    }
+
+    /** Numero de salida del camion de un comprobante, ya con sus ceros. */
+    private function numeroCamionDe(Factura $factura, $placa)
+    {
+        $dia = $factura->fecha_entrega ?: optional($factura->fecha)->format('Y-m-d');
+
+        return NumeroCamion::formato(NumeroCamion::de($placa, $dia));
+    }
+
+    /**
+     * Fila "Nro" de la caja del comprobante con la planilla del camion al
+     * lado (2929 · 0068). Sin camion queda solo el Nro.
+     */
+    private function filaNroPlanilla($nro, $planilla)
+    {
+        if ($planilla === '') {
+            return "<tr><td class='et'>Nro</td><td class='r nro'>" . e($nro) . '</td></tr>';
+        }
+
+        return "<tr><td class='et'>Nro &middot; Planilla</td><td class='r nro' style='white-space:nowrap'>"
+            . e($nro) . " <span style='color:#999; font-weight:normal'>&middot;</span> " . e($planilla) . '</td></tr>';
     }
 
     /**
@@ -1208,8 +1249,17 @@ class FacturacionController extends Controller
             ->get(['pedido_nro', 'pedido_tipo', 'total', 'usuario', 'updated_at'])
             ->keyBy(function ($b) use ($clave) { return $clave($b->pedido_nro, $b->pedido_tipo); });
 
-        return $pedidos->map(function ($pedido) use ($items, $filasPedido, $anuladas, $borradores, $clave) {
+        $numerosCamion = [];
+
+        return $pedidos->map(function ($pedido) use ($items, $filasPedido, $anuladas, $borradores, $clave, &$numerosCamion) {
             $llave = $clave($pedido->nro_pedido, $pedido->tipo);
+            // Numero de salida del camion ese dia: sale ya al armar el reparto
+            // y es el mismo que despues se imprime en el comprobante.
+            $camion = $pedido->placa . '|' . $pedido->fecha_entrega;
+            if (!array_key_exists($camion, $numerosCamion)) {
+                $numerosCamion[$camion] = NumeroCamion::formato(NumeroCamion::de($pedido->placa, $pedido->fecha_entrega));
+            }
+            $pedido->nro_camion = $numerosCamion[$camion];
             $borrador = $pedido->factura_id ? null : $borradores->get($llave);
             $pedido->borrador = $borrador ? [
                 'total'    => (float) $borrador->total,
@@ -2524,6 +2574,9 @@ class FacturacionController extends Controller
             // Lo vendido sale del inventario.
             $this->moverStock($lineas, $factura->id, $ci, date('Y-m-d H:i:s'), 'SALIDA');
 
+            // El numero de salida del camion ese dia queda dado desde ya.
+            $this->numeroCamionDe($factura, $this->camionDeFactura($factura));
+
             if ($factura->pedido_nro) {
                 $this->heredarRetorno($factura, $usuario);
                 // Si viene de editar otro comprobante del pedido: padre, numero
@@ -3156,6 +3209,10 @@ class FacturacionController extends Controller
         $partes = [];
         if ($cambiaPlaca) {
             $partes[] = 'pasado de ' . ($anterior ?: 'sin camión') . ' a ' . $placa;
+            // Pasa a llevar el numero de salida del camion nuevo ese dia.
+            if ($nro = $this->numeroCamionDe($factura, $placa)) {
+                $partes[] = 'N° camión ' . $nro;
+            }
         }
         if ($zona) {
             $partes[] = 'zona ' . trim((string) $zona->zona);
@@ -3947,9 +4004,11 @@ class FacturacionController extends Controller
 
         // El voucher va en negro y sin logo, para que el camionero no lo
         // confunda con la factura (que sigue en rojo con el logo).
+        // Arriba a la derecha, en la misma fila del Nro, la planilla: el
+        // numero de salida del camion ese dia. Junto para no alargar la caja.
         $caja = "<table class='caja-doc caja-negra'>
             <tr><td colspan='2' class='tit'>BOLETA DE ENTREGA</td></tr>
-            <tr><td class='et'>Nro</td><td class='r nro'>" . $factura->id . "</td></tr>
+            " . $this->filaNroPlanilla($factura->id, $this->numeroCamionDe($factura, $placa)) . "
             <tr><td class='et'>Fecha</td><td class='r'>" . $factura->fecha->format('d/m/Y') . "</td></tr>
             <tr><td class='et'>Hora</td><td class='r'>" . e($factura->hora) . "</td></tr>
         </table>";
@@ -4164,8 +4223,7 @@ class FacturacionController extends Controller
 
         $caja = "<table class='caja-doc'>
             <tr><td colspan='2' class='tit'>FACTURA</td></tr>
-            <tr><td class='et'>Nro</td><td class='r nro'>"
-                . ($factura->nro_factura ?: $factura->id) . "</td></tr>
+            " . $this->filaNroPlanilla($factura->nro_factura ?: $factura->id, $this->numeroCamionDe($factura, $placa)) . "
             <tr><td class='et'>NIT emisor</td><td class='r'>" . e(config('siat.nit')) . "</td></tr>
             <tr><td class='et'>Cód. autorización</td><td class='r' style='font-size:7px; word-wrap:break-word'>"
                 . ($cuf !== '' ? implode('<br>', array_map('e', str_split($cuf, 24))) : '—') . "</td></tr>

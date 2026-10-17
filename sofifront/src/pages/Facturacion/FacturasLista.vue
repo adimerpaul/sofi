@@ -360,6 +360,9 @@
             <q-tooltip>Zona {{ zona(props.row).nombre }}</q-tooltip>
           </span>
           {{ props.row.placa || '—' }}
+          <q-badge v-if="props.row.nro_camion" color="grey-8" class="q-ml-xs" :label="'N° ' + props.row.nro_camion">
+            <q-tooltip>Número de salida del camión en el día de entrega</q-tooltip>
+          </q-badge>
         </q-td>
       </template>
 

@@ -193,6 +193,7 @@ export default {
       const nombres = {
         cobranzasrecojo: 'Cobrar — Todos los camiones, créditos y deudas',
         cobranzasverificar: 'Cobrar — Verificar la facturación del día',
+        rectificarPlanilla: 'Rectificar planilla del día — Reabrir un día con el cierre impreso',
         misentregasreporte: 'Mi reporte de entregas (caminero)',
         misentregas: 'Mis entregas (caminero)',
         cargacamion: 'Verificar carga (caminero)',

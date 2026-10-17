@@ -187,6 +187,11 @@ Route::group(['middleware'=>'auth:sanctum'],function (){
     Route::post('/cobranzas/verificacion',[\App\Http\Controllers\CobranzaVerificacionController::class,'verificar']);
     Route::get('/cobranzas/verificacion/excel',[\App\Http\Controllers\CobranzaVerificacionController::class,'excel']);
     Route::get('/cobranzas/verificacion/pdf',[\App\Http\Controllers\CobranzaVerificacionController::class,'pdf']);
+    // Cierre del dia para contabilidad (sin creditos). Imprimirlo cierra el dia:
+    // lo ya verificado deja de poder desmarcarse o corregirse.
+    Route::get('/cobranzas/verificacion/cierre',[\App\Http\Controllers\CobranzaVerificacionController::class,'cierre']);
+    // Reabre el dia cerrado; solo con el permiso rectificarPlanilla.
+    Route::post('/cobranzas/verificacion/reabrir',[\App\Http\Controllers\CobranzaVerificacionController::class,'reabrir']);
     Route::get('/cobranzas/verificacion/verificadores',[\App\Http\Controllers\CobranzaVerificacionController::class,'verificadores']);
     Route::get('/cobranzas/verificacion/excel-qr',[\App\Http\Controllers\CobranzaVerificacionController::class,'excelQr']);
     Route::get('/cobranzas/verificacion/excel-total',[\App\Http\Controllers\CobranzaVerificacionController::class,'excelTotal']);

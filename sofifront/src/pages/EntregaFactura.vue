@@ -133,14 +133,15 @@
                 <div class="marca-grupo" :title="m.grupo + ' comprobantes · tocar para acercar'">{{ m.grupo }}</div>
               </l-icon>
             </l-marker>
-            <l-marker v-for="m in marcas.filter(x => !x.grupo)" :key="m.clave" :lat-lng="m.latLng" @click="enfocar(m.comprobante, false)">
+            <l-marker v-for="m in marcas.filter(x => !x.grupo)" :key="m.clave" :lat-lng="m.latLng" @click="verCliente(m.cliente)">
               <l-icon :icon-size="[26, 26]" :icon-anchor="[13, 13]" class-name="">
                 <!-- title y no l-tooltip: el tooltip de vue-leaflet falla al
                      quitar marcas (al filtrar) con getPopup is not a function. -->
-                <div class="marca" :class="'bg-' + colorEstado(m.comprobante.estado)"
-                     :style="{ borderColor: m.comprobante.zona_hex || '#fff' }"
-                     :title="m.comprobante.cliente + ' · ' + m.comprobante.placa + ' · Bs ' + money(m.comprobante.total) + ' · ' + m.comprobante.estado">
+                <div class="marca" :class="'bg-' + colorEstado(m.cliente.estado)"
+                     :style="{ borderColor: m.cliente.zona_hex || '#fff' }"
+                     :title="m.cliente.nombre + ' · ' + m.cliente.comprobantes.length + ' comprobante(s) · Bs ' + money(m.cliente.total)">
                   {{ m.numero }}
+                  <span v-if="m.cliente.comprobantes.length > 1" class="marca-cantidad">{{ m.cliente.comprobantes.length }}</span>
                 </div>
               </l-icon>
             </l-marker>
@@ -179,13 +180,17 @@
         :loading="cargando"
       >
         <template v-slot:body="props">
-          <q-tr :props="props" class="cursor-pointer" :class="claseFila(props.row)" @click="enfocar(props.row, true)">
+          <q-tr :props="props" class="cursor-pointer" :class="claseFila(props.row)" @click="enfocar(props.row)">
             <q-td key="numero" :props="props">{{ numeroDe(props.row) }}</q-td>
             <q-td key="nro" :props="props">
               <div class="text-weight-medium">#{{ props.row.factura_id }}</div>
               <div class="text-caption text-grey-7">
                 {{ props.row.tipo_comprobante === 'FACTURA' ? 'Fact. ' + props.row.nro_factura : 'Venta' }}
               </div>
+            </q-td>
+            <q-td key="hora" :props="props">
+              <div class="text-weight-medium">{{ props.row.entrega_hora || '—' }}</div>
+              <div class="text-caption text-grey-7">Fact. {{ props.row.hora }}</div>
             </q-td>
             <q-td key="pedido" :props="props">
               <div>{{ props.row.pedido_nro || 'Directa' }}</div>
@@ -251,6 +256,69 @@
         </template>
       </q-table>
     </q-card>
+
+    <!-- Al tocar un punto del mapa: el cliente con todos sus comprobantes del
+         dia juntos, cada uno con su estado, su cobro y sus productos. -->
+    <q-dialog v-model="dialogoCliente">
+      <q-card v-if="clienteSel" style="width: 760px; max-width: 96vw">
+        <q-card-section class="row items-start no-wrap q-pb-sm">
+          <div class="col">
+            <div class="text-subtitle1 text-weight-bold">{{ clienteSel.numero }}. {{ clienteSel.nombre }}</div>
+            <div class="text-caption text-grey-7">{{ clienteSel.direccion }}</div>
+            <div class="row items-center q-gutter-xs q-mt-xs">
+              <q-badge v-for="p in clienteSel.placas" :key="p" color="grey-8" :label="p"/>
+              <span class="text-caption">
+                {{ clienteSel.comprobantes.length }} comprobante{{ clienteSel.comprobantes.length === 1 ? '' : 's' }} ·
+                <b>Bs {{ money(clienteSel.total) }}</b>
+              </span>
+            </div>
+          </div>
+          <q-btn flat round dense icon="close" v-close-popup/>
+        </q-card-section>
+        <q-separator/>
+        <q-card-section class="q-pa-sm scroll" style="max-height: 70vh">
+          <q-card v-for="c in clienteSel.comprobantes" :key="c.factura_id" flat bordered class="q-mb-sm" :class="claseFila(c)">
+            <div class="row items-center q-col-gutter-sm q-pa-xs">
+              <div class="col-auto">
+                <div class="text-weight-bold">#{{ c.factura_id }}</div>
+                <div class="text-caption text-grey-7">{{ c.tipo_comprobante === 'FACTURA' ? 'Fact. ' + c.nro_factura : 'Venta' }}</div>
+              </div>
+              <div class="col-auto">
+                <div>Pedido {{ c.pedido_nro || 'Directa' }}</div>
+                <div class="text-caption text-grey-7">{{ nombreTipo(c.pedido_tipo) }} · {{ c.placa }}</div>
+              </div>
+              <div class="col">
+                <q-badge :color="colorEstado(c.estado)" :label="c.estado"/>
+                <div v-if="c.entrega_hora" class="text-caption text-grey-7">
+                  {{ c.entrega_hora }}<span v-if="c.caminero"> · {{ c.caminero }}</span>
+                </div>
+              </div>
+              <div class="col-auto text-right">
+                <div class="text-weight-bold">Bs {{ money(c.total) }}</div>
+                <div class="text-caption">
+                  {{ c.tipo_pago }}
+                  <span v-if="c.efectivo" class="text-green-9"> · Ef. {{ money(c.efectivo) }}</span>
+                  <span v-if="c.qr" class="text-indigo-9"> · QR {{ money(c.qr) }}</span>
+                </div>
+              </div>
+            </div>
+            <div v-if="c.observacion" class="text-caption q-px-xs">{{ c.observacion }}</div>
+            <div class="q-px-xs q-pb-xs">
+              <q-linear-progress v-if="!detalles[c.factura_id]" indeterminate size="2px"/>
+              <table v-else class="tabla-detalle full-width">
+                <tr v-for="(d, i) in detalles[c.factura_id] || []" :key="i">
+                  <td class="text-grey-7">{{ d.cod_prod }}</td>
+                  <td>{{ d.nombre }}</td>
+                  <td class="text-right">{{ cantidadTexto(d) }}</td>
+                  <td class="text-right">{{ money(d.precio) }}</td>
+                  <td class="text-right text-weight-medium">{{ money(d.subtotal) }}</td>
+                </tr>
+              </table>
+            </div>
+          </q-card>
+        </q-card-section>
+      </q-card>
+    </q-dialog>
   </q-page>
 </template>
 
@@ -287,6 +355,9 @@ export default {
       abierto: {},
       detalles: {},
       cargandoDetalle: null,
+      // Cliente tocado en el mapa, con todos sus comprobantes.
+      dialogoCliente: false,
+      clienteSel: null,
       mapa: null,
       zoom: 13,
       centro: [-17.969721, -67.114493],
@@ -301,6 +372,15 @@ export default {
       columnas: [
         { name: 'numero', label: '#', field: 'factura_id', align: 'center' },
         { name: 'nro', label: 'NRO', field: 'factura_id', align: 'left', sortable: true },
+        // Hora de entrega del caminero; lo que aun no se entrego queda al final.
+        {
+          name: 'hora',
+          label: 'HORA',
+          field: 'entrega_hora',
+          align: 'left',
+          sortable: true,
+          sort: (a, b) => (a || '99:99').localeCompare(b || '99:99')
+        },
         { name: 'pedido', label: 'PEDIDO', field: 'pedido_nro', align: 'left', sortable: true },
         { name: 'cliente', label: 'CLIENTE', field: 'cliente', align: 'left', sortable: true },
         { name: 'camion', label: 'CAMIÓN', field: 'placa', align: 'left', sortable: true },
@@ -335,14 +415,62 @@ export default {
           String(c.nro_factura || '').includes(texto)
       })
     },
+    // Numero de cada cliente del camion (o de todos), en el orden de la lista:
+    // es el de su marca en el mapa y el de sus filas en la tabla.
+    numerosCliente () {
+      const numeros = {}
+      let siguiente = 1
+      this.delCamion.forEach(c => {
+        const clave = this.claveCliente(c)
+        if (!numeros[clave]) numeros[clave] = siguiente++
+      })
+      return numeros
+    },
     /**
-     * Una marca por comprobante con coordenada. Las que en pantalla quedarian
+     * Los clientes de lo que se ve, cada uno con todos sus comprobantes: en el
+     * mapa va una sola marca por cliente aunque tenga varios pedidos.
+     */
+    clientes () {
+      const porClave = {}
+      const lista = []
+      this.filas.forEach(c => {
+        const clave = this.claveCliente(c)
+        let cliente = porClave[clave]
+        if (!cliente) {
+          cliente = porClave[clave] = {
+            clave,
+            numero: this.numerosCliente[clave],
+            nombre: c.cliente,
+            direccion: c.direccion,
+            lat: c.lat,
+            lng: c.lng,
+            zona_hex: c.zona_hex,
+            comprobantes: [],
+            placas: [],
+            total: 0
+          }
+          lista.push(cliente)
+        }
+        if (!cliente.lat && c.lat) { cliente.lat = c.lat; cliente.lng = c.lng }
+        cliente.comprobantes.push(c)
+        if (!cliente.placas.includes(c.placa)) cliente.placas.push(c.placa)
+        cliente.total += Number(c.total) || 0
+      })
+      // El color de la marca: lo que falta resolver manda sobre lo ya entregado.
+      const prioridad = ['PENDIENTE', 'NO ENTREGADO', 'RECHAZADO', 'RETORNO PARCIAL', 'ENTREGADO']
+      lista.forEach(cliente => {
+        cliente.estado = prioridad.find(e => cliente.comprobantes.some(c => c.estado === e)) || cliente.comprobantes[0].estado
+      })
+      return lista
+    },
+    /**
+     * Una marca por cliente con coordenada. Las que en pantalla quedarian
      * una encima de otra se abren en circulo alrededor de su lugar, medido en
      * pixeles del zoom actual: al acercar vuelven a su sitio.
      */
     marcas () {
-      const puntos = this.filas.filter(c => c.lat && c.lng)
-        .map(c => ({ comprobante: c, lat: c.lat, lng: c.lng }))
+      const puntos = this.clientes.filter(c => c.lat && c.lng)
+        .map(c => ({ cliente: c, lat: c.lat, lng: c.lng }))
       const metrosPorPixel = 156543.03 * Math.cos(-17.97 * Math.PI / 180) / Math.pow(2, this.zoom || 13)
       const choque = 28 * metrosPorPixel
       const montones = []
@@ -360,10 +488,9 @@ export default {
         // globo con la cantidad, que al tocarlo acerca.
         if (monton.length > 6) {
           marcas.push({
-            clave: 'grupo-' + monton.map(p => p.comprobante.factura_id).join('-'),
+            clave: 'grupo-' + monton.map(p => p.cliente.clave).join('-'),
             latLng: [lat, lng],
-            grupo: monton.length,
-            comprobante: monton[0].comprobante
+            grupo: monton.length
           })
           return
         }
@@ -378,12 +505,12 @@ export default {
             ]
           }
           marcas.push({
-            clave: p.comprobante.factura_id,
+            clave: p.cliente.clave,
             latLng,
             real: [p.lat, p.lng],
             separada: monton.length > 1,
-            numero: this.numeroDe(p.comprobante),
-            comprobante: p.comprobante
+            numero: p.cliente.numero,
+            cliente: p.cliente
           })
         })
       })
@@ -400,9 +527,19 @@ export default {
       const e = this.estados.find(x => x.clave === estado)
       return e ? e.color : 'blue-grey-4'
     },
-    // El numero de la marca y de la fila es el mismo, para ubicarse rapido.
+    // Un cliente se reconoce por su codigo; sin cliente, el comprobante va solo.
+    claveCliente (comprobante) {
+      return comprobante.cliente_id ? 'c' + comprobante.cliente_id : 'f' + comprobante.factura_id
+    },
+    // El numero de la fila es el de su cliente: el mismo de la marca del mapa.
     numeroDe (comprobante) {
-      return this.delCamion.indexOf(comprobante) + 1
+      return this.numerosCliente[this.claveCliente(comprobante)]
+    },
+    // Desde el mapa: el cliente con todos sus comprobantes y sus productos.
+    verCliente (cliente) {
+      this.clienteSel = cliente
+      this.dialogoCliente = true
+      cliente.comprobantes.forEach(c => this.traerDetalle(c.factura_id))
     },
     claseFila (c) {
       if (c.estado === 'RECHAZADO') return 'fila-rechazado'
@@ -464,15 +601,10 @@ export default {
     acercar (latLng) {
       if (this.mapa) this.mapa.setView(latLng, Math.min((this.zoom || 13) + 3, 19))
     },
-    // Desde la lista se centra el mapa en el cliente; desde el mapa se abre
-    // su detalle en la lista.
-    enfocar (comprobante, desdeLista) {
-      if (desdeLista && comprobante.lat && this.mapa) {
-        this.mapa.setView([comprobante.lat, comprobante.lng], 18)
-        return
-      }
-      this.buscar = String(comprobante.factura_id)
-      this.abrirDetalle(comprobante)
+    // Desde la lista se centra el mapa en el cliente (desde el mapa se abre
+    // el dialogo del cliente: verCliente).
+    enfocar (comprobante) {
+      if (comprobante.lat && this.mapa) this.mapa.setView([comprobante.lat, comprobante.lng], 18)
     },
     alternarDetalle (comprobante) {
       if (this.abierto[comprobante.factura_id]) {
@@ -486,10 +618,14 @@ export default {
       this.abierto = { ...this.abierto, [id]: true }
       if (this.detalles[id]) return
       this.cargandoDetalle = id
-      this.$api.get('facturacion/' + id)
+      this.traerDetalle(id).finally(() => { this.cargandoDetalle = null })
+    },
+    // Los productos de un comprobante, una sola vez.
+    traerDetalle (id) {
+      if (this.detalles[id]) return Promise.resolve()
+      return this.$api.get('facturacion/' + id)
         .then(res => { this.detalles = { ...this.detalles, [id]: res.data.detalles || [] } })
         .catch(() => { this.$q.notify({ type: 'negative', message: 'No se pudo traer el detalle' }) })
-        .finally(() => { this.cargandoDetalle = null })
     },
     deCamion (placa) {
       return this.comprobantes.filter(c => c.placa === placa)
@@ -577,6 +713,13 @@ export default {
   border: 3px solid #fff; box-shadow: 0 1px 3px rgba(0, 0, 0, .45);
   color: #fff; font-size: 10px; font-weight: 800;
   display: flex; align-items: center; justify-content: center;
+}
+.marca { position: relative; }
+/* Cuantos comprobantes tiene el cliente, cuando son mas de uno. */
+.marca-cantidad {
+  position: absolute; top: -8px; right: -9px;
+  min-width: 15px; height: 15px; padding: 0 3px; border-radius: 8px;
+  background: #263238; color: #fff; font-size: 9px; line-height: 15px; text-align: center;
 }
 .marca-grupo {
   width: 34px; height: 34px; border-radius: 50%;

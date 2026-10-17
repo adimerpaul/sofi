@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Services\NumeroCamion;
 use App\Services\RecojoDelDia;
 use Illuminate\Http\Request;
 
@@ -57,6 +58,8 @@ class CobranzaRecojoController extends Controller
 
             $camiones[] = [
                 'placa' => $placa,
+                // Numero de salida del camion ese dia: el de los comprobantes.
+                'planilla' => NumeroCamion::formato(NumeroCamion::de($placa, $fecha)),
                 'caminero' => $recojo->caminero($delCamion, $placa),
                 'grupos' => $grupos,
                 'tabla' => $recojo->tabla($delCamion),
@@ -95,7 +98,10 @@ class CobranzaRecojoController extends Controller
             }
         }
 
-        return $camiones->sortBy('placa')->values()->all();
+        return $camiones->map(function ($c) use ($fecha) {
+            $c['planilla'] = NumeroCamion::formato(NumeroCamion::de($c['placa'], $fecha));
+            return $c;
+        })->sortBy('placa')->values()->all();
     }
 
     /**

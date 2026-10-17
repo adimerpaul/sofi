@@ -595,6 +595,7 @@ export default {
         { name: 'existencia', label: 'Existencia', field: 'existencia', align: 'right', format: v => this.num(v) },
         { name: 'comanda', label: 'Nro comanda', field: 'comanda', align: 'right', format: v => v || '' },
         { name: 'factura', label: 'Nro factura', field: 'factura', align: 'right', format: v => v || '' },
+        { name: 'cliente', label: 'Cliente', field: 'cliente', align: 'left' },
         { name: 'motivo_stock', label: 'Motivo ingr. stock', field: 'motivo_stock', align: 'left' }
       ],
       productos: [],

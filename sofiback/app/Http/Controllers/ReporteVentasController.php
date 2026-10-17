@@ -1108,31 +1108,47 @@ class ReporteVentasController extends Controller
     /**
      * Nro de comanda y de factura de cada movimiento de tbstock. Los del
      * sistema anterior salen de la fila (comandast) y de tbfactura; los web
-     * ("VENTA WEB 123") apuntan a la factura del sistema y de ahi su pedido.
-     * Devuelve una funcion fila => [comanda, factura].
+     * ("VENTA WEB 123", y su anulacion) apuntan a la factura del sistema y de
+     * ahi su pedido y su cliente. Devuelve una funcion fila => [comanda,
+     * factura, cliente].
      */
     private function referenciasStock($filas)
     {
         $idsWeb = $filas->map(function ($f) {
             return preg_match('/VENTA WEB (\d+)$/', trim((string) $f->motivstock), $m) ? (int) $m[1] : null;
         })->filter()->unique()->values()->all();
-        $web = $idsWeb ? DB::table('facturas')->whereIn('id', $idsWeb)
-            ->get(['id', 'nro_factura', 'tipo_comprobante', 'pedido_nro'])->keyBy('id') : collect();
+        $web = $idsWeb ? DB::table('facturas as f')->leftJoin('tbclientes as c', 'c.Cod_Aut', '=', 'f.cliente_id')
+            ->whereIn('f.id', $idsWeb)
+            ->get(['f.id', 'f.nro_factura', 'f.tipo_comprobante', 'f.pedido_nro',
+                DB::raw("TRIM(COALESCE(NULLIF(TRIM(c.Nombres), ''), f.nombre, '')) as cliente")])
+            ->keyBy('id') : collect();
 
+        // Sistema anterior: la factura de la comanda y su cliente (por
+        // Cod_Aut o, si no lo guardo, por NIT).
         $comandas = $filas->pluck('comandast')->filter()->unique()->values()->all();
-        $legado = $comandas ? DB::table('tbfactura')->whereIn('comanda', $comandas)
-            ->where('nrofac', '>', 0)->pluck('nrofac', 'comanda') : collect();
+        $legado = $comandas ? DB::table('tbfactura as t')
+            ->leftJoin('tbclientes as c', 'c.Cod_Aut', '=', 't.CodAutCli')
+            ->whereIn('t.comanda', $comandas)
+            ->get(['t.comanda', 't.nrofac', 't.IdCli', DB::raw("TRIM(COALESCE(c.Nombres, '')) as cliente")])
+            ->keyBy('comanda') : collect();
+        $porNit = $legado->filter(function ($l) { return $l->cliente === '' && trim((string) $l->IdCli) !== ''; })
+            ->pluck('IdCli')->map(function ($n) { return trim((string) $n); })->unique()->values()->all();
+        $nombresNit = $porNit ? DB::table('tbclientes')->whereIn(DB::raw('TRIM(Id)'), $porNit)
+            ->pluck(DB::raw('TRIM(Nombres)'), DB::raw('TRIM(Id)')) : collect();
 
-        return function ($f) use ($web, $legado) {
+        return function ($f) use ($web, $legado, $nombresNit) {
             $comanda = (int) $f->comandast;
-            $factura = $comanda ? ($legado[$comanda] ?? null) : null;
+            $previo = $comanda ? $legado->get($comanda) : null;
+            $factura = $previo && $previo->nrofac > 0 ? $previo->nrofac : null;
+            $cliente = $previo ? ($previo->cliente ?: ($nombresNit[trim((string) $previo->IdCli)] ?? '')) : '';
             if (preg_match('/VENTA WEB (\d+)$/', trim((string) $f->motivstock), $m) && ($w = $web->get((int) $m[1]))) {
                 $comanda = $comanda ?: (int) $w->pedido_nro;
                 $factura = $w->tipo_comprobante === 'FACTURA' && $w->nro_factura
                     ? $w->nro_factura
                     : 'Voucher #' . $w->id;
+                $cliente = $w->cliente;
             }
-            return [$comanda ?: null, $factura ?: null];
+            return [$comanda ?: null, $factura ?: null, $cliente];
         };
     }
 
@@ -1205,18 +1221,20 @@ class ReporteVentasController extends Controller
                 'cod_prod' => $codigo, 'producto' => $nombre, 'saldo' => true,
                 'fecha' => $desde . ' 00:00', 'entrada' => round((float) ($previo->entradas ?? 0), 3),
                 'salida' => round((float) ($previo->salidas ?? 0), 3), 'motivo' => 'SALDO ANTERIOR',
-                'existencia' => $existencia, 'comanda' => null, 'factura' => null, 'motivo_stock' => '',
+                'existencia' => $existencia, 'comanda' => null, 'factura' => null, 'cliente' => '', 'motivo_stock' => '',
             ];
             foreach ($porCodigo->get($codigo, []) as $f) {
                 $entrada = round((float) $f->cant, 3);
                 $salida = round((float) $f->saldo, 3);
                 $existencia = round($existencia + $entrada - $salida, 3);
-                list($comanda, $factura) = $referencias($f);
+                list($comanda, $factura, $cliente) = $referencias($f);
                 $movimientos[] = [
                     'cod_prod' => $codigo, 'producto' => $nombre, 'saldo' => false,
                     'fecha' => substr((string) $f->fecha, 0, 16), 'entrada' => $entrada, 'salida' => $salida,
                     'motivo' => trim((string) $f->MotivoEgreso), 'existencia' => $existencia,
-                    'comanda' => $comanda, 'factura' => $factura, 'motivo_stock' => trim((string) $f->motivstock),
+                    'comanda' => $comanda, 'factura' => $factura,
+                    // Cliente de la venta del movimiento; vacio en compras y ajustes.
+                    'cliente' => $cliente, 'motivo_stock' => trim((string) $f->motivstock),
                 ];
                 $totales['movimientos']++;
                 $totales['entradas'] += $entrada;
@@ -1246,8 +1264,8 @@ class ReporteVentasController extends Controller
         $hoja->setTitle('Entradas y salidas');
 
         $hoja->fromArray(['CODIGO', 'PRODUCTO', 'FECHA REGISTRO', 'ENTRADA', 'SALIDA', 'MOTIVO INGRE/EGRE',
-            'EXISTENCIA', 'NRO COMANDA', 'NRO FACTURA', 'MOTIVO INGR. STOCK'], null, 'A1');
-        $hoja->getStyle('A1:J1')->applyFromArray([
+            'EXISTENCIA', 'NRO COMANDA', 'NRO FACTURA', 'CLIENTE', 'MOTIVO INGR. STOCK'], null, 'A1');
+        $hoja->getStyle('A1:K1')->applyFromArray([
             'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
             'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => '1F3864']],
             'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER, 'vertical' => Alignment::VERTICAL_CENTER],
@@ -1270,10 +1288,11 @@ class ReporteVentasController extends Controller
             } else {
                 $hoja->setCellValue('I' . $fila, $m['factura'] ?: 0);
             }
-            $hoja->setCellValue('J' . $fila, $m['motivo_stock']);
+            $hoja->setCellValue('J' . $fila, $m['cliente']);
+            $hoja->setCellValue('K' . $fila, $m['motivo_stock']);
             // La fila de saldo de cada producto se distingue de sus movimientos.
             if ($m['saldo']) {
-                $hoja->getStyle("A{$fila}:J{$fila}")->applyFromArray([
+                $hoja->getStyle("A{$fila}:K{$fila}")->applyFromArray([
                     'font' => ['bold' => true],
                     'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'DDEBF7']],
                 ]);
@@ -1285,13 +1304,13 @@ class ReporteVentasController extends Controller
         $hoja->getStyle('C2:C' . $ultima)->getNumberFormat()->setFormatCode('dd/mm/yyyy hh:mm');
         $hoja->getStyle('D2:E' . $ultima)->getNumberFormat()->setFormatCode('#,##0.00');
         $hoja->getStyle('G2:G' . $ultima)->getNumberFormat()->setFormatCode('#,##0.00');
-        $hoja->getStyle('A1:J' . $ultima)->getBorders()->getAllBorders()
+        $hoja->getStyle('A1:K' . $ultima)->getBorders()->getAllBorders()
             ->setBorderStyle(Border::BORDER_HAIR)->getColor()->setRGB('BFBFBF');
-        foreach (['A' => 10, 'B' => 42, 'C' => 17, 'D' => 11, 'E' => 11, 'F' => 36, 'G' => 12, 'H' => 13, 'I' => 14, 'J' => 28] as $col => $ancho) {
+        foreach (['A' => 10, 'B' => 42, 'C' => 17, 'D' => 11, 'E' => 11, 'F' => 36, 'G' => 12, 'H' => 13, 'I' => 14, 'J' => 36, 'K' => 28] as $col => $ancho) {
             $hoja->getColumnDimension($col)->setWidth($ancho);
         }
         $hoja->freezePane('C2');
-        $hoja->setAutoFilter('A1:J' . $ultima);
+        $hoja->setAutoFilter('A1:K' . $ultima);
         $hoja->getPageSetup()->setOrientation(PageSetup::ORIENTATION_LANDSCAPE)
             ->setPaperSize(PageSetup::PAPERSIZE_LETTER)
             ->setFitToWidth(1)->setFitToHeight(0)

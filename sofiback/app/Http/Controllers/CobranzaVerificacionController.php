@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Controllers\Concerns\PapeleriaSofia;
 use App\Services\CargaCamion;
+use App\Services\NumeroCamion;
 use App\Services\RecojoDelDia;
 use App\Services\TipoPedido;
 use Illuminate\Http\Request;
@@ -38,15 +39,20 @@ class CobranzaVerificacionController extends Controller
     {
         [$fecha, $camion] = $this->filtros($request);
         $filas = $this->filas($fecha, $camion);
+        $cierres = $this->cierresDelDia($fecha);
 
         return [
             'fecha' => $fecha,
             'filas' => $filas,
             'totales' => $this->totales($filas),
             // Los camiones del dia salen sin filtrar por camion, para poder cambiarlo.
-            'camiones' => $this->filas($fecha, null)->groupBy('placa')->map(function ($grupo, $placa) {
+            'camiones' => $this->filas($fecha, null)->groupBy('placa')->map(function ($grupo, $placa) use ($fecha, $cierres) {
                 return [
                     'placa' => $placa,
+                    // Planilla cerrada ({ cerrado_por, created_at }): lo verificado ya no se rectifica.
+                    'cierre' => $cierres->get($placa),
+                    // Numero de salida del camion ese dia, el de los comprobantes.
+                    'planilla' => $placa === 'SIN' ? '' : NumeroCamion::formato(NumeroCamion::de($placa, $fecha)),
                     'total' => $grupo->count(),
                     'verificados' => $grupo->where('verificado', true)->count(),
                     'entregados' => $grupo->where('entregado', true)->count(),
@@ -241,6 +247,25 @@ class CobranzaVerificacionController extends Controller
                 + $marcarLado('qr', $verificado && ($qr > 0 || $fila['forma_pago'] === 'MIXTO'));
         }
 
+        // Con la planilla del camion cerrada, lo ya verificado queda fijo: no
+        // se desmarca ni se le cambia el monto. Lo pendiente se sigue verificando.
+        if ($actual && ($cierre = $this->cierresDelDia($fila['dia_entrega'])->get($fila['placa']))) {
+            foreach (['efectivo', 'qr'] as $l) {
+                if (!$actual->{$l . '_ok'}) {
+                    continue;
+                }
+                $desmarca = array_key_exists($l . '_ok', $cambios) && !$cambios[$l . '_ok'];
+                $otroMonto = array_key_exists('monto_' . $l, $cambios)
+                    && abs((float) $cambios['monto_' . $l] - (float) $actual->{'monto_' . $l}) > 0.005;
+                if ($desmarca || $otroMonto) {
+                    return response()->json([
+                        'message' => 'La planilla de ' . $fila['placa'] . ' del ' . date('d/m/Y', strtotime($fila['dia_entrega']))
+                            . ' ya se cerró (' . $cierre->cerrado_por . '): lo verificado ya no se puede rectificar',
+                    ], 422);
+                }
+            }
+        }
+
         // Como queda el comprobante con el cambio.
         $quedan = function ($campo) use ($cambios, $actual) {
             return array_key_exists($campo, $cambios) ? $cambios[$campo] : ($actual->$campo ?? null);
@@ -431,6 +456,246 @@ class CobranzaVerificacionController extends Controller
         $pdf->loadHTML($html);
 
         return $pdf->stream('verificacion_' . $fecha . '.pdf', ['Attachment' => false]);
+    }
+
+    /**
+     * Cierre para contabilidad, por planilla: cierra la del camion elegido y
+     * devuelve el reporte del dia con todas las planillas ya cerradas, que
+     * va creciendo con cada camion que se termina de verificar. Una fila por
+     * planilla con el efectivo y el QR que cobranzas verifico y, abajo, las
+     * boletas de esas planillas que faltan verificar. Los creditos no
+     * cuentan: no traen plata. Sin camion elegido solo se reimprime.
+     */
+    public function cierre(Request $request, RecojoDelDia $recojo)
+    {
+        [$fecha, $camion] = $this->filtros($request);
+        if ($camion === 'SIN') {
+            return response()->json(['message' => 'Lo que no va en camión no tiene planilla para cerrar'], 422);
+        }
+
+        // La primera impresion de la planilla es la que la cierra; despues solo se reimprime.
+        if ($camion !== '') {
+            $usuario = $request->user();
+            DB::table('cobranza_cierres')->insertOrIgnore([
+                'fecha' => $fecha,
+                'placa' => $camion,
+                'user_id' => $usuario->CodAut,
+                'cerrado_por' => trim(trim($usuario->Nombre1) . ' ' . trim($usuario->App1)),
+                'created_at' => date('Y-m-d H:i:s'),
+                'updated_at' => date('Y-m-d H:i:s'),
+            ]);
+        }
+
+        $cerradas = $this->cierresDelDia($fecha);
+        if ($cerradas->isEmpty()) {
+            return response()->json(['message' => 'Elegí un camión para cerrar su planilla'], 422);
+        }
+        $filas = $this->filas($fecha, null)->filter(function ($f) use ($cerradas) {
+            return $f['forma_pago'] !== 'CRÉDITO' && $cerradas->has($f['placa']);
+        });
+        $camineros = collect($recojo->camiones($fecha))->pluck('caminero', 'placa');
+        $m = function ($v) { return number_format((float) $v, 2); };
+
+        $camiones = $filas->groupBy('placa')->map(function ($grupo, $placa) use ($fecha, $camineros) {
+            $efectivo = $grupo->where('efectivo_ok', true)->sum('verificado_efectivo');
+            $qr = $grupo->where('qr_ok', true)->sum('verificado_qr');
+            $recibio = $grupo->flatMap(function ($f) {
+                return [$f['efectivo_ok'] ? $f['efectivo_por'] : null, $f['qr_ok'] ? $f['qr_por'] : null];
+            })->filter()->map(function ($n) { return trim(preg_replace('/\s+/', ' ', $n)); })->unique()->implode(', ');
+            return [
+                'planilla' => $placa === 'SIN' ? '' : NumeroCamion::formato(NumeroCamion::de($placa, $fecha)),
+                'placa' => $placa === 'SIN' ? 'SIN CAMIÓN' : $placa,
+                'caminero' => $camineros->get($placa, ''),
+                'recibio' => $recibio,
+                'efectivo' => round($efectivo, 2),
+                'qr' => round($qr, 2),
+                'total' => round($efectivo + $qr, 2),
+            ];
+        })->sortBy(function ($c) { return ($c['planilla'] ?: '9999') . $c['placa']; })->values();
+
+        $cuerpo = '';
+        foreach ($camiones as $c) {
+            $detalle = 'A/C ' . e($c['placa'])
+                . ($c['caminero'] && $c['caminero'] !== $c['placa'] ? ' (' . e($c['caminero']) . ')' : '')
+                . ($c['recibio'] !== '' ? ' ENTREGADO A ' . e(mb_strtoupper($c['recibio'])) : '');
+            $cuerpo .= "<tr class='amarillo'>"
+                . "<td class='c b'>" . ($c['planilla'] ?: '—') . '</td>'
+                . "<td class='b'>$detalle</td>"
+                . "<td class='r'>" . $m($c['efectivo']) . '</td>'
+                . "<td class='r'>" . $m($c['qr']) . '</td>'
+                . "<td class='r b'>" . $m($c['total']) . '</td>'
+                . '</tr>';
+        }
+        if ($cuerpo === '') {
+            $cuerpo = "<tr><td colspan='5' class='c' style='padding:14px'>Sin cobros este día</td></tr>";
+        }
+
+        $faltantes = $filas->where('verificado', false)->sortBy('factura_id')->values();
+        $filasFaltantes = '';
+        foreach ($faltantes as $f) {
+            $filasFaltantes .= '<tr>'
+                . "<td class='c rojo b'>" . $f['factura_id'] . '</td>'
+                . "<td class='c'>" . e($f['cliente']) . '</td>'
+                . "<td class='c'>" . e($f['forma_pago']) . '</td>'
+                . "<td class='rojo'>" . e($f['placa'] === 'SIN' ? 'SIN CAMIÓN' : $f['placa']) . '</td>'
+                . '</tr>';
+        }
+        if ($filasFaltantes === '') {
+            $filasFaltantes = "<tr><td colspan='4' class='c verde b' style='padding:8px'>Todas las boletas están verificadas</td></tr>";
+        }
+
+        $totalEfectivo = $camiones->sum('efectivo');
+        $totalQr = $camiones->sum('qr');
+
+        // Los cobros de creditos del dia (Cobrar > Creditos y deudas, y los de
+        // vendedores ya confirmados): no son de ninguna planilla, pero es plata
+        // que tambien se entrega, asi que van todos en el reporte.
+        $abonos = DB::table('creditos_abonos as a')
+            ->leftJoin('tbclientes as c', 'c.Cod_Aut', '=', 'a.cliente_id')
+            ->leftJoin('personal as p', 'p.CodAut', '=', 'a.user_id')
+            ->whereNull('a.anulado_at')
+            ->whereDate('a.created_at', $fecha)
+            ->orderBy('a.created_at')->orderBy('a.id')
+            ->get([
+                'a.origen', 'a.deuda_id', 'a.referencia', 'a.forma_pago', 'a.monto', 'a.monto_efectivo', 'a.monto_qr',
+                DB::raw("TRIM(COALESCE(c.Nombres, '')) as cliente"),
+                DB::raw("TRIM(CONCAT(TRIM(COALESCE(p.Nombre1, '')), ' ', TRIM(COALESCE(p.App1, '')))) as cobrador"),
+            ]);
+        $filasCredito = '';
+        foreach ($abonos as $a) {
+            // Sin reparto guardado (abonos viejos), el monto va al lado de su forma de pago.
+            $efectivo = $a->monto_efectivo !== null ? (float) $a->monto_efectivo : ($a->forma_pago === 'QR' ? 0 : (float) $a->monto);
+            $qr = $a->monto_qr !== null ? (float) $a->monto_qr : ($a->forma_pago === 'QR' ? (float) $a->monto : 0);
+            $a->efectivo = $efectivo;
+            $a->qr = $qr;
+            $filasCredito .= '<tr>'
+                . "<td class='c'>" . ($a->origen === 'factura' ? 'Nota ' . $a->deuda_id : e($a->referencia ?: 'Deuda ' . $a->deuda_id)) . '</td>'
+                . '<td>' . e($a->cliente) . '</td>'
+                . '<td>' . e(mb_strtoupper($a->cobrador)) . '</td>'
+                . "<td class='r'>" . ($efectivo > 0 ? $m($efectivo) : '') . '</td>'
+                . "<td class='r'>" . ($qr > 0 ? $m($qr) : '') . '</td>'
+                . "<td class='r b'>" . $m($a->monto) . '</td>'
+                . '</tr>';
+        }
+        if ($filasCredito === '') {
+            $filasCredito = "<tr><td colspan='6' class='c' style='padding:8px'>Sin cobros de créditos este día</td></tr>";
+        }
+        $creditoEfectivo = $abonos->sum('efectivo');
+        $creditoQr = $abonos->sum('qr');
+
+        $html = "<style>
+            body { font-family: DejaVu Sans, sans-serif; font-size: 10px; color: #111 }
+            .titulo { text-align: center; font-size: 15px; font-weight: bold; margin: 0 0 8px }
+            table { width: 100%; border-collapse: collapse }
+            td, th { border: 1px solid #333; padding: 5px 6px }
+            .cierre th { background: #e53935; color: #fff; font-size: 10.5px }
+            .amarillo td { background: #fff200 }
+            .total td { background: #fde0e0; color: #c62828; font-weight: bold; font-size: 11.5px }
+            .entregar { width: 75%; margin: 16px auto 0 }
+            .entregar td { background: #e53935; color: #fff; font-weight: bold; font-size: 12px; padding: 7px 8px }
+            .entregar .et { text-align: center }
+            .faltan { width: 82%; margin: 0 auto }
+            .faltan th { background: #1565c0; color: #fff; font-size: 9px }
+            .sub { text-align: center; color: #c62828; font-weight: bold; font-size: 15px; margin: 22px 0 8px }
+            .c { text-align: center } .r { text-align: right } .b { font-weight: bold }
+            .rojo { color: #c62828 } .verde { color: #2e7d32 }
+            .firma { margin-top: 60px; text-align: center; font-size: 9px; color: #555 }
+            .firma-linea { border-top: 1px solid #333; width: 70mm; margin: 0 auto 3px }
+            .pie { margin-top: 14px; text-align: center; font-size: 7.5px; color: #888 }
+        </style>
+        <div class='titulo'>" . $recojo->fechaLarga($fecha) . "</div>
+        <table class='cierre'>
+            <thead><tr>
+                <th style='width:60px'>PLANILLA</th>
+                <th>ADELANTO CONTADOS ENTREGADO A CONTABILIDAD</th>
+                <th style='width:80px'>EFECTIVO</th>
+                <th style='width:80px'>QR</th>
+                <th style='width:86px'>TOTAL</th>
+            </tr></thead>
+            <tbody>$cuerpo</tbody>
+            <tfoot><tr class='total'>
+                <td colspan='2' class='c'>TOTAL A/C ENTREGADO A CONTABILIDAD</td>
+                <td class='r'>" . $m($totalEfectivo) . "</td>
+                <td class='r'>" . $m($totalQr) . "</td>
+                <td class='r'>" . $m($totalEfectivo + $totalQr) . "</td>
+            </tr></tfoot>
+        </table>
+        <div class='sub'>COBROS DE CRÉDITOS (" . $abonos->count() . ")</div>
+        <table class='cierre'>
+            <thead><tr>
+                <th style='width:70px'>COMANDA</th><th>CLIENTE</th><th style='width:110px'>COBRADOR</th>
+                <th style='width:72px'>EFECTIVO</th><th style='width:72px'>QR</th><th style='width:78px'>TOTAL</th>
+            </tr></thead>
+            <tbody>$filasCredito</tbody>
+            <tfoot><tr class='total'>
+                <td colspan='3' class='c'>TOTAL COBROS DE CRÉDITOS</td>
+                <td class='r'>" . $m($creditoEfectivo) . "</td>
+                <td class='r'>" . $m($creditoQr) . "</td>
+                <td class='r'>" . $m($creditoEfectivo + $creditoQr) . "</td>
+            </tr></tfoot>
+        </table>
+        <table class='entregar'>
+            <tr>
+                <td class='et'>TOTAL DINERO A ENTREGAR</td>
+                <td class='r'>Efectivo " . $m($totalEfectivo + $creditoEfectivo) . "</td>
+                <td class='r'>QR " . $m($totalQr + $creditoQr) . "</td>
+                <td class='r b'>" . $m($totalEfectivo + $totalQr + $creditoEfectivo + $creditoQr) . "</td>
+            </tr>
+        </table>
+        <div class='sub'>BOLETAS FALTANTES (" . $faltantes->count() . ")</div>
+        <table class='faltan'>
+            <thead><tr>
+                <th style='width:70px'>N° DE BOLETA</th><th>NOMBRE DEL CLIENTE</th>
+                <th style='width:60px'>PAGO</th><th style='width:110px'>RESPONSABLE</th>
+            </tr></thead>
+            <tbody>$filasFaltantes</tbody>
+        </table>
+        <div class='firma'><div class='firma-linea'></div>Firma y C.I. de quien entrega</div>
+        <div class='pie'>" . e(config('siat.emisor')['nombre']) . ' &middot; Cierre de cobranzas del '
+            . date('d/m/Y', strtotime($fecha)) . ' (contados por planilla y cobros de créditos del día) &middot; generado el ' . date('d/m/Y H:i') . '</div>';
+
+        $pdf = App::make('dompdf.wrapper');
+        $pdf->getDomPDF()->getOptions()->setIsFontSubsettingEnabled(true);
+        $pdf->setPaper('letter', 'portrait');
+        $pdf->loadHTML($html);
+
+        return $pdf->stream('cierre_' . $fecha . '.pdf', ['Attachment' => false]);
+    }
+
+    /**
+     * Reabre la planilla de un camion ya cerrada para volver a corregir lo
+     * verificado; las demas del dia siguen cerradas. Solo con el permiso
+     * rectificarPlanilla; al imprimirla de nuevo se vuelve a cerrar.
+     */
+    public function reabrir(Request $request)
+    {
+        if (!$request->user()->can('rectificarPlanilla')) {
+            return response()->json(['message' => 'No tiene permiso para rectificar la planilla del día'], 403);
+        }
+        [$fecha, $camion] = $this->filtros($request);
+        if ($camion === '') {
+            return response()->json(['message' => 'Elegí el camión de la planilla a rectificar'], 422);
+        }
+        if (!DB::table('cobranza_cierres')->where('fecha', $fecha)->where('placa', $camion)->delete()) {
+            return response()->json(['message' => 'La planilla de ' . $camion . ' no está cerrada'], 422);
+        }
+
+        $planilla = NumeroCamion::formato(NumeroCamion::de($camion, $fecha));
+
+        return ['message' => 'Planilla ' . ($planilla ? 'N° ' . $planilla . ' ' : '') . 'de ' . $camion
+            . ' reabierta: ya se pueden rectificar sus cobros'];
+    }
+
+    /** Planillas cerradas de un dia de entrega, por placa: { placa => cierre }. */
+    private function cierresDelDia($fecha)
+    {
+        if (!$fecha) {
+            return collect();
+        }
+
+        return DB::table('cobranza_cierres')->where('fecha', substr((string) $fecha, 0, 10))
+            ->get(['placa', 'cerrado_por', 'created_at'])
+            ->keyBy('placa');
     }
 
     /**

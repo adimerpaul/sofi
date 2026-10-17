@@ -146,7 +146,11 @@
             <q-icon name="local_shipping" color="grey-8" size="20px"/>
           </q-item-section>
           <q-item-section>
-            <div class="text-weight-bolder text-grey-9">{{ uno.placa }}</div>
+            <div class="text-weight-bolder text-grey-9">
+              <!-- Planilla: numero de salida del camion ese dia, el impreso en los comprobantes. -->
+              <q-badge v-if="uno.planilla" color="grey-9" class="q-mr-xs" :label="'Planilla N° ' + uno.planilla"/>
+              {{ uno.placa }}
+            </div>
             <div class="text-caption text-grey-7">
               {{ uno.caminero }} ·
               {{ uno.notas }} nota{{ uno.notas === 1 ? '' : 's' }}
@@ -255,7 +259,10 @@ export default {
   computed: {
     opcionesCamion () {
       return [{ label: 'Todos los camiones', value: null }].concat(
-        this.listaCamiones.map(c => ({ label: c.placa + ' · ' + c.caminero, value: c.placa }))
+        this.listaCamiones.map(c => ({
+          label: (c.planilla ? 'N° ' + c.planilla + ' · ' : '') + c.placa + ' · ' + c.caminero,
+          value: c.placa
+        }))
       )
     },
     // Buscando, solo los camiones que tienen alguna nota que coincide (entre

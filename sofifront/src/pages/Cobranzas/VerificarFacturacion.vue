@@ -53,7 +53,18 @@
       <q-btn outline dense no-caps size="sm" color="green-8" icon="grid_on" label="Excel día" :loading="exportando === 'excel'" @click="exportar('excel')"/>
       <q-btn outline dense no-caps size="sm" color="red-7" icon="picture_as_pdf" label="PDF" :loading="exportando === 'pdf'" @click="exportar('pdf')"/>
       <q-btn flat dense no-caps size="sm" color="primary" icon="person_search" label="Por cliente" to="/cobranzas/verificacion/clientes"/>
+      <!-- Planilla cerrada del camion elegido: reabrirla para corregir, solo con el permiso. -->
+      <q-btn v-if="cierre && puedeRectificar" unelevated dense no-caps size="sm" color="deep-orange-8" icon="lock_open"
+             label="Rectificar" :loading="reabriendo" @click="reabrir">
+        <q-tooltip>Reabrir solo la planilla de {{ camion }} para volver a corregir sus cobros verificados</q-tooltip>
+      </q-btn>
     </div>
+    <q-banner v-if="cierre" dense class="bg-orange-1 text-orange-10 q-mb-xs rounded-borders">
+      <template #avatar><q-icon name="lock" color="orange-9"/></template>
+      Planilla <b>{{ planillaElegida ? 'N° ' + planillaElegida + ' · ' : '' }}{{ camion }}</b> cerrada por
+      <b>{{ cierre.cerrado_por }}</b> el {{ String(cierre.created_at).slice(0, 16) }}:
+      lo verificado ya no se puede rectificar. Lo pendiente se puede seguir verificando.
+    </q-banner>
 
     <div class="row q-col-gutter-xs items-center q-mb-xs">
       <div class="col-6 col-md-2">
@@ -90,27 +101,39 @@
     </div>
 
     <!-- Avance de cada camion: verificados / entregados. Clic para filtrar. -->
-    <div v-if="camiones.length" class="row q-col-gutter-xs q-mb-xs">
-      <div class="col-12 col-sm-6 col-md-3 col-lg-2">
-        <button type="button" class="camion-fila row items-center no-wrap full-width" :class="!camion ? 'camion-activo' : ''"
-                :aria-pressed="!camion" :disabled="cargando" @click="alternarCamion(null)">
-          <span class="text-weight-bold camion-placa">TODOS</span>
-          <q-linear-progress class="col q-mx-xs" rounded size="8px" :value="resumenEntregas.entregados ? resumenEntregas.entregados_verificados / resumenEntregas.entregados : 0"
-                             color="positive" track-color="grey-4"/>
-          <span class="camion-conteo">{{ resumenEntregas.entregados_verificados }}/{{ resumenEntregas.entregados }} · {{ porcentaje(resumenEntregas) }}%</span>
-        </button>
-      </div>
-      <div v-for="c in camiones" :key="c.placa" class="col-12 col-sm-6 col-md-3 col-lg-2">
-        <button type="button" class="camion-fila row items-center no-wrap full-width" :class="camion === c.placa ? 'camion-activo' : ''"
-                :aria-pressed="camion === c.placa" :disabled="cargando" @click="alternarCamion(c.placa)">
-          <span class="chip-placa camion-placa ellipsis" :style="estiloColor(c.color)">{{ nombrePlaca(c.placa) }}</span>
-          <q-linear-progress class="col q-mx-xs" rounded size="8px" :value="c.entregados ? c.entregados_verificados / c.entregados : 0"
-                             :color="c.entregados && c.entregados_verificados === c.entregados ? 'positive' : 'orange-7'" track-color="grey-4"/>
-          <span class="camion-conteo">{{ c.entregados_verificados }}/{{ c.entregados }} · {{ porcentaje(c) }}%</span>
-          <q-tooltip>Verificados / entregados (incluye entregas parciales) · {{ c.verificados }}/{{ c.total }} en total</q-tooltip>
-        </button>
-      </div>
-    </div>
+    <!-- Una linea a lo ancho por camion, como la carga de Pedido factura. -->
+    <q-card v-if="camiones.length" flat bordered class="q-mb-xs rounded-borders">
+      <button type="button" class="camion-fila camion-titulo row items-center no-wrap full-width bg-grey-3"
+              :class="!camion ? 'camion-activo' : ''"
+              :aria-pressed="!camion" :disabled="cargando" @click="alternarCamion(null)">
+        <span class="text-weight-bold text-grey-8">VERIFICACIÓN POR CAMIÓN · TODOS</span>
+        <q-space/>
+        <span class="text-weight-bolder" :class="resumenEntregas.entregados && resumenEntregas.entregados_verificados === resumenEntregas.entregados ? 'text-green-9' : 'text-orange-9'">
+          {{ resumenEntregas.entregados_verificados }}/{{ resumenEntregas.entregados }} · {{ porcentaje(resumenEntregas) }}%
+        </span>
+      </button>
+      <button v-for="c in camiones" :key="c.placa" type="button"
+              class="camion-fila row items-center no-wrap full-width" :class="camion === c.placa ? 'camion-activo' : ''"
+              :aria-pressed="camion === c.placa" :disabled="cargando" @click="alternarCamion(c.placa)">
+        <!-- Planilla: numero de salida del camion ese dia, el impreso en los comprobantes. -->
+        <span class="camion-nro">
+          <template v-if="c.planilla">N° {{ c.planilla }}</template>
+        </span>
+        <span class="chip-placa camion-placa ellipsis" :style="estiloColor(c.color)">{{ nombrePlaca(c.placa) }}</span>
+        <q-linear-progress class="col q-mx-xs" rounded size="13px" :value="c.entregados ? c.entregados_verificados / c.entregados : 0"
+                           :color="c.entregados && c.entregados_verificados === c.entregados ? 'positive' : 'orange-7'" track-color="grey-4">
+          <div class="absolute-full flex flex-center">
+            <span class="camion-porcentaje" :class="c.entregados && c.entregados_verificados / c.entregados > 0.55 ? 'text-white' : 'text-grey-9'">
+              {{ porcentaje(c) }}%
+            </span>
+          </div>
+        </q-linear-progress>
+        <span class="camion-conteo">{{ c.entregados_verificados }}/{{ c.entregados }}</span>
+        <!-- Planilla ya cerrada (cierre impreso). -->
+        <q-icon :name="c.cierre ? 'lock' : 'lock_open'" :color="c.cierre ? 'orange-9' : 'grey-4'" size="14px" class="q-ml-xs"/>
+        <q-tooltip>Verificados / entregados (incluye entregas parciales) · {{ c.verificados }}/{{ c.total }} en total</q-tooltip>
+      </button>
+    </q-card>
 
     <!-- Los montos: lo facturado, lo que trajeron los camiones y lo que cobranzas ya dio por recibido. -->
     <div class="row q-col-gutter-xs q-mb-xs">
@@ -197,11 +220,11 @@
               <q-input
                 v-model.number="montos[props.row.factura_id][lado.key]" type="number" step="0.01" min="0" dense outlined
                 hide-bottom-space input-class="text-right" class="monto col"
-                :bg-color="props.row[lado.key + '_ok'] ? 'green-1' : 'white'" @change="corregirMonto(props.row, lado.key)"
+                :bg-color="props.row[lado.key + '_ok'] ? 'green-1' : 'white'" :readonly="bloqueado(props.row, lado.key)" @change="corregirMonto(props.row, lado.key)"
               />
               <q-checkbox
                 :model-value="props.row[lado.key + '_ok']" dense size="sm" color="positive" class="q-ml-xs"
-                :disable="guardando === props.row.factura_id" @update:model-value="v => marcar(props.row, lado.key, v)"
+                :disable="guardando === props.row.factura_id || bloqueado(props.row, lado.key)" @update:model-value="v => marcar(props.row, lado.key, v)"
               >
                 <q-tooltip>
                   {{ props.row[lado.key + '_ok'] ? lado.label + ' verificado · ' + props.row[lado.key + '_por'] + ' · ' + props.row[lado.key + '_en'] : 'Verificar ' + lado.label }}
@@ -258,13 +281,13 @@
                     <q-input
                       v-model.number="montos[props.row.factura_id][lado.key]" type="number" step="0.01" min="0" dense outlined
                       hide-bottom-space input-class="text-right" class="monto col"
-                      :bg-color="props.row[lado.key + '_ok'] ? 'green-1' : 'white'" @change="corregirMonto(props.row, lado.key)"
+                      :bg-color="props.row[lado.key + '_ok'] ? 'green-1' : 'white'" :readonly="bloqueado(props.row, lado.key)" @change="corregirMonto(props.row, lado.key)"
                     >
                       <template #prepend><q-icon :name="lado.icon" :color="lado.color" size="16px"/></template>
                     </q-input>
                     <q-checkbox
                       :model-value="props.row[lado.key + '_ok']" color="positive"
-                      :disable="guardando === props.row.factura_id" @update:model-value="v => marcar(props.row, lado.key, v)"
+                      :disable="guardando === props.row.factura_id || bloqueado(props.row, lado.key)" @update:model-value="v => marcar(props.row, lado.key, v)"
                     />
                   </div>
                 </div>
@@ -287,6 +310,28 @@
         </q-tr>
       </template>
     </q-table>
+
+    <!-- Cierre por planilla para contabilidad: se elige un camion, se verifica
+         y al imprimir se cierra su planilla. El reporte del dia lleva todas
+         las planillas cerradas y va creciendo; sin creditos. -->
+    <div class="row items-center justify-end q-gutter-sm q-mt-sm">
+      <template v-if="camion && camion !== 'SIN'">
+        <span v-if="pendientesCierre" class="text-caption text-orange-9">
+          Faltan {{ pendientesCierre }} por verificar de {{ camion }} (sin créditos): saldrán como boletas faltantes
+        </span>
+        <span v-else-if="filas.length" class="text-caption text-positive text-weight-bold">{{ camion }} verificado completo (sin créditos)</span>
+        <q-btn unelevated no-caps :color="pendientesCierre ? 'grey-7' : 'red-8'" icon="print"
+               :label="(cierre ? 'Reimprimir' : 'Cerrar e imprimir') + ' planilla ' + (planillaElegida ? 'N° ' + planillaElegida : camion)"
+               :loading="exportando === 'cierre'" :disable="!filas.length" @click="imprimirCierre"/>
+      </template>
+      <template v-else>
+        <span class="text-caption text-grey-7">Elegí un camión para cerrar e imprimir su planilla</span>
+        <q-btn v-if="hayCierres" outline no-caps color="red-8" icon="print" label="Reimprimir cierre del día"
+               :loading="exportando === 'cierre'" @click="imprimirCierre">
+          <q-tooltip>Las {{ Object.keys(cierres).length }} planillas ya cerradas del día</q-tooltip>
+        </q-btn>
+      </template>
+    </div>
     </fieldset>
     <q-inner-loading :showing="ocupado" class="carga-pagina">
       <q-spinner color="primary" size="48px"/>
@@ -358,6 +403,7 @@ export default {
       ],
       guardando: null,
       exportando: null,
+      reabriendo: false,
       error: '',
       filas: [],
       camiones: [],
@@ -395,6 +441,23 @@ export default {
   },
   computed: {
     ocupado () { return this.cargando || this.guardando !== null },
+    // Reabrir una planilla cerrada para corregir lo verificado requiere el permiso.
+    puedeRectificar () { return this.$store.getters['login/can']('rectificarPlanilla') },
+    // Planillas cerradas del dia: { placa: { cerrado_por, created_at } }.
+    cierres () {
+      const cierres = {}
+      this.camiones.forEach(c => { if (c.cierre) cierres[c.placa] = c.cierre })
+      return cierres
+    },
+    // Cierre de la planilla del camion elegido (null si sigue abierta o no hay camion).
+    cierre () { return (this.camion && this.cierres[this.camion]) || null },
+    planillaElegida () {
+      const elegido = this.camiones.find(c => c.placa === this.camion)
+      return elegido ? elegido.planilla : ''
+    },
+    hayCierres () { return Object.keys(this.cierres).length > 0 },
+    // Lo que falta verificar del camion elegido sin creditos: va como boletas faltantes.
+    pendientesCierre () { return this.filas.filter(f => !f.verificado && !this.esCredito(f)).length },
     resumenEntregas () {
       return this.camiones.reduce((total, c) => ({
         entregados: total.entregados + c.entregados,
@@ -403,7 +466,7 @@ export default {
     },
     opcionesCamion () {
       return this.camiones.map(c => ({
-        label: this.nombrePlaca(c.placa) + ' (' + c.verificados + '/' + c.total + ')',
+        label: (c.planilla ? 'N° ' + c.planilla + ' · ' : '') + this.nombrePlaca(c.placa) + ' (' + c.verificados + '/' + c.total + ')',
         value: c.placa
       }))
     },
@@ -589,6 +652,47 @@ export default {
         this.guardando = null
       }
     },
+    // Con la planilla del camion cerrada, lo ya verificado queda fijo hasta que se rectifique.
+    bloqueado (fila, lado) { return !!this.cierres[fila.placa] && !!fila[lado + '_ok'] },
+    // Cierra la planilla del camion elegido y abre el reporte del dia con
+    // todas las planillas cerradas, que va creciendo camion por camion.
+    async imprimirCierre () {
+      this.exportando = 'cierre'
+      try {
+        const res = await this.$api.get('cobranzas/verificacion/cierre', { params: this.params(), responseType: 'blob' })
+        const url = window.URL.createObjectURL(res.data)
+        window.open(url, '_blank')
+        setTimeout(() => window.URL.revokeObjectURL(url), 60000)
+        await this.cargar()
+      } catch (e) {
+        let mensaje = 'No se pudo imprimir el cierre'
+        try { mensaje = JSON.parse(await e.response.data.text()).message || mensaje } catch (x) { /* no era JSON */ }
+        this.$q.notify({ type: 'negative', position: 'top', message: mensaje })
+      } finally {
+        this.exportando = null
+      }
+    },
+    reabrir () {
+      this.$q.dialog({
+        title: 'Rectificar planilla',
+        message: 'Se reabre la planilla ' + (this.planillaElegida ? 'N° ' + this.planillaElegida + ' ' : '') + 'de ' +
+          this.camion + ' del ' + this.fecha.split('-').reverse().join('/') +
+          ' para corregir sus cobros verificados. Las demás planillas siguen cerradas. Al terminar, volvé a imprimir el cierre.',
+        cancel: true,
+        persistent: true
+      }).onOk(async () => {
+        this.reabriendo = true
+        try {
+          const { data } = await this.$api.post('cobranzas/verificacion/reabrir', this.params())
+          this.$q.notify({ type: 'positive', position: 'top', message: data.message })
+          await this.cargar()
+        } catch (e) {
+          this.$q.notify({ type: 'negative', position: 'top', message: this.mensaje(e) })
+        } finally {
+          this.reabriendo = false
+        }
+      })
+    },
     // Si ese lado ya estaba tildado y se corrige el monto, se guarda de nuevo.
     corregirMonto (fila, lado) {
       if (fila[lado + '_ok']) this.marcar(fila, lado, true)
@@ -711,18 +815,22 @@ export default {
 .contenido { border: 0; margin: 0; padding: 0; min-width: 0; }
 .carga-pagina { position: fixed; z-index: 2000; }
 .camion-fila {
-  border: 1px solid #e0e0e0;
-  border-radius: 4px;
+  height: 22px;
+  border: 0;
+  border-top: 1px solid #e0e0e0;
   background: #fff;
-  padding: 2px 6px;
+  padding: 0 4px;
   cursor: pointer;
   font: inherit;
   text-align: left;
 }
+.camion-titulo { height: 20px; font-size: 11px; border-top: 0; }
 .camion-fila:hover { background: #e3f2fd; }
-.camion-activo { background: #bbdefb; border-color: #1976d2; }
-.camion-placa { width: 78px; font-size: 11px; }
-.camion-conteo { white-space: nowrap; text-align: right; font-size: 11px; font-weight: 700; }
+.camion-activo, .camion-activo.bg-grey-3 { background: #bbdefb !important; }
+.camion-nro { width: 56px; font-size: 11px; font-weight: 700; color: #424242; white-space: nowrap; }
+.camion-placa { width: 88px; height: 17px; line-height: 17px; font-size: 11px; }
+.camion-porcentaje { font-size: 10px; font-weight: 700; line-height: 1; }
+.camion-conteo { width: 56px; white-space: nowrap; text-align: right; font-size: 11px; font-weight: 700; }
 .tarjeta { padding: 3px 8px; border-radius: 4px; line-height: 1.2; }
 .tarjeta-rotulo { font-size: 9px; font-weight: 700; letter-spacing: 0.4px; display: block; }
 .tarjeta-valor { font-size: 14px; font-weight: 800; }

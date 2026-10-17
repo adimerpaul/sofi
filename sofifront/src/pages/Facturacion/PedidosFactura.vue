@@ -78,6 +78,10 @@
         @click="alternarCamion(opcion.value)"
       >
         <div class="camion-placa ellipsis" :style="estiloColor(opcion.color)">{{ opcion.placa }}</div>
+        <!-- Numero de salida del camion ese dia: el mismo que se imprime en el comprobante. -->
+        <div class="camion-nro">
+          <template v-if="opcion.nro">N° {{ opcion.nro }}</template>
+        </div>
         <q-linear-progress
           class="col q-mx-xs" rounded size="13px" :value="opcion.progreso"
           :color="opcion.completo ? 'positive' : 'orange-7'" track-color="grey-4"
@@ -161,7 +165,8 @@
                 {{ formaPago(pedido).texto }}
               </q-chip>
               <q-chip v-if="pedido.placa" dense square size="sm" icon="local_shipping" :style="estiloCamion(pedido)">
-                {{ pedido.placa }}
+                {{ pedido.placa }}<template v-if="pedido.nro_camion"> · N° {{ pedido.nro_camion }}</template>
+                <q-tooltip v-if="pedido.nro_camion">Número de salida del camión en el día de entrega</q-tooltip>
               </q-chip>
               <q-chip v-else dense square size="sm" outline color="grey-7" icon="local_shipping">
                 Sin camion
@@ -376,9 +381,10 @@ export default {
         const clave = placa || 'SIN'
         let fila = filas.get(clave)
         if (!fila) {
-          fila = { value: clave, placa: placa || 'Sin camion', color: '', total: 0, facturados: 0 }
+          fila = { value: clave, placa: placa || 'Sin camion', color: '', nro: '', total: 0, facturados: 0 }
           filas.set(clave, fila)
         }
+        if (!fila.nro && pedido.nro_camion) fila.nro = pedido.nro_camion
         if (!fila.color && pedido.placa_color) fila.color = pedido.placa_color
         fila.total += 1
         if (pedido.factura_id) fila.facturados += 1
@@ -641,6 +647,14 @@ export default {
   border-radius: 3px;
   font-size: 11px;
   font-weight: 600;
+}
+.camion-nro {
+  width: 52px;
+  margin-left: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #424242;
+  white-space: nowrap;
 }
 .camion-porcentaje {
   font-size: 10px;
