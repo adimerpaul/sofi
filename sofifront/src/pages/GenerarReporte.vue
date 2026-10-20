@@ -240,6 +240,8 @@ export default {
               {label: "producto", value: "producto"},
               {label: "cantidad", value: "cantidad"},
               {label: "precio", value: "precio"},
+              // Peso aproximado que pidio el cliente en /visita (switch "Rango").
+              {label: "rango kg", value: row => row.rango_kg == null ? '' : parseFloat(row.rango_kg)},
               {label: "pago", value: row => row.pago == 'CONTADO' ? 'si' : 'no'},
               {label: "fact", value: "fact"},
               {label: "horario", value: "horario"},
@@ -412,6 +414,11 @@ export default {
             {label: "cliente", value: row => row.bonificacionId == null? row.Nombres : row.bonificacionId == 2728 ? this.cliente2728 : this.cliente3070},
 
             {label: "Zona", value: row => row.zona ?? ''},
+            // Pedido nuevo (/visita): una fila por producto con su rango (kg).
+            {label: "producto", value: row => row.producto_nombre ?? ''},
+            {label: "cantidad", value: row => row.Cant ?? ''},
+            {label: "precio", value: row => row.cod_prod ? row.precio : ''},
+            {label: "rango kg", value: row => row.rango_kg == null ? '' : parseFloat(row.rango_kg)},
             {label: "cbrasa5", value: "cbrasa5"},
             {label: "ubrasa5", value: "ubrasa5"},
             {label: "cbrasa6", value: "cbrasa6"},

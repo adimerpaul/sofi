@@ -269,9 +269,21 @@
             </div>
           </div>
 
+          <!-- Filtro del detalle: aplica a deudas y ventas a la vez. -->
+          <div class="row q-col-gutter-xs q-mt-sm items-center">
+            <div class="col-12 col-sm-6">
+              <q-input v-model="filtroDetalle.texto" dense outlined clearable debounce="200"
+                       placeholder="Buscar concepto, factura, pedido, producto..">
+                <template #prepend><q-icon name="search"/></template>
+              </q-input>
+            </div>
+            <div class="col-6 col-sm-3"><q-input v-model="filtroDetalle.desde" type="date" dense outlined clearable stack-label label="Desde"/></div>
+            <div class="col-6 col-sm-3"><q-input v-model="filtroDetalle.hasta" type="date" dense outlined clearable stack-label label="Hasta"/></div>
+          </div>
+
           <q-tabs v-model="pestana" dense no-caps align="left" active-color="primary" indicator-color="primary" class="q-mt-sm text-grey-8">
-            <q-tab name="deudas" icon="request_quote" :label="'Deudas (' + detalle.totales.deudas + ')'"/>
-            <q-tab name="ventas" icon="receipt_long" :label="'Ventas a crédito (' + detalle.totales.ventas + ')'"/>
+            <q-tab name="deudas" icon="request_quote" :label="'Deudas (' + (hayFiltroDetalle ? deudasVisibles.length + ' de ' : '') + detalle.totales.deudas + ')'"/>
+            <q-tab name="ventas" icon="receipt_long" :label="'Ventas a crédito (' + (hayFiltroDetalle ? ventasVisibles.length + ' de ' : '') + detalle.totales.ventas + ')'"/>
           </q-tabs>
           <q-separator/>
 
@@ -282,7 +294,7 @@
                 <q-toggle v-model="soloPendientes" dense label="Solo pendientes"/>
               </div>
               <div v-if="!deudasVisibles.length" class="text-center text-grey-6 q-pa-md">
-                {{ soloPendientes ? 'No debe nada' : 'Sin deudas registradas' }}
+                {{ hayFiltroDetalle ? 'Ninguna deuda con ese filtro' : (soloPendientes ? 'No debe nada' : 'Sin deudas registradas') }}
               </div>
               <div v-for="deuda in deudasVisibles" :key="deuda.clave" class="deuda-compacta q-mb-xs">
                 <div class="row items-center q-col-gutter-xs cabecera-deuda">
@@ -290,7 +302,7 @@
                     <strong>{{ deuda.concepto }}</strong>
                     <span class="text-grey-7 q-ml-xs">{{ String(deuda.fecha).slice(0, 10) }}</span>
                     <q-badge class="q-ml-xs" :color="deuda.saldo > 0 ? 'orange-8' : (deuda.estado.includes('REVISAR') ? 'red-7' : 'green-7')">{{ deuda.estado }}</q-badge>
-                    <div class="resumen-deuda">Total: Bs {{ money(deuda.monto) }} ? Abonado: Bs {{ money(deuda.pagado) }} ? <strong class="text-red-9">Saldo: Bs {{ money(deuda.saldo) }}</strong></div>
+                    <div class="resumen-deuda">Total: Bs {{ money(deuda.monto) }} · Abonado: Bs {{ money(deuda.pagado) }} · <strong class="text-red-9">Saldo: Bs {{ money(deuda.saldo) }}</strong></div>
                   </div>
                   <div class="col-auto row items-center q-gutter-xs acciones-deuda">
                     <q-btn dense flat no-caps size="sm" color="positive" icon="payments" label="Abonar" :disable="deuda.saldo <= 0" @click="abrirAbono(deuda)"/>
@@ -329,9 +341,9 @@
             </q-tab-panel>
 
             <q-tab-panel name="ventas" class="q-pa-none q-pt-sm">
-              <div v-if="!detalle.ventas.length" class="text-center text-grey-6 q-pa-md">Sin ventas a crédito</div>
+              <div v-if="!ventasVisibles.length" class="text-center text-grey-6 q-pa-md">{{ hayFiltroDetalle ? 'Ninguna venta con ese filtro' : 'Sin ventas a crédito' }}</div>
               <q-list v-else bordered separator class="rounded-borders">
-                <q-expansion-item v-for="venta in detalle.ventas" :key="venta.id || 'p' + venta.pedido" dense expand-separator>
+                <q-expansion-item v-for="venta in ventasVisibles" :key="venta.id || 'p' + venta.pedido" dense expand-separator>
                   <template #header>
                     <q-item-section>
                       <q-item-label class="text-weight-medium">
@@ -428,6 +440,17 @@
         <q-form @submit="guardarAbono">
           <q-card-section><div class="text-h6">Cobrar abono</div>{{ seleccion.cliente }} · {{ seleccion.concepto }}<div>Saldo: <b>Bs {{ money(seleccion.saldo) }}</b></div></q-card-section>
           <q-card-section class="q-gutter-md">
+            <!-- Cuando se cobro: por defecto ahora; se cambia si se anota despues. -->
+            <div class="row q-col-gutter-sm">
+              <div class="col-7">
+                <q-input v-model="abono.fecha" outlined type="date" stack-label label="Fecha del cobro"
+                         :max="hoy()" :rules="[v => !!v || 'Indicá la fecha']"/>
+              </div>
+              <div class="col-5">
+                <q-input v-model="abono.hora" outlined type="time" stack-label label="Hora"
+                         :rules="[v => !!v || 'Indicá la hora']"/>
+              </div>
+            </div>
             <q-select v-model="abono.forma_pago" outlined label="Forma de pago" :options="['EFECTIVO', 'QR', 'MIXTO']"/>
             <!-- En el mixto se anota cuanto entro por cada lado y el abono es la suma. -->
             <div v-if="abono.forma_pago === 'MIXTO'" class="row q-col-gutter-sm">
@@ -538,6 +561,7 @@ export default {
       detalle: detalleVacio(),
       pestana: 'deudas',
       soloPendientes: true,
+      filtroDetalle: { texto: '', desde: '', hasta: '' },
       guardando: false,
       dialogDeuda: false,
       formDeuda: { cliente: null, fecha: '', concepto: '', monto: '', solicitud_id: '' },
@@ -608,12 +632,34 @@ export default {
         return c.nombre.toLowerCase().includes(texto) || c.nit.includes(texto) || c.telefono.includes(texto)
       })
     },
+    hayFiltroDetalle () {
+      const f = this.filtroDetalle
+      return !!((f.texto || '').trim() || f.desde || f.hasta)
+    },
     deudasVisibles () {
-      return this.detalle.deudas.filter(d => !this.soloPendientes || d.saldo > 0 || d.estado.includes('REVISAR'))
+      return this.detalle.deudas
+        .filter(d => !this.soloPendientes || d.saldo > 0 || d.estado.includes('REVISAR'))
+        .filter(d => this.pasaFiltroDetalle(d.fecha, [d.concepto, d.estado]))
+    },
+    ventasVisibles () {
+      return this.detalle.ventas.filter(v => this.pasaFiltroDetalle(v.fecha, [
+        v.id, v.pedido, v.cliente, v.estado, v.comprobante,
+        ...v.productos.map(p => p.nombre + ' ' + p.cod_prod)
+      ]))
     }
   },
   mounted () { this.cargar() },
   methods: {
+    hoy () { return date.formatDate(new Date(), 'YYYY-MM-DD') },
+    /** Fecha dentro del rango y el texto en alguno de los campos dados. */
+    pasaFiltroDetalle (fecha, campos) {
+      const { desde, hasta } = this.filtroDetalle
+      const dia = String(fecha || '').slice(0, 10)
+      if (desde && dia < desde) return false
+      if (hasta && dia > hasta) return false
+      const texto = (this.filtroDetalle.texto || '').trim().toLowerCase()
+      return !texto || campos.some(c => c != null && String(c).toLowerCase().includes(texto))
+    },
     async generarReporte (formato, preparar) {
       if (this.reportando) return
       this.reportando = true
@@ -779,6 +825,7 @@ export default {
       this.detalle.cliente = { nombre: fila.nombre, nit: fila.nit }
       this.pestana = 'deudas'
       this.soloPendientes = true
+      this.filtroDetalle = { texto: '', desde: '', hasta: '' }
       this.dialogCliente = true
       this.cargarDetalle()
     },
@@ -832,7 +879,12 @@ export default {
     },
     abrirAbono (fila) {
       this.seleccion = fila
-      this.abono = { monto: '', monto_efectivo: '', monto_qr: '', forma_pago: 'EFECTIVO', referencia: '', solicitud_id: uid() }
+      const ahora = new Date()
+      this.abono = {
+        fecha: date.formatDate(ahora, 'YYYY-MM-DD'),
+        hora: date.formatDate(ahora, 'HH:mm'),
+        monto: '', monto_efectivo: '', monto_qr: '', forma_pago: 'EFECTIVO', referencia: '', solicitud_id: uid()
+      }
       this.dialogAbono = true
     },
     async guardarAbono () {
@@ -843,8 +895,10 @@ export default {
         return
       }
       // El backend reparte efectivo y QR; en el mixto el abono es la suma.
+      const { hora, ...abono } = this.abono
       const datos = {
-        ...this.abono,
+        ...abono,
+        fecha: abono.fecha + ' ' + hora,
         monto: mixto ? this.sumaMixto.toFixed(2) : this.abono.monto,
         monto_efectivo: mixto ? this.abono.monto_efectivo : null,
         monto_qr: mixto ? this.abono.monto_qr : null

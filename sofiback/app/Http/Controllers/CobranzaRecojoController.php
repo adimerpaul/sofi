@@ -175,4 +175,52 @@ class CobranzaRecojoController extends Controller
             $nombre
         );
     }
+
+    /**
+     * El resumen general del recojo: cuanto trajo cada camion cada dia, sin
+     * el detalle de las notas. Sin hasta es solo el dia de desde.
+     */
+    public function resumenPdf(Request $request, RecojoDelDia $recojo)
+    {
+        $datos = $request->validate([
+            'desde' => 'nullable|date',
+            'hasta' => 'nullable|date',
+            'todo' => 'nullable|boolean',
+        ]);
+
+        $desde = date('Y-m-d', strtotime($datos['desde'] ?? date('Y-m-d')));
+        $hasta = date('Y-m-d', strtotime($datos['hasta'] ?? $desde));
+        if ($hasta < $desde) {
+            [$desde, $hasta] = [$hasta, $desde];
+        }
+        // Una consulta por dia: con un mes ya es una hoja larga.
+        if ((strtotime($hasta) - strtotime($desde)) / 86400 > 31) {
+            return response()->json(['message' => 'El resumen es de hasta 31 días'], 422);
+        }
+
+        $dias = [];
+        for ($fecha = $desde; $fecha <= $hasta; $fecha = date('Y-m-d', strtotime($fecha . ' +1 day'))) {
+            $filas = $recojo->filas($fecha, null, !$request->boolean('todo'));
+            $camiones = [];
+
+            foreach ($filas->groupBy('placa')->sortKeys() as $placa => $delCamion) {
+                $cobradas = $delCamion->whereIn('estado', RecojoDelDia::ESTADOS_COBRADOS);
+                $camiones[] = [
+                    'placa' => $placa,
+                    'planilla' => NumeroCamion::formato(NumeroCamion::de($placa, $fecha)),
+                    'caminero' => $recojo->caminero($delCamion, $placa),
+                    'notas' => $cobradas->count(),
+                    'efectivo' => round($cobradas->sum('monto_efectivo'), 2),
+                    'qr' => round($cobradas->sum('monto_qr'), 2),
+                ];
+            }
+
+            $dias[$fecha] = $camiones;
+        }
+
+        return $recojo->pdf(
+            $recojo->resumenHtml($desde, $hasta, $dias),
+            'resumen_recojo_' . $desde . ($hasta !== $desde ? '_' . $hasta : '')
+        );
+    }
 }

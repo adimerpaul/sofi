@@ -41,7 +41,7 @@
       <div class="col-auto">
         <q-btn-dropdown
           color="primary" unelevated dense no-caps icon="print" label="Imprimir"
-          padding="6px 10px" :loading="imprimiendo !== null" :disable="!notas"
+          padding="6px 10px" :loading="imprimiendo !== null && imprimiendo !== 'resumen'"
         >
           <q-list dense style="min-width: 250px">
             <!-- Lo que se entrega en caja: la tabla de cada camion, sola. -->
@@ -52,6 +52,15 @@
                 <q-item-label caption>
                   {{ camion ? 'Del camión ' + camion : 'Una por camión' }}: efectivo, QR y crédito
                 </q-item-label>
+              </q-item-section>
+            </q-item>
+
+            <!-- Solo cuanto trajo cada camion, sin las notas: uno o varios dias. -->
+            <q-item clickable v-close-popup @click="abrirResumen">
+              <q-item-section avatar><q-icon name="summarize" color="primary"/></q-item-section>
+              <q-item-section>
+                <b>Resumen por camión</b>
+                <q-item-label caption>Lo recogido por camión y por día</q-item-label>
               </q-item-section>
             </q-item>
 
@@ -214,6 +223,24 @@
         </div>
       </q-expansion-item>
     </div>
+
+    <q-dialog v-model="resumen.abierto">
+      <q-card style="min-width: 300px">
+        <q-card-section class="text-subtitle1 text-weight-bold q-pb-none">Resumen por camión</q-card-section>
+        <q-card-section class="q-gutter-sm">
+          <q-input v-model="resumen.desde" type="date" dense outlined label="Desde"/>
+          <q-input v-model="resumen.hasta" type="date" dense outlined label="Hasta"/>
+          <div class="text-caption text-grey-7">Efectivo y QR recogido por cada camión, día por día (hasta 31 días).</div>
+        </q-card-section>
+        <q-card-actions align="right">
+          <q-btn flat no-caps label="Cancelar" v-close-popup/>
+          <q-btn
+            unelevated no-caps color="primary" icon="print" label="Imprimir"
+            :loading="imprimiendo === 'resumen'" @click="imprimirResumen"
+          />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
   </q-page>
 </template>
 
@@ -246,6 +273,7 @@ export default {
       cargando: false,
       // Placa que se está imprimiendo, o 'todos' para el botón de arriba.
       imprimiendo: null,
+      resumen: { abierto: false, desde: null, hasta: null },
       listaCamiones: [],
       camiones: [],
       notas: 0,
@@ -320,6 +348,31 @@ export default {
           })
         })
         .finally(() => { this.cargando = false })
+    },
+    abrirResumen () {
+      this.resumen.desde = this.fecha
+      this.resumen.hasta = this.fecha
+      this.resumen.abierto = true
+    },
+    imprimirResumen () {
+      const { desde, hasta } = this.resumen
+      this.imprimiendo = 'resumen'
+
+      this.$api.get('cobranzas/recojo/resumen/pdf', {
+        params: { desde, hasta, todo: this.mostrarTodo ? 1 : 0 }, responseType: 'blob'
+      })
+        .then(res => {
+          this.resumen.abierto = false
+          imprimirPdfDirecto(res.data, 'resumen_recojo_' + desde + (hasta !== desde ? '_' + hasta : '') + '.pdf')
+        })
+        .catch(async err => {
+          let mensaje = 'No se pudo generar el resumen'
+          try {
+            mensaje = JSON.parse(await err.response.data.text()).message || mensaje
+          } catch (e) { /* el error no vino en JSON */ }
+          this.$q.notify({ type: 'negative', position: 'top', message: mensaje })
+        })
+        .finally(() => { this.imprimiendo = null })
     },
     /**
      * Baja las hojas del recojo y las manda directo a la impresora.

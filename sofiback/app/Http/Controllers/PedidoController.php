@@ -167,6 +167,8 @@ class PedidoController extends Controller{
                 'CIfunc' => $p['CIfunc'],
                 'idCli' => $p['idCli'],
                 'Cant' => $p['Cant'],
+                // Unidad elegida (U, CAJA o KG) de lo que se vende por caja.
+                'caja' => $p['caja'],
                 'precio' => $p['precio'],
 //                'fecha'=>date('Y-m-d H:i:s'),
                 'fecha' => $request->fecha . ' ' . date('H:i:s'),

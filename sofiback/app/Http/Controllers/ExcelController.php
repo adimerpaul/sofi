@@ -774,7 +774,7 @@ class ExcelController extends Controller
 
     public function reportePollo(Request $request)
     {
-        return DB::SELECT("SELECT * from tbpedidos p, tbclientes c
+        return DB::SELECT("SELECT *, (SELECT u.Producto FROM tbproductos u WHERE u.cod_prod=p.cod_prod LIMIT 1) producto_nombre from tbpedidos p, tbclientes c
         where p.deleted_at IS NULL AND c.Cod_Aut=p.idCli and date(fecha)>='$request->ini' and date(fecha)<='$request->fin'
         and tipo='POLLO' AND CIfunc='$request->codaut' ");
     }
@@ -789,31 +789,33 @@ class ExcelController extends Controller
     public function reportePollo2(Request $request)
     {
         return DB::SELECT("
-          SELECT concat(pe.Nombre1,' ',pe.App1,' ',pe.Apm) preventista,c.Nombres,c.zona,p.fecha,p.Observaciones,'ubrasa5' producto,p.ubrasa5 cantidad,p.bs precio,p.fact,p.pago,p.horario,p.comentario,p.bonificacionId,p.estado FROM tbpedidos p INNER JOIN personal pe ON pe.CodAut=p.CIfunc inner join tbclientes c on p.idCli=c.Cod_Aut where p.deleted_at IS NULL AND date(p.fecha)>='$request->ini' and date(p.fecha)<='$request->fin' and p.tipo='POLLO' and p.ubrasa5 is NOT null union
-          SELECT concat(pe.Nombre1,' ',pe.App1,' ',pe.Apm) preventista,c.Nombres,c.zona,p.fecha,p.Observaciones,'cbrasa5' producto,p.cbrasa5 cantidad,p.bs precio,p.fact,p.pago,p.horario,p.comentario,p.bonificacionId,p.estado FROM tbpedidos p INNER JOIN personal pe ON pe.CodAut=p.CIfunc inner join tbclientes c on p.idCli=c.Cod_Aut where p.deleted_at IS NULL AND date(p.fecha)>='$request->ini' and date(p.fecha)<='$request->fin' and p.tipo='POLLO' and p.cbrasa5 is NOT null union
-          SELECT concat(pe.Nombre1,' ',pe.App1,' ',pe.Apm) preventista,c.Nombres,c.zona,p.fecha,p.Observaciones,'ubrasa6' producto,p.cubrasa6 cantidad,p.bs precio,p.fact,p.pago,p.horario,p.comentario,p.bonificacionId,p.estado FROM tbpedidos p INNER JOIN personal pe ON pe.CodAut=p.CIfunc inner join tbclientes c on p.idCli=c.Cod_Aut where p.deleted_at IS NULL AND date(p.fecha)>='$request->ini' and date(p.fecha)<='$request->fin' and p.tipo='POLLO' and p.cubrasa6 is NOT null union
-          SELECT concat(pe.Nombre1,' ',pe.App1,' ',pe.Apm) preventista,c.Nombres,c.zona,p.fecha,p.Observaciones,'cbrasa6' producto,p.cbrasa6 cantidad,p.bs precio,p.fact,p.pago,p.horario,p.comentario,p.bonificacionId,p.estado FROM tbpedidos p INNER JOIN personal pe ON pe.CodAut=p.CIfunc inner join tbclientes c on p.idCli=c.Cod_Aut where p.deleted_at IS NULL AND date(p.fecha)>='$request->ini' and date(p.fecha)<='$request->fin' and p.tipo='POLLO' and p.cbrasa6 is NOT null union
-          SELECT concat(pe.Nombre1,' ',pe.App1,' ',pe.Apm) preventista,c.Nombres,c.zona,p.fecha,p.Observaciones,'u104' producto,p.u104 cantidad,p.bs precio,p.fact,p.pago,p.horario,p.comentario,p.bonificacionId,p.estado FROM tbpedidos p INNER JOIN personal pe ON pe.CodAut=p.CIfunc inner join tbclientes c on p.idCli=c.Cod_Aut where p.deleted_at IS NULL AND date(p.fecha)>='$request->ini' and date(p.fecha)<='$request->fin' and p.tipo='POLLO' and p.u104 is NOT null union
-          SELECT concat(pe.Nombre1,' ',pe.App1,' ',pe.Apm) preventista,c.Nombres,c.zona,p.fecha,p.Observaciones,'c104' producto,p.c104 cantidad,p.bs precio,p.fact,p.pago,p.horario,p.comentario,p.bonificacionId,p.estado FROM tbpedidos p INNER JOIN personal pe ON pe.CodAut=p.CIfunc inner join tbclientes c on p.idCli=c.Cod_Aut where p.deleted_at IS NULL AND date(p.fecha)>='$request->ini' and date(p.fecha)<='$request->fin' and p.tipo='POLLO' and p.c104 is NOT null union
-          SELECT concat(pe.Nombre1,' ',pe.App1,' ',pe.Apm) preventista,c.Nombres,c.zona,p.fecha,p.Observaciones,'u105' producto,p.u105 cantidad,p.bs precio,p.fact,p.pago,p.horario,p.comentario,p.bonificacionId,p.estado FROM tbpedidos p INNER JOIN personal pe ON pe.CodAut=p.CIfunc inner join tbclientes c on p.idCli=c.Cod_Aut where p.deleted_at IS NULL AND date(p.fecha)>='$request->ini' and date(p.fecha)<='$request->fin' and p.tipo='POLLO' and p.u105 is NOT null union
-          SELECT concat(pe.Nombre1,' ',pe.App1,' ',pe.Apm) preventista,c.Nombres,c.zona,p.fecha,p.Observaciones,'c105' producto,p.c105 cantidad,p.bs precio,p.fact,p.pago,p.horario,p.comentario,p.bonificacionId,p.estado FROM tbpedidos p INNER JOIN personal pe ON pe.CodAut=p.CIfunc inner join tbclientes c on p.idCli=c.Cod_Aut where p.deleted_at IS NULL AND date(p.fecha)>='$request->ini' and date(p.fecha)<='$request->fin' and p.tipo='POLLO' and p.c105 is NOT null union
-          SELECT concat(pe.Nombre1,' ',pe.App1,' ',pe.Apm) preventista,c.Nombres,c.zona,p.fecha,p.Observaciones,'u106' producto,p.u106 cantidad,p.bs precio,p.fact,p.pago,p.horario,p.comentario,p.bonificacionId,p.estado FROM tbpedidos p INNER JOIN personal pe ON pe.CodAut=p.CIfunc inner join tbclientes c on p.idCli=c.Cod_Aut where p.deleted_at IS NULL AND date(p.fecha)>='$request->ini' and date(p.fecha)<='$request->fin' and p.tipo='POLLO' and p.u106 is NOT null union
-          SELECT concat(pe.Nombre1,' ',pe.App1,' ',pe.Apm) preventista,c.Nombres,c.zona,p.fecha,p.Observaciones,'c106' producto,p.c106 cantidad,p.bs precio,p.fact,p.pago,p.horario,p.comentario,p.bonificacionId,p.estado FROM tbpedidos p INNER JOIN personal pe ON pe.CodAut=p.CIfunc inner join tbclientes c on p.idCli=c.Cod_Aut where p.deleted_at IS NULL AND date(p.fecha)>='$request->ini' and date(p.fecha)<='$request->fin' and p.tipo='POLLO' and p.c106 is NOT null union
-          SELECT concat(pe.Nombre1,' ',pe.App1,' ',pe.Apm) preventista,c.Nombres,c.zona,p.fecha,p.Observaciones,'u107' producto,p.u107 cantidad,p.bs precio,p.fact,p.pago,p.horario,p.comentario,p.bonificacionId,p.estado FROM tbpedidos p INNER JOIN personal pe ON pe.CodAut=p.CIfunc inner join tbclientes c on p.idCli=c.Cod_Aut where p.deleted_at IS NULL AND date(p.fecha)>='$request->ini' and date(p.fecha)<='$request->fin' and p.tipo='POLLO' and p.u107 is NOT null union
-          SELECT concat(pe.Nombre1,' ',pe.App1,' ',pe.Apm) preventista,c.Nombres,c.zona,p.fecha,p.Observaciones,'c107' producto,p.c107 cantidad,p.bs precio,p.fact,p.pago,p.horario,p.comentario,p.bonificacionId,p.estado FROM tbpedidos p INNER JOIN personal pe ON pe.CodAut=p.CIfunc inner join tbclientes c on p.idCli=c.Cod_Aut where p.deleted_at IS NULL AND date(p.fecha)>='$request->ini' and date(p.fecha)<='$request->fin' and p.tipo='POLLO' and p.c107 is NOT null union
-          SELECT concat(pe.Nombre1,' ',pe.App1,' ',pe.Apm) preventista,c.Nombres,c.zona,p.fecha,p.Observaciones,'u108' producto,p.u108 cantidad,p.bs precio,p.fact,p.pago,p.horario,p.comentario,p.bonificacionId,p.estado FROM tbpedidos p INNER JOIN personal pe ON pe.CodAut=p.CIfunc inner join tbclientes c on p.idCli=c.Cod_Aut where p.deleted_at IS NULL AND date(p.fecha)>='$request->ini' and date(p.fecha)<='$request->fin' and p.tipo='POLLO' and p.u108 is NOT null union
-          SELECT concat(pe.Nombre1,' ',pe.App1,' ',pe.Apm) preventista,c.Nombres,c.zona,p.fecha,p.Observaciones,'c108' producto,p.c108 cantidad,p.bs precio,p.fact,p.pago,p.horario,p.comentario,p.bonificacionId,p.estado FROM tbpedidos p INNER JOIN personal pe ON pe.CodAut=p.CIfunc inner join tbclientes c on p.idCli=c.Cod_Aut where p.deleted_at IS NULL AND date(p.fecha)>='$request->ini' and date(p.fecha)<='$request->fin' and p.tipo='POLLO' and p.c108 is NOT null union
-          SELECT concat(pe.Nombre1,' ',pe.App1,' ',pe.Apm) preventista,c.Nombres,c.zona,p.fecha,p.Observaciones,'u109' producto,p.u109 cantidad,p.bs precio,p.fact,p.pago,p.horario,p.comentario,p.bonificacionId,p.estado FROM tbpedidos p INNER JOIN personal pe ON pe.CodAut=p.CIfunc inner join tbclientes c on p.idCli=c.Cod_Aut where p.deleted_at IS NULL AND date(p.fecha)>='$request->ini' and date(p.fecha)<='$request->fin' and p.tipo='POLLO' and p.u109 is NOT null union
-          SELECT concat(pe.Nombre1,' ',pe.App1,' ',pe.Apm) preventista,c.Nombres,c.zona,p.fecha,p.Observaciones,'c109' producto,p.c109 cantidad,p.bs precio,p.fact,p.pago,p.horario,p.comentario,p.bonificacionId,p.estado FROM tbpedidos p INNER JOIN personal pe ON pe.CodAut=p.CIfunc inner join tbclientes c on p.idCli=c.Cod_Aut where p.deleted_at IS NULL AND date(p.fecha)>='$request->ini' and date(p.fecha)<='$request->fin' and p.tipo='POLLO' and p.c109 is NOT null union
-          SELECT concat(pe.Nombre1,' ',pe.App1,' ',pe.Apm) preventista,c.Nombres,c.zona,p.fecha,p.Observaciones,'rango' producto,p.rango cantidad,p.bs precio,p.fact,p.pago,p.horario,p.comentario,p.bonificacionId,p.estado FROM tbpedidos p INNER JOIN personal pe ON pe.CodAut=p.CIfunc inner join tbclientes c on p.idCli=c.Cod_Aut where p.deleted_at IS NULL AND date(p.fecha)>='$request->ini' and date(p.fecha)<='$request->fin' and p.tipo='POLLO' and p.rango is NOT null union
-          SELECT concat(pe.Nombre1,' ',pe.App1,' ',pe.Apm) preventista,c.Nombres,c.zona,p.fecha,p.Observaciones,'ala' producto,concat(p.ala,' ',p.unidala) cantidad ,p.bs2 precio,p.fact,p.pago,p.horario,p.comentario,p.bonificacionId,p.estado FROM tbpedidos p INNER JOIN personal pe ON pe.CodAut=p.CIfunc inner join tbclientes c on p.idCli=c.Cod_Aut where p.deleted_at IS NULL AND date(p.fecha)>='$request->ini' and date(p.fecha)<='$request->fin' and p.tipo='POLLO' and p.ala is NOT null union
-          SELECT concat(pe.Nombre1,' ',pe.App1,' ',pe.Apm) preventista,c.Nombres,c.zona,p.fecha,p.Observaciones,'cadera' producto,concat(p.cadera,' ',p.unidcadera) cantidad,p.bs2 precio,p.fact,p.pago,p.horario,p.comentario,p.bonificacionId,p.estado FROM tbpedidos p INNER JOIN personal pe ON pe.CodAut=p.CIfunc inner join tbclientes c on p.idCli=c.Cod_Aut where p.deleted_at IS NULL AND date(p.fecha)>='$request->ini' and date(p.fecha)<='$request->fin' and p.tipo='POLLO' and p.cadera is NOT null union
-          SELECT concat(pe.Nombre1,' ',pe.App1,' ',pe.Apm) preventista,c.Nombres,c.zona,p.fecha,p.Observaciones,'pecho' producto,concat(p.pecho,' ',p.unidpecho) cantidad,p.bs2 precio,p.fact,p.pago,p.horario,p.comentario,p.bonificacionId,p.estado FROM tbpedidos p INNER JOIN personal pe ON pe.CodAut=p.CIfunc inner join tbclientes c on p.idCli=c.Cod_Aut where p.deleted_at IS NULL AND date(p.fecha)>='$request->ini' and date(p.fecha)<='$request->fin' and p.tipo='POLLO' and p.pecho is NOT null union
-          SELECT concat(pe.Nombre1,' ',pe.App1,' ',pe.Apm) preventista,c.Nombres,c.zona,p.fecha,p.Observaciones,'pie' producto,concat(p.pie,' ',p.unidpie) cantidad,p.bs2 precio,p.fact,p.pago,p.horario,p.comentario,p.bonificacionId,p.estado FROM tbpedidos p INNER JOIN personal pe ON pe.CodAut=p.CIfunc inner join tbclientes c on p.idCli=c.Cod_Aut where p.deleted_at IS NULL AND date(p.fecha)>='$request->ini' and date(p.fecha)<='$request->fin' and p.tipo='POLLO' and p.pie is NOT null union
-          SELECT concat(pe.Nombre1,' ',pe.App1,' ',pe.Apm) preventista,c.Nombres,c.zona,p.fecha,p.Observaciones,'filete' producto,concat(p.filete,' ',p.unidfilete) cantidad,p.bs2 precio,p.fact,p.pago,p.horario,p.comentario,p.bonificacionId,p.estado FROM tbpedidos p INNER JOIN personal pe ON pe.CodAut=p.CIfunc inner join tbclientes c on p.idCli=c.Cod_Aut where p.deleted_at IS NULL AND date(p.fecha)>='$request->ini' and date(p.fecha)<='$request->fin' and p.tipo='POLLO' and p.filete is NOT null union
-          SELECT concat(pe.Nombre1,' ',pe.App1,' ',pe.Apm) preventista,c.Nombres,c.zona,p.fecha,p.Observaciones,'cuello' producto,concat(p.cuello,' ',p.unidcuello) cantidad,p.bs2 precio,p.fact,p.pago,p.horario,p.comentario,p.bonificacionId,p.estado FROM tbpedidos p INNER JOIN personal pe ON pe.CodAut=p.CIfunc inner join tbclientes c on p.idCli=c.Cod_Aut where p.deleted_at IS NULL AND date(p.fecha)>='$request->ini' and date(p.fecha)<='$request->fin' and p.tipo='POLLO' and p.cuello is NOT null union
-          SELECT concat(pe.Nombre1,' ',pe.App1,' ',pe.Apm) preventista,c.Nombres,c.zona,p.fecha,p.Observaciones,'hueso' producto,concat(p.hueso,' ',p.unidhueso) cantidad,p.bs2 precio,p.fact,p.pago,p.horario,p.comentario,p.bonificacionId,p.estado FROM tbpedidos p INNER JOIN personal pe ON pe.CodAut=p.CIfunc inner join tbclientes c on p.idCli=c.Cod_Aut where p.deleted_at IS NULL AND date(p.fecha)>='$request->ini' and date(p.fecha)<='$request->fin' and p.tipo='POLLO' and p.hueso is NOT null union
-          SELECT concat(pe.Nombre1,' ',pe.App1,' ',pe.Apm) preventista,c.Nombres,c.zona,p.fecha,p.Observaciones,'menu' producto,concat(p.menu,' ',p.unidmenu) cantidad,p.bs2 precio,p.fact,p.pago,p.horario,p.comentario,p.bonificacionId,p.estado FROM tbpedidos p INNER JOIN personal pe ON pe.CodAut=p.CIfunc inner join tbclientes c on p.idCli=c.Cod_Aut where p.deleted_at IS NULL AND date(p.fecha)>='$request->ini' and date(p.fecha)<='$request->fin' and p.tipo='POLLO' and p.menu is NOT null
+          SELECT concat(pe.Nombre1,' ',pe.App1,' ',pe.Apm) preventista,c.Nombres,c.zona,p.fecha,p.Observaciones,'ubrasa5' producto,p.ubrasa5 cantidad,p.bs precio,p.fact,p.pago,p.horario,p.comentario,p.bonificacionId,p.estado,NULL rango_kg FROM tbpedidos p INNER JOIN personal pe ON pe.CodAut=p.CIfunc inner join tbclientes c on p.idCli=c.Cod_Aut where p.deleted_at IS NULL AND date(p.fecha)>='$request->ini' and date(p.fecha)<='$request->fin' and p.tipo='POLLO' and p.ubrasa5 is NOT null union
+          SELECT concat(pe.Nombre1,' ',pe.App1,' ',pe.Apm) preventista,c.Nombres,c.zona,p.fecha,p.Observaciones,'cbrasa5' producto,p.cbrasa5 cantidad,p.bs precio,p.fact,p.pago,p.horario,p.comentario,p.bonificacionId,p.estado,NULL rango_kg FROM tbpedidos p INNER JOIN personal pe ON pe.CodAut=p.CIfunc inner join tbclientes c on p.idCli=c.Cod_Aut where p.deleted_at IS NULL AND date(p.fecha)>='$request->ini' and date(p.fecha)<='$request->fin' and p.tipo='POLLO' and p.cbrasa5 is NOT null union
+          SELECT concat(pe.Nombre1,' ',pe.App1,' ',pe.Apm) preventista,c.Nombres,c.zona,p.fecha,p.Observaciones,'ubrasa6' producto,p.cubrasa6 cantidad,p.bs precio,p.fact,p.pago,p.horario,p.comentario,p.bonificacionId,p.estado,NULL rango_kg FROM tbpedidos p INNER JOIN personal pe ON pe.CodAut=p.CIfunc inner join tbclientes c on p.idCli=c.Cod_Aut where p.deleted_at IS NULL AND date(p.fecha)>='$request->ini' and date(p.fecha)<='$request->fin' and p.tipo='POLLO' and p.cubrasa6 is NOT null union
+          SELECT concat(pe.Nombre1,' ',pe.App1,' ',pe.Apm) preventista,c.Nombres,c.zona,p.fecha,p.Observaciones,'cbrasa6' producto,p.cbrasa6 cantidad,p.bs precio,p.fact,p.pago,p.horario,p.comentario,p.bonificacionId,p.estado,NULL rango_kg FROM tbpedidos p INNER JOIN personal pe ON pe.CodAut=p.CIfunc inner join tbclientes c on p.idCli=c.Cod_Aut where p.deleted_at IS NULL AND date(p.fecha)>='$request->ini' and date(p.fecha)<='$request->fin' and p.tipo='POLLO' and p.cbrasa6 is NOT null union
+          SELECT concat(pe.Nombre1,' ',pe.App1,' ',pe.Apm) preventista,c.Nombres,c.zona,p.fecha,p.Observaciones,'u104' producto,p.u104 cantidad,p.bs precio,p.fact,p.pago,p.horario,p.comentario,p.bonificacionId,p.estado,NULL rango_kg FROM tbpedidos p INNER JOIN personal pe ON pe.CodAut=p.CIfunc inner join tbclientes c on p.idCli=c.Cod_Aut where p.deleted_at IS NULL AND date(p.fecha)>='$request->ini' and date(p.fecha)<='$request->fin' and p.tipo='POLLO' and p.u104 is NOT null union
+          SELECT concat(pe.Nombre1,' ',pe.App1,' ',pe.Apm) preventista,c.Nombres,c.zona,p.fecha,p.Observaciones,'c104' producto,p.c104 cantidad,p.bs precio,p.fact,p.pago,p.horario,p.comentario,p.bonificacionId,p.estado,NULL rango_kg FROM tbpedidos p INNER JOIN personal pe ON pe.CodAut=p.CIfunc inner join tbclientes c on p.idCli=c.Cod_Aut where p.deleted_at IS NULL AND date(p.fecha)>='$request->ini' and date(p.fecha)<='$request->fin' and p.tipo='POLLO' and p.c104 is NOT null union
+          SELECT concat(pe.Nombre1,' ',pe.App1,' ',pe.Apm) preventista,c.Nombres,c.zona,p.fecha,p.Observaciones,'u105' producto,p.u105 cantidad,p.bs precio,p.fact,p.pago,p.horario,p.comentario,p.bonificacionId,p.estado,NULL rango_kg FROM tbpedidos p INNER JOIN personal pe ON pe.CodAut=p.CIfunc inner join tbclientes c on p.idCli=c.Cod_Aut where p.deleted_at IS NULL AND date(p.fecha)>='$request->ini' and date(p.fecha)<='$request->fin' and p.tipo='POLLO' and p.u105 is NOT null union
+          SELECT concat(pe.Nombre1,' ',pe.App1,' ',pe.Apm) preventista,c.Nombres,c.zona,p.fecha,p.Observaciones,'c105' producto,p.c105 cantidad,p.bs precio,p.fact,p.pago,p.horario,p.comentario,p.bonificacionId,p.estado,NULL rango_kg FROM tbpedidos p INNER JOIN personal pe ON pe.CodAut=p.CIfunc inner join tbclientes c on p.idCli=c.Cod_Aut where p.deleted_at IS NULL AND date(p.fecha)>='$request->ini' and date(p.fecha)<='$request->fin' and p.tipo='POLLO' and p.c105 is NOT null union
+          SELECT concat(pe.Nombre1,' ',pe.App1,' ',pe.Apm) preventista,c.Nombres,c.zona,p.fecha,p.Observaciones,'u106' producto,p.u106 cantidad,p.bs precio,p.fact,p.pago,p.horario,p.comentario,p.bonificacionId,p.estado,NULL rango_kg FROM tbpedidos p INNER JOIN personal pe ON pe.CodAut=p.CIfunc inner join tbclientes c on p.idCli=c.Cod_Aut where p.deleted_at IS NULL AND date(p.fecha)>='$request->ini' and date(p.fecha)<='$request->fin' and p.tipo='POLLO' and p.u106 is NOT null union
+          SELECT concat(pe.Nombre1,' ',pe.App1,' ',pe.Apm) preventista,c.Nombres,c.zona,p.fecha,p.Observaciones,'c106' producto,p.c106 cantidad,p.bs precio,p.fact,p.pago,p.horario,p.comentario,p.bonificacionId,p.estado,NULL rango_kg FROM tbpedidos p INNER JOIN personal pe ON pe.CodAut=p.CIfunc inner join tbclientes c on p.idCli=c.Cod_Aut where p.deleted_at IS NULL AND date(p.fecha)>='$request->ini' and date(p.fecha)<='$request->fin' and p.tipo='POLLO' and p.c106 is NOT null union
+          SELECT concat(pe.Nombre1,' ',pe.App1,' ',pe.Apm) preventista,c.Nombres,c.zona,p.fecha,p.Observaciones,'u107' producto,p.u107 cantidad,p.bs precio,p.fact,p.pago,p.horario,p.comentario,p.bonificacionId,p.estado,NULL rango_kg FROM tbpedidos p INNER JOIN personal pe ON pe.CodAut=p.CIfunc inner join tbclientes c on p.idCli=c.Cod_Aut where p.deleted_at IS NULL AND date(p.fecha)>='$request->ini' and date(p.fecha)<='$request->fin' and p.tipo='POLLO' and p.u107 is NOT null union
+          SELECT concat(pe.Nombre1,' ',pe.App1,' ',pe.Apm) preventista,c.Nombres,c.zona,p.fecha,p.Observaciones,'c107' producto,p.c107 cantidad,p.bs precio,p.fact,p.pago,p.horario,p.comentario,p.bonificacionId,p.estado,NULL rango_kg FROM tbpedidos p INNER JOIN personal pe ON pe.CodAut=p.CIfunc inner join tbclientes c on p.idCli=c.Cod_Aut where p.deleted_at IS NULL AND date(p.fecha)>='$request->ini' and date(p.fecha)<='$request->fin' and p.tipo='POLLO' and p.c107 is NOT null union
+          SELECT concat(pe.Nombre1,' ',pe.App1,' ',pe.Apm) preventista,c.Nombres,c.zona,p.fecha,p.Observaciones,'u108' producto,p.u108 cantidad,p.bs precio,p.fact,p.pago,p.horario,p.comentario,p.bonificacionId,p.estado,NULL rango_kg FROM tbpedidos p INNER JOIN personal pe ON pe.CodAut=p.CIfunc inner join tbclientes c on p.idCli=c.Cod_Aut where p.deleted_at IS NULL AND date(p.fecha)>='$request->ini' and date(p.fecha)<='$request->fin' and p.tipo='POLLO' and p.u108 is NOT null union
+          SELECT concat(pe.Nombre1,' ',pe.App1,' ',pe.Apm) preventista,c.Nombres,c.zona,p.fecha,p.Observaciones,'c108' producto,p.c108 cantidad,p.bs precio,p.fact,p.pago,p.horario,p.comentario,p.bonificacionId,p.estado,NULL rango_kg FROM tbpedidos p INNER JOIN personal pe ON pe.CodAut=p.CIfunc inner join tbclientes c on p.idCli=c.Cod_Aut where p.deleted_at IS NULL AND date(p.fecha)>='$request->ini' and date(p.fecha)<='$request->fin' and p.tipo='POLLO' and p.c108 is NOT null union
+          SELECT concat(pe.Nombre1,' ',pe.App1,' ',pe.Apm) preventista,c.Nombres,c.zona,p.fecha,p.Observaciones,'u109' producto,p.u109 cantidad,p.bs precio,p.fact,p.pago,p.horario,p.comentario,p.bonificacionId,p.estado,NULL rango_kg FROM tbpedidos p INNER JOIN personal pe ON pe.CodAut=p.CIfunc inner join tbclientes c on p.idCli=c.Cod_Aut where p.deleted_at IS NULL AND date(p.fecha)>='$request->ini' and date(p.fecha)<='$request->fin' and p.tipo='POLLO' and p.u109 is NOT null union
+          SELECT concat(pe.Nombre1,' ',pe.App1,' ',pe.Apm) preventista,c.Nombres,c.zona,p.fecha,p.Observaciones,'c109' producto,p.c109 cantidad,p.bs precio,p.fact,p.pago,p.horario,p.comentario,p.bonificacionId,p.estado,NULL rango_kg FROM tbpedidos p INNER JOIN personal pe ON pe.CodAut=p.CIfunc inner join tbclientes c on p.idCli=c.Cod_Aut where p.deleted_at IS NULL AND date(p.fecha)>='$request->ini' and date(p.fecha)<='$request->fin' and p.tipo='POLLO' and p.c109 is NOT null union
+          SELECT concat(pe.Nombre1,' ',pe.App1,' ',pe.Apm) preventista,c.Nombres,c.zona,p.fecha,p.Observaciones,'rango' producto,p.rango cantidad,p.bs precio,p.fact,p.pago,p.horario,p.comentario,p.bonificacionId,p.estado,NULL rango_kg FROM tbpedidos p INNER JOIN personal pe ON pe.CodAut=p.CIfunc inner join tbclientes c on p.idCli=c.Cod_Aut where p.deleted_at IS NULL AND date(p.fecha)>='$request->ini' and date(p.fecha)<='$request->fin' and p.tipo='POLLO' and p.rango is NOT null union
+          SELECT concat(pe.Nombre1,' ',pe.App1,' ',pe.Apm) preventista,c.Nombres,c.zona,p.fecha,p.Observaciones,'ala' producto,concat(p.ala,' ',p.unidala) cantidad ,p.bs2 precio,p.fact,p.pago,p.horario,p.comentario,p.bonificacionId,p.estado,NULL rango_kg FROM tbpedidos p INNER JOIN personal pe ON pe.CodAut=p.CIfunc inner join tbclientes c on p.idCli=c.Cod_Aut where p.deleted_at IS NULL AND date(p.fecha)>='$request->ini' and date(p.fecha)<='$request->fin' and p.tipo='POLLO' and p.ala is NOT null union
+          SELECT concat(pe.Nombre1,' ',pe.App1,' ',pe.Apm) preventista,c.Nombres,c.zona,p.fecha,p.Observaciones,'cadera' producto,concat(p.cadera,' ',p.unidcadera) cantidad,p.bs2 precio,p.fact,p.pago,p.horario,p.comentario,p.bonificacionId,p.estado,NULL rango_kg FROM tbpedidos p INNER JOIN personal pe ON pe.CodAut=p.CIfunc inner join tbclientes c on p.idCli=c.Cod_Aut where p.deleted_at IS NULL AND date(p.fecha)>='$request->ini' and date(p.fecha)<='$request->fin' and p.tipo='POLLO' and p.cadera is NOT null union
+          SELECT concat(pe.Nombre1,' ',pe.App1,' ',pe.Apm) preventista,c.Nombres,c.zona,p.fecha,p.Observaciones,'pecho' producto,concat(p.pecho,' ',p.unidpecho) cantidad,p.bs2 precio,p.fact,p.pago,p.horario,p.comentario,p.bonificacionId,p.estado,NULL rango_kg FROM tbpedidos p INNER JOIN personal pe ON pe.CodAut=p.CIfunc inner join tbclientes c on p.idCli=c.Cod_Aut where p.deleted_at IS NULL AND date(p.fecha)>='$request->ini' and date(p.fecha)<='$request->fin' and p.tipo='POLLO' and p.pecho is NOT null union
+          SELECT concat(pe.Nombre1,' ',pe.App1,' ',pe.Apm) preventista,c.Nombres,c.zona,p.fecha,p.Observaciones,'pie' producto,concat(p.pie,' ',p.unidpie) cantidad,p.bs2 precio,p.fact,p.pago,p.horario,p.comentario,p.bonificacionId,p.estado,NULL rango_kg FROM tbpedidos p INNER JOIN personal pe ON pe.CodAut=p.CIfunc inner join tbclientes c on p.idCli=c.Cod_Aut where p.deleted_at IS NULL AND date(p.fecha)>='$request->ini' and date(p.fecha)<='$request->fin' and p.tipo='POLLO' and p.pie is NOT null union
+          SELECT concat(pe.Nombre1,' ',pe.App1,' ',pe.Apm) preventista,c.Nombres,c.zona,p.fecha,p.Observaciones,'filete' producto,concat(p.filete,' ',p.unidfilete) cantidad,p.bs2 precio,p.fact,p.pago,p.horario,p.comentario,p.bonificacionId,p.estado,NULL rango_kg FROM tbpedidos p INNER JOIN personal pe ON pe.CodAut=p.CIfunc inner join tbclientes c on p.idCli=c.Cod_Aut where p.deleted_at IS NULL AND date(p.fecha)>='$request->ini' and date(p.fecha)<='$request->fin' and p.tipo='POLLO' and p.filete is NOT null union
+          SELECT concat(pe.Nombre1,' ',pe.App1,' ',pe.Apm) preventista,c.Nombres,c.zona,p.fecha,p.Observaciones,'cuello' producto,concat(p.cuello,' ',p.unidcuello) cantidad,p.bs2 precio,p.fact,p.pago,p.horario,p.comentario,p.bonificacionId,p.estado,NULL rango_kg FROM tbpedidos p INNER JOIN personal pe ON pe.CodAut=p.CIfunc inner join tbclientes c on p.idCli=c.Cod_Aut where p.deleted_at IS NULL AND date(p.fecha)>='$request->ini' and date(p.fecha)<='$request->fin' and p.tipo='POLLO' and p.cuello is NOT null union
+          SELECT concat(pe.Nombre1,' ',pe.App1,' ',pe.Apm) preventista,c.Nombres,c.zona,p.fecha,p.Observaciones,'hueso' producto,concat(p.hueso,' ',p.unidhueso) cantidad,p.bs2 precio,p.fact,p.pago,p.horario,p.comentario,p.bonificacionId,p.estado,NULL rango_kg FROM tbpedidos p INNER JOIN personal pe ON pe.CodAut=p.CIfunc inner join tbclientes c on p.idCli=c.Cod_Aut where p.deleted_at IS NULL AND date(p.fecha)>='$request->ini' and date(p.fecha)<='$request->fin' and p.tipo='POLLO' and p.hueso is NOT null union
+          SELECT concat(pe.Nombre1,' ',pe.App1,' ',pe.Apm) preventista,c.Nombres,c.zona,p.fecha,p.Observaciones,'menu' producto,concat(p.menu,' ',p.unidmenu) cantidad,p.bs2 precio,p.fact,p.pago,p.horario,p.comentario,p.bonificacionId,p.estado,NULL rango_kg FROM tbpedidos p INNER JOIN personal pe ON pe.CodAut=p.CIfunc inner join tbclientes c on p.idCli=c.Cod_Aut where p.deleted_at IS NULL AND date(p.fecha)>='$request->ini' and date(p.fecha)<='$request->fin' and p.tipo='POLLO' and p.menu is NOT null union all
+          -- Lineas del pedido nuevo (/visita): una fila por producto, con el rango (kg) del switch.
+          SELECT concat(pe.Nombre1,' ',pe.App1,' ',pe.Apm) preventista,c.Nombres,c.zona,p.fecha,p.Observaciones,u.Producto producto,p.Cant cantidad,p.precio precio,p.fact,p.pago,p.horario,p.comentario,p.bonificacionId,p.estado,p.rango_kg FROM tbpedidos p INNER JOIN personal pe ON pe.CodAut=p.CIfunc inner join tbclientes c on p.idCli=c.Cod_Aut inner join tbproductos u on u.cod_prod=p.cod_prod where p.deleted_at IS NULL AND date(p.fecha)>='$request->ini' and date(p.fecha)<='$request->fin' and p.tipo='POLLO' and p.Cant is NOT null
 
           ");
 
@@ -1185,10 +1187,10 @@ class ExcelController extends Controller
             $params[] = (int) $vendedor;
         }
         $lineas = DB::select(
-            "SELECT p.NroPed, p.CIfunc, TRIM(p.cod_prod) AS cod_prod, p.Cant, UPPER(TRIM(p.caja)) AS caja,
+            "SELECT p.NroPed, p.CIfunc, TRIM(p.cod_prod) AS cod_prod, p.Cant, UPPER(TRIM(p.caja)) AS caja, p.rango_kg,
                     p.Observaciones, p.fact, p.pago, p.bs, p.bs2, p.horario, p.color, p.bonificacionId,
                     TRIM(c.Nombres) AS cliente, TRIM(pr.Producto) AS producto, UPPER(TRIM(pr.tipo)) AS tipo_prod,
-                    TRIM(pr.codUnid) AS unidad, p.precio AS precio_pedido,
+                    TRIM(pr.codUnid) AS unidad, TRIM(pr.cod_grup) AS cod_grup, p.precio AS precio_pedido,
                     pr.Precio, pr.Precio_Costo, pr.Precio3, pr.Precio4, pr.Precio5, pr.Precio6, pr.Precio7,
                     pr.Precio8, pr.Precio9, pr.Precio10, pr.Precio11, pr.Precio12, pr.Precio13,
                     TRIM(CONCAT_WS(' ', NULLIF(TRIM(pe.Nombre1), ''), NULLIF(TRIM(pe.App1), ''))) AS preventista,
@@ -1228,6 +1230,12 @@ class ExcelController extends Controller
         $cantidad = function ($l) {
             $n = rtrim(rtrim(number_format((float) $l->Cant, 2, '.', ''), '0'), '.');
             $unidad = $l->caja !== null && $l->caja !== '' ? $l->caja : strtoupper((string) $l->unidad);
+            // Lo que se vende por caja y no guardo la unidad elegida va con la
+            // de por defecto, igual que en Mis pedidos: el FRIAL y el cerdo por
+            // unidad, lo demas por kilo.
+            if ($unidad === 'CAJA' && ($l->caja === null || $l->caja === '')) {
+                $unidad = $l->cod_grup === '31' || $l->tipo_prod === 'CERDO' ? 'U' : 'KG';
+            }
             $sufijo = ['U' => 'u', 'UNIDA' => 'u', 'UNIDAD' => 'u', 'KG' => 'kg', 'CAJA' => 'cja'][$unidad] ?? strtolower($unidad);
             return trim($n . ' ' . $sufijo);
         };
@@ -1242,6 +1250,19 @@ class ExcelController extends Controller
         $porPreventista = $spreadsheet->createSheet();
         $porPreventista->setTitle($nombre . ' x vendedor');
         $this->hojaPreparacion($porPreventista, $fecha, $especie, $vendedores, 'PREVENTISTA', $cantidad);
+
+        // Solo las lineas con rango (frial con el switch de /visita), por zona.
+        $conRango = [];
+        foreach ($lineas as $l) {
+            if ($l->rango_kg !== null && (float) $l->rango_kg > 0) {
+                $conRango[$l->zona][$l->NroPed][] = $l;
+            }
+        }
+        if ($especie === 'pollo' || $conRango) {
+            $porRango = $spreadsheet->createSheet();
+            $porRango->setTitle('Rango');
+            $this->hojaPreparacion($porRango, $fecha, $especie, $conRango, 'ZONA', $cantidad);
+        }
 
         // Resumen: lo que hay que preparar por codigo, para cuadrar con stock.
         $resumen = $spreadsheet->createSheet();
@@ -1340,18 +1361,19 @@ class ExcelController extends Controller
 
         // Cada pedido es una fila con el cliente y debajo sus productos, uno
         // por fila con el nombre completo en la columna F. Columnas fijas:
-        // A-F pedido y cliente, G-L el producto (con el precio que eligio el preventista) y M la observacion.
-        $colFin = 'M';
+        // A-F pedido y cliente, G-M el producto (con el rango del frial y el
+        // precio que eligio el preventista) y N la observacion.
+        $colFin = 'N';
         $celeste = 'DDEBF7';
 
         $sheet->setCellValue('F1', 'FECHA: ' . $fecha);
         $sheet->setCellValue('G1', 'HOJA DE PESOS ' . strtoupper($especie));
-        $sheet->mergeCells('G1:M1');
-        $sheet->getStyle('A1:M1')->getFont()->setBold(true)->setSize(12)->getColor()->setRGB('C62828');
+        $sheet->mergeCells('G1:N1');
+        $sheet->getStyle('A1:N1')->getFont()->setBold(true)->setSize(12)->getColor()->setRGB('C62828');
 
         $sheet->fromArray(['HORARIO', 'FACTURA', 'CONTADO', 'P. TROZADO', 'P. POLLO', 'CLIENTE',
-            'Prod', 'Nom', 'Nº Cja', 'Precio', 'Bruto', 'Neto', 'Obs.'], null, 'A2');
-        $sheet->getStyle('A2:M2')->applyFromArray([
+            'Prod', 'Nom', 'Nº Cja', 'Rango', 'Precio', 'Bruto', 'Neto', 'Obs.'], null, 'A2');
+        $sheet->getStyle('A2:N2')->applyFromArray([
             'font' => ['bold' => true, 'size' => 9],
             'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER, 'vertical' => Alignment::VERTICAL_CENTER],
         ]);
@@ -1367,7 +1389,7 @@ class ExcelController extends Controller
             // Fila del grupo (zona o preventista) en gris oscuro, para no
             // confundirla con la fila de cada cliente que va debajo.
             $sheet->setCellValue('F' . $c, $rotulo . ': ' . $grupo);
-            $sheet->getStyle("A{$c}:M{$c}")->applyFromArray([
+            $sheet->getStyle("A{$c}:N{$c}")->applyFromArray([
                 'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
                 'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => '595959']],
             ]);
@@ -1392,8 +1414,8 @@ class ExcelController extends Controller
                 $filasCliente[] = $c;
                 // El cliente real de una bonificacion va como observacion del pedido.
                 if ($esBaja) {
-                    $sheet->setCellValue('M' . $c, $r->cliente);
-                    $celdasObs[] = 'M' . $c;
+                    $sheet->setCellValue('N' . $c, $r->cliente);
+                    $celdasObs[] = 'N' . $c;
                 }
                 if ($hex) {
                     $sheet->getStyle('F' . $c)->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB($hex);
@@ -1408,19 +1430,23 @@ class ExcelController extends Controller
                     // Solo las 3 primeras letras: el codigo ya lo identifica.
                     $sheet->setCellValue('H' . $c, mb_substr($l->producto, 0, 3));
                     $sheet->setCellValue('I' . $c, $cantidad($l));
-                    $sheet->setCellValue('J' . $c, $this->precioElegido($l));
+                    // Rango de peso que anoto el preventista en /visita (± 100 g).
+                    if ($l->rango_kg !== null && (float) $l->rango_kg > 0) {
+                        $sheet->setCellValue('J' . $c, rtrim(rtrim(number_format((float) $l->rango_kg, 2, '.', ''), '0'), '.') . ' kg');
+                    }
+                    $sheet->setCellValue('K' . $c, $this->precioElegido($l));
 
                     $obs = trim((string) $l->Observaciones);
                     if ($obs !== '') {
-                        $sheet->setCellValue('M' . $c, $obs);
-                        $celdasObs[] = 'M' . $c;
+                        $sheet->setCellValue('N' . $c, $obs);
+                        $celdasObs[] = 'N' . $c;
                     }
                     $c++;
                 }
 
                 // Pedidos alternados en celeste para ver donde empieza cada uno.
                 if ($nPedido++ % 2 === 1) {
-                    $sheet->getStyle("G{$desde}:L" . ($c - 1))->getFill()
+                    $sheet->getStyle("G{$desde}:M" . ($c - 1))->getFill()
                         ->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB($celeste);
                 }
                 $finPedido[] = $c - 1;
@@ -1429,11 +1455,11 @@ class ExcelController extends Controller
 
         // Denso: letra chica y filas bajas para ver mas pedidos por pantalla.
         $ultima = max($c - 1, 2);
-        $sheet->getStyle('A2:M' . $ultima)->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_THIN);
+        $sheet->getStyle('A2:N' . $ultima)->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_THIN);
         foreach ($finPedido as $fila) {
-            $sheet->getStyle("A{$fila}:M{$fila}")->getBorders()->getBottom()->setBorderStyle(Border::BORDER_MEDIUM);
+            $sheet->getStyle("A{$fila}:N{$fila}")->getBorders()->getBottom()->setBorderStyle(Border::BORDER_MEDIUM);
         }
-        $sheet->getStyle('A3:M' . $ultima)->applyFromArray([
+        $sheet->getStyle('A3:N' . $ultima)->applyFromArray([
             'font' => ['size' => 10],
             'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER, 'vertical' => Alignment::VERTICAL_CENTER],
         ]);
@@ -1460,11 +1486,11 @@ class ExcelController extends Controller
         $sheet->getColumnDimension('F')->setWidth(32);
         $sheet->getColumnDimension('G')->setWidth(8);
         $sheet->getColumnDimension('H')->setWidth(6);
-        foreach (['I', 'K', 'L'] as $col) {
+        foreach (['I', 'J', 'L', 'M'] as $col) {
             $sheet->getColumnDimension($col)->setWidth(9);
         }
-        $sheet->getColumnDimension('J')->setWidth(15);
-        $sheet->getColumnDimension('M')->setWidth(32);
+        $sheet->getColumnDimension('K')->setWidth(15);
+        $sheet->getColumnDimension('N')->setWidth(32);
         $sheet->freezePane('G3');
         $sheet->getSheetView()->setZoomScale(70);
 

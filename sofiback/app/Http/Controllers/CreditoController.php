@@ -437,22 +437,24 @@ class CreditoController extends Controller
                 'a_cuenta' => $esSaldo && $d->importe !== null
                     ? round((float) $d->importe - $d->saldo, 2) : round((float) $d->pagado, 2),
                 'deuda' => (float) $d->saldo,
+                'fecha' => substr((string) $d->fecha, 0, 10),
                 'fecha_pago' => $fechaPago,
                 'vendedor' => $esSaldo && $d->vendedor
                     ? $d->vendedor
                     : ($cliente ? $vendedores->get(trim((string) $cliente->CiVend), '') : ''),
             ];
         })->sort(function ($a, $b) {
-            // Primero las deudas y despues las ventas, cada grupo por su numero
-            // de boleta de menor a mayor: lo mas nuevo queda abajo. Las deudas
-            // agregadas a mano (M...) van al final de las deudas.
+            // Primero las deudas y despues las ventas, cada grupo por fecha de
+            // la deuda: lo mas nuevo queda abajo. El numero de boleta no sirve
+            // para ordenar porque hay pedidos de distintas numeraciones.
             $orden = function ($f) {
                 $manual = is_string($f['comanda']);
                 return [
                     $f['tipo'] === 'VENTA' ? 1 : 0,
+                    $f['fecha'],
+                    (int) $f['nro_venta'],
                     $manual ? 1 : 0,
                     $manual ? (int) substr($f['comanda'], 1) : (int) $f['comanda'],
-                    (int) $f['nro_venta'],
                 ];
             };
             return $orden($a) <=> $orden($b);
@@ -1094,7 +1096,10 @@ class CreditoController extends Controller
         abort_unless($c, 404, 'El cliente no existe');
 
         $vendedor = DB::table('personal')->whereRaw('TRIM(ci) = ?', [trim((string) $c->CiVend)])->first(['Nombre1', 'App1']);
-        $deudas = $this->deudas((int) $id)->sortByDesc('fecha')->values();
+        // De la mas vieja a la mas nueva, igual que el Excel de deudores.
+        $deudas = $this->deudas((int) $id)->sortBy(function ($d) {
+            return substr((string) $d->fecha, 0, 10) . '|' . ($d->origen === 'factura' ? 1 : 0) . '|' . str_pad((string) $d->id, 10, '0', STR_PAD_LEFT);
+        })->values();
 
         $abonos = DB::table('creditos_abonos')->where('origen', 'factura')->whereNull('anulado_at')
             ->select('deuda_id', DB::raw('SUM(monto) as pagado'))->groupBy('deuda_id')->pluck('pagado', 'deuda_id');
@@ -1413,7 +1418,11 @@ class CreditoController extends Controller
             'monto_efectivo' => 'nullable|numeric|min:0',
             'monto_qr' => 'nullable|numeric|min:0',
             'referencia' => 'nullable|string|max:100', 'solicitud_id' => 'required|uuid',
+            // Cuando se cobro de verdad; vacio = ahora. No se aceptan cobros a futuro.
+            'fecha' => 'nullable|date_format:Y-m-d H:i|before_or_equal:' . now()->addMinutes(5)->format('Y-m-d H:i'),
         ]);
+        $cobradoEn = !empty($datos['fecha']) ? \Carbon\Carbon::createFromFormat('Y-m-d H:i', $datos['fecha']) : now();
+        unset($datos['fecha']);
         // Cuanto entro por cada lado: en efectivo o QR va todo a uno; en el
         // mixto tienen que venir los dos y sumar el abono.
         $centavos = function ($v) { return (int) round((float) $v * 100); };
@@ -1430,7 +1439,7 @@ class CreditoController extends Controller
             $datos['monto_efectivo'] = $datos['forma_pago'] === 'EFECTIVO' ? round((float) $datos['monto'], 2) : 0;
             $datos['monto_qr'] = $datos['forma_pago'] === 'QR' ? round((float) $datos['monto'], 2) : 0;
         }
-        return DB::transaction(function () use ($datos, $request, $origen, $id) {
+        return DB::transaction(function () use ($datos, $request, $origen, $id, $cobradoEn) {
             $deuda = DB::table($origen === 'factura' ? 'facturas' : 'creditos_manuales')->where('id', $id)->lockForUpdate()->first();
             abort_unless($deuda, 404);
             $previo = DB::table('creditos_abonos')->where('solicitud_id', $datos['solicitud_id'])->first();
@@ -1456,7 +1465,7 @@ class CreditoController extends Controller
             }
             $abono = DB::table('creditos_abonos')->insertGetId($datos + [
                 'origen' => $origen, 'deuda_id' => $id, 'cliente_id' => $deuda->cliente_id,
-                'user_id' => $request->user()->CodAut, 'created_at' => now(), 'updated_at' => now(),
+                'user_id' => $request->user()->CodAut, 'created_at' => $cobradoEn, 'updated_at' => now(),
             ]);
             return response()->json(['id' => $abono, 'saldo' => round($monto - $pagado - $datos['monto'], 2)], 201);
         });

@@ -179,6 +179,8 @@ Route::group(['middleware'=>'auth:sanctum'],function (){
     Route::get('/cobranzas/recojo',[\App\Http\Controllers\CobranzaRecojoController::class,'reporte']);
     Route::get('/cobranzas/recojo/camiones',[\App\Http\Controllers\CobranzaRecojoController::class,'camiones']);
     Route::get('/cobranzas/recojo/pdf',[\App\Http\Controllers\CobranzaRecojoController::class,'reportePdf']);
+    // Resumen general: lo recogido por camion y por dia, sin el detalle de notas.
+    Route::get('/cobranzas/recojo/resumen/pdf',[\App\Http\Controllers\CobranzaRecojoController::class,'resumenPdf']);
     // Cobranzas verifica la facturacion del dia contra lo que trajo cada camion.
     Route::get('/cobranzas/verificacion',[\App\Http\Controllers\CobranzaVerificacionController::class,'index']);
     Route::get('/cobranzas/verificacion/clientes',[\App\Http\Controllers\CobranzaVerificacionController::class,'buscarClientes']);

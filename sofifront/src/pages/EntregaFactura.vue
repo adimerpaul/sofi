@@ -75,18 +75,19 @@
                   <!-- Una barra partida por estado, en el orden en que importa. -->
                   <div class="barra-estados">
                     <div v-for="e in estados" :key="e.clave" :class="'bg-' + e.color"
-                         :style="{ width: (c.total ? c[e.campo] * 100 / c.total : 0) + '%' }">
-                      <q-tooltip>{{ e.label }}: {{ c[e.campo] }}</q-tooltip>
+                         :style="{ width: (avance(c).total ? avance(c)[e.campo] * 100 / avance(c).total : 0) + '%' }">
+                      <q-tooltip>{{ e.label }}: {{ avance(c)[e.campo] }} cliente(s)</q-tooltip>
                     </div>
                   </div>
                   <div class="text-caption leyenda-avance">
-                    <b>{{ c.cerrados }}/{{ c.total }}</b> · {{ c.porcentaje }}%
-                    <span class="text-green-8">E {{ c.entregados }}</span>
-                    <span v-if="c.retorno" class="text-deep-orange-8">R {{ c.retorno }}</span>
-                    <span v-if="c.no_entregados" class="text-amber-9">N {{ c.no_entregados }}</span>
-                    <span v-if="c.rechazados" class="text-red-8">X {{ c.rechazados }}</span>
-                    <span v-if="c.pendientes" class="text-grey-7">P {{ c.pendientes }}</span>
+                    <b>{{ avance(c).cerrados }}/{{ avance(c).total }}</b> clientes · {{ avance(c).porcentaje }}%
+                    <span class="text-green-8">E {{ avance(c).entregados }}</span>
+                    <span v-if="avance(c).retorno" class="text-deep-orange-8">R {{ avance(c).retorno }}</span>
+                    <span v-if="avance(c).no_entregados" class="text-amber-9">N {{ avance(c).no_entregados }}</span>
+                    <span v-if="avance(c).rechazados" class="text-red-8">X {{ avance(c).rechazados }}</span>
+                    <span v-if="avance(c).pendientes" class="text-grey-7">P {{ avance(c).pendientes }}</span>
                   </div>
+                  <div class="text-caption text-grey-6">{{ c.cerrados }}/{{ c.total }} boletas</div>
                 </td>
                 <td class="text-right">{{ money(c.monto) }}</td>
                 <td class="text-right text-caption">
@@ -427,6 +428,31 @@ export default {
       return numeros
     },
     /**
+     * Avance de cada camion contado por cliente y no por boleta: un cliente
+     * con varias boletas cuenta una vez, con el estado que manda entre ellas
+     * (el mismo color de su marca en el mapa).
+     */
+    avancePorCamion () {
+      const prioridad = ['PENDIENTE', 'NO ENTREGADO', 'RECHAZADO', 'RETORNO PARCIAL', 'ENTREGADO']
+      const porPlaca = {}
+      this.comprobantes.forEach(c => {
+        const clientes = porPlaca[c.placa] = porPlaca[c.placa] || {}
+        const clave = this.claveCliente(c)
+        const actual = clientes[clave]
+        if (!actual || prioridad.indexOf(c.estado) < prioridad.indexOf(actual)) clientes[clave] = c.estado
+      })
+      const avance = {}
+      Object.keys(porPlaca).forEach(placa => {
+        const estados = Object.values(porPlaca[placa])
+        const a = { total: estados.length }
+        this.estados.forEach(e => { a[e.campo] = estados.filter(x => x === e.clave).length })
+        a.cerrados = a.total - a.pendientes
+        a.porcentaje = a.total ? Math.round(a.cerrados * 100 / a.total) : 0
+        avance[placa] = a
+      })
+      return avance
+    },
+    /**
      * Los clientes de lo que se ve, cada uno con todos sus comprobantes: en el
      * mapa va una sola marca por cliente aunque tenga varios pedidos.
      */
@@ -526,6 +552,9 @@ export default {
     colorEstado (estado) {
       const e = this.estados.find(x => x.clave === estado)
       return e ? e.color : 'blue-grey-4'
+    },
+    avance (camion) {
+      return this.avancePorCamion[camion.placa] || { total: 0, cerrados: 0, porcentaje: 0, pendientes: 0 }
     },
     // Un cliente se reconoce por su codigo; sin cliente, el comprobante va solo.
     claveCliente (comprobante) {
@@ -670,7 +699,7 @@ export default {
         </style>
         <h2>ENTREGAS DEL DÍA · ${esc(placa)}</h2>
         <div>Jornada ${esc(this.jornada)}${this.tipo ? ' · ' + esc(this.nombreTipo(this.tipo)) : ''} ·
-          ${c.cerrados}/${c.total} cerrados (${c.porcentaje}%) · Efectivo ${this.money(c.efectivo)} · QR ${this.money(c.qr)}</div>
+          ${this.avance(c).cerrados}/${this.avance(c).total} clientes (${this.avance(c).porcentaje}%) · ${c.cerrados}/${c.total} boletas · Efectivo ${this.money(c.efectivo)} · QR ${this.money(c.qr)}</div>
         ${this.estados.map(e => bloque(e.label.toUpperCase(), filas.filter(r => r.estado === e.clave))).join('')}`
       const div = document.createElement('div')
       div.innerHTML = html

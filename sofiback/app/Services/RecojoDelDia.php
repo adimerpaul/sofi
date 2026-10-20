@@ -549,6 +549,116 @@ class RecojoDelDia
             . ' &middot; generado el ' . date('d/m/Y H:i') . '</div></div>';
     }
 
+    /**
+     * El resumen general: una fila por camion y por dia con lo que recogio
+     * (efectivo y QR), sin el detalle de las notas. Es lo que cobranzas mira
+     * para saber cuanto trajo cada camion.
+     *
+     * $dias es [fecha => [['placa', 'planilla', 'caminero', 'notas',
+     * 'efectivo', 'qr'], ...]], ya en orden.
+     */
+    public function resumenHtml($desde, $hasta, array $dias)
+    {
+        $cuerpo = '';
+        $general = ['notas' => 0, 'efectivo' => 0.0, 'qr' => 0.0];
+        $variosDias = $desde !== $hasta;
+        $columnas = $variosDias ? 8 : 7;
+        $i = 0;
+
+        foreach ($dias as $fecha => $camiones) {
+            $delDia = ['notas' => 0, 'efectivo' => 0.0, 'qr' => 0.0];
+
+            foreach ($camiones as $c) {
+                $par = $i % 2 ? " class='par'" : '';
+                $cuerpo .= "<tr$par>"
+                    . "<td class='c'>" . (++$i) . '</td>'
+                    . ($variosDias ? "<td class='c'>" . date('d/m/Y', strtotime($fecha)) . '</td>' : '')
+                    . "<td class='c'>" . e($c['planilla']) . '</td>'
+                    . '<td><b>' . e($c['placa']) . "</b><br><span class='gris'>" . e($c['caminero']) . '</span></td>'
+                    . "<td class='c'>" . $c['notas'] . '</td>'
+                    . "<td class='r'>" . number_format($c['efectivo'], 2) . '</td>'
+                    . "<td class='r'>" . number_format($c['qr'], 2) . '</td>'
+                    . "<td class='r b'>" . number_format($c['efectivo'] + $c['qr'], 2) . '</td>'
+                    . '</tr>';
+
+                foreach ($delDia as $k => $v) {
+                    $delDia[$k] += $c[$k];
+                }
+            }
+
+            // Con varios dias, cada dia cierra con su subtotal.
+            if ($variosDias && $camiones) {
+                $cuerpo .= "<tr class='sub'>"
+                    . "<td colspan='4' class='r'>TOTAL " . $this->fechaLarga($fecha) . '</td>'
+                    . "<td class='c'>" . $delDia['notas'] . '</td>'
+                    . "<td class='r'>" . number_format($delDia['efectivo'], 2) . '</td>'
+                    . "<td class='r'>" . number_format($delDia['qr'], 2) . '</td>'
+                    . "<td class='r'>" . number_format($delDia['efectivo'] + $delDia['qr'], 2) . '</td>'
+                    . '</tr>';
+            }
+
+            foreach ($general as $k => $v) {
+                $general[$k] += $delDia[$k];
+            }
+        }
+
+        if ($cuerpo === '') {
+            $cuerpo = "<tr><td colspan='$columnas' class='c gris' style='padding:16px'>Ningún camión recogió en estas fechas</td></tr>";
+        }
+
+        $periodo = $variosDias
+            ? date('d/m/Y', strtotime($desde)) . ' al ' . date('d/m/Y', strtotime($hasta))
+            : date('d/m/Y', strtotime($desde));
+
+        $caja = "<table class='caja-doc'>
+            <tr><td colspan='2' class='tit'>RESUMEN DEL RECOJO</td></tr>
+            <tr><td class='et'>" . ($variosDias ? 'Del' : 'Fecha') . "</td><td class='r'>" . date('d/m/Y', strtotime($desde)) . '</td></tr>'
+            . ($variosDias ? "<tr><td class='et'>Al</td><td class='r'>" . date('d/m/Y', strtotime($hasta)) . '</td></tr>' : '') . "
+            <tr><td class='et'>Notas</td><td class='r nro'>" . $general['notas'] . "</td></tr>
+        </table>";
+
+        return '<style>' . $this->estilosImpresion() . "
+            .b { font-weight: bold }
+            .detalle td { padding: 3px 5px; font-size: 10px }
+            .detalle tr.sub td { background: #eceff1; font-weight: bold; font-size: 9px }
+            .detalle tfoot td { background: #37474f; color: #fff; font-weight: bold; padding: 4px 5px }
+        </style>"
+        . $this->cabeceraEmisor($caja)
+        . "<table class='datos'>
+            <tr>
+                <td><span class='et'>" . ($variosDias ? 'Periodo' : 'Día del recojo') . '</span><br>'
+                    . ($variosDias ? $periodo : $this->fechaLarga($desde)) . "</td>
+            </tr>
+        </table>
+        <table class='detalle'>
+            <thead><tr>
+                <th style='width:24px'>N°</th>"
+                . ($variosDias ? "<th style='width:62px'>Fecha</th>" : '') . "
+                <th style='width:52px'>Planilla</th>
+                <th style='text-align:left'>Camión / Caminero</th>
+                <th style='width:40px'>Notas</th>
+                <th style='width:74px' class='r'>Efectivo</th>
+                <th style='width:74px' class='r'>QR</th>
+                <th style='width:84px' class='r'>Total recogido</th>
+            </tr></thead>
+            <tbody>$cuerpo</tbody>
+            <tfoot><tr>
+                <td colspan='" . ($columnas - 4) . "' class='r'>TOTAL GENERAL</td>
+                <td class='c'>" . $general['notas'] . "</td>
+                <td class='r'>" . number_format($general['efectivo'], 2) . "</td>
+                <td class='r'>" . number_format($general['qr'], 2) . "</td>
+                <td class='r'>" . number_format($general['efectivo'] + $general['qr'], 2) . "</td>
+            </tr></tfoot>
+        </table>
+        <table class='totales' style='margin-top:9px'>
+            <tr class='final'><td>TOTAL RECOGIDO (EFECTIVO + QR)</td><td class='r' style='width:140px'>Bs. "
+                . number_format($general['efectivo'] + $general['qr'], 2) . "</td></tr>
+        </table>
+        <div class='pie'><div class='legal'>"
+            . e(config('siat.emisor')['nombre']) . ' &middot; Resumen del recojo ' . $periodo
+            . ' &middot; generado el ' . date('d/m/Y H:i') . '</div></div>';
+    }
+
     /** SÁBADO, 29 DE AGOSTO DE 2026: como sale en la hoja de papel. */
     public function fechaLarga($fecha)
     {
