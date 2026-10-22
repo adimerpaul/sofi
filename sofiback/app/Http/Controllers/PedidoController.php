@@ -300,7 +300,7 @@ class PedidoController extends Controller{
         foreach ($pedidosCreados as $p) {
             $pedido = Pedido::where('NroPed', $p->NroPed)->first();
             $cliente = Cliente::where('Cod_Aut', $pedido->idCli)->first();
-            if ($cliente->venta == 'INACTIVO') {
+            if (\App\Services\DeudaCliente::BLOQUEA_ENVIO && $cliente->venta == 'INACTIVO') {
                 $exists = false;
                 foreach ($pedidosCondeuda as $item) {
                     if ($item['Cod_Aut'] == $cliente->Cod_Aut) {
@@ -1711,11 +1711,13 @@ $resPedido = $rows->groupBy('NroPed')->map(function ($g) use ($bonis) {
         $pedidos = Pedido::whereIn('NroPed', $nrosPedidos)
             ->where('bonificacion', 0)
             ->where('estado', '<>', 'ENVIADO') // evita re-actualizar los ya enviados
-            ->whereExists(function ($query) {
-                $query->select(DB::raw(1))
-                    ->from('tbclientes as c')
-                    ->whereColumn('c.Cod_Aut', 'tbpedidos.idCli')
-                    ->where('c.venta', 'ACTIVO');
+            ->when(\App\Services\DeudaCliente::BLOQUEA_ENVIO, function ($q) {
+                $q->whereExists(function ($query) {
+                    $query->select(DB::raw(1))
+                        ->from('tbclientes as c')
+                        ->whereColumn('c.Cod_Aut', 'tbpedidos.idCli')
+                        ->where('c.venta', 'ACTIVO');
+                });
             })
             ->get();
         $updated = $this->marcarEnviados($pedidos);
@@ -1732,7 +1734,9 @@ $resPedido = $rows->groupBy('NroPed')->map(function ($g) use ($bonis) {
         foreach ($request->clientes as $p) {
             $pedidos = Pedido::where('NroPed', $p['NroPed'])
                 ->where('bonificacion', 0)
-                ->whereRaw("(SELECT c.venta from tbclientes c where c.Cod_Aut=tbpedidos.idCli)='ACTIVO'")
+                ->when(\App\Services\DeudaCliente::BLOQUEA_ENVIO, function ($q) {
+                    $q->whereRaw("(SELECT c.venta from tbclientes c where c.Cod_Aut=tbpedidos.idCli)='ACTIVO'");
+                })
                 ->get();
             $this->marcarEnviados($pedidos);
         }
@@ -1743,7 +1747,7 @@ $resPedido = $rows->groupBy('NroPed')->map(function ($g) use ($bonis) {
         //DB::select("UPDATE tbpedidos SET  estado='ENVIADO' WHERE NroPed='".$request->NroPed."'");
         $pedido = Pedido::where('NroPed', $request->NroPed)->first();
         $cliente = Cliente::where('Cod_Aut', $pedido->idCli)->first();
-        if ($cliente->venta == 'INACTIVO') {
+        if (\App\Services\DeudaCliente::BLOQUEA_ENVIO && $cliente->venta == 'INACTIVO') {
             return response()->json(['message' => 'El cliente tiene deuda'], 500);
             exit();
         }
@@ -1753,7 +1757,9 @@ $resPedido = $rows->groupBy('NroPed')->map(function ($g) use ($bonis) {
             exit();
         }
         $pedidos = Pedido::where('NroPed', $request->NroPed)
-            ->whereRaw("(SELECT c.venta from tbclientes c where c.Cod_Aut=tbpedidos.idCli)='ACTIVO'")
+            ->when(\App\Services\DeudaCliente::BLOQUEA_ENVIO, function ($q) {
+                $q->whereRaw("(SELECT c.venta from tbclientes c where c.Cod_Aut=tbpedidos.idCli)='ACTIVO'");
+            })
             ->get();
         $this->marcarEnviados($pedidos);
     }

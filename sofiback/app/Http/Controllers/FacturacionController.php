@@ -1249,9 +1249,38 @@ class FacturacionController extends Controller
             ->get(['pedido_nro', 'pedido_tipo', 'total', 'usuario', 'updated_at'])
             ->keyBy(function ($b) use ($clave) { return $clave($b->pedido_nro, $b->pedido_tipo); });
 
+        // Un pedido mixto (embutidos y huevo, por ejemplo) se cobra en una
+        // boleta por tipo: cada tarjeta lista todas las del mismo numero, aun
+        // las que el filtro de tipo deja fuera, para llegar a cada comprobante.
+        $boletas = DB::table('tbpedidos as p')
+            ->whereNull('p.deleted_at')
+            ->leftJoin('facturas as f', function ($join) {
+                $join->on('f.pedido_nro', '=', 'p.NroPed')
+                    ->on(DB::raw('UPPER(TRIM(f.pedido_tipo))'), '=', DB::raw(TipoPedido::sql('p')))
+                    ->whereNull('f.deleted_at')
+                    ->where('f.estado', '<>', 'ANULADO');
+            })
+            ->whereIn('p.NroPed', $numeros)
+            ->where('p.fecha_entrega', $datos['fecha'])
+            ->whereRaw("UPPER(TRIM(p.estado)) = 'ENVIADO'")
+            ->where('p.bonificacion', 0)
+            ->groupBy(['p.NroPed', DB::raw(TipoPedido::sql('p')), 'f.id', 'f.tipo_comprobante', 'f.fecha', 'f.nit'])
+            ->get([
+                'p.NroPed as nro_pedido',
+                DB::raw(TipoPedido::sqlAgrupado('p') . ' as tipo'),
+                DB::raw('ROUND(SUM(COALESCE(p.Cant, 0) * COALESCE(p.precio, 0)), 2) as total_pedido'),
+                'f.id as factura_id', 'f.tipo_comprobante as comprobante_emitido',
+                'f.fecha as factura_fecha', DB::raw('TRIM(f.nit) as factura_nit'),
+            ])
+            ->sortBy(function ($b) {
+                $orden = array_search($b->tipo, TipoPedido::TIPOS, true);
+                return $orden === false ? 99 : $orden;
+            })
+            ->groupBy('nro_pedido');
+
         $numerosCamion = [];
 
-        return $pedidos->map(function ($pedido) use ($items, $filasPedido, $anuladas, $borradores, $clave, &$numerosCamion) {
+        return $pedidos->map(function ($pedido) use ($items, $filasPedido, $anuladas, $borradores, $boletas, $clave, &$numerosCamion) {
             $llave = $clave($pedido->nro_pedido, $pedido->tipo);
             // Numero de salida del camion ese dia: sale ya al armar el reparto
             // y es el mismo que despues se imprime en el comprobante.
@@ -1279,6 +1308,17 @@ class FacturacionController extends Controller
             $anulada = $pedido->factura_id ? null : $anuladas->get($llave);
             $pedido->anulada_id = $anulada->id ?? null;
             $pedido->anulada_total = $anulada ? (float) $anulada->total : null;
+            $pedido->boletas = ($boletas->get($pedido->nro_pedido) ?? collect())
+                ->map(function ($b) {
+                    return [
+                        'tipo'                => $b->tipo,
+                        'total_pedido'        => (float) $b->total_pedido,
+                        'factura_id'          => $b->factura_id,
+                        'comprobante_emitido' => $b->comprobante_emitido,
+                        'factura_fecha'       => $b->factura_fecha,
+                        'factura_nit'         => $b->factura_nit,
+                    ];
+                })->values();
             return $pedido;
         });
     }

@@ -184,6 +184,40 @@
               </q-chip>
             </div>
 
+            <!-- Un pedido mixto (embutidos y huevo...) se cobra en una boleta
+                 por tipo, cada una con su numero: desde cualquiera de sus
+                 tarjetas se llega a las demas. -->
+            <div v-if="pedido.boletas && pedido.boletas.length > 1" class="q-mt-xs rounded-borders boletas">
+              <div class="text-caption text-weight-bold text-grey-8 q-px-xs">
+                Este pedido va en {{ pedido.boletas.length }} boletas
+              </div>
+              <div
+                v-for="boleta in pedido.boletas" :key="'b-' + boleta.tipo"
+                class="row items-center no-wrap q-px-xs boleta-fila"
+                :class="boleta.tipo === pedido.tipo ? 'text-weight-bold' : ''"
+              >
+                <q-icon :name="boleta.factura_id ? 'check_circle' : 'schedule'"
+                        :color="boleta.factura_id ? 'positive' : 'orange-8'" size="16px" class="q-mr-xs"/>
+                <div class="col ellipsis">
+                  {{ nombreTipoPedido(boleta.tipo) }} · Bs {{ money(boleta.total_pedido) }}
+                  <span v-if="boleta.factura_id" class="text-green-9">· {{ boleta.comprobante_emitido }} #{{ boleta.factura_id }}</span>
+                  <span v-else class="text-orange-9">· pendiente</span>
+                </div>
+                <span v-if="boleta.tipo === pedido.tipo" class="text-caption text-grey-7 q-ml-xs">esta</span>
+                <template v-else-if="boleta.factura_id">
+                  <q-btn flat dense round size="sm" color="primary" icon="visibility" @click="verComprobante(boleta)">
+                    <q-tooltip>Ver comprobante #{{ boleta.factura_id }}</q-tooltip>
+                  </q-btn>
+                  <q-btn flat dense round size="sm" color="primary" icon="print"
+                         :loading="imprimiendo === boleta.factura_id" @click="imprimir(boleta, 'ambas')">
+                    <q-tooltip>Imprimir #{{ boleta.factura_id }} (original y copia)</q-tooltip>
+                  </q-btn>
+                </template>
+                <q-btn v-else flat dense no-caps size="sm" color="positive" icon="edit_note" label="Facturar"
+                       @click="revisar({ nro_pedido: pedido.nro_pedido, tipo: boleta.tipo })"/>
+              </div>
+            </div>
+
             <!-- Los productos que trae, a la vista sin abrir el pedido. -->
             <div v-if="pedido.items.length" class="q-mt-xs text-caption productos-tarjeta">
               <div v-for="item in pedido.items.slice(0, 4)" :key="'v-' + item.cod_prod" class="ellipsis">
@@ -666,6 +700,15 @@ export default {
   text-align: right;
   font-size: 11px;
   font-weight: 700;
+}
+.boletas {
+  border: 1px solid #c5cae9;
+  background: #f5f6ff;
+}
+.boleta-fila {
+  min-height: 24px;
+  font-size: 12px;
+  border-top: 1px solid #e8eaf6;
 }
 .resumen-detalle {
   line-height: 1.35;

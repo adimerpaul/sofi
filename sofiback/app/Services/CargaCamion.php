@@ -443,7 +443,7 @@ class CargaCamion
                     'total' => round((float) $detalle->subtotal, 2),
                     // Podium y huevo salen en el mismo comprobante, pero se
                     // cargan por separado: el caminero los revisa aparte.
-                    'huevo' => in_array(trim((string) $detalle->cod_prod), TipoPedido::HUEVO, true),
+                    'huevo' => TipoPedido::esHuevo($detalle->cod_prod),
                 ];
             })
             ->groupBy('factura_id');
