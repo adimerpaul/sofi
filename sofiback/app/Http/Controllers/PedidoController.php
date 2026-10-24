@@ -1711,9 +1711,6 @@ $resPedido = $rows->groupBy('NroPed')->map(function ($g) use ($bonis) {
         $pedidos = Pedido::whereIn('NroPed', $nrosPedidos)
             ->where('bonificacion', 0)
             ->where('estado', '<>', 'ENVIADO') // evita re-actualizar los ya enviados
-<<<<<<< HEAD
-            // Por ahora no se filtra por deuda (venta INACTIVO), igual que envpedido.
-=======
             ->when(\App\Services\DeudaCliente::BLOQUEA_ENVIO, function ($q) {
                 $q->whereExists(function ($query) {
                     $query->select(DB::raw(1))
@@ -1722,7 +1719,6 @@ $resPedido = $rows->groupBy('NroPed')->map(function ($g) use ($bonis) {
                         ->where('c.venta', 'ACTIVO');
                 });
             })
->>>>>>> 793684af45546cef098d5bf3331416ffc2ff0d41
             ->get();
         $updated = $this->marcarEnviados($pedidos);
 
@@ -1750,30 +1746,21 @@ $resPedido = $rows->groupBy('NroPed')->map(function ($g) use ($bonis) {
     {
         //DB::select("UPDATE tbpedidos SET  estado='ENVIADO' WHERE NroPed='".$request->NroPed."'");
         $pedido = Pedido::where('NroPed', $request->NroPed)->first();
-<<<<<<< HEAD
-        // Por ahora no se bloquea por deuda (venta INACTIVO): el pedido se envia igual
-        // y queda el control en /pendientes.
-=======
         $cliente = Cliente::where('Cod_Aut', $pedido->idCli)->first();
         if (\App\Services\DeudaCliente::BLOQUEA_ENVIO && $cliente->venta == 'INACTIVO') {
             return response()->json(['message' => 'El cliente tiene deuda'], 500);
             exit();
         }
->>>>>>> 793684af45546cef098d5bf3331416ffc2ff0d41
 
         if ($pedido->bonificacion == 1) {
             return response()->json(['message' => 'No se puede enviar un pedido de bonificacion'], 500);
             exit();
         }
-<<<<<<< HEAD
-        $pedidos = Pedido::where('NroPed', $request->NroPed)->get();
-=======
         $pedidos = Pedido::where('NroPed', $request->NroPed)
             ->when(\App\Services\DeudaCliente::BLOQUEA_ENVIO, function ($q) {
                 $q->whereRaw("(SELECT c.venta from tbclientes c where c.Cod_Aut=tbpedidos.idCli)='ACTIVO'");
             })
             ->get();
->>>>>>> 793684af45546cef098d5bf3331416ffc2ff0d41
         $this->marcarEnviados($pedidos);
     }
 
