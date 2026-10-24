@@ -1249,9 +1249,38 @@ class FacturacionController extends Controller
             ->get(['pedido_nro', 'pedido_tipo', 'total', 'usuario', 'updated_at'])
             ->keyBy(function ($b) use ($clave) { return $clave($b->pedido_nro, $b->pedido_tipo); });
 
+        // Un pedido mixto (embutidos y huevo, por ejemplo) se cobra en una
+        // boleta por tipo: cada tarjeta lista todas las del mismo numero, aun
+        // las que el filtro de tipo deja fuera, para llegar a cada comprobante.
+        $boletas = DB::table('tbpedidos as p')
+            ->whereNull('p.deleted_at')
+            ->leftJoin('facturas as f', function ($join) {
+                $join->on('f.pedido_nro', '=', 'p.NroPed')
+                    ->on(DB::raw('UPPER(TRIM(f.pedido_tipo))'), '=', DB::raw(TipoPedido::sql('p')))
+                    ->whereNull('f.deleted_at')
+                    ->where('f.estado', '<>', 'ANULADO');
+            })
+            ->whereIn('p.NroPed', $numeros)
+            ->where('p.fecha_entrega', $datos['fecha'])
+            ->whereRaw("UPPER(TRIM(p.estado)) = 'ENVIADO'")
+            ->where('p.bonificacion', 0)
+            ->groupBy(['p.NroPed', DB::raw(TipoPedido::sql('p')), 'f.id', 'f.tipo_comprobante', 'f.fecha', 'f.nit'])
+            ->get([
+                'p.NroPed as nro_pedido',
+                DB::raw(TipoPedido::sqlAgrupado('p') . ' as tipo'),
+                DB::raw('ROUND(SUM(COALESCE(p.Cant, 0) * COALESCE(p.precio, 0)), 2) as total_pedido'),
+                'f.id as factura_id', 'f.tipo_comprobante as comprobante_emitido',
+                'f.fecha as factura_fecha', DB::raw('TRIM(f.nit) as factura_nit'),
+            ])
+            ->sortBy(function ($b) {
+                $orden = array_search($b->tipo, TipoPedido::TIPOS, true);
+                return $orden === false ? 99 : $orden;
+            })
+            ->groupBy('nro_pedido');
+
         $numerosCamion = [];
 
-        return $pedidos->map(function ($pedido) use ($items, $filasPedido, $anuladas, $borradores, $clave, &$numerosCamion) {
+        return $pedidos->map(function ($pedido) use ($items, $filasPedido, $anuladas, $borradores, $boletas, $clave, &$numerosCamion) {
             $llave = $clave($pedido->nro_pedido, $pedido->tipo);
             // Numero de salida del camion ese dia: sale ya al armar el reparto
             // y es el mismo que despues se imprime en el comprobante.
@@ -1279,6 +1308,17 @@ class FacturacionController extends Controller
             $anulada = $pedido->factura_id ? null : $anuladas->get($llave);
             $pedido->anulada_id = $anulada->id ?? null;
             $pedido->anulada_total = $anulada ? (float) $anulada->total : null;
+            $pedido->boletas = ($boletas->get($pedido->nro_pedido) ?? collect())
+                ->map(function ($b) {
+                    return [
+                        'tipo'                => $b->tipo,
+                        'total_pedido'        => (float) $b->total_pedido,
+                        'factura_id'          => $b->factura_id,
+                        'comprobante_emitido' => $b->comprobante_emitido,
+                        'factura_fecha'       => $b->factura_fecha,
+                        'factura_nit'         => $b->factura_nit,
+                    ];
+                })->values();
             return $pedido;
         });
     }
@@ -3134,11 +3174,14 @@ class FacturacionController extends Controller
         $datos = $request->validate([
             'placa' => 'nullable|string|max:50',
             'color_id' => 'nullable|integer',
+            // Para el que ya no sale en ningun camion (ej. camion en reparacion).
+            'sin_camion' => 'nullable|boolean',
         ]);
-        $placa = trim((string) ($datos['placa'] ?? ''));
+        $sinCamion = !empty($datos['sin_camion']);
+        $placa = $sinCamion ? '' : trim((string) ($datos['placa'] ?? ''));
         $colorId = $datos['color_id'] ?? null;
 
-        if ($placa === '' && !$colorId) {
+        if (!$sinCamion && $placa === '' && !$colorId) {
             return response()->json(['message' => 'Elegí un camión o un color'], 422);
         }
 
@@ -3163,9 +3206,11 @@ class FacturacionController extends Controller
         }
 
         $anterior = $factura->pedido_nro ? $this->camionDeFactura($factura) : trim((string) $factura->placa);
-        $cambiaPlaca = $placa !== '' && $anterior !== $placa;
+        $cambiaPlaca = ($placa !== '' || $sinCamion) && $anterior !== $placa;
         if (!$cambiaPlaca && !$zona) {
-            return response()->json(['message' => 'El comprobante ya va en ' . $placa], 422);
+            return response()->json(['message' => $sinCamion
+                ? 'El comprobante ya no va en ningún camión'
+                : 'El comprobante ya va en ' . $placa], 422);
         }
 
         DB::transaction(function () use ($factura, $placa, $cambiaPlaca, $zona) {
@@ -3175,7 +3220,7 @@ class FacturacionController extends Controller
                     ->get()
                     ->each(function ($linea) use ($placa, $cambiaPlaca, $zona) {
                         if ($cambiaPlaca) {
-                            $linea->placa = $placa;
+                            $linea->placa = $placa !== '' ? $placa : null;
                         }
                         if ($zona) {
                             $linea->color = trim((string) $zona->color);
@@ -3184,7 +3229,7 @@ class FacturacionController extends Controller
                         $linea->save();
                     });
             } elseif ($cambiaPlaca) {
-                $factura->placa = $placa;
+                $factura->placa = $placa !== '' ? $placa : null;
                 $factura->save();
             }
 
@@ -3193,6 +3238,12 @@ class FacturacionController extends Controller
             }
 
             DB::table('entregas')->where('factura_id', $factura->id)->update(['placa' => $placa]);
+
+            // Sin camion no hay carga que revisar: se saca de la del anterior.
+            if ($placa === '') {
+                DB::table('carga_verificaciones')->where('factura_id', $factura->id)->delete();
+                return;
+            }
 
             DB::table('carga_verificaciones')->where('factura_id', $factura->id)->update([
                 'placa' => $placa,
@@ -3208,9 +3259,9 @@ class FacturacionController extends Controller
 
         $partes = [];
         if ($cambiaPlaca) {
-            $partes[] = 'pasado de ' . ($anterior ?: 'sin camión') . ' a ' . $placa;
+            $partes[] = 'pasado de ' . ($anterior ?: 'sin camión') . ' a ' . ($placa ?: 'sin camión');
             // Pasa a llevar el numero de salida del camion nuevo ese dia.
-            if ($nro = $this->numeroCamionDe($factura, $placa)) {
+            if ($placa !== '' && $nro = $this->numeroCamionDe($factura, $placa)) {
                 $partes[] = 'N° camión ' . $nro;
             }
         }

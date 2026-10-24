@@ -11,6 +11,13 @@ use Illuminate\Support\Facades\DB;
  */
 class DeudaCliente
 {
+    /**
+     * Si es true, un cliente INACTIVO (con deuda) no puede enviar pedidos a despacho.
+     * En false mientras no este listo el modulo de supervision (2026-10-22): el
+     * bloqueo sigue marcando venta='INACTIVO' pero los pedidos se envian igual.
+     */
+    const BLOQUEA_ENVIO = false;
+
     /** Una fila por deuda pendiente: cliente_id, fecha, saldo. */
     public static function sqlPendientes(): string
     {

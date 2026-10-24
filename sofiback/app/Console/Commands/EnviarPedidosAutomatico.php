@@ -35,11 +35,13 @@ class EnviarPedidosAutomatico extends Command
             $pedidos = Pedido::where('estado', 'CREADO')
                 ->where('bonificacion', 0)
                 ->whereDate('fecha', $ahora->toDateString())
-                ->whereExists(function ($query) {
-                    $query->select(DB::raw(1))
-                        ->from('tbclientes as c')
-                        ->whereColumn('c.Cod_Aut', 'tbpedidos.idCli')
-                        ->where('c.venta', 'ACTIVO');
+                ->when(\App\Services\DeudaCliente::BLOQUEA_ENVIO, function ($q) {
+                    $q->whereExists(function ($query) {
+                        $query->select(DB::raw(1))
+                            ->from('tbclientes as c')
+                            ->whereColumn('c.Cod_Aut', 'tbpedidos.idCli')
+                            ->where('c.venta', 'ACTIVO');
+                    });
                 })
                 ->get();
 
