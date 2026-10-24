@@ -925,6 +925,13 @@
           <q-select
             v-model="placaNueva" :options="vehiculos.filter(v => v !== (filaCamion.placa || ''))"
             dense outlined clearable label="Nuevo camión" hint="Vacío: se queda en el mismo"
+            :disable="sinCamion"
+          />
+          <!-- Para cuando el camion quedo en reparacion y el pedido ya no sale en ninguno. -->
+          <q-checkbox
+            v-if="filaCamion.placa"
+            v-model="sinCamion" dense color="red-7" label="Dejar sin camión"
+            @update:model-value="v => { if (v) placaNueva = null }"
           />
           <q-select
             v-if="filaCamion.pedido_nro"
@@ -949,7 +956,7 @@
         <q-card-actions align="right">
           <q-btn flat no-caps label="Cancelar" v-close-popup/>
           <q-btn unelevated no-caps color="indigo-7" icon="local_shipping" label="Cambiar"
-                 :disable="!placaNueva && !colorNuevo" :loading="cambiandoCamion" @click="cambiarCamion"/>
+                 :disable="!placaNueva && !colorNuevo && !sinCamion" :loading="cambiandoCamion" @click="cambiarCamion"/>
         </q-card-actions>
       </q-card>
     </q-dialog>
@@ -1086,6 +1093,7 @@ export default {
       dialogCamion: false,
       filaCamion: null,
       placaNueva: null,
+      sinCamion: false,
       colorNuevo: null,
       colores: [],
       vehiculos: [],
@@ -1962,6 +1970,7 @@ export default {
     abrirCambioCamion (row) {
       this.filaCamion = row
       this.placaNueva = null
+      this.sinCamion = false
       this.colorNuevo = null
       this.dialogCamion = true
       if (!this.colores.length) {
@@ -1976,7 +1985,8 @@ export default {
     cambiarCamion () {
       this.cambiandoCamion = true
       this.$api.put('facturacion/' + this.filaCamion.id + '/camion', {
-        placa: this.placaNueva,
+        placa: this.sinCamion ? null : this.placaNueva,
+        sin_camion: this.sinCamion,
         color_id: this.colorNuevo ? this.colorNuevo.id : null
       })
         .then(res => {

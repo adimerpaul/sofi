@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Http\Controllers\Concerns\PapeleriaSofia;
+use App\Http\Controllers\FacturacionController;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\DB;
@@ -46,6 +47,7 @@ class RecojoDelDia
     {
         $consulta = DB::table('entregas as e')
             ->leftJoin('tbclientes as c', 'c.Cod_Aut', '=', 'e.cliente_id')
+            ->leftJoin('facturas as fb', 'fb.id', '=', 'e.factura_id')
             ->leftJoin('personal as p', 'p.CodAut', '=', 'e.personal_id')
             ->where('e.fechaEntreg', $fecha);
 
@@ -101,7 +103,17 @@ class RecojoDelDia
                 DB::raw('COALESCE(e.monto_efectivo, 0) as monto_efectivo'),
                 DB::raw('COALESCE(e.monto_qr, 0) as monto_qr'),
                 DB::raw("TRIM(COALESCE(e.observacion, '')) as motivo"),
-                DB::raw("TRIM(COALESCE(c.Nombres, '')) as cliente"),
+                // Una baja sale a nombre de su cuenta (BAJAS POR ...), igual
+                // que en el comprobante impreso, no del cliente que la recibe.
+                DB::raw("COALESCE((
+                    SELECT NULLIF(TRIM(cb.Nombres), '')
+                    FROM tbpedidos pb
+                    JOIN tbclientes cb ON cb.Cod_Aut = pb.bonificacionId
+                    WHERE pb.deleted_at IS NULL AND pb.NroPed = fb.pedido_nro
+                      AND " . TipoPedido::sql('pb') . " = UPPER(TRIM(fb.pedido_tipo))
+                      AND pb.bonificacionId IN (" . implode(',', FacturacionController::CUENTAS_BAJA) . ")
+                    LIMIT 1
+                ), TRIM(COALESCE(c.Nombres, ''))) as cliente"),
                 DB::raw("TRIM(CONCAT(COALESCE(p.Nombre1, ''), ' ', COALESCE(p.App1, ''))) as caminero"),
             ])
             ->map(function ($fila) {

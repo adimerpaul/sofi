@@ -423,7 +423,7 @@ class ReporteVentasController extends Controller
     private const REPORTES_CERDO = [
         'enteros' => ['CANTIDAD DE CERDO POR VENDEDOR', [['ENT.', '503305'], ['DES.', '503303'], ['COR.', '503304']], true],
         'cortes'  => ['REPORTE DEL CERDO POR CORTES', [['PALETAS', '100002'], ['COSTILLA', '100003'],
-            ['PIERNA', '100001'], ['CHULETA', '100004'], ['CARRE', '503632']], false],
+            ['PIERNA', '100001'], ['CHULETA', '100004'], ['CARRE', '503632'], ['PIERNA GRANEL', '503606']], false],
     ];
 
     /** Reporte de cerdo (enteros o cortes) en pantalla; ?formato=excel para la planilla. */

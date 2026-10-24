@@ -3174,11 +3174,14 @@ class FacturacionController extends Controller
         $datos = $request->validate([
             'placa' => 'nullable|string|max:50',
             'color_id' => 'nullable|integer',
+            // Para el que ya no sale en ningun camion (ej. camion en reparacion).
+            'sin_camion' => 'nullable|boolean',
         ]);
-        $placa = trim((string) ($datos['placa'] ?? ''));
+        $sinCamion = !empty($datos['sin_camion']);
+        $placa = $sinCamion ? '' : trim((string) ($datos['placa'] ?? ''));
         $colorId = $datos['color_id'] ?? null;
 
-        if ($placa === '' && !$colorId) {
+        if (!$sinCamion && $placa === '' && !$colorId) {
             return response()->json(['message' => 'Elegí un camión o un color'], 422);
         }
 
@@ -3203,9 +3206,11 @@ class FacturacionController extends Controller
         }
 
         $anterior = $factura->pedido_nro ? $this->camionDeFactura($factura) : trim((string) $factura->placa);
-        $cambiaPlaca = $placa !== '' && $anterior !== $placa;
+        $cambiaPlaca = ($placa !== '' || $sinCamion) && $anterior !== $placa;
         if (!$cambiaPlaca && !$zona) {
-            return response()->json(['message' => 'El comprobante ya va en ' . $placa], 422);
+            return response()->json(['message' => $sinCamion
+                ? 'El comprobante ya no va en ningún camión'
+                : 'El comprobante ya va en ' . $placa], 422);
         }
 
         DB::transaction(function () use ($factura, $placa, $cambiaPlaca, $zona) {
@@ -3215,7 +3220,7 @@ class FacturacionController extends Controller
                     ->get()
                     ->each(function ($linea) use ($placa, $cambiaPlaca, $zona) {
                         if ($cambiaPlaca) {
-                            $linea->placa = $placa;
+                            $linea->placa = $placa !== '' ? $placa : null;
                         }
                         if ($zona) {
                             $linea->color = trim((string) $zona->color);
@@ -3224,7 +3229,7 @@ class FacturacionController extends Controller
                         $linea->save();
                     });
             } elseif ($cambiaPlaca) {
-                $factura->placa = $placa;
+                $factura->placa = $placa !== '' ? $placa : null;
                 $factura->save();
             }
 
@@ -3233,6 +3238,12 @@ class FacturacionController extends Controller
             }
 
             DB::table('entregas')->where('factura_id', $factura->id)->update(['placa' => $placa]);
+
+            // Sin camion no hay carga que revisar: se saca de la del anterior.
+            if ($placa === '') {
+                DB::table('carga_verificaciones')->where('factura_id', $factura->id)->delete();
+                return;
+            }
 
             DB::table('carga_verificaciones')->where('factura_id', $factura->id)->update([
                 'placa' => $placa,
@@ -3248,9 +3259,9 @@ class FacturacionController extends Controller
 
         $partes = [];
         if ($cambiaPlaca) {
-            $partes[] = 'pasado de ' . ($anterior ?: 'sin camión') . ' a ' . $placa;
+            $partes[] = 'pasado de ' . ($anterior ?: 'sin camión') . ' a ' . ($placa ?: 'sin camión');
             // Pasa a llevar el numero de salida del camion nuevo ese dia.
-            if ($nro = $this->numeroCamionDe($factura, $placa)) {
+            if ($placa !== '' && $nro = $this->numeroCamionDe($factura, $placa)) {
                 $partes[] = 'N° camión ' . $nro;
             }
         }
