@@ -138,6 +138,26 @@ class AlmacenController extends Controller{
 //        $cantidad = count($data);
 //        $promedio = $cantidad/ $request->codigo;
         $insertAlmacen = [];
+        // Formato "Productos para almacén" de /productos:
+        // Código, Producto, Grupo, Unidad, P. Compra, Precio, P. Costo, Stock, GRUPOS
+        if (isset($data[0][8]) && strtoupper(trim($data[0][8])) == 'GRUPOS') {
+            foreach ($data as $key => $value) {
+                if ($key == 0 || trim((string) $value[0]) === '') continue;
+                $insertAlmacen[] = [
+                    'codigo' => trim((string) $value[8]) !== '' ? trim($value[8]) : 'A',
+                    'codigo_producto' => trim((string) $value[0]),
+                    'producto' => $value[1],
+                    'unidad' => $value[3],
+                    'saldo' => (float) str_replace(',', '', $value[7]),
+                    'registro' => null,
+                    'vencimiento' => null,
+                    'grupo' => $value[2],
+                    'fecha_registro' => $request->fecha
+                ];
+            }
+            Almacen::insert($insertAlmacen);
+            return;
+        }
         foreach ($data as $key => $value) {
             if ($key > 0) {
 //                $codigo=$this->obtencionCodigo($promedio,$key);

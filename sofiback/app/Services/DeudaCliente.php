@@ -64,8 +64,8 @@ class DeudaCliente
      *  - deuda pendiente (contando solo deudas con saldo > 5 Bs) mayor a 12000 Bs
      *  - la deuda pendiente mas antigua (saldo >= 5 Bs) es de hace mas de 9 dias
      * Los clientes con tbclientes.excepcion_deuda = 1 nunca se bloquean (se marca en la pantalla Clientes).
-     * Un cliente INACTIVO puede registrar pedido, pero no se
-     * envia a despacho (envpedido / enviarpedidos) hasta que vuelva a ACTIVO.
+     * Un cliente INACTIVO puede registrar pedido y, por ahora, envpedido / enviarpedidos
+     * lo envian igual; sus pedidos sin enviar se ven en /pendientes.
      */
     public static function bloquear()
     {

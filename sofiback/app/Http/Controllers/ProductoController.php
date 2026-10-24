@@ -559,25 +559,33 @@ class ProductoController extends Controller{
         return response()->json(['message' => 'Producto restaurado: "' . $producto->Producto . '" vuelve al catálogo']);
     }
 
-    /** Catalogo filtrado en Excel. */
+    /**
+     * Catalogo filtrado en Excel. Con almacen=1 agrega la columna GRUPOS (codigo de
+     * conteo, todos en A) para subirlo tal cual en /almacen (AlmacenController::cargarExcel).
+     */
     public function exportarExcel(Request $request)
     {
         $filas = $this->queryCatalogo($request)->orderBy('p.Producto')->get();
+        $almacen = (bool) $request->almacen;
+        $ultima = $almacen ? 'I' : 'H';
 
         $libro = new Spreadsheet();
         $hoja = $libro->getActiveSheet();
         $hoja->setTitle('Productos');
 
         $cabecera = ['Código', 'Producto', 'Grupo', 'Unidad', 'P. Compra', 'Precio', 'P. Costo', 'Stock'];
+        if ($almacen) {
+            $cabecera[] = 'GRUPOS';
+        }
         $hoja->fromArray($cabecera, null, 'A1');
-        $hoja->getStyle('A1:H1')->getFont()->setBold(true);
+        $hoja->getStyle('A1:' . $ultima . '1')->getFont()->setBold(true);
 
         $fila = 2;
         foreach ($filas as $p) {
             // El cuarto argumento (strictNullComparison) es imprescindible: sin
             // el, fromArray compara con == y se salta los ceros, dejando en
             // blanco los precios y stocks en 0 en vez de escribir 0.
-            $hoja->fromArray([
+            $datos = [
                 $p->cod_prod,
                 $p->Producto,
                 $p->grupo,
@@ -587,17 +595,21 @@ class ProductoController extends Controller{
                 (float) $p->Precio,
                 (float) $p->Precio_Costo,
                 (float) $p->cantidad,
-            ], null, 'A' . $fila, true);
+            ];
+            if ($almacen) {
+                $datos[] = 'A';
+            }
+            $hoja->fromArray($datos, null, 'A' . $fila, true);
             $fila++;
         }
 
         $hoja->getStyle('E2:H' . max($fila - 1, 2))->getNumberFormat()->setFormatCode('#,##0.00');
 
-        foreach (range('A', 'H') as $col) {
+        foreach (range('A', $ultima) as $col) {
             $hoja->getColumnDimension($col)->setAutoSize(true);
         }
 
-        $nombre = 'productos_' . date('Y-m-d_His') . '.xlsx';
+        $nombre = ($almacen ? 'productos_almacen_' : 'productos_') . date('Y-m-d_His') . '.xlsx';
         $tmp = tempnam(sys_get_temp_dir(), 'xls');
         (new Xlsx($libro))->save($tmp);
 

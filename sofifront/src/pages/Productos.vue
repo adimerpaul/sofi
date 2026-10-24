@@ -101,11 +101,27 @@
       @request="onRequest"
     >
       <template v-slot:top-right>
-        <q-btn
+        <q-btn-dropdown
           dense unelevated no-caps color="green-8" icon="table_chart"
           label="Excel" class="q-mr-sm" :loading="exportando === 'excel'"
-          @click="exportar('excel')"
-        />
+        >
+          <q-list dense>
+            <q-item clickable v-close-popup @click="exportar('excel')">
+              <q-item-section avatar><q-icon name="inventory_2"/></q-item-section>
+              <q-item-section>
+                <q-item-label>Exportar productos</q-item-label>
+                <q-item-label caption>Catálogo con precios y stock</q-item-label>
+              </q-item-section>
+            </q-item>
+            <q-item clickable v-close-popup @click="exportar('excel', true)">
+              <q-item-section avatar><q-icon name="warehouse"/></q-item-section>
+              <q-item-section>
+                <q-item-label>Productos para almacén</q-item-label>
+                <q-item-label caption>Para cargar en Almacén (con GRUPOS)</q-item-label>
+              </q-item-section>
+            </q-item>
+          </q-list>
+        </q-btn-dropdown>
         <q-btn
           dense unelevated no-caps color="red-7" icon="picture_as_pdf"
           label="PDF" class="q-mr-sm" :loading="exportando === 'pdf'"
@@ -913,11 +929,12 @@ export default {
       })
     },
 
-    exportar (formato) {
+    // almacen: el Excel con la columna GRUPOS que se sube en /almacen.
+    exportar (formato, almacen = false) {
       this.exportando = formato
 
       this.$api.get('productos/' + formato, {
-        params: this.filtrosActuales(),
+        params: Object.assign(this.filtrosActuales(), almacen ? { almacen: 1 } : {}),
         responseType: 'blob'
       }).then(res => {
         const tipo = formato === 'pdf' ? 'application/pdf' : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
@@ -933,7 +950,7 @@ export default {
 
         const link = document.createElement('a')
         link.href = url
-        link.download = 'productos.' + (formato === 'pdf' ? 'pdf' : 'xlsx')
+        link.download = (almacen ? 'productos_almacen.' : 'productos.') + (formato === 'pdf' ? 'pdf' : 'xlsx')
         link.click()
         setTimeout(() => window.URL.revokeObjectURL(url), 60000)
       }).catch(err => {
