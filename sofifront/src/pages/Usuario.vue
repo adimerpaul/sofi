@@ -199,7 +199,8 @@ export default {
         cargacamion: 'Verificar carga (caminero)',
         entregaFactura: 'Entrega factura — entregas del día con facturación',
         facturacionPrecio: 'Cambiar precio al facturar pedidos',
-        facturacionAprobarCarga: 'Aprobar la carga de un camión (facturación)'
+        facturacionAprobarCarga: 'Aprobar la carga de un camión (facturación)',
+        facturacionFicticia: 'Facturación ficticia — facturar al SIAT sin tocar facturación ni inventario'
       }
       return nombres[p] || p
     },

@@ -875,40 +875,25 @@ export default {
         return
       }
 
-      // Mismo producto al mismo precio: se suma en vez de repetir la línea.
-      const existente = this.carrito.find(
-        i => i.cod_prod === this.elegido.cod_prod && Number(i.precio) === precio
-      )
-
-      if (existente) {
-        existente.cantidad = Number(existente.cantidad) + cant
-        if (conPiezas) {
-          existente.piezas = (Number(existente.piezas) || 0) + piezas
-        }
-        if (conCanastillos) {
-          existente.peso_bruto = Math.round((Number(existente.peso_bruto || 0) + Number(this.brutoElegido)) * 1000) / 1000
-          existente.canastillos = this.canastillos(existente) + this.canastillos({ canastillos: this.canastillosElegidos })
-        }
-        this.sincronizarTotal(existente)
-      } else {
-        const item = {
-          cod_prod: this.elegido.cod_prod,
-          nombre: this.elegido.producto,
-          unidad: this.elegido.unidad,
-          imagen: this.elegido.imagen,
-          precios: this.elegido.precios || [],
-          cantidad: cant,
-          piezas: conPiezas ? piezas : null,
-          precio,
-          con_canastillos: conCanastillos,
-          kg_canastillo: this.elegido.kg_canastillo,
-          peso_bruto: conCanastillos ? Number(this.brutoElegido) : null,
-          canastillos: conCanastillos ? this.canastillos({ canastillos: this.canastillosElegidos }) : null,
-          total: 0
-        }
-        this.sincronizarTotal(item)
-        this.carrito.push(item)
+      // Cada vez entra como linea aparte, aunque el producto ya este en el
+      // carrito: asi un mismo producto puede ir a precios distintos.
+      const item = {
+        cod_prod: this.elegido.cod_prod,
+        nombre: this.elegido.producto,
+        unidad: this.elegido.unidad,
+        imagen: this.elegido.imagen,
+        precios: this.elegido.precios || [],
+        cantidad: cant,
+        piezas: conPiezas ? piezas : null,
+        precio,
+        con_canastillos: conCanastillos,
+        kg_canastillo: this.elegido.kg_canastillo,
+        peso_bruto: conCanastillos ? Number(this.brutoElegido) : null,
+        canastillos: conCanastillos ? this.canastillos({ canastillos: this.canastillosElegidos }) : null,
+        total: 0
       }
+      this.sincronizarTotal(item)
+      this.carrito.push(item)
 
       this.dialogProducto = false
     },

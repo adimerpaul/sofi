@@ -88,9 +88,29 @@ class ModificacionFactura
             }
         }
 
+        // Un mismo codigo puede venir en varias lineas (otro precio): se
+        // compara la suma de cada producto y los precios usados.
         $porCodigo = function ($detalles) {
-            return collect($detalles)->keyBy(function ($d) {
+            return collect($detalles)->groupBy(function ($d) {
                 return trim((string) $d->cod_prod);
+            })->map(function ($grupo) {
+                $linea = (object) ['nombre' => $grupo->first()->nombre];
+                foreach (array_keys(self::DETALLE) as $campo) {
+                    $valores = $grupo->pluck($campo)->filter(function ($v) {
+                        return $v !== null && $v !== '';
+                    });
+                    if ($campo === 'precio') {
+                        $precios = $valores->map(function ($v) {
+                            return round((float) $v, 2);
+                        })->unique()->sort()->values();
+                        $linea->precio = $precios->count() > 1 ? $precios->implode(' / ') : $precios->first();
+                        continue;
+                    }
+                    $linea->{$campo} = $valores->isEmpty() ? null : $valores->sum(function ($v) {
+                        return (float) $v;
+                    });
+                }
+                return $linea;
             });
         };
         $lineasAntes = $porCodigo($antes->detalles);

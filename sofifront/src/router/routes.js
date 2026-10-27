@@ -76,6 +76,7 @@ const routes = [
       { path: '/facturacion/nueva', component: () => import('pages/Facturacion/FacturaNueva.vue'), meta: { requiresAuth: true } },
       { path: '/facturacion/reportes', component: () => import('pages/Facturacion/Reportes.vue'), meta: { requiresAuth: true } },
       { path: '/impuestos', component: () => import('pages/Impuestos/Impuestos.vue'), meta: { requiresAuth: true } },
+      { path: '/facturacion-ficticia', component: () => import('pages/Facturacion/FacturacionFicticia.vue'), meta: { requiresAuth: true } },
       { path: '/compras', component: () => import('pages/Compras/ComprasLista.vue'), meta: { requiresAuth: true } },
       { path: '/compras/nueva', component: () => import('pages/Compras/CompraNueva.vue'), meta: { requiresAuth: true } },
       { path: '/proveedores', component: () => import('pages/Compras/ProveedoresLista.vue'), meta: { requiresAuth: true } },

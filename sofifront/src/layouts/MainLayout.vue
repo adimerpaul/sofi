@@ -156,7 +156,8 @@ export default {
             { label: 'Nueva Venta', caption: 'Armar carrito y cobrar', icon: 'add_shopping_cart', to: 'facturacion/nueva', show: can('facturacionNueva') },
             { label: 'Pedido factura', caption: 'Facturar pedidos de preventistas', icon: 'assignment_turned_in', to: 'facturacion/pedidos', show: can('facturacionNueva') },
             { label: 'Reportes', caption: 'Quiebre de stock', icon: 'assessment', to: 'facturacion/reportes', show: can('reportesVentas') },
-            { label: 'Impuestos', caption: 'CUIS, CUFD y token', icon: 'gavel', to: 'impuestos', show: can('impuestos') }
+            { label: 'Impuestos', caption: 'CUIS, CUFD y token', icon: 'gavel', to: 'impuestos', show: can('impuestos') },
+            { label: 'Facturación ficticia', caption: 'Al SIAT sin tocar inventario', icon: 'receipt', to: 'facturacion-ficticia', show: can('facturacionFicticia') }
           ]
         },
         {

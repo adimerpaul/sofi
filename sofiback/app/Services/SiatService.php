@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Factura;
+use App\Models\FacturaFicticia;
 use App\Models\SiatConfiguracion;
 use App\Models\SiatCufd;
 use App\Models\SiatCui;
@@ -733,7 +734,13 @@ class SiatService
 
         $caja = (int) DB::table('tbfactura')->where('PuntVenta', $puntoVenta)->max('nrofac');
 
-        return max($propio, $caja) + 1;
+        // La facturacion ficticia emite con la misma serie desde su propia tabla.
+        $ficticia = (int) FacturaFicticia::withTrashed()
+            ->where('codigo_sucursal', $sucursal)
+            ->where('codigo_punto_venta', $puntoVenta)
+            ->max('nro_factura');
+
+        return max($propio, $caja, $ficticia) + 1;
     }
 
     /** Sucursal y punto de venta a usar, con lo configurado por defecto. */

@@ -115,6 +115,14 @@ Route::group(['middleware'=>'auth:sanctum'],function (){
     // Caja marca como revisadas las canastas elegidas en la grilla.
     Route::post('/facturacion/carga/marcar',[\App\Http\Controllers\FacturacionController::class,'marcarCargaVarias']);
     Route::get('/facturacion/camiones',[\App\Http\Controllers\FacturacionController::class,'camiones']);
+    // Facturacion ficticia: emite al SIAT sin tocar facturas ni inventario.
+    Route::get('/facturacion-ficticia',[\App\Http\Controllers\FacturaFicticiaController::class,'index']);
+    Route::post('/facturacion-ficticia',[\App\Http\Controllers\FacturaFicticiaController::class,'store']);
+    Route::get('/facturacion-ficticia/{id}',[\App\Http\Controllers\FacturaFicticiaController::class,'show'])->where('id', '[0-9]+');
+    Route::get('/facturacion-ficticia/{id}/pdf',[\App\Http\Controllers\FacturaFicticiaController::class,'pdf'])->where('id', '[0-9]+');
+    Route::post('/facturacion-ficticia/{id}/reenviar',[\App\Http\Controllers\FacturaFicticiaController::class,'reenviar'])->where('id', '[0-9]+');
+    Route::post('/facturacion-ficticia/{id}/verificar',[\App\Http\Controllers\FacturaFicticiaController::class,'verificar'])->where('id', '[0-9]+');
+    Route::put('/facturacion-ficticia/{id}/anular',[\App\Http\Controllers\FacturaFicticiaController::class,'anular'])->where('id', '[0-9]+');
     // Entregas del dia sobre facturacion (reemplaza al reporte de /entrega).
     Route::get('/entrega-factura',[\App\Http\Controllers\EntregaFacturaController::class,'index']);
     // Solo las ventas del vendedor que entra, para /avance.
