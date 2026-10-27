@@ -55,8 +55,9 @@ class CobranzaVerificacionController extends Controller
                     'planilla' => $placa === 'SIN' ? '' : NumeroCamion::formato(NumeroCamion::de($placa, $fecha)),
                     'total' => $grupo->count(),
                     'verificados' => $grupo->where('verificado', true)->count(),
-                    'entregados' => $grupo->where('entregado', true)->count(),
-                    'entregados_verificados' => $grupo->where('entregado', true)->where('verificado', true)->count(),
+                    // El porcentaje no cuenta los creditos: no se cobran al entregar, no hay nada que verificar.
+                    'entregados' => $grupo->where('entregado', true)->where('forma_pago', '!=', 'CRÉDITO')->count(),
+                    'entregados_verificados' => $grupo->where('entregado', true)->where('forma_pago', '!=', 'CRÉDITO')->where('verificado', true)->count(),
                     'color' => (string) data_get($grupo->firstWhere('placa_color', '!=', ''), 'placa_color', ''),
                 ];
             })->sortBy('placa')->values(),

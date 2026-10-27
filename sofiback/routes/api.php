@@ -339,6 +339,7 @@ Route::group(['middleware'=>'auth:sanctum'],function (){
     Route::put('/almacenRegistroVerificar/{id}',[\App\Http\Controllers\AlmacenController::class,'almacenRegistroVerificar']);
     Route::put('/almacenes/{id}',[\App\Http\Controllers\AlmacenController::class,'update']);
     Route::delete('/almacenes/{id}',[\App\Http\Controllers\AlmacenController::class,'destroy']);
+    Route::post('/almacenesEliminarTodos',[\App\Http\Controllers\AlmacenController::class,'eliminarTodos']);
     Route::post('/cargarExcel',[\App\Http\Controllers\AlmacenController::class,'cargarExcel']);
     Route::get('/porcentaje',[\App\Http\Controllers\AlmacenController::class,'porcentaje']);
 

@@ -15,6 +15,7 @@
           <q-btn label="Ver Porcentaje" no-caps color="indigo" icon="visibility" :loading="loading" @click="verPorcentajeClick()" />
           <q-btn label="Exportar Excel" no-caps color="orange" icon="cloud_download" :loading="loading" @click="exportarExcel" />
           <q-btn label="Cargar Excel" no-caps color="green" icon="cloud_upload" :loading="loading" @click="dialogFile = true" />
+          <q-btn label="Eliminar todos" no-caps color="red" icon="delete_sweep" :loading="loading" @click="eliminarTodos" />
         </div>
       </q-card-section>
       <q-card-section class="q-pa-md">
@@ -454,6 +455,28 @@ export default {
           console.error(err);
         }).finally(() => {
           // this.loading = false;
+        });
+      });
+    },
+    eliminarTodos() {
+      this.$q.dialog({
+        title: 'Eliminar todos',
+        message: `¿Está seguro de eliminar TODOS los registros del ${this.fecha}? También se borrarán los conteos de la app. No se puede deshacer.`,
+        cancel: true,
+        persistent: true,
+      }).onOk(() => {
+        this.loading = true;
+        this.$api.post('almacenesEliminarTodos', { fecha: this.fecha }).then(res => {
+          this.$q.notify({
+            color: 'positive',
+            position: 'top',
+            message: `Se eliminaron ${res.data.eliminados} registros`,
+            icon: 'check',
+          });
+          this.getAlmacenes();
+        }).catch(err => {
+          console.error(err);
+          this.loading = false;
         });
       });
     },

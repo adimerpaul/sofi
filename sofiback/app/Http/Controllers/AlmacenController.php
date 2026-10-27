@@ -306,4 +306,10 @@ class AlmacenController extends Controller{
         $almacen->delete();
         return response()->json($almacen);
     }
+    public function eliminarTodos(Request $request){
+        $request->validate(['fecha' => 'required|date']);
+        // registro_almacens se borra en cascada por la FK almacen_id
+        $eliminados = Almacen::whereDate('fecha_registro', $request->fecha)->delete();
+        return response()->json(['eliminados' => $eliminados]);
+    }
 }

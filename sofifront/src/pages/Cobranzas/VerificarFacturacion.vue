@@ -131,7 +131,7 @@
         <span class="camion-conteo">{{ c.entregados_verificados }}/{{ c.entregados }}</span>
         <!-- Planilla ya cerrada (cierre impreso). -->
         <q-icon :name="c.cierre ? 'lock' : 'lock_open'" :color="c.cierre ? 'orange-9' : 'grey-4'" size="14px" class="q-ml-xs"/>
-        <q-tooltip>Verificados / entregados (incluye entregas parciales) · {{ c.verificados }}/{{ c.total }} en total</q-tooltip>
+        <q-tooltip>Verificados / entregados (incluye entregas parciales, sin créditos) ·{{ c.verificados }}/{{ c.total }} en total</q-tooltip>
       </button>
     </q-card>
 
@@ -710,8 +710,9 @@ export default {
       }
       this.camiones = this.camiones.map(c => this.camion && c.placa !== this.camion ? c : ({
         ...c,
-        entregados: this.filas.filter(f => f.placa === c.placa && f.entregado).length,
-        entregados_verificados: this.filas.filter(f => f.placa === c.placa && f.entregado && f.verificado).length,
+        // Sin creditos, igual que el backend: asi el porcentaje puede llegar al 100.
+        entregados: this.filas.filter(f => f.placa === c.placa && f.entregado && !this.esCredito(f)).length,
+        entregados_verificados: this.filas.filter(f => f.placa === c.placa && f.entregado && !this.esCredito(f) && f.verificado).length,
         verificados: this.filas.filter(f => f.placa === c.placa && f.verificado).length
       }))
     },
