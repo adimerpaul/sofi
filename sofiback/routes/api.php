@@ -99,6 +99,8 @@ Route::group(['middleware'=>'auth:sanctum'],function (){
     Route::get('/facturacion/pedidos/{pedido}',[\App\Http\Controllers\FacturacionController::class,'pedido']);
     // Guarda el avance del cobro sin crear la venta ni descontar stock.
     Route::post('/facturacion/pedidos/{pedido}/borrador',[\App\Http\Controllers\FacturacionController::class,'guardarBorrador']);
+    // Saca (o restablece) un pedido que no va a salir del avance del dia.
+    Route::post('/facturacion/pedidos/{pedido}/ocultar',[\App\Http\Controllers\FacturacionController::class,'ocultarPedido']);
     // Van antes de /facturacion/{factura}: si no, 'lote' y 'reporte' entrarian
     // como si fueran el id de una factura.
     Route::get('/facturacion/lote/{documento}',[\App\Http\Controllers\FacturacionController::class,'lote']);

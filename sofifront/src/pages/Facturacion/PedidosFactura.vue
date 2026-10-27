@@ -63,8 +63,9 @@
       <div class="row items-center no-wrap q-px-xs bg-grey-3 camion-titulo">
         <div class="text-weight-bold text-grey-8">CARGA POR CAMION</div>
         <q-space/>
-        <div class="text-weight-bolder" :class="facturadosTotal === pedidos.length ? 'text-green-9' : 'text-orange-9'">
-          {{ facturadosTotal }}/{{ pedidos.length }} · {{ porcentajeTotal }}%
+        <div class="text-weight-bolder" :class="facturadosTotal === pedidosContables.length ? 'text-green-9' : 'text-orange-9'">
+          {{ facturadosTotal }}/{{ pedidosContables.length }} · {{ porcentajeTotal }}%
+          <span v-if="ocultosTotal" class="text-grey-7 text-weight-medium">· {{ ocultosTotal }} oculto{{ ocultosTotal > 1 ? 's' : '' }}</span>
         </div>
         <q-btn v-if="camion" flat dense no-caps size="sm" padding="0 4px" class="q-ml-xs" color="primary"
                icon="clear" label="Todos" @click="camion = null"/>
@@ -114,7 +115,8 @@
       <div v-for="pedido in pedidosFiltrados" :key="pedido.nro_pedido + '-' + pedido.tipo" class="col-12 col-sm-6 col-lg-4">
         <!-- El pedido ya cobrado se pinta entero de verde: en el mostrador se
              ve de un vistazo cual falta sin leer badge por badge. -->
-        <q-card flat bordered class="rounded-borders shadow-1" :class="pedido.factura_id ? 'bg-green-2' : ''">
+        <!-- El oculto (no va a salir) queda gris y apagado, al fondo de la lista. -->
+        <q-card flat bordered class="rounded-borders shadow-1" :class="pedido.factura_id ? 'bg-green-2' : pedido.oculto ? 'bg-grey-3 pedido-oculto' : ''">
           <q-card-section class="q-pa-xs">
             <div class="row items-center no-wrap q-mb-xs">
               <q-badge color="primary" class="text-body2 q-pa-xs">#{{ pedido.nro_pedido }}</q-badge>
@@ -128,7 +130,10 @@
               <!-- El que vuelve por una anulacion no arranca de cero: al
                    entrar trae cargado lo que ya se habia cobrado. -->
               <!-- Guardado a medias: todavia no es venta ni bajo stock. -->
-              <q-badge v-if="pedido.borrador" color="amber-9">
+              <q-badge v-if="pedido.oculto && !pedido.factura_id" color="grey-7">
+                <q-icon name="visibility_off" size="14px" class="q-mr-xs"/>OCULTO
+              </q-badge>
+              <q-badge v-else-if="pedido.borrador" color="amber-9">
                 <q-icon name="save" size="14px" class="q-mr-xs"/>GUARDADO
               </q-badge>
               <q-badge v-else-if="pedido.anulada_id" color="blue-8">
@@ -305,12 +310,25 @@
           <q-card-actions vertical class="q-pa-xs">
           <!-- Mientras el pedido no tenga factura solo se ofrece facturar: el
                comprobante recien aparece cuando existe algo que mostrar. -->
-          <template v-if="!pedido.factura_id">
+          <!-- Oculto: solo se ofrece restablecerlo, por si se equivocaron. -->
+          <template v-if="!pedido.factura_id && pedido.oculto">
+            <q-btn
+              class="full-width q-py-xs text-weight-bold" outline no-caps color="grey-8" icon="restore" label="Restablecer"
+              :loading="ocultando === claveTarjeta(pedido)" @click="cambiarOculto(pedido, false)"
+            />
+            <div class="text-caption text-grey-7 q-mt-xs">No va a salir: no cuenta en el avance del día</div>
+          </template>
+          <template v-else-if="!pedido.factura_id">
             <q-btn
               class="full-width q-py-xs text-weight-bold" color="positive" unelevated no-caps
               :icon="pedido.borrador ? 'save' : pedido.anulada_id ? 'history' : 'edit_note'"
               :label="pedido.borrador ? 'Continuar y finalizar' : pedido.anulada_id ? 'Retomar y facturar' : 'Revisar y facturar'"
               @click="revisar(pedido)"
+            />
+            <!-- Para el que no va a salir porque no hay producto: lo saca del avance. -->
+            <q-btn
+              flat dense no-caps size="sm" color="grey-7" icon="visibility_off" label="Ocultar (no sale)" class="q-mt-xs"
+              :loading="ocultando === claveTarjeta(pedido)" @click="confirmarOcultar(pedido)"
             />
             <div v-if="pedido.borrador" class="text-caption text-amber-10 q-mt-xs">
               Guardado {{ pedido.borrador.guardado }}
@@ -376,6 +394,7 @@ export default {
       cargando: false,
       consultaActual: 0,
       imprimiendo: null,
+      ocultando: null,
       exportando: false,
       pedidos: [],
       tiposProducto: []
@@ -420,6 +439,8 @@ export default {
         }
         if (!fila.nro && pedido.nro_camion) fila.nro = pedido.nro_camion
         if (!fila.color && pedido.placa_color) fila.color = pedido.placa_color
+        // El oculto no va a salir: no cuenta, asi el camion puede llegar al 100%.
+        if (this.esOculto(pedido)) return
         fila.total += 1
         if (pedido.factura_id) fila.facturados += 1
       })
@@ -440,21 +461,60 @@ export default {
         return uno.placa.localeCompare(otro.placa)
       })
     },
+    // Lo que cuenta para el avance: todo menos los ocultos.
+    pedidosContables () {
+      return this.pedidos.filter(pedido => !this.esOculto(pedido))
+    },
+    ocultosTotal () {
+      return this.pedidos.length - this.pedidosContables.length
+    },
     facturadosTotal () {
-      return this.pedidos.filter(pedido => pedido.factura_id).length
+      return this.pedidosContables.filter(pedido => pedido.factura_id).length
     },
     porcentajeTotal () {
-      if (!this.pedidos.length) return 0
-      return Math.round((this.facturadosTotal / this.pedidos.length) * 100)
+      if (!this.pedidosContables.length) return 0
+      return Math.round((this.facturadosTotal / this.pedidosContables.length) * 100)
     },
     pedidosFiltrados () {
       // Sin camion elegido (el select va vacio o recien limpiado) se ven todos.
-      if (!this.camion) return this.pedidos
-      if (this.camion === 'SIN') return this.pedidos.filter(pedido => !(pedido.placa || '').trim())
-      return this.pedidos.filter(pedido => (pedido.placa || '').trim() === this.camion)
+      let lista = this.pedidos
+      if (this.camion === 'SIN') lista = lista.filter(pedido => !(pedido.placa || '').trim())
+      else if (this.camion) lista = lista.filter(pedido => (pedido.placa || '').trim() === this.camion)
+      // Los ocultos al fondo: ya no hay que mirarlos.
+      return lista.filter(pedido => !this.esOculto(pedido)).concat(lista.filter(pedido => this.esOculto(pedido)))
     }
   },
   methods: {
+    // Uno ya cobrado cuenta siempre, aunque haya quedado marcado.
+    esOculto (pedido) {
+      return !!pedido.oculto && !pedido.factura_id
+    },
+    claveTarjeta (pedido) {
+      return pedido.nro_pedido + '-' + pedido.tipo
+    },
+    confirmarOcultar (pedido) {
+      this.$q.dialog({
+        title: 'Ocultar pedido #' + pedido.nro_pedido,
+        message: 'No va a salir (no hay producto). Deja de contar en el avance del día; se puede restablecer después.',
+        cancel: true,
+        ok: { label: 'Ocultar', color: 'grey-8', unelevated: true }
+      }).onOk(() => this.cambiarOculto(pedido, true))
+    },
+    cambiarOculto (pedido, oculto) {
+      this.ocultando = this.claveTarjeta(pedido)
+      this.$api.post('facturacion/pedidos/' + pedido.nro_pedido + '/ocultar', {
+        pedido_tipo: pedido.tipo,
+        fecha: this.fecha,
+        oculto
+      }).then(() => {
+        pedido.oculto = oculto
+      }).catch(err => {
+        this.$q.notify({
+          type: 'negative', position: 'top',
+          message: err.response?.data?.message || 'No se pudo ' + (oculto ? 'ocultar' : 'restablecer') + ' el pedido'
+        })
+      }).finally(() => { this.ocultando = null })
+    },
     // Antes de cobrarse manda lo que pidio el cliente (fact = SI); una vez
     // emitido, lo que de verdad salio, que puede no coincidir.
     esFactura (pedido) {
@@ -700,6 +760,9 @@ export default {
   text-align: right;
   font-size: 11px;
   font-weight: 700;
+}
+.pedido-oculto {
+  opacity: 0.6;
 }
 .boletas {
   border: 1px solid #c5cae9;

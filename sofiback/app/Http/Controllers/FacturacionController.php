@@ -1167,6 +1167,8 @@ class FacturacionController extends Controller
                 DB::raw('MIN(p.fact) as fact'),
                 DB::raw('MIN(p.pago) as pago'),
                 DB::raw('MIN(p.comentario) as comentario'),
+                // Pedido que no va a salir: no cuenta en el avance del dia.
+                DB::raw('MAX(COALESCE(p.oculto, 0)) as oculto'),
                 // El camion del pedido es tbpedidos.placa; colorStyle es el color
                 // con el que esa placa ya se pinta en el mapa y en el reporte.
                 DB::raw("TRIM(COALESCE(MIN(p.placa), '')) as placa"),
@@ -1289,7 +1291,8 @@ class FacturacionController extends Controller
                 $numerosCamion[$camion] = NumeroCamion::formato(NumeroCamion::de($pedido->placa, $pedido->fecha_entrega));
             }
             $pedido->nro_camion = $numerosCamion[$camion];
-            $borrador = $pedido->factura_id ? null : $borradores->get($llave);
+            $pedido->oculto = (bool) $pedido->oculto;
+            $borrador =$pedido->factura_id ? null : $borradores->get($llave);
             $pedido->borrador = $borrador ? [
                 'total'    => (float) $borrador->total,
                 'usuario'  => $borrador->usuario,
@@ -1896,6 +1899,42 @@ class FacturacionController extends Controller
             });
 
         return response()->json(['pedido' => $cabecera, 'items' => $items, 'stock' => $stock]);
+    }
+
+    /**
+     * Oculta (o restablece) un pedido que no va a salir porque no hay
+     * producto: deja de contar en el avance de Pedido factura. Marca todas
+     * las lineas del pedido (NroPed + tipo) de ese dia de entrega.
+     */
+    public function ocultarPedido(Request $request, $nroPedido)
+    {
+        $datos = $request->validate([
+            'pedido_tipo' => 'required|' . TipoPedido::regla(),
+            'fecha'       => 'required|date',
+            'oculto'      => 'required|boolean',
+        ]);
+
+        $tipo = $datos['pedido_tipo'];
+        $oculto = (bool) $datos['oculto'];
+
+        if ($oculto) {
+            $vigente = Factura::where('pedido_nro', $nroPedido)
+                ->where('pedido_tipo', $tipo)
+                ->where('estado', '<>', 'ANULADO')
+                ->exists();
+            if ($vigente) {
+                return response()->json(['message' => 'Este pedido ya fue facturado; no se puede ocultar'], 422);
+            }
+        }
+
+        DB::table('tbpedidos')
+            ->whereNull('deleted_at')
+            ->where('NroPed', $nroPedido)
+            ->where('fecha_entrega', $datos['fecha'])
+            ->whereRaw(TipoPedido::sql('') . ' = ?', [$tipo])
+            ->update(['oculto' => $oculto ? 1 : 0]);
+
+        return response()->json(['oculto' => $oculto]);
     }
 
     /**
