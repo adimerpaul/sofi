@@ -1450,6 +1450,8 @@ class ReporteVentasController extends Controller
         'vendedor'     => 'VENDEDOR',
         'cod_prod'     => 'COD. PRODUCTO',
         'producto'     => 'PRODUCTO',
+        'familia'      => 'FAMILIA',
+        'subfamilia'   => 'SUBFAMILIA',
         'peso'         => 'PESO',
         'importe'      => 'IMPORTE',
         'p_compra'     => 'P.COMPRA',
@@ -1511,6 +1513,9 @@ class ReporteVentasController extends Controller
         $lineas = DB::table('facturas as f')
             ->join('factura_detalles as d', 'd.factura_id', '=', 'f.id')
             ->leftJoin('tbproductos as pr', DB::raw('TRIM(pr.cod_prod)'), '=', DB::raw('TRIM(d.cod_prod)'))
+            // Familia = grupo del producto; subfamilia = el grupo padre de ese grupo.
+            ->leftJoin('tbgrupos as g', 'g.Cod_grup', '=', 'pr.cod_grup')
+            ->leftJoin('tbgrupopadre as gp', 'gp.cod_grup', '=', 'g.Cod_pdr')
             ->leftJoin('tbclientes as c', 'c.Cod_Aut', '=', 'f.cliente_id')
             ->whereNull('f.deleted_at')
             ->whereNull('d.deleted_at')
@@ -1536,7 +1541,8 @@ class ReporteVentasController extends Controller
                 DB::raw("COALESCE(NULLIF(TRIM(f.nombre), ''), TRIM(c.Nombres)) as cliente"),
                 DB::raw('TRIM(d.cod_prod) as cod_prod'), 'd.nombre', 'd.unidad', 'd.cantidad', 'd.peso',
                 'd.canastillos', 'd.subtotal',
-                'pr.CantPren', 'pr.precio_compra', 'f.pedido_nro', 'f.pedido_tipo', 'f.observacion',
+                'pr.CantPren', 'pr.precio_compra', 'f.pedido_nro',
+                DB::raw('TRIM(g.Descripcion) as familia'), DB::raw('TRIM(gp.Descripcion) as subfamilia'), 'f.pedido_tipo', 'f.observacion',
                 DB::raw("TRIM(c.Nombres) as cliente_ficha"),
             ]);
 
@@ -1585,6 +1591,8 @@ class ReporteVentasController extends Controller
                 'vendedor'      => $l->vendedor ?: 'AGENCIA',
                 'cod_prod'      => $l->cod_prod,
                 'producto'      => trim((string) $l->nombre),
+                'familia'       => (string) $l->familia,
+                'subfamilia'    => (string) $l->subfamilia,
                 'peso'          => round($peso, 3),
                 'importe'       => round((float) $l->subtotal, 2),
                 'p_compra'      => $l->precio_compra !== null ? round($base * (float) $l->precio_compra, 2) : null,
@@ -1689,7 +1697,7 @@ class ReporteVentasController extends Controller
         }
         $hoja->getStyle("A1:{$ultimaCol}{$fila}")->getFont()->setSize(9);
         foreach (['fecha_entrega' => 12, 'fecha_hora' => 16, 'vendedor' => 34, 'cod_prod' => 10, 'producto' => 46,
-                     'peso' => 9, 'importe' => 11, 'p_compra' => 11, 'placa' => 18, 'tipo_pago' => 11,
+                     'familia' => 18, 'subfamilia' => 18, 'peso' => 9, 'importe' => 11, 'p_compra' => 11, 'placa' => 18, 'tipo_pago' => 11,
                      'cantidad' => 9, 'cajas' => 7, 'direccion' => 40, 'peso_promedio' => 10, 'doc_cliente' => 13,
                      'cliente' => 34, 'recibio' => 30, 'nro_factura' => 9, 'nro_boleta' => 10] as $campo => $ancho) {
             $hoja->getColumnDimension($letra($campo))->setWidth($ancho);

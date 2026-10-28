@@ -3,8 +3,18 @@
 namespace App\Http\Controllers;
 
 use App\Models\Compra;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
+use PhpOffice\PhpSpreadsheet\Cell\DataType;
+use PhpOffice\PhpSpreadsheet\Shared\Date as ExcelDate;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Style\Alignment;
+use PhpOffice\PhpSpreadsheet\Style\Border;
+use PhpOffice\PhpSpreadsheet\Style\Fill;
+use PhpOffice\PhpSpreadsheet\Worksheet\PageSetup;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 
 /**
  * Compras a proveedor.
@@ -28,7 +38,17 @@ class CompraController extends Controller
     {
         $perPage = min(max((int) $request->input('perPage', 15), 1), 200);
 
-        $query = Compra::query()->with('detalles')->orderByDesc('id');
+        return $this->filtrar($request)->with(['detalles', 'usuario:CodAut,Nombre1,App1,Apm'])
+            ->orderByDesc('id')->paginate($perPage);
+    }
+
+    /**
+     * Los filtros de la pantalla, compartidos por el listado y el Excel para
+     * que el archivo salga con exactamente lo que se esta viendo.
+     */
+    private function filtrar(Request $request)
+    {
+        $query = Compra::query();
 
         if ($desde = $request->input('desde')) {
             $query->whereDate('fecha', '>=', $desde);
@@ -38,6 +58,9 @@ class CompraController extends Controller
         }
         if ($estado = $request->input('estado')) {
             $query->where('estado', $estado);
+        }
+        if ($usuario = $request->input('usuario')) {
+            $query->where('user_id', $usuario);
         }
 
         if ($buscar = trim((string) $request->input('buscar', ''))) {
@@ -52,7 +75,568 @@ class CompraController extends Controller
             });
         }
 
-        return $query->paginate($perPage);
+        if ($producto = trim((string) $request->input('producto', ''))) {
+            $query->whereHas('detalles', function ($d) use ($producto) {
+                $this->filtrarProducto($d, $producto);
+            });
+        }
+
+        return $query;
+    }
+
+    /** Por codigo exacto o por parte del nombre del producto. */
+    private function filtrarProducto($query, $producto)
+    {
+        $query->where(function ($w) use ($producto) {
+            $w->where('cod_prod', $producto)->orWhere('nombre', 'like', '%' . $producto . '%');
+        });
+    }
+
+    /** Quienes registraron compras alguna vez, para el filtro de usuario. */
+    public function usuarios()
+    {
+        $ids = Compra::query()->distinct()->pluck('user_id');
+
+        return User::whereIn('CodAut', $ids)->get(['CodAut', 'Nombre1', 'App1', 'Apm'])
+            ->map(function ($u) {
+                return ['id' => $u->CodAut, 'nombre' => $this->nombreUsuario($u)];
+            })->sortBy('nombre')->values();
+    }
+
+    /** personal guarda los nombres con espacios de relleno. */
+    private function nombreUsuario($u)
+    {
+        if (!$u) {
+            return '—';
+        }
+        $partes = array_filter(array_map('trim', [$u->Nombre1 ?? '', $u->App1 ?? '', $u->Apm ?? '']));
+
+        return $partes ? implode(' ', $partes) : '—';
+    }
+
+    /**
+     * Reporte de compras en Excel, con los mismos filtros de la pantalla.
+     *
+     * Una portada con los indicadores del periodo, el listado de compras, el
+     * detalle linea por linea y los resumenes por producto, fecha, usuario y
+     * proveedor. Las anuladas salen en el listado y el detalle (marcadas en
+     * rojo, para que se vea que existieron) pero no suman en ningun total ni
+     * resumen: su stock ya fue devuelto.
+     */
+    public function excel(Request $request)
+    {
+        $compras = $this->filtrar($request)
+            ->with(['detalles', 'usuario:CodAut,Nombre1,App1,Apm'])
+            ->orderBy('fecha')->orderBy('hora')->orderBy('id')
+            ->get();
+
+        if ($compras->isEmpty()) {
+            return response()->json(['message' => 'No hay compras con esos filtros'], 422);
+        }
+
+        $producto = trim((string) $request->input('producto', ''));
+
+        $cabeceras = [];
+        $lineas = [];
+        foreach ($compras as $c) {
+            $usuario = $this->nombreUsuario($c->usuario);
+            $fecha = $c->fecha ? $c->fecha->format('Y-m-d') : '';
+            $detalles = $c->detalles;
+            // Con filtro de producto el detalle muestra solo ese producto; la
+            // compra entera igual va en el listado con su total real.
+            if ($producto !== '') {
+                $detalles = $detalles->filter(function ($d) use ($producto) {
+                    return trim($d->cod_prod) === $producto || stripos((string) $d->nombre, $producto) !== false;
+                });
+            }
+
+            $cabeceras[] = [
+                'id'        => $c->id,
+                'fecha'     => $this->fechaExcel($fecha),
+                'hora'      => (string) $c->hora,
+                'proveedor' => $c->proveedor ?: 'Sin proveedor',
+                'nit'       => (string) $c->nit,
+                'factura'   => (string) $c->nro_factura,
+                'pago'      => (string) $c->tipo_pago,
+                'usuario'   => $usuario,
+                'estado'    => $c->estado,
+                'items'     => $c->detalles->count(),
+                'subtotal'  => (float) $c->subtotal,
+                'descuento' => (float) $c->descuento,
+                'total'     => (float) $c->total,
+                'obs'       => trim((string) ($c->estado === 'ANULADO' ? 'Anulada: ' . $c->motivo_anulacion : $c->observacion)),
+            ];
+
+            foreach ($detalles as $d) {
+                $lineas[] = [
+                    'id'        => $c->id,
+                    'fecha'     => $this->fechaExcel($fecha),
+                    'dia'       => $fecha,
+                    'proveedor' => $c->proveedor ?: 'Sin proveedor',
+                    'usuario'   => $usuario,
+                    'cod_prod'  => trim($d->cod_prod),
+                    'producto'  => trim((string) $d->nombre),
+                    'unidad'    => trim((string) $d->unidad),
+                    'cantidad'  => (float) $d->cantidad,
+                    'precio'    => (float) $d->precio,
+                    'subtotal'  => (float) $d->subtotal,
+                    'lote'      => (string) $d->lote,
+                    'vence'     => $d->fecha_vencimiento ? $this->fechaExcel(substr($d->fecha_vencimiento, 0, 10)) : '',
+                    'estado'    => $c->estado,
+                ];
+            }
+        }
+
+        $activas = array_values(array_filter($cabeceras, function ($c) {
+            return $c['estado'] !== 'ANULADO';
+        }));
+        $lineasActivas = array_values(array_filter($lineas, function ($l) {
+            return $l['estado'] !== 'ANULADO';
+        }));
+
+        $desde = $request->input('desde');
+        $hasta = $request->input('hasta');
+        $rango = !$desde && !$hasta ? 'Todas las fechas'
+            : ($desde === $hasta ? date('d/m/Y', strtotime($desde))
+                : 'Del ' . ($desde ? date('d/m/Y', strtotime($desde)) : 'inicio') . ' al ' . ($hasta ? date('d/m/Y', strtotime($hasta)) : 'hoy'));
+        $subtitulo = $rango . ' · generado el ' . date('d/m/Y H:i') . ' por ' . $this->nombreUsuario($request->user());
+
+        $libro = new Spreadsheet();
+        $libro->getProperties()->setCreator('Sofia')->setTitle('Reporte de compras');
+        $libro->getDefaultStyle()->getFont()->setName('Calibri')->setSize(10);
+
+        $this->hojaPortada($libro->getActiveSheet()->setTitle('Resumen'), $subtitulo, $request, $activas, $cabeceras, $lineasActivas);
+
+        $this->hojaCompras(
+            $libro->createSheet()->setTitle('Compras'), 'COMPRAS', $subtitulo,
+            [
+                ['Nº', 'id', 8, 'entero'],
+                ['Fecha', 'fecha', 11, 'fecha'],
+                ['Hora', 'hora', 9, 'texto'],
+                ['Proveedor', 'proveedor', 30, 'texto'],
+                ['NIT', 'nit', 13, 'texto'],
+                ['Factura', 'factura', 12, 'texto'],
+                ['Pago', 'pago', 11, 'texto'],
+                ['Registrado por', 'usuario', 24, 'texto'],
+                ['Estado', 'estado', 10, 'texto'],
+                ['Ítems', 'items', 7, 'entero'],
+                ['Subtotal Bs', 'subtotal', 13, 'importe'],
+                ['Descuento Bs', 'descuento', 12, 'importe'],
+                ['Total Bs', 'total', 13, 'importe'],
+                ['Observación', 'obs', 34, 'texto'],
+            ],
+            $cabeceras
+        );
+
+        $this->hojaCompras(
+            $libro->createSheet()->setTitle('Detalle'), 'COMPRAS · DETALLE POR PRODUCTO', $subtitulo,
+            [
+                ['Nº compra', 'id', 9, 'entero'],
+                ['Fecha', 'fecha', 11, 'fecha'],
+                ['Proveedor', 'proveedor', 26, 'texto'],
+                ['Registrado por', 'usuario', 22, 'texto'],
+                ['Código', 'cod_prod', 10, 'texto'],
+                ['Producto', 'producto', 34, 'texto'],
+                ['Unid', 'unidad', 7, 'texto'],
+                ['Cantidad', 'cantidad', 11, 'cantidad'],
+                ['Costo Bs', 'precio', 11, 'precio'],
+                ['Subtotal Bs', 'subtotal', 13, 'importe'],
+                ['Lote', 'lote', 12, 'texto'],
+                ['Vence', 'vence', 11, 'fecha'],
+                ['Estado', 'estado', 10, 'texto'],
+            ],
+            $lineas
+        );
+
+        $porProducto = $this->agrupar($lineasActivas, function ($l) {
+            return $l['cod_prod'];
+        }, function ($grupo) {
+            $cantidad = array_sum(array_column($grupo, 'cantidad'));
+            $importe = array_sum(array_column($grupo, 'subtotal'));
+            $precios = array_column($grupo, 'precio');
+
+            return [
+                'cod_prod' => $grupo[0]['cod_prod'],
+                'producto' => $grupo[0]['producto'],
+                'unidad'   => $grupo[0]['unidad'],
+                'compras'  => count(array_unique(array_column($grupo, 'id'))),
+                'cantidad' => $cantidad,
+                'minimo'   => min($precios),
+                'promedio' => $cantidad > 0 ? round($importe / $cantidad, 2) : 0,
+                'maximo'   => max($precios),
+                'importe'  => $importe,
+            ];
+        }, 'importe');
+        $this->hojaCompras(
+            $libro->createSheet()->setTitle('Por producto'), 'COMPRAS · RESUMEN POR PRODUCTO', $subtitulo . ' · sin anuladas',
+            [
+                ['Código', 'cod_prod', 10, 'texto'],
+                ['Producto', 'producto', 36, 'texto'],
+                ['Unid', 'unidad', 7, 'texto'],
+                ['Compras', 'compras', 10, 'entero'],
+                ['Cantidad', 'cantidad', 12, 'cantidad'],
+                ['Costo mín. Bs', 'minimo', 13, 'precio'],
+                ['Costo prom. Bs', 'promedio', 14, 'precio'],
+                ['Costo máx. Bs', 'maximo', 13, 'precio'],
+                ['Importe Bs', 'importe', 14, 'importe'],
+                ['% del total', 'pct', 11, 'porcentaje'],
+            ],
+            $porProducto
+        );
+
+        $this->hojaCompras(
+            $libro->createSheet()->setTitle('Por fecha'), 'COMPRAS · RESUMEN POR FECHA', $subtitulo . ' · sin anuladas',
+            [
+                ['Fecha', 'fecha', 12, 'fecha'],
+                ['Compras', 'compras', 10, 'entero'],
+                ['Proveedores', 'proveedores', 12, 'entero'],
+                ['Productos', 'productos', 11, 'entero'],
+                ['Importe Bs', 'importe', 14, 'importe'],
+                ['% del total', 'pct', 11, 'porcentaje'],
+            ],
+            $this->agrupar($lineasActivas, function ($l) {
+                return $l['dia'];
+            }, function ($grupo) {
+                return [
+                    'fecha'       => $grupo[0]['fecha'],
+                    'compras'     => count(array_unique(array_column($grupo, 'id'))),
+                    'proveedores' => count(array_unique(array_column($grupo, 'proveedor'))),
+                    'productos'   => count(array_unique(array_column($grupo, 'cod_prod'))),
+                    'importe'     => array_sum(array_column($grupo, 'subtotal')),
+                ];
+            }, 'fecha')
+        );
+
+        $this->hojaCompras(
+            $libro->createSheet()->setTitle('Por usuario'), 'COMPRAS · RESUMEN POR USUARIO', $subtitulo . ' · sin anuladas',
+            [
+                ['Registrado por', 'usuario', 30, 'texto'],
+                ['Compras', 'compras', 10, 'entero'],
+                ['Productos', 'productos', 11, 'entero'],
+                ['Descuento Bs', 'descuento', 13, 'importe'],
+                ['Total Bs', 'total', 14, 'importe'],
+                ['% del total', 'pct', 11, 'porcentaje'],
+            ],
+            $this->agrupar($activas, function ($c) {
+                return $c['usuario'];
+            }, function ($grupo) use ($lineasActivas) {
+                $ids = array_column($grupo, 'id');
+                $productos = array_filter($lineasActivas, function ($l) use ($ids) {
+                    return in_array($l['id'], $ids);
+                });
+
+                return [
+                    'usuario'   => $grupo[0]['usuario'],
+                    'compras'   => count($grupo),
+                    'productos' => count(array_unique(array_column($productos, 'cod_prod'))),
+                    'descuento' => array_sum(array_column($grupo, 'descuento')),
+                    'total'     => array_sum(array_column($grupo, 'total')),
+                ];
+            }, 'total')
+        );
+
+        $this->hojaCompras(
+            $libro->createSheet()->setTitle('Por proveedor'), 'COMPRAS · RESUMEN POR PROVEEDOR', $subtitulo . ' · sin anuladas',
+            [
+                ['Proveedor', 'proveedor', 34, 'texto'],
+                ['NIT', 'nit', 13, 'texto'],
+                ['Compras', 'compras', 10, 'entero'],
+                ['Descuento Bs', 'descuento', 13, 'importe'],
+                ['Total Bs', 'total', 14, 'importe'],
+                ['% del total', 'pct', 11, 'porcentaje'],
+            ],
+            $this->agrupar($activas, function ($c) {
+                return $c['proveedor'];
+            }, function ($grupo) {
+                return [
+                    'proveedor' => $grupo[0]['proveedor'],
+                    'nit'       => $grupo[0]['nit'],
+                    'compras'   => count($grupo),
+                    'descuento' => array_sum(array_column($grupo, 'descuento')),
+                    'total'     => array_sum(array_column($grupo, 'total')),
+                ];
+            }, 'total')
+        );
+
+        $libro->setActiveSheetIndex(0);
+
+        $writer = new Xlsx($libro);
+        $nombre = 'compras_' . ($desde ?: 'inicio') . ($desde === $hasta ? '' : '_a_' . ($hasta ?: date('Y-m-d'))) . '.xlsx';
+
+        return response()->streamDownload(function () use ($writer) {
+            $writer->save('php://output');
+        }, $nombre, [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        ]);
+    }
+
+    /** 'YYYY-MM-DD' a numero de serie de Excel, para que filtre y ordene como fecha. */
+    private function fechaExcel($fecha)
+    {
+        return $fecha ? ExcelDate::PHPToExcel(strtotime($fecha . ' 00:00:00')) : '';
+    }
+
+    /**
+     * Agrupa, resume cada grupo y le pone el porcentaje sobre el total de la
+     * columna $orden (salvo que se ordene por fecha, que va cronologico).
+     */
+    private function agrupar(array $filas, callable $clave, callable $resumen, $orden)
+    {
+        $grupos = [];
+        foreach ($filas as $fila) {
+            $grupos[$clave($fila)][] = $fila;
+        }
+        $resultado = array_values(array_map($resumen, $grupos));
+
+        $importe = $orden === 'fecha' ? 'importe' : $orden;
+        $total = array_sum(array_column($resultado, $importe));
+        foreach ($resultado as &$r) {
+            $r['pct'] = $total > 0 ? $r[$importe] / $total : 0;
+        }
+        unset($r);
+
+        usort($resultado, function ($a, $b) use ($orden) {
+            return $orden === 'fecha' ? $a['fecha'] <=> $b['fecha'] : $b[$orden] <=> $a[$orden];
+        });
+
+        return $resultado;
+    }
+
+    /** Colores del reporte: los mismos de la nota de compra impresa. */
+    private const COLOR_TITULO = 'C1272D';
+    private const COLOR_CABECERA = '37474F';
+    private const COLOR_PIE = 'ECEFF1';
+    private const COLOR_ZEBRA = 'F7F9FA';
+    private const COLOR_BORDE = 'CFD8DC';
+
+    /** Titulo de empresa y del reporte en las dos primeras filas. */
+    private function encabezado($hoja, $ultima, $titulo, $subtitulo)
+    {
+        $empresa = config('siat.emisor.nombre') ?: 'SOFIA';
+
+        $hoja->mergeCells('A1:' . $ultima . '1')->setCellValue('A1', mb_strtoupper($empresa) . ' · ' . $titulo);
+        $hoja->mergeCells('A2:' . $ultima . '2')->setCellValue('A2', $subtitulo);
+        $hoja->getStyle('A1')->getFont()->setBold(true)->setSize(15)->getColor()->setRGB(self::COLOR_TITULO);
+        $hoja->getStyle('A2')->getFont()->setSize(9)->setItalic(true)->getColor()->setRGB('616161');
+        $hoja->getRowDimension(1)->setRowHeight(24);
+        $hoja->getStyle('A1:' . $ultima . '2')->getAlignment()
+            ->setHorizontal(Alignment::HORIZONTAL_LEFT)->setVertical(Alignment::VERTICAL_CENTER);
+        $hoja->getStyle('A1:' . $ultima . '1')->getBorders()->getBottom()
+            ->setBorderStyle(Border::BORDER_MEDIUM)->getColor()->setRGB(self::COLOR_TITULO);
+        $hoja->setShowGridlines(false);
+    }
+
+    /**
+     * Una tabla con cabecera oscura, filas cebra, formatos numericos, fila de
+     * totales, filtros, paneles fijos y lista para imprimir. Si la tabla tiene
+     * columna de estado, las anuladas van en rojo tachado y los totales las
+     * dejan afuera (SUMIF), asi el filtro no cambia lo que suma el pie.
+     */
+    private function hojaCompras($hoja, $titulo, $subtitulo, array $columnas, array $filas)
+    {
+        $ultima = Coordinate::stringFromColumnIndex(count($columnas));
+        $this->encabezado($hoja, $ultima, $titulo, $subtitulo);
+
+        $letras = [];
+        foreach ($columnas as $i => $columna) {
+            list($etiqueta, $clave, $ancho) = $columna;
+            $letras[$clave] = Coordinate::stringFromColumnIndex($i + 1);
+            $hoja->setCellValue($letras[$clave] . '4', $etiqueta);
+            $hoja->getColumnDimension($letras[$clave])->setWidth($ancho);
+        }
+
+        $primera = 5;
+        $fila = $primera;
+        foreach ($filas as $n => $registro) {
+            foreach ($columnas as $columna) {
+                list(, $clave, , $formato) = $columna;
+                $celda = $letras[$clave] . $fila;
+                if ($formato === 'texto') {
+                    // Codigos, NIT y facturas son etiquetas: sin esto Excel se
+                    // come los ceros de adelante.
+                    $hoja->setCellValueExplicit($celda, (string) $registro[$clave], DataType::TYPE_STRING);
+                } else {
+                    $hoja->setCellValue($celda, $registro[$clave]);
+                }
+            }
+            if ($n % 2) {
+                $hoja->getStyle('A' . $fila . ':' . $ultima . $fila)->getFill()
+                    ->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB(self::COLOR_ZEBRA);
+            }
+            if (($registro['estado'] ?? '') === 'ANULADO') {
+                $hoja->getStyle('A' . $fila . ':' . $ultima . $fila)->getFont()
+                    ->setStrikethrough(true)->getColor()->setRGB('C62828');
+            }
+            $fila++;
+        }
+        $fin = $fila - 1;
+
+        $conEstado = isset($letras['estado']);
+        $hoja->setCellValue('A' . $fila, $conEstado ? 'TOTAL (sin anuladas)' : 'TOTAL (' . count($filas) . ')');
+        foreach ($columnas as $columna) {
+            list(, $clave, , $formato) = $columna;
+            // Sumar costos unitarios o ids no da ningun total.
+            if (!in_array($formato, ['importe', 'cantidad', 'porcentaje']) || $fin < $primera) {
+                continue;
+            }
+            $l = $letras[$clave];
+            $hoja->setCellValue($l . $fila, $conEstado
+                ? '=SUMIF(' . $letras['estado'] . $primera . ':' . $letras['estado'] . $fin . ',"<>ANULADO",' . $l . $primera . ':' . $l . $fin . ')'
+                : '=SUM(' . $l . $primera . ':' . $l . $fin . ')');
+        }
+        if ($conEstado && $fin >= $primera) {
+            $hoja->setCellValue('A' . ($fila + 1), 'Anuladas');
+            $hoja->setCellValue('B' . ($fila + 1), '=COUNTIF(' . $letras['estado'] . $primera . ':' . $letras['estado'] . $fin . ',"ANULADO")');
+            $hoja->getStyle('A' . ($fila + 1) . ':B' . ($fila + 1))->getFont()->setSize(9)->getColor()->setRGB('C62828');
+        }
+
+        $hoja->getStyle('A4:' . $ultima . '4')->applyFromArray([
+            'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
+            'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => self::COLOR_CABECERA]],
+            'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER, 'vertical' => Alignment::VERTICAL_CENTER, 'wrapText' => true],
+        ]);
+        $hoja->getRowDimension(4)->setRowHeight(26);
+        $hoja->getStyle('A' . $fila . ':' . $ultima . $fila)->applyFromArray([
+            'font' => ['bold' => true],
+            'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => self::COLOR_PIE]],
+            'borders' => ['top' => ['borderStyle' => Border::BORDER_MEDIUM, 'color' => ['rgb' => self::COLOR_CABECERA]]],
+        ]);
+        $hoja->getStyle('A4:' . $ultima . $fila)->getBorders()->getInside()
+            ->setBorderStyle(Border::BORDER_THIN)->getColor()->setRGB(self::COLOR_BORDE);
+        $hoja->getStyle('A4:' . $ultima . $fila)->getBorders()->getOutline()
+            ->setBorderStyle(Border::BORDER_THIN)->getColor()->setRGB(self::COLOR_CABECERA);
+
+        $formatos = [
+            'entero'     => '#,##0',
+            'cantidad'   => '#,##0.000',
+            'precio'     => '#,##0.00',
+            'importe'    => '#,##0.00',
+            'porcentaje' => '0.0%',
+            'fecha'      => 'dd/mm/yyyy',
+        ];
+        foreach ($columnas as $columna) {
+            list(, $clave, , $formato) = $columna;
+            $l = $letras[$clave];
+            if (isset($formatos[$formato])) {
+                $hoja->getStyle($l . $primera . ':' . $l . $fila)->getNumberFormat()->setFormatCode($formatos[$formato]);
+            }
+            if (in_array($formato, ['fecha', 'entero'])) {
+                $hoja->getStyle($l . $primera . ':' . $l . $fin)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+            }
+        }
+        if ($fila > $primera) {
+            $hoja->getStyle('A' . $primera . ':' . $ultima . $fin)->getAlignment()->setVertical(Alignment::VERTICAL_CENTER);
+        }
+
+        $hoja->freezePane('A5');
+        if ($fin >= $primera) {
+            $hoja->setAutoFilter('A4:' . $ultima . $fin);
+        }
+
+        $impresion = $hoja->getPageSetup();
+        $impresion->setOrientation(PageSetup::ORIENTATION_LANDSCAPE);
+        $impresion->setPaperSize(PageSetup::PAPERSIZE_LETTER);
+        $impresion->setFitToWidth(1);
+        $impresion->setFitToHeight(0);
+        $impresion->setRowsToRepeatAtTopByStartAndEnd(4, 4);
+        $hoja->getPageMargins()->setTop(0.5)->setBottom(0.6)->setLeft(0.4)->setRight(0.4);
+        $hoja->getHeaderFooter()->setOddFooter('&L&8' . $titulo . '&C&8&D &T&R&8Página &P de &N');
+
+        return $hoja;
+    }
+
+    /** Portada: filtros aplicados e indicadores del periodo. */
+    private function hojaPortada($hoja, $subtitulo, Request $request, array $activas, array $todas, array $lineasActivas)
+    {
+        $this->encabezado($hoja, 'D', 'REPORTE DE COMPRAS', $subtitulo);
+        $hoja->getColumnDimension('A')->setWidth(30);
+        $hoja->getColumnDimension('B')->setWidth(22);
+        $hoja->getColumnDimension('C')->setWidth(4);
+        $hoja->getColumnDimension('D')->setWidth(40);
+
+        $usuario = $request->input('usuario') ? $this->nombreUsuario(User::find($request->input('usuario'))) : 'Todos';
+        $filtros = [
+            ['Desde', $request->input('desde') ? date('d/m/Y', strtotime($request->input('desde'))) : 'Inicio'],
+            ['Hasta', $request->input('hasta') ? date('d/m/Y', strtotime($request->input('hasta'))) : 'Hoy'],
+            ['Estado', $request->input('estado') ?: 'Todos'],
+            ['Registrado por', $usuario],
+            ['Producto', trim((string) $request->input('producto', '')) ?: 'Todos'],
+            ['Proveedor / NIT / factura', trim((string) $request->input('buscar', '')) ?: 'Todos'],
+        ];
+
+        $total = array_sum(array_column($activas, 'total'));
+        $indicadores = [
+            ['Compras registradas', count($todas), '#,##0'],
+            ['Compras válidas', count($activas), '#,##0'],
+            ['Compras anuladas', count($todas) - count($activas), '#,##0'],
+            ['Subtotal Bs', array_sum(array_column($activas, 'subtotal')), '#,##0.00'],
+            ['Descuentos Bs', array_sum(array_column($activas, 'descuento')), '#,##0.00'],
+            ['TOTAL COMPRADO Bs', $total, '#,##0.00'],
+            ['Compra promedio Bs', count($activas) ? $total / count($activas) : 0, '#,##0.00'],
+            ['Productos distintos', count(array_unique(array_column($lineasActivas, 'cod_prod'))), '#,##0'],
+            ['Proveedores distintos', count(array_unique(array_column($activas, 'proveedor'))), '#,##0'],
+            ['Usuarios que registraron', count(array_unique(array_column($activas, 'usuario'))), '#,##0'],
+        ];
+
+        $seccion = function ($fila, $texto) use ($hoja) {
+            $hoja->mergeCells('A' . $fila . ':B' . $fila)->setCellValue('A' . $fila, $texto);
+            $hoja->getStyle('A' . $fila . ':B' . $fila)->applyFromArray([
+                'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
+                'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => self::COLOR_CABECERA]],
+            ]);
+            $hoja->getRowDimension($fila)->setRowHeight(20);
+        };
+
+        $seccion(4, 'INDICADORES (sin anuladas)');
+        $fila = 5;
+        foreach ($indicadores as $ind) {
+            $hoja->setCellValue('A' . $fila, $ind[0]);
+            $hoja->setCellValue('B' . $fila, $ind[1]);
+            $hoja->getStyle('B' . $fila)->getNumberFormat()->setFormatCode($ind[2]);
+            $fila++;
+        }
+        $hoja->getStyle('A5:B' . ($fila - 1))->getBorders()->getAllBorders()
+            ->setBorderStyle(Border::BORDER_THIN)->getColor()->setRGB(self::COLOR_BORDE);
+        $destacada = 'A' . (5 + 5) . ':B' . (5 + 5);
+        $hoja->getStyle($destacada)->applyFromArray([
+            'font' => ['bold' => true, 'size' => 12, 'color' => ['rgb' => self::COLOR_TITULO]],
+            'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'FDECEA']],
+        ]);
+
+        $fila++;
+        $seccion($fila, 'FILTROS APLICADOS');
+        $fila++;
+        $inicio = $fila;
+        foreach ($filtros as $f) {
+            $hoja->setCellValue('A' . $fila, $f[0]);
+            $hoja->setCellValueExplicit('B' . $fila, (string) $f[1], DataType::TYPE_STRING);
+            $fila++;
+        }
+        $hoja->getStyle('A' . $inicio . ':B' . ($fila - 1))->getBorders()->getAllBorders()
+            ->setBorderStyle(Border::BORDER_THIN)->getColor()->setRGB(self::COLOR_BORDE);
+        $hoja->getStyle('A5:A' . $fila)->getFont()->getColor()->setRGB('455A64');
+        $hoja->getStyle('B5:B' . $fila)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
+
+        $hoja->setCellValue('D4', 'Contenido del archivo');
+        $hoja->getStyle('D4')->getFont()->setBold(true)->getColor()->setRGB(self::COLOR_CABECERA);
+        $hojas = [
+            'Compras: una fila por compra',
+            'Detalle: cada producto de cada compra',
+            'Por producto: cantidades y costos',
+            'Por fecha: lo comprado cada día',
+            'Por usuario: quién registró cuánto',
+            'Por proveedor: a quién se compró',
+            'Las anuladas no suman en los totales.',
+        ];
+        foreach ($hojas as $i => $texto) {
+            $hoja->setCellValue('D' . (5 + $i), '• ' . $texto);
+            $hoja->getStyle('D' . (5 + $i))->getFont()->setSize(9)->getColor()->setRGB('616161');
+        }
+
+        $impresion = $hoja->getPageSetup();
+        $impresion->setPaperSize(PageSetup::PAPERSIZE_LETTER);
+        $impresion->setFitToWidth(1);
+        $impresion->setFitToHeight(0);
     }
 
     /** Una compra con su detalle. */

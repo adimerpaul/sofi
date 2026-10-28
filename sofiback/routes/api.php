@@ -246,6 +246,9 @@ Route::group(['middleware'=>'auth:sanctum'],function (){
     // Compras a proveedor: suben el stock de tbstock.
     Route::get('/compras',[\App\Http\Controllers\CompraController::class,'index']);
     Route::get('/compras/proveedores',[\App\Http\Controllers\CompraController::class,'proveedores']);
+    // Reporte en Excel con los mismos filtros del listado, y los usuarios para filtrar.
+    Route::get('/compras/excel',[\App\Http\Controllers\CompraController::class,'excel']);
+    Route::get('/compras/usuarios',[\App\Http\Controllers\CompraController::class,'usuarios']);
     Route::get('/compras/{compra}',[\App\Http\Controllers\CompraController::class,'show']);
     Route::post('/compras',[\App\Http\Controllers\CompraController::class,'store']);
     Route::put('/compras/{compra}/anular',[\App\Http\Controllers\CompraController::class,'anular']);

@@ -755,6 +755,8 @@ export default {
         { name: 'vendedor', label: 'Vendedor', field: 'vendedor', align: 'left', sortable: true },
         { name: 'cod_prod', label: 'Cód. producto', field: 'cod_prod', align: 'left', sortable: true },
         { name: 'producto', label: 'Producto', field: 'producto', align: 'left', sortable: true },
+        { name: 'familia', label: 'Familia', field: 'familia', align: 'left', sortable: true },
+        { name: 'subfamilia', label: 'Subfamilia', field: 'subfamilia', align: 'left', sortable: true },
         { name: 'peso', label: 'Peso', field: 'peso', align: 'right', sortable: true, format: v => this.numero(v) },
         { name: 'importe', label: 'Importe', field: 'importe', align: 'right', sortable: true, format: v => this.bs(v) },
         { name: 'p_compra', label: 'P. compra', field: 'p_compra', align: 'right', sortable: true, format: v => v === null ? '—' : this.bs(v) },

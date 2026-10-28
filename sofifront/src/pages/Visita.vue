@@ -271,20 +271,10 @@
               <q-btn icon="close" flat @click="modalpedido=false" class="q-ma-xs" color="negative"/>
             </div>
               <div :class="`col-md-6 col-xs-6 ${cliente.Id == '61839000' || cliente.Id == '0023456' ? 'hidden' : ''}`">
-                <!-- Las bajas (cuentas "BAJAS POR ...") van si o si a credito. -->
-                <div v-if="!esBaja">
-                  <q-radio v-model="pago" checked-icon="task_alt" dense unchecked-icon="panorama_fish_eye" val="CONTADO"
-                           label="Contado"/>
-                  <!--                <pre>{{pago}}</pre>-->
-                </div>
-                <!-- Credito solo para el cliente marcado en Clientes ("Acepta crédito"). -->
-                <div v-if="aceptaCredito">
-                  <q-radio v-model="pago" checked-icon="task_alt" dense unchecked-icon="panorama_fish_eye" val="CREDITO"
-                           label="Credito"/>
-                </div>
-                <div v-if="!esBaja">
-                  <q-radio v-model="pago" checked-icon="task_alt" dense unchecked-icon="panorama_fish_eye"
-                           val="BOLETA ANTERIOR" label="Boleta anterior"/>
+                <!-- Tipos de pago segun el cliente (src/utils/reglasPedido.js), igual que en Mis pedidos. -->
+                <div v-for="t in tiposPago" :key="t.value">
+                  <q-radio v-model="pago" checked-icon="task_alt" dense unchecked-icon="panorama_fish_eye" :val="t.value"
+                           :label="t.label"/>
                 </div>
               </div>
               <div :class="`col-md-6 col-xs-6 ${cliente.Id == '61839000' || cliente.Id == '0023456' ? 'hidden' : ''}`">
@@ -836,9 +826,9 @@ import {
 import "leaflet/dist/leaflet.css";
 import {date} from "quasar";
 
+import * as reglasPedido from 'src/utils/reglasPedido.js'
+
 const {addToDate} = date
-// Grupo de productos FRIAL (tbgrupos.Cod_grup): se pide solo por unidad.
-const GRUPO_FRIAL = '31'
 // Los 13 precios del producto en orden: el numero de precio es la posicion + 1.
 const CAMPOS_PRECIO = ['Precio', 'Precio_Costo', 'Precio3', 'Precio4', 'Precio5',
   'Precio6', 'Precio7', 'Precio8', 'Precio9', 'Precio10', 'Precio11',
@@ -1301,26 +1291,10 @@ export default {
         })
       })
     },
-    /**
-     * Unidades en que se puede pedir un producto que se vende por caja (se
-     * guarda en tbpedidos.caja): el FRIAL solo por unidad, el cerdo por unidad
-     * o kilo y lo demas tambien por caja. Los que no son por caja no eligen.
-     */
-    esFrial(p) {
-      return String(p.cod_grup || '').trim() == GRUPO_FRIAL
-    },
-    unidadesCaja(p) {
-      if (p.codUnid != 'CAJA') return []
-      if (String(p.cod_grup || '').trim() == GRUPO_FRIAL) return ['U']
-      // El cerdo ya solo se pide por unidades (antes tambien KG).
-      if (p.tipo == 'CERDO') return ['U']
-      return ['U', 'CAJA', 'KG']
-    },
-    unidadPorDefecto(p) {
-      const unidades = this.unidadesCaja(p)
-      if (!unidades.length) return null
-      return unidades.includes('CAJA') ? 'KG' : 'U'
-    },
+    // Reglas compartidas con Mis pedidos (src/utils/reglasPedido.js).
+    esFrial: reglasPedido.esFrial,
+    unidadesCaja: reglasPedido.unidadesCaja,
+    unidadPorDefecto: reglasPedido.unidadPorDefecto,
     seleccionartipo(m) {
       console.log(m)
       this.miproducto = m
@@ -1551,7 +1525,7 @@ export default {
         this.fact = 'NO'
       } else {
         // Ya marcado: credito si el cliente acepta credito (las bajas siempre), si no contado.
-        this.pago = this.aceptaCredito ? 'CREDITO' : 'CONTADO'
+        this.pago = reglasPedido.pagoPorDefecto(this.cliente)
         this.fact = ''
       }
 
@@ -1717,15 +1691,9 @@ export default {
     },
   },
   computed: {
-    // Clientes > "Acepta crédito". Las bajas siempre van a credito.
-    aceptaCredito() {
-      return Number(this.cliente.acepta_credito) === 1 || this.esBaja
-    },
-    // Cuentas "BAJAS POR ..." (bonificaciones, calidad, merma, vencimiento,
-    // degustacion): se reconocen por el nombre, como en CreditoController.
-    esBaja() {
-      return String(this.cliente.Nombres || '').trim().toUpperCase().startsWith('BAJAS POR ') ||
-        this.cliente.Id == '61839000' || this.cliente.Id == '0023456'
+    // Contado / Credito / Boleta anterior segun el cliente.
+    tiposPago() {
+      return reglasPedido.tiposPago(this.cliente)
     },
     // El pedido se entrega al dia siguiente; el backend guarda la misma fecha.
     fechaEntrega() {

@@ -142,21 +142,10 @@
           </div>-->
               <div class="col-md-6 col-xs-6">
                 <!--            <q-select dense outlined v-model="pago" :options="tipopagos" label="Tip Pagos" /></div>-->
-                <div>
-                  <q-radio v-model="pago" checked-icon="task_alt" dense unchecked-icon="panorama_fish_eye" val="CONTADO"
-                           label="Contado"/>
-                </div>
-                <div>
-                  <q-radio v-model="pago" checked-icon="task_alt" dense unchecked-icon="panorama_fish_eye" val="PAGO QR"
-                           label="Pago QR"/>
-                </div>
-                <div>
-                  <q-radio v-model="pago" checked-icon="task_alt" dense unchecked-icon="panorama_fish_eye" val="CREDITO"
-                           label="Credito"/>
-                </div>
-                <div>
-                  <q-radio v-model="pago" checked-icon="task_alt" dense unchecked-icon="panorama_fish_eye"
-                           val="BOLETA ANTERIOR" label="Boleta anterior"/>
+                <!-- Tipos de pago segun el cliente (src/utils/reglasPedido.js), igual que en Visita. -->
+                <div v-for="t in tiposPago" :key="t.value">
+                  <q-radio v-model="pago" checked-icon="task_alt" dense unchecked-icon="panorama_fish_eye" :val="t.value"
+                           :label="t.label"/>
                 </div>
               </div>
               <div class="col-6">
@@ -240,7 +229,8 @@
                   <!-- Rango de peso de la linea (tbpedidos.rango_kg), igual que en Visita. -->
                   <template v-slot:body-cell-rango="props">
                     <q-td :props="props" auto-width>
-                      <div class="row items-center no-wrap">
+                      <!-- Solo el grupo FRIAL lleva rango. -->
+                      <div v-if="esFrial(props.row)" class="row items-center no-wrap">
                         <q-toggle v-model="props.row.con_rango" dense size="sm" color="orange-8"
                                   @update:model-value="v => { if (!v) props.row.rango_kg = null }"/>
                         <div v-if="props.row.con_rango" class="column q-ml-xs">
@@ -806,15 +796,16 @@ pdfMake.vfs = pdfFonts.pdfMake ? pdfFonts.pdfMake.vfs : pdfFonts;
 window.JSZip = jszip;
 import {jsPDF} from "jspdf";
 
+import * as reglasPedido from 'src/utils/reglasPedido.js'
+
 const {addToDate} = date
-// Grupo de productos FRIAL: lo que se vende por caja de este grupo solo se
-// pide por unidad (igual que en la visita).
-const GRUPO_FRIAL = '31'
 export default {
   data() {
     return {
       horarios: ['06:00-07:30', '07:30-09:00', '09:00-10:30', '10:30-12:00', 'SEGUNDA VUELTA', 'SE RECOGE'],
-      tipopagos: ['CONTADO', 'PAGO QR', 'CREDITO', 'BOLETA ANTERIOR'],
+      tipopagos: ['CONTADO', 'CREDITO', 'BOLETA ANTERIOR'],
+      // Cliente completo del pedido que se modifica (trae acepta_credito).
+      clientePedido: {},
       horario: '',
       coment: '',
       url: process.env.API,
@@ -2058,7 +2049,12 @@ ${primera.comentario ? `<div class="coment"><b>Comentario:</b> ${esc(primera.com
         .then(res => {
           console.log(res.data)
           // return false
-          this.pago = res.data[0].pago
+          this.clientePedido = res.data[0].cliente || {}
+          // Un pago que el cliente ya no puede usar (PAGO QR, o credito sin
+          // "Acepta credito") vuelve al de por defecto, como en la visita.
+          this.pago = this.tiposPago.some(t => t.value == res.data[0].pago)
+            ? res.data[0].pago
+            : reglasPedido.pagoPorDefecto(this.clientePedido)
           this.fact = res.data[0].fact
           this.horario = res.data[0].horario
           this.coment = res.data[0].comentario
@@ -2070,8 +2066,8 @@ ${primera.comentario ? `<div class="coment"><b>Comentario:</b> ${esc(primera.com
             p.precios = this.listaPrecios(prod)
             p.codUnid = String(p.codUnid || (prod ? prod.codUnid : '') || '').trim()
             p.cod_grup = p.cod_grup || (prod ? prod.cod_grup : null)
-            // Con rango guardado el switch arranca encendido.
-            p.con_rango = p.rango_kg !== null && p.rango_kg !== undefined && p.rango_kg !== ''
+            // Con rango guardado el switch arranca encendido; fuera del FRIAL no hay rango.
+            p.con_rango = this.esFrial(p) && p.rango_kg !== null && p.rango_kg !== undefined && p.rango_kg !== ''
             p.rango_kg = p.con_rango ? Number(p.rango_kg) : null
             // Una unidad que la visita no deja elegir vuelve a la de por defecto.
             if (p.codUnid == 'CAJA' && !this.unidadesCaja(p).includes(p.caja)) {
@@ -2088,24 +2084,10 @@ ${primera.comentario ? `<div class="coment"><b>Comentario:</b> ${esc(primera.com
         this.loading = false
       })
     },
-    /**
-     * Unidades en que se puede pedir un producto que se vende por caja (se
-     * guarda en tbpedidos.caja): el FRIAL solo por unidad, el cerdo por unidad
-     * o kilo y lo demas tambien por caja. Es la misma regla de Visita.vue.
-     */
-    unidadesCaja(p) {
-      if (String(p.codUnid || '').trim() != 'CAJA') return []
-      if (String(p.cod_grup || '').trim() == GRUPO_FRIAL) return ['U']
-      // El cerdo ya solo se pide por unidades; KG solo se deja en los pedidos
-      // viejos que ya lo tenian, para no cambiarles la unidad al editarlos.
-      if (p.tipo == 'CERDO') return p.caja == 'KG' ? ['U', 'KG'] : ['U']
-      return ['U', 'CAJA', 'KG']
-    },
-    unidadPorDefecto(p) {
-      const unidades = this.unidadesCaja(p)
-      if (!unidades.length) return null
-      return unidades.includes('CAJA') ? 'KG' : 'U'
-    },
+    // Reglas compartidas con la visita (src/utils/reglasPedido.js).
+    esFrial: reglasPedido.esFrial,
+    unidadesCaja: reglasPedido.unidadesCaja,
+    unidadPorDefecto: reglasPedido.unidadPorDefecto,
     seleccionartipo(m) {
       // console.log(m)
       this.miproducto = m
@@ -2232,6 +2214,10 @@ ${primera.comentario ? `<div class="coment"><b>Comentario:</b> ${esc(primera.com
     },
   },
   computed: {
+    // Contado / Credito / Boleta anterior segun el cliente del pedido.
+    tiposPago() {
+      return reglasPedido.tiposPago(this.clientePedido)
+    },
     resumen() {
       let total = 0
       let lineas = 0

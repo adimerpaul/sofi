@@ -24,7 +24,7 @@
         <div class="col-6 col-md-2">
           <q-input v-model="filtros.hasta" type="date" dense outlined label="Hasta"/>
         </div>
-        <div class="col-12 col-md-3">
+        <div class="col-12 col-md-2">
           <q-input v-model="filtros.buscar" dense outlined clearable label="Proveedor, NIT o factura">
             <template v-slot:append><q-icon name="search"/></template>
           </q-input>
@@ -32,9 +32,25 @@
         <div class="col-6 col-md-2">
           <q-select v-model="filtros.estado" dense outlined clearable label="Estado" :options="['ACTIVO', 'ANULADO']"/>
         </div>
-        <div class="col-12 col-md row items-center q-gutter-sm">
+        <div class="col-6 col-md-2">
+          <q-select
+            v-model="filtros.usuario" dense outlined clearable emit-value map-options
+            label="Registrado por" :options="usuarios" option-value="id" option-label="nombre"
+          />
+        </div>
+        <div class="col-6 col-md-2">
+          <q-input v-model="filtros.producto" dense outlined clearable label="Producto (código o nombre)"/>
+        </div>
+        <div class="col-12 row items-center q-gutter-sm">
           <q-btn :loading="loading" color="primary" icon="search" no-caps label="Buscar" @click="recargar"/>
           <q-btn flat color="grey-7" icon="layers_clear" no-caps label="Limpiar" @click="limpiar"/>
+          <q-space/>
+          <q-btn
+            color="green-8" unelevated no-caps icon="grid_on" label="Exportar Excel"
+            :loading="exportando" @click="exportarExcel"
+          >
+            <q-tooltip>Compras, detalle y resúmenes por producto, fecha, usuario y proveedor, con los filtros de arriba</q-tooltip>
+          </q-btn>
         </div>
       </div>
     </q-card>
@@ -270,7 +286,7 @@ const ESTILOS_NOTA = `
 
 function filtrosPorDefecto () {
   const hoy = date.formatDate(new Date(), 'YYYY-MM-DD')
-  return { desde: hoy, hasta: hoy, buscar: '', estado: null }
+  return { desde: hoy, hasta: hoy, buscar: '', estado: null, usuario: null, producto: '' }
 }
 
 export default {
@@ -284,6 +300,8 @@ export default {
       motivo: '',
       anulando: false,
       imprimiendo: null,
+      exportando: false,
+      usuarios: [],
       loading: false,
       filtros: filtrosPorDefecto(),
       pagination: { page: 1, rowsPerPage: 15, rowsNumber: 0 },
@@ -295,6 +313,7 @@ export default {
         { name: 'proveedor', label: 'Proveedor', field: 'proveedor', align: 'left' },
         { name: 'nro_factura', label: 'Factura', field: 'nro_factura', align: 'left' },
         { name: 'tipo_pago', label: 'Pago', field: 'tipo_pago', align: 'center' },
+        { name: 'usuario', label: 'Registrado por', field: row => row.usuario ? this.nombreUsuario(row.usuario) : '—', align: 'left' },
         { name: 'estado', label: 'Estado', field: 'estado', align: 'center' },
         { name: 'total', label: 'Total Bs.', field: 'total', align: 'right', format: v => Number(v || 0).toFixed(2) }
       ]
@@ -307,6 +326,9 @@ export default {
   },
   created () {
     this.onRequest({ pagination: this.pagination })
+    this.$api.get('compras/usuarios')
+      .then(res => { this.usuarios = res.data })
+      .catch(() => {})
   },
   methods: {
     money (v) {
@@ -328,19 +350,23 @@ export default {
       this.pagination.page = 1
       this.onRequest({ pagination: this.pagination })
     },
+    // Los mismos filtros van al listado y al Excel.
+    params () {
+      return {
+        desde: this.filtros.desde || '',
+        hasta: this.filtros.hasta || '',
+        buscar: this.filtros.buscar || '',
+        estado: this.filtros.estado || '',
+        usuario: this.filtros.usuario || '',
+        producto: (this.filtros.producto || '').trim()
+      }
+    },
     onRequest (props) {
       const { page, rowsPerPage } = props.pagination
       this.loading = true
 
       this.$api.get('compras', {
-        params: {
-          desde: this.filtros.desde || '',
-          hasta: this.filtros.hasta || '',
-          buscar: this.filtros.buscar || '',
-          estado: this.filtros.estado || '',
-          page,
-          perPage: rowsPerPage
-        }
+        params: { ...this.params(), page, perPage: rowsPerPage }
       }).then(res => {
         this.compras = res.data.data
         this.pagination.page = res.data.current_page
@@ -351,6 +377,27 @@ export default {
       }).finally(() => {
         this.loading = false
       })
+    },
+
+    async exportarExcel () {
+      this.exportando = true
+      try {
+        const res = await this.$api.get('compras/excel', { params: this.params(), responseType: 'blob' })
+        const url = window.URL.createObjectURL(res.data)
+        const enlace = document.createElement('a')
+        enlace.href = url
+        const { desde, hasta } = this.filtros
+        enlace.download = 'compras_' + (desde || 'inicio') + (desde === hasta ? '' : '_a_' + (hasta || 'hoy')) + '.xlsx'
+        enlace.click()
+        window.URL.revokeObjectURL(url)
+      } catch (err) {
+        // Con responseType blob el mensaje de error del backend llega como Blob.
+        let message
+        try { message = JSON.parse(await err.response.data.text()).message } catch (e) {}
+        this.avisar({ response: { data: { message } } }, 'No se pudo generar el Excel')
+      } finally {
+        this.exportando = false
+      }
     },
 
     verDetalle (row) {
