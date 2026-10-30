@@ -36,6 +36,10 @@
         </div>
         <div class="col-12 col-md-3 row no-wrap justify-end items-center q-gutter-xs">
           <q-btn dense unelevated color="green" icon="add" no-caps label="Nuevo" @click="nuevoCliente"/>
+          <q-btn dense unelevated color="green-8" icon="table_chart" no-caps label="Excel" :loading="exportando"
+                 @click="exportarExcel">
+            <q-tooltip>Exportar a Excel el listado con los filtros aplicados</q-tooltip>
+          </q-btn>
           <q-btn dense flat round color="primary" icon="refresh" :loading="loading" @click="misclientes">
             <q-tooltip>Recargar</q-tooltip>
           </q-btn>
@@ -340,6 +344,7 @@
 <script>
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
+import {date} from 'quasar'
 
 const ORURO_CENTRO = [-17.967, -67.106]
 
@@ -437,7 +442,8 @@ export default {
         {label: 'Crédito', name: 'acepta_credito', field: 'acepta_credito', align: 'center', sortable: true},
         {label: 'Estado', name: 'venta', field: 'venta', align: 'center', sortable: true}
       ],
-      vendedoresFiltrados: []
+      vendedoresFiltrados: [],
+      exportando: false
     }
   },
   computed: {
@@ -575,6 +581,30 @@ export default {
         this.$q.notify({type: 'negative', message: e.response?.data?.message || 'No se pudo cargar clientes'})
       }).finally(() => {
         this.loading = false
+      })
+    },
+    // El Excel lo arma el backend con los mismos filtros que tiene la pantalla.
+    exportarExcel () {
+      this.exportando = true
+      this.$api.get('clientes/excel', {
+        params: {
+          buscar: (this.filter || '').trim() || undefined,
+          vendedor: this.filterVendedor || undefined,
+          zona: this.filterZona || undefined,
+          estado: this.filterEstado || undefined
+        },
+        responseType: 'blob'
+      }).then(res => {
+        const url = window.URL.createObjectURL(new Blob([res.data], {type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}))
+        const link = document.createElement('a')
+        link.href = url
+        link.download = 'clientes_' + date.formatDate(new Date(), 'YYYY-MM-DD_HH-mm') + '.xlsx'
+        link.click()
+        setTimeout(() => window.URL.revokeObjectURL(url), 60000)
+      }).catch(() => {
+        this.$q.notify({type: 'negative', message: 'No se pudo exportar el Excel'})
+      }).finally(() => {
+        this.exportando = false
       })
     },
     vendedoresGet () {

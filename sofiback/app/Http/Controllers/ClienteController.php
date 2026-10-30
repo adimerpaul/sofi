@@ -10,6 +10,15 @@ use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
+use PhpOffice\PhpSpreadsheet\Cell\DataType;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Style\Alignment;
+use PhpOffice\PhpSpreadsheet\Style\Border;
+use PhpOffice\PhpSpreadsheet\Style\Conditional;
+use PhpOffice\PhpSpreadsheet\Style\Fill;
+use PhpOffice\PhpSpreadsheet\Worksheet\PageSetup;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 
 class ClienteController extends Controller{
     function personalCliente(Request $request){
@@ -369,6 +378,445 @@ class ClienteController extends Controller{
     public function todosclientes(Request $request)
     {
 //        return DB::select("SELECT * FROM tbclientes WHERE TRIM(CiVend)='".$request->user()->ci."'");
+        return $this->consultaClientes();
+    }
+
+    /**
+     * El listado de la pantalla Clientes en Excel, con los mismos filtros que
+     * tenga puestos (buscar, vendedor, zona, estado). Hoja Clientes: todos los
+     * datos del cliente agrupados (contacto, vendedor y zona, canal, dias de
+     * visita, deuda, estado, ubicacion con link al mapa). Hoja Resumen: totales
+     * por vendedor, zona, canal y dia de visita.
+     */
+    public function exportarExcel(Request $request)
+    {
+        // Son ~3000 clientes y 34 columnas: con 128M PhpSpreadsheet queda al limite.
+        @ini_set('memory_limit', '512M');
+        $texto = mb_strtolower(trim((string) $request->buscar));
+        $vendedor = trim((string) $request->vendedor);
+        $zona = trim((string) $request->zona);
+        $estado = trim((string) $request->estado);
+
+        $clientes = collect($this->consultaClientes())->filter(function ($c) use ($texto, $vendedor, $zona, $estado) {
+            if ($vendedor !== '' && trim((string) $c->CiVend) !== $vendedor) return false;
+            if ($zona !== '' && trim((string) $c->zona) !== $zona) return false;
+            if ($estado !== '' && $c->venta !== $estado) return false;
+            if ($texto === '') return true;
+            foreach ([$c->Nombres, $c->Id, $c->Telf, $c->Cod_Aut, $c->Direccion] as $v) {
+                if (mb_strpos(mb_strtolower((string) $v), $texto) !== false) return true;
+            }
+            return false;
+        })->sortBy(function ($c) {
+            return trim((string) $c->Nombres);
+        })->values();
+
+        $dias = ['lu' => 'L', 'Ma' => 'M', 'Mi' => 'X', 'Ju' => 'J', 'Vi' => 'V', 'Sa' => 'S', 'do' => 'D'];
+        $nombresDia = ['lu' => 'Lunes', 'Ma' => 'Martes', 'Mi' => 'Miércoles', 'Ju' => 'Jueves', 'Vi' => 'Viernes', 'Sa' => 'Sábado', 'do' => 'Domingo'];
+        $t = function ($v) { return trim((string) $v); };
+        $sinDia = function ($c) use ($dias) {
+            foreach (array_keys($dias) as $campo) {
+                if ((int) $c->$campo) return false;
+            }
+            return true;
+        };
+
+        // Cada columna: titulo, ancho, alineacion (c|r|''), tipo (txt: texto
+        // forzado, bs: moneda, coord: coordenada, wa/mapa: link, dia, estado)
+        // y el valor de la fila. Agrupadas bajo una banda de color.
+        $diasVisita = [];
+        foreach ($dias as $campo => $letraDia) {
+            $diasVisita[] = [$letraDia, 4, 'c', 'dia', function ($c) use ($campo) { return (int) $c->$campo ? '●' : ''; }];
+        }
+        $diasVisita[] = ['Días/sem', 7, 'c', '', function ($c) use ($dias) {
+            return count(array_filter(array_keys($dias), function ($campo) use ($c) { return (int) $c->$campo; }));
+        }];
+        $columnas = [
+            ['CLIENTE', [
+                ['Cod', 7, 'c', '', function ($c) { return (int) $c->Cod_Aut; }],
+                ['Cliente', 32, '', '', function ($c) use ($t) { return $t($c->Nombres); }],
+                ['CI/NIT', 12, '', 'txt', function ($c) use ($t) { return $t($c->Id) . ($t($c->complto) !== '' ? '-' . $t($c->complto) : ''); }],
+                ['Celular', 12, '', 'txt', function ($c) use ($t) { return $t($c->Telf); }],
+                ['WhatsApp', 10, 'c', 'wa', function ($c) { return $this->numeroWhatsapp($c->Telf) ? 'Abrir chat' : ''; }],
+                ['Dirección', 34, '', '', function ($c) use ($t) { return $t($c->Direccion); }],
+                ['Empresa / Razón social', 22, '', '', function ($c) use ($t) { return $t($c->Empresa); }],
+            ]],
+            ['VENDEDOR Y ZONA', [
+                ['Vendedor', 24, '', '', function ($c) use ($t) { return $t($c->vendedor) ?: $t($c->CiVend); }],
+                ['CI vendedor', 11, 'c', 'txt', function ($c) use ($t) { return $t($c->CiVend); }],
+                ['Zona', 11, 'c', '', function ($c) use ($t) { return $t($c->zona); }],
+                ['Territorio', 11, 'c', '', function ($c) use ($t) { return $t($c->territorio); }],
+            ]],
+            ['CANAL', [
+                ['Supra canal', 8, 'c', '', function ($c) use ($t) { return $t($c->SupraCanal); }],
+                ['Canal', 18, '', '', function ($c) use ($t) { return $t($c->Canal); }],
+                ['Subcanal', 12, '', '', function ($c) use ($t) { return $t($c->subcanal); }],
+                ['Transporte', 18, '', '', function ($c) use ($t) { return $t($c->transporte); }],
+            ]],
+            ['DÍAS DE VISITA', $diasVisita],
+            ['DEUDA', [
+                ['Deuda Bs', 12, 'r', 'bs', function ($c) { return (float) $c->totdeuda; }],
+                ['N° deudas', 8, 'c', '', function ($c) { return (int) $c->cantdeuda; }],
+                ['Deuda desde', 11, 'c', '', function ($c) { return $c->fechaminima ? date('d/m/Y', strtotime($c->fechaminima)) : ''; }],
+                ['Excepción', 9, 'c', '', function ($c) { return (int) $c->excepcion_deuda ? 'Sí' : 'No'; }],
+                ['Crédito', 8, 'c', '', function ($c) { return (int) $c->acepta_credito ? 'Sí' : 'No'; }],
+            ]],
+            ['ESTADO', [
+                ['Estado', 10, 'c', 'estado', function ($c) { return $c->venta; }],
+                ['Fotos', 6, 'c', '', function ($c) { return (int) $c->fotos_count; }],
+            ]],
+            ['UBICACIÓN', [
+                ['Ubicación', 9, 'c', '', function ($c) { return $this->tieneUbicacion($c) ? 'Sí' : 'No'; }],
+                ['Latitud', 11, 'r', 'coord', function ($c) { return $this->tieneUbicacion($c) ? (float) $c->Latitud : ''; }],
+                ['Longitud', 11, 'r', 'coord', function ($c) { return $this->tieneUbicacion($c) ? (float) $c->longitud : ''; }],
+                ['Mapa', 10, 'c', 'mapa', function ($c) { return $this->tieneUbicacion($c) ? 'Ver mapa' : ''; }],
+            ]],
+        ];
+        $planas = [];
+        foreach ($columnas as $grupo) {
+            foreach ($grupo[1] as $col) {
+                $col[] = Coordinate::stringFromColumnIndex(count($planas) + 1);
+                $planas[] = $col;
+            }
+        }
+        $ultima = Coordinate::stringFromColumnIndex(count($planas));
+        $letra = function ($titulo) use ($planas) {
+            foreach ($planas as $col) {
+                if ($col[0] === $titulo) return $col[5];
+            }
+        };
+
+        $libro = new Spreadsheet();
+        $libro->getDefaultStyle()->getFont()->setName('Calibri')->setSize(10);
+        $hoja = $libro->getActiveSheet();
+        $hoja->setTitle('Clientes');
+        foreach ($planas as $col) {
+            $hoja->getColumnDimension($col[5])->setWidth($col[1]);
+        }
+
+        // Titulo, filtros aplicados y resumen
+        $usuario = $request->user();
+        $nombreUsuario = $usuario ? trim($usuario->Nombre1 . ' ' . $usuario->App1) : '';
+        $filtros = [];
+        if ($texto !== '') $filtros[] = 'Buscar: "' . $request->buscar . '"';
+        if ($vendedor !== '') {
+            $nombreVend = DB::table('personal')->whereRaw('TRIM(ci) = ?', [$vendedor])
+                ->value(DB::raw("TRIM(CONCAT(TRIM(Nombre1),' ',TRIM(App1)))"));
+            $filtros[] = 'Vendedor: ' . ($nombreVend ? $nombreVend . ' (' . $vendedor . ')' : $vendedor);
+        }
+        if ($zona !== '') $filtros[] = 'Zona: ' . $zona;
+        if ($estado !== '') $filtros[] = 'Estado: ' . $estado;
+
+        $activos = $clientes->where('venta', 'ACTIVO')->count();
+        $conDeuda = $clientes->filter(function ($c) { return (float) $c->totdeuda > 0; });
+        $sinUbicacion = $clientes->reject(function ($c) { return $this->tieneUbicacion($c); })->count();
+
+        $this->tituloExcel($hoja, 'LISTADO DE CLIENTES', $ultima, [
+            'Filtros: ' . ($filtros ? implode('   ·   ', $filtros) : 'ninguno (todos los clientes)'),
+            'Clientes: ' . $clientes->count() . '   ·   Activos: ' . $activos . '   ·   Inactivos: ' . ($clientes->count() - $activos)
+                . '   ·   Con deuda: ' . $conDeuda->count()
+                . '   ·   Deuda total: ' . number_format($conDeuda->sum(function ($c) { return (float) $c->totdeuda; }), 2) . ' Bs'
+                . '   ·   Sin ubicación: ' . $sinUbicacion . '   ·   Sin día de visita: ' . $clientes->filter($sinDia)->count(),
+            'Generado por ' . $nombreUsuario . ' el ' . date('d/m/Y H:i') . '   ·   ● = día de visita   ·   Los links de WhatsApp y Mapa se abren con clic',
+        ]);
+
+        // Encabezado en dos filas: grupos y columnas
+        $grp = 6;
+        $cab = 7;
+        $colores = ['1F4E78', '385723', '7F6000', '2E75B6', 'C55A11', '595959', '7030A0'];
+        $inicio = 1;
+        foreach ($columnas as $i => $grupo) {
+            $desde = Coordinate::stringFromColumnIndex($inicio);
+            $hasta = Coordinate::stringFromColumnIndex($inicio + count($grupo[1]) - 1);
+            $hoja->setCellValue($desde . $grp, $grupo[0]);
+            $hoja->mergeCells($desde . $grp . ':' . $hasta . $grp);
+            $hoja->getStyle($desde . $grp . ':' . $hasta . $cab)->applyFromArray([
+                'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
+                'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => $colores[$i]]],
+                'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER, 'vertical' => Alignment::VERTICAL_CENTER, 'wrapText' => true],
+                'borders' => ['allBorders' => ['borderStyle' => Border::BORDER_THIN, 'color' => ['rgb' => 'FFFFFF']]],
+            ]);
+            $inicio += count($grupo[1]);
+        }
+        $hoja->fromArray(array_column($planas, 0), null, 'A' . $cab);
+        $hoja->getRowDimension($grp)->setRowHeight(18);
+        $hoja->getRowDimension($cab)->setRowHeight(28);
+
+        // Filas
+        $fila = $cab + 1;
+        foreach ($clientes as $c) {
+            $valores = [];
+            foreach ($planas as $col) {
+                $valores[] = $col[4]($c);
+            }
+            // strictNullComparison (cuarto argumento): sin el, fromArray deja en blanco los ceros.
+            $hoja->fromArray($valores, null, 'A' . $fila, true);
+            foreach ($planas as $i => $col) {
+                if ($col[3] === 'txt') {
+                    // CI y celular como texto: si no, Excel los muestra en notacion cientifica o les quita ceros.
+                    $hoja->setCellValueExplicit($col[5] . $fila, (string) $valores[$i], DataType::TYPE_STRING);
+                } elseif ($col[3] === 'wa' && $valores[$i] !== '') {
+                    $hoja->getCell($col[5] . $fila)->getHyperlink()->setUrl('https://wa.me/' . $this->numeroWhatsapp($c->Telf));
+                } elseif ($col[3] === 'mapa' && $valores[$i] !== '') {
+                    $hoja->getCell($col[5] . $fila)->getHyperlink()
+                        ->setUrl('https://www.google.com/maps?q=' . (float) $c->Latitud . ',' . (float) $c->longitud);
+                }
+            }
+            $fila++;
+        }
+        $primera = $cab + 1;
+        $ultimaFila = max($fila - 1, $primera);
+
+        // Formato de la tabla. Los colores van por formato condicional y no
+        // celda por celda: con miles de filas, un estilo por celda dispara la memoria.
+        $hoja->getStyle('A' . $primera . ':' . $ultima . $ultimaFila)->applyFromArray([
+            'borders' => ['allBorders' => ['borderStyle' => Border::BORDER_THIN, 'color' => ['rgb' => 'C9D3DF']]],
+            'alignment' => ['vertical' => Alignment::VERTICAL_TOP],
+        ]);
+        foreach ($planas as $col) {
+            $rango = $col[5] . $primera . ':' . $col[5] . $ultimaFila;
+            if ($col[2] === 'c') $hoja->getStyle($rango)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+            if ($col[2] === 'r') $hoja->getStyle($rango)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
+            if ($col[3] === 'bs') $hoja->getStyle($col[5] . $primera . ':' . $col[5] . ($ultimaFila + 1))->getNumberFormat()->setFormatCode('#,##0.00');
+            if ($col[3] === 'coord') $hoja->getStyle($rango)->getNumberFormat()->setFormatCode('0.000000');
+            if (in_array($col[3], ['wa', 'mapa'])) $hoja->getStyle($rango)->getFont()->setUnderline(true)->getColor()->setRGB('0563C1');
+            if ($col[3] === 'dia') {
+                $hoja->getStyle($rango)->getFont()->setBold(true)->getColor()->setRGB('2E7D32');
+                $hoja->getStyle($rango)->setConditionalStyles([$this->condicion('LEN(' . $col[5] . $primera . ')>0', 'C6EFCE')]);
+            }
+        }
+        foreach (['Cliente', 'Dirección', 'Empresa / Razón social', 'Transporte'] as $titulo) {
+            $hoja->getStyle($letra($titulo) . $primera . ':' . $letra($titulo) . $ultimaFila)->getAlignment()->setWrapText(true);
+        }
+        $colEstado = $letra('Estado');
+        $hoja->getStyle($colEstado . $primera . ':' . $colEstado . $ultimaFila)->setConditionalStyles([
+            $this->condicion($colEstado . $primera . '="ACTIVO"', 'C6EFCE', '006100'),
+            $this->condicion($colEstado . $primera . '<>"ACTIVO"', 'FFC7CE', '9C0006'),
+        ]);
+        $colDeuda = $letra('Deuda Bs');
+        $hoja->getStyle($colDeuda . $primera . ':' . $colDeuda . $ultimaFila)->setConditionalStyles([
+            $this->condicion($colDeuda . $primera . '>0', 'FCE4D6', 'C55A11'),
+        ]);
+        $colUbic = $letra('Ubicación');
+        $hoja->getStyle($colUbic . $primera . ':' . $colUbic . $ultimaFila)->setConditionalStyles([
+            $this->condicion($colUbic . $primera . '="No"', 'FFEB9C', '9C5700'),
+        ]);
+        // Filas alternadas: solo en las columnas sin color propio.
+        $hoja->getStyle('A' . $primera . ':' . $letra('Transporte') . $ultimaFila)->setConditionalStyles([
+            $this->condicion('MOD(ROW(),2)=0', 'EEF3F9'),
+        ]);
+
+        // Fila de total: clientes por dia de visita, deuda y numero de deudas
+        $total = $ultimaFila + 1;
+        $hoja->setCellValue('A' . $total, 'TOTAL (' . $clientes->count() . ' clientes)');
+        $hoja->mergeCells('A' . $total . ':' . $letra('Transporte') . $total);
+        foreach (array_values($dias) as $titulo) {
+            $col = $letra($titulo);
+            $hoja->setCellValue($col . $total, '=COUNTIF(' . $col . $primera . ':' . $col . $ultimaFila . ',"●")');
+        }
+        $hoja->setCellValue($colDeuda . $total, '=SUM(' . $colDeuda . $primera . ':' . $colDeuda . $ultimaFila . ')');
+        $colN = $letra('N° deudas');
+        $hoja->setCellValue($colN . $total, '=SUM(' . $colN . $primera . ':' . $colN . $ultimaFila . ')');
+        $hoja->getStyle('A' . $total . ':' . $ultima . $total)->applyFromArray([
+            'font' => ['bold' => true],
+            'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'D9E1F2']],
+            'borders' => ['top' => ['borderStyle' => Border::BORDER_MEDIUM, 'color' => ['rgb' => '1F4E78']]],
+            'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
+        ]);
+        $hoja->getStyle('A' . $total)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
+        $hoja->getStyle($colDeuda . $total)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
+
+        // Encabezado y nombre fijos, autofiltro y hoja lista para imprimir
+        $hoja->freezePane('C' . $primera);
+        $hoja->setAutoFilter('A' . $cab . ':' . $ultima . $ultimaFila);
+        $this->paginaExcel($hoja, $grp, $cab, 'Listado de clientes');
+        $hoja->setSelectedCell('A' . $primera);
+
+        $this->resumenClientesExcel($libro->createSheet(), $clientes, $dias, $nombresDia, $filtros, $sinDia);
+        $libro->setActiveSheetIndex(0);
+
+        $tmp = tempnam(sys_get_temp_dir(), 'xls');
+        (new Xlsx($libro))->save($tmp);
+
+        return response()->download($tmp, 'clientes_' . date('Y-m-d_His') . '.xlsx')->deleteFileAfterSend(true);
+    }
+
+    /** Hoja Resumen del Excel de clientes: por vendedor, zona, canal y dia de visita. */
+    private function resumenClientesExcel($hoja, $clientes, $dias, $nombresDia, $filtros, $sinDia)
+    {
+        $hoja->setTitle('Resumen');
+        $this->tituloExcel($hoja, 'RESUMEN DE CLIENTES', 'P', [
+            'Filtros: ' . ($filtros ? implode('   ·   ', $filtros) : 'ninguno (todos los clientes)'),
+            'Generado el ' . date('d/m/Y H:i'),
+        ]);
+        foreach (['A' => 34, 'B' => 10, 'C' => 9, 'D' => 9, 'E' => 10, 'F' => 14, 'G' => 11, 'H' => 10] as $col => $ancho) {
+            $hoja->getColumnDimension($col)->setWidth($ancho);
+        }
+        foreach (range('I', 'P') as $col) {
+            $hoja->getColumnDimension($col)->setWidth(7);
+        }
+
+        $deuda = function ($lista) { return $lista->sum(function ($c) { return (float) $c->totdeuda; }); };
+        $base = function ($nombre, $lista) use ($deuda) {
+            return [$nombre, $lista->count(), $lista->where('venta', 'ACTIVO')->count(), $lista->where('venta', '<>', 'ACTIVO')->count(),
+                $lista->filter(function ($c) { return (float) $c->totdeuda > 0; })->count(), $deuda($lista)];
+        };
+        $sinUbicacion = function ($lista) { return $lista->reject(function ($c) { return $this->tieneUbicacion($c); })->count(); };
+        $fila = 5;
+
+        // Por vendedor, con cuantos clientes visita cada dia
+        $filas = [];
+        $porVendedor = $clientes->groupBy(function ($c) {
+            return trim((string) $c->vendedor) ?: (trim((string) $c->CiVend) ?: 'SIN VENDEDOR');
+        })->sortKeys();
+        foreach ($porVendedor as $nombre => $lista) {
+            $f = array_merge($base($nombre, $lista), [$sinUbicacion($lista), $lista->filter(function ($c) { return (int) $c->fotos_count > 0; })->count()]);
+            foreach (array_keys($dias) as $campo) {
+                $f[] = $lista->filter(function ($c) use ($campo) { return (int) $c->$campo; })->count();
+            }
+            $f[] = $lista->filter($sinDia)->count();
+            $filas[] = $f;
+        }
+        $fila = $this->tablaResumen($hoja, $fila, 'POR VENDEDOR',
+            array_merge(['Vendedor', 'Clientes', 'Activos', 'Inactivos', 'Con deuda', 'Deuda Bs', 'Sin ubicación', 'Con fotos'], array_values($dias), ['Sin día']),
+            $filas, '1F4E78');
+
+        // Por zona
+        $filas = [];
+        foreach ($clientes->groupBy(function ($c) { return trim((string) $c->zona) ?: 'SIN ZONA'; })->sortKeys() as $nombre => $lista) {
+            $filas[] = array_merge($base($nombre, $lista), [$sinUbicacion($lista),
+                $lista->map(function ($c) { return trim((string) $c->CiVend); })->filter()->unique()->count()]);
+        }
+        $fila = $this->tablaResumen($hoja, $fila, 'POR ZONA',
+            ['Zona', 'Clientes', 'Activos', 'Inactivos', 'Con deuda', 'Deuda Bs', 'Sin ubicación', 'Vendedores'], $filas, '385723');
+
+        // Por canal
+        $filas = [];
+        $porCanal = $clientes->groupBy(function ($c) {
+            return (trim((string) $c->SupraCanal) ?: '-') . ' · ' . (trim((string) $c->Canal) ?: 'SIN CANAL');
+        })->sortKeys();
+        foreach ($porCanal as $nombre => $lista) {
+            $filas[] = $base($nombre, $lista);
+        }
+        $fila = $this->tablaResumen($hoja, $fila, 'POR CANAL (SUPRA CANAL · CANAL)',
+            ['Canal', 'Clientes', 'Activos', 'Inactivos', 'Con deuda', 'Deuda Bs'], $filas, '7F6000');
+
+        // Por dia de visita: sin total, un cliente cuenta en cada dia que se le visita
+        $filas = [];
+        foreach ($nombresDia as $campo => $nombre) {
+            $filas[] = $base($nombre, $clientes->filter(function ($c) use ($campo) { return (int) $c->$campo; }));
+        }
+        $filas[] = $base('Sin día de visita', $clientes->filter($sinDia));
+        $this->tablaResumen($hoja, $fila, 'POR DÍA DE VISITA (un cliente cuenta en cada día que se le visita)',
+            ['Día', 'Clientes', 'Activos', 'Inactivos', 'Con deuda', 'Deuda Bs'], $filas, '2E75B6', false);
+
+        $hoja->setSelectedCell('A1');
+        $this->paginaExcel($hoja, null, null, 'Resumen de clientes');
+    }
+
+    /** Tabla del resumen: titulo, encabezado, filas, total (Deuda Bs en la columna F); devuelve la siguiente fila libre. */
+    private function tablaResumen($hoja, $fila, $titulo, $cabecera, $filas, $color, $conTotal = true)
+    {
+        $ultima = Coordinate::stringFromColumnIndex(count($cabecera));
+        $hoja->setCellValue('A' . $fila, $titulo);
+        $hoja->getStyle('A' . $fila)->getFont()->setBold(true)->setSize(12)->getColor()->setRGB($color);
+        $fila++;
+        $encabezado = $fila;
+        $hoja->fromArray($cabecera, null, 'A' . $fila);
+        $hoja->getStyle('A' . $fila . ':' . $ultima . $fila)->applyFromArray([
+            'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
+            'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => $color]],
+            'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER, 'vertical' => Alignment::VERTICAL_CENTER, 'wrapText' => true],
+        ]);
+        $hoja->getRowDimension($fila)->setRowHeight(28);
+        $desde = $fila + 1;
+        foreach ($filas as $f) {
+            $fila++;
+            $hoja->fromArray($f, null, 'A' . $fila, true);
+            if (($fila - $desde) % 2 === 1) {
+                $hoja->getStyle('A' . $fila . ':' . $ultima . $fila)->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB('F2F2F2');
+            }
+        }
+        $hasta = max($fila, $desde);
+        if ($conTotal && $filas) {
+            $fila++;
+            $hoja->setCellValue('A' . $fila, 'TOTAL');
+            for ($i = 2; $i <= count($cabecera); $i++) {
+                $col = Coordinate::stringFromColumnIndex($i);
+                $hoja->setCellValue($col . $fila, '=SUM(' . $col . $desde . ':' . $col . $hasta . ')');
+            }
+            $hoja->getStyle('A' . $fila . ':' . $ultima . $fila)->applyFromArray([
+                'font' => ['bold' => true],
+                'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'D9E1F2']],
+            ]);
+        }
+        $hoja->getStyle('A' . $encabezado . ':' . $ultima . $fila)->getBorders()->getAllBorders()
+            ->setBorderStyle(Border::BORDER_THIN)->getColor()->setRGB('C9D3DF');
+        $hoja->getStyle('B' . $desde . ':' . $ultima . $fila)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+        $hoja->getStyle('F' . $desde . ':F' . $fila)->getNumberFormat()->setFormatCode('#,##0.00');
+        $hoja->getStyle('F' . $desde . ':F' . $fila)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
+
+        return $fila + 3;
+    }
+
+    /** Banda de titulo y lineas de subtitulo (filtros, totales, autor) arriba de la hoja. */
+    private function tituloExcel($hoja, $titulo, $ultima, $lineas)
+    {
+        $hoja->setCellValue('A1', $titulo);
+        $hoja->mergeCells('A1:' . $ultima . '1');
+        $hoja->getStyle('A1')->applyFromArray([
+            'font' => ['bold' => true, 'size' => 15, 'color' => ['rgb' => 'FFFFFF']],
+            'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => '1F4E78']],
+            'alignment' => ['vertical' => Alignment::VERTICAL_CENTER, 'indent' => 1],
+        ]);
+        $hoja->getRowDimension(1)->setRowHeight(26);
+        foreach ($lineas as $i => $linea) {
+            $f = $i + 2;
+            $hoja->setCellValue('A' . $f, $linea);
+            $hoja->mergeCells('A' . $f . ':' . $ultima . $f);
+        }
+        $hoja->getStyle('A3')->getFont()->setBold(true);
+        $hoja->getStyle('A' . (count($lineas) + 1))->getFont()->setItalic(true)->getColor()->setRGB('666666');
+    }
+
+    private function paginaExcel($hoja, $repetirDesde, $repetirHasta, $pie)
+    {
+        $pagina = $hoja->getPageSetup()
+            ->setOrientation(PageSetup::ORIENTATION_LANDSCAPE)
+            ->setPaperSize(PageSetup::PAPERSIZE_LETTER)
+            ->setFitToWidth(1)
+            ->setFitToHeight(0);
+        if ($repetirDesde) $pagina->setRowsToRepeatAtTopByStartAndEnd($repetirDesde, $repetirHasta);
+        $hoja->getPageMargins()->setLeft(0.3)->setRight(0.3)->setTop(0.4)->setBottom(0.5);
+        $hoja->getHeaderFooter()->setOddFooter('&L&8' . $pie . '&R&8Página &P de &N');
+    }
+
+    /** Formato condicional por formula: relleno y, si se da, letra en negrita de ese color. */
+    private function condicion($formula, $relleno, $letra = null)
+    {
+        $c = new Conditional();
+        $c->setConditionType(Conditional::CONDITION_EXPRESSION)->addCondition($formula);
+        $c->getStyle()->getFill()->setFillType(Fill::FILL_SOLID)->getEndColor()->setRGB($relleno);
+        if ($letra) $c->getStyle()->getFont()->setBold(true)->getColor()->setRGB($letra);
+
+        return $c;
+    }
+
+    // Bolivia: los numeros de ocho digitos van con el 591 adelante.
+    private function numeroWhatsapp($telefono)
+    {
+        $numero = preg_replace('/\D/', '', (string) $telefono);
+        if (strlen($numero) < 8) return '';
+
+        return strlen($numero) === 8 ? '591' . $numero : $numero;
+    }
+
+    private function tieneUbicacion($c)
+    {
+        return (float) $c->Latitud != 0 && (float) $c->longitud != 0;
+    }
+
+    private function consultaClientes()
+    {
         // La deuda sale de cobranzas/creditos (DeudaCliente), ya no de tbctascobrar.
         return DB::select("
         SELECT tbclientes.*,

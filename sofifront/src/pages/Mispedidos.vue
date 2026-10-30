@@ -101,8 +101,10 @@
                        :icon="props.row.estado=='CREADO'?'edit':'send'" size="xs" dense unelevated>
                   <q-tooltip>{{ props.row.estado=='CREADO'?'Modificar':'Enviado' }}</q-tooltip>
                 </q-btn>
-                <q-btn @click="imprimirboleta(props.row)" color="info" icon="print" size="xs" dense unelevated
-                       v-if="props.row.estado=='ENVIADO'" class="q-ml-xs"/>
+                <q-btn @click="enviarBoletaWhatsapp(props.row)" color="positive" icon="share" size="xs" dense unelevated
+                       class="q-ml-xs">
+                  <q-tooltip>Enviar PDF por WhatsApp</q-tooltip>
+                </q-btn>
               </div>
             </q-td>
           </template>
@@ -1807,89 +1809,219 @@ export default {
         this.misclientes()
       })
     },
-    // Boleta de pedido enviado: encabezado con datos del pedido y cliente,
-    // detalle de embutidos (rnormal) y lineas de pollo/res/cerdo, totales y firmas.
-    imprimirboleta(comanda1) {
+    // Boleta de pedido enviado en PDF (jsPDF): encabezado con datos del pedido y
+    // cliente, detalle de embutidos (rnormal) y lineas de pollo/res/cerdo, totales
+    // y firmas. Ya no se imprime: se comparte por WhatsApp al cliente.
+    enviarBoletaWhatsapp(comanda1) {
+      this.$q.loading.show()
       this.$api.post('rnormal', {comanda: comanda1.NroPed}).then(res => {
-        const esc = v => String(v ?? '').replace(/[&<>"]/g, ch => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[ch]))
-        const num = v => (parseFloat(v) || 0).toFixed(2)
+        this.$q.loading.hide()
+        const {doc, total} = this.boletaPdf(comanda1, res.data || [])
+        const archivo = new File([doc.output('blob')], 'Pedido_' + comanda1.NroPed + '.pdf', {type: 'application/pdf'})
         const cli = comanda1.cliente || {}
-        const user = this.$store.state.login.user || {}
-        const usuario = ((user.Nombre1 || '') + ' ' + (user.App1 || '')).trim()
-        const normales = res.data || []
-        const primera = normales[0] || {}
-        const otros = (comanda1.productos || []).filter(p => p.tipo && p.tipo !== 'NORMAL')
-        const etiquetas = {POLLO: 'Pollo', RES: 'Res', CERDO: 'Cerdo'}
-
-        let tot = 0
-        let n = 0
-        let filas = ''
-        normales.forEach(r => {
-          tot += parseFloat(r.subtotal) || 0
-          filas += `<tr><td class="c">${++n}</td><td>${esc((r.cod_prod || '').trim())}</td><td>${esc(r.Producto)}` +
-            (r.Observaciones ? `<div class="obs">${esc(r.Observaciones)}</div>` : '') + '</td>' +
-            `<td class="r">${esc(r.Cant)}${r.caja ? ' ' + esc(r.caja) : ''}</td><td class="r">${num(r.precio)}</td>` +
-            `<td class="r b">${num(r.subtotal)}</td></tr>`
-        })
-        otros.forEach(p => {
-          tot += parseFloat(p.subtotal) || 0
-          filas += `<tr><td class="c">${++n}</td><td>${esc(p.cod_prod)}</td><td>${esc(p.nombre)} ` +
-            `<span class="tag">${esc(etiquetas[p.tipo] || p.tipo)}</span></td>` +
-            `<td class="r">${p.cantidad ? esc(p.cantidad) : '-'}</td><td class="r">-</td><td class="r b">${num(p.subtotal)}</td></tr>`
-        })
-        if (!n) filas = '<tr><td colspan="6" class="c">Sin productos</td></tr>'
-
-        const fechaPedido = (comanda1.fecha || '').substring(0, 16)
-        const html = `<!doctype html><html><head><meta charset="utf-8"><title>Pedido ${esc(comanda1.NroPed)}</title>
-<style>
-  *{box-sizing:border-box} body{font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#111;margin:16px}
-  .cab{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #111;padding-bottom:6px}
-  .emp{font-size:20px;font-weight:bold;letter-spacing:1px} .sub{color:#555;font-size:11px}
-  .num{text-align:right} .num .dia{font-size:26px;font-weight:bold;line-height:1} .num .cmd{font-size:13px}
-  .datos{display:grid;grid-template-columns:1fr 1fr;gap:2px 16px;margin:8px 0;padding:6px 8px;border:1px solid #bbb;border-radius:4px}
-  .datos b{display:inline-block;min-width:70px;color:#444}
-  table{width:100%;border-collapse:collapse;margin-top:6px}
-  th{background:#eee;border:1px solid #999;padding:4px;font-size:11px;text-transform:uppercase}
-  td{border:1px solid #bbb;padding:3px 4px;vertical-align:top}
-  .c{text-align:center} .r{text-align:right;white-space:nowrap} .b{font-weight:bold}
-  .obs{font-size:10px;color:#555;font-style:italic} .tag{font-size:9px;border:1px solid #777;border-radius:3px;padding:0 3px}
-  tfoot td{font-size:14px;font-weight:bold;background:#f5f5f5}
-  .coment{margin-top:6px;padding:4px 8px;border-left:3px solid #555;background:#f7f7f7}
-  .firmas{display:flex;justify-content:space-around;margin-top:48px}
-  .firmas div{width:35%;border-top:1px solid #111;text-align:center;padding-top:3px;font-size:11px}
-  .pie{margin-top:14px;font-size:10px;color:#666;display:flex;justify-content:space-between}
-  @media print{body{margin:6mm} th,tfoot td{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
-</style></head><body>
-<div class="cab">
-  <div><div class="emp">SOFIA</div><div class="sub">Pollo, embutidos y carnes · Nota de pedido</div></div>
-  <div class="num"><div class="dia">N° ${esc(comanda1.numero_dia || '-')}</div><div class="cmd">Comanda ${esc(comanda1.NroPed)}</div>
-    <div class="sub">${esc(comanda1.estado)}</div></div>
-</div>
-<div class="datos">
-  <div><b>Cliente:</b> ${esc(cli.Nombres)}</div><div><b>CI/NIT:</b> ${esc(cli.Id)}</div>
-  <div><b>Dirección:</b> ${esc(cli.Direccion)}</div><div><b>Teléfono:</b> ${esc(cli.Telf)}</div>
-  <div><b>Fecha:</b> ${esc(fechaPedido)}</div><div><b>Horario:</b> ${esc(primera.horario || '-')}</div>
-  <div><b>Pago:</b> ${esc(comanda1.pago)}</div><div><b>Factura:</b> ${esc(comanda1.fact)}</div>
-  <div><b>Vendedor:</b> ${esc(usuario)}</div>
-  ${comanda1.bonificacion == 1 ? `<div><b>Bonificación:</b> ${esc(comanda1.clienteBonificacion)} (pendiente)</div>` : ''}
-  ${comanda1.bonificacion != 1 && comanda1.bonificacionAprovacion ? `<div><b>Bonificación:</b> ${esc(comanda1.clienteBonificacion)} (aprobada por ${esc(comanda1.bonificacionAprovacion)})</div>` : ''}
-</div>
-${primera.comentario ? `<div class="coment"><b>Comentario:</b> ${esc(primera.comentario)}</div>` : ''}
-<table>
-  <thead><tr><th>#</th><th>Código</th><th>Producto</th><th>Cant.</th><th>Precio</th><th>Subtotal</th></tr></thead>
-  <tbody>${filas}</tbody>
-  <tfoot><tr><td colspan="3">${n} producto(s)</td><td colspan="2" class="r">TOTAL Bs</td><td class="r">${num(tot)}</td></tr></tfoot>
-</table>
-<div class="firmas"><div>Entregado por</div><div>Recibido por (cliente)</div></div>
-<div class="pie"><span>Impreso por ${esc(usuario)}</span><span>${date.formatDate(new Date(), 'DD/MM/YYYY HH:mm:ss')}</span></div>
-</body></html>`
-        const myWindow = window.open('', 'Imprimir', 'width=900,height=1000')
-        myWindow.document.write(html)
-        myWindow.document.close()
-        myWindow.focus()
-        myWindow.print()
-        myWindow.close()
+        const texto = 'Hola ' + String(cli.Nombres || '').trim() + ', te enviamos tu nota de pedido N° ' +
+          (comanda1.numero_dia || '-') + ' (comanda ' + comanda1.NroPed + ') de Distribuidora Sofía. Total: ' + total + ' Bs'
+        this.compartirBoleta(archivo, texto, cli.Telf)
+      }).catch(err => {
+        this.$q.loading.hide()
+        this.$q.notify({message: err.response?.data?.message || 'No se pudo generar el PDF', color: 'red', icon: 'error'})
       })
+    },
+    // En el celular el menu de compartir manda el PDF como archivo (se elige
+    // WhatsApp y el contacto). Si el navegador no comparte archivos (PC), se
+    // descarga el PDF y se abre el chat del cliente para adjuntarlo a mano:
+    // un link de WhatsApp no puede llevar archivos.
+    compartirBoleta(archivo, texto, telefono) {
+      const puedeCompartir = navigator.canShare && navigator.canShare({files: [archivo]})
+      if (!puedeCompartir) {
+        const url = URL.createObjectURL(archivo)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = archivo.name
+        a.click()
+        setTimeout(() => URL.revokeObjectURL(url), 10000)
+        // Bolivia: los numeros de ocho digitos van con el 591 adelante.
+        const numero = String(telefono || '').replace(/\D/g, '')
+        const completo = numero.length === 8 ? '591' + numero : numero
+        window.open('https://wa.me/' + (numero.length >= 7 ? completo : '') + '?text=' + encodeURIComponent(texto), '_blank')
+        this.$q.notify({message: 'PDF descargado: adjúntalo en el chat de WhatsApp', color: 'positive', icon: 'download', timeout: 6000})
+        return
+      }
+      const compartir = () => navigator.share({files: [archivo], title: archivo.name, text: texto})
+      compartir().catch(err => {
+        // Si la consulta tardo, el navegador ya no lo cuenta como un toque del
+        // usuario: se pide un toque mas y se comparte desde ahi.
+        if (err.name !== 'NotAllowedError') return
+        this.$q.dialog({
+          title: 'PDF listo', message: 'Toca Enviar para mandarlo por WhatsApp', cancel: true,
+          ok: {label: 'Enviar', icon: 'send', color: 'positive'}
+        }).onOk(() => compartir().catch(() => {}))
+      })
+    },
+    boletaPdf(comanda1, normales) {
+      const num = v => (parseFloat(v) || 0).toFixed(2)
+      const txt = v => String(v ?? '').trim()
+      const cli = comanda1.cliente || {}
+      const user = this.$store.state.login.user || {}
+      const usuario = ((user.Nombre1 || '') + ' ' + (user.App1 || '')).trim()
+      const primera = normales[0] || {}
+      const otros = (comanda1.productos || []).filter(p => p.tipo && p.tipo !== 'NORMAL')
+      const etiquetas = {POLLO: 'Pollo', RES: 'Res', CERDO: 'Cerdo'}
+
+      const filas = []
+      let tot = 0
+      normales.forEach(r => {
+        tot += parseFloat(r.subtotal) || 0
+        filas.push({cod: txt(r.cod_prod), nombre: txt(r.Producto), obs: txt(r.Observaciones),
+          cant: txt(r.Cant) + (r.caja ? ' ' + txt(r.caja) : ''), precio: num(r.precio), subtotal: num(r.subtotal)})
+      })
+      otros.forEach(p => {
+        tot += parseFloat(p.subtotal) || 0
+        filas.push({cod: txt(p.cod_prod), nombre: txt(p.nombre) + ' (' + (etiquetas[p.tipo] || p.tipo) + ')', obs: '',
+          cant: p.cantidad ? txt(p.cantidad) : '-', precio: '-', subtotal: num(p.subtotal)})
+      })
+      const cantidad = filas.length
+      if (!filas.length) filas.push({cod: '', nombre: 'Sin productos', obs: '', cant: '', precio: '', subtotal: ''})
+
+      const doc = new jsPDF('p', 'mm', 'letter')
+      const alto = doc.internal.pageSize.getHeight()
+      const izq = 10
+      const der = 206
+      let y = 14
+
+      // Encabezado
+      doc.setFont('helvetica', 'bold')
+      doc.setFontSize(18)
+      doc.text('SOFIA', izq, y)
+      doc.setFontSize(20)
+      doc.text('N° ' + (comanda1.numero_dia || '-'), der, y, {align: 'right'})
+      doc.setFont('helvetica', 'normal')
+      doc.setFontSize(9)
+      doc.setTextColor(90)
+      doc.text('Pollo, embutidos y carnes · Nota de pedido', izq, y + 5)
+      doc.setTextColor(0)
+      doc.text('Comanda ' + comanda1.NroPed + ' · ' + txt(comanda1.estado), der, y + 5, {align: 'right'})
+      y += 8
+      doc.setLineWidth(0.6)
+      doc.line(izq, y, der, y)
+      doc.setLineWidth(0.2)
+      y += 6
+
+      // Datos del pedido en dos columnas
+      const datos = [
+        ['Cliente', cli.Nombres], ['CI/NIT', cli.Id],
+        ['Dirección', cli.Direccion], ['Teléfono', cli.Telf],
+        ['Fecha', (comanda1.fecha || '').substring(0, 16)], ['Horario', primera.horario || '-'],
+        ['Pago', comanda1.pago], ['Factura', comanda1.fact],
+        ['Vendedor', usuario],
+      ]
+      if (comanda1.bonificacion == 1) {
+        datos.push(['Bonificación', txt(comanda1.clienteBonificacion) + ' (pendiente)'])
+      } else if (comanda1.bonificacionAprovacion) {
+        datos.push(['Bonificación', txt(comanda1.clienteBonificacion) + ' (aprobada por ' + txt(comanda1.bonificacionAprovacion) + ')'])
+      }
+      const altoDatos = Math.ceil(datos.length / 2) * 5 + 3
+      doc.setDrawColor(180)
+      doc.roundedRect(izq, y - 4, der - izq, altoDatos, 1, 1)
+      datos.forEach((d, i) => {
+        const x = i % 2 ? 110 : izq + 2
+        const yy = y + Math.floor(i / 2) * 5
+        doc.setFont('helvetica', 'bold')
+        doc.text(d[0] + ':', x, yy)
+        doc.setFont('helvetica', 'normal')
+        doc.text(doc.splitTextToSize(txt(d[1]), 70)[0] || '', x + 22, yy)
+      })
+      y += altoDatos + 2
+
+      if (primera.comentario) {
+        const lineas = doc.splitTextToSize('Comentario: ' + txt(primera.comentario), der - izq - 4)
+        doc.setFillColor(245, 245, 245)
+        doc.rect(izq, y - 4, der - izq, lineas.length * 4 + 2, 'F')
+        doc.text(lineas, izq + 2, y)
+        y += lineas.length * 4 + 3
+      }
+
+      // Detalle
+      const cols = [
+        {t: '#', x: 10, w: 7, a: 'c'},
+        {t: 'Código', x: 17, w: 20},
+        {t: 'Producto', x: 37, w: 101},
+        {t: 'Cant.', x: 138, w: 22, a: 'r'},
+        {t: 'Precio', x: 160, w: 20, a: 'r'},
+        {t: 'Subtotal', x: 180, w: 26, a: 'r'},
+      ]
+      const pos = c => c.a === 'r' ? c.x + c.w - 1.5 : c.a === 'c' ? c.x + c.w / 2 : c.x + 1.5
+      const al = c => c.a === 'r' ? 'right' : c.a === 'c' ? 'center' : 'left'
+      const encabezado = () => {
+        doc.setFont('helvetica', 'bold')
+        doc.setFontSize(8)
+        doc.setFillColor(230, 230, 230)
+        doc.setDrawColor(150)
+        doc.rect(izq, y - 4, der - izq, 6, 'FD')
+        cols.forEach(c => doc.text(c.t.toUpperCase(), pos(c), y, {align: al(c)}))
+        doc.setFont('helvetica', 'normal')
+        doc.setFontSize(9)
+        y += 6
+      }
+      encabezado()
+      filas.forEach((f, i) => {
+        const nombre = doc.splitTextToSize(f.nombre, 98)
+        const obs = f.obs ? doc.splitTextToSize(f.obs, 98) : []
+        const h = (nombre.length + obs.length) * 4 + 1.5
+        if (y + h > alto - 20) {
+          doc.addPage()
+          y = 14
+          encabezado()
+        }
+        doc.text(f.cod ? String(i + 1) : '', pos(cols[0]), y, {align: 'center'})
+        doc.text(f.cod, pos(cols[1]), y)
+        doc.text(nombre, pos(cols[2]), y)
+        if (obs.length) {
+          doc.setFont('helvetica', 'italic')
+          doc.setFontSize(8)
+          doc.setTextColor(90)
+          doc.text(obs, pos(cols[2]), y + nombre.length * 4)
+          doc.setFont('helvetica', 'normal')
+          doc.setFontSize(9)
+          doc.setTextColor(0)
+        }
+        doc.text(f.cant, pos(cols[3]), y, {align: 'right'})
+        doc.text(f.precio, pos(cols[4]), y, {align: 'right'})
+        doc.setFont('helvetica', 'bold')
+        doc.text(f.subtotal, pos(cols[5]), y, {align: 'right'})
+        doc.setFont('helvetica', 'normal')
+        doc.setDrawColor(200)
+        doc.line(izq, y + h - 4, der, y + h - 4)
+        y += h
+      })
+
+      // Total
+      doc.setFillColor(240, 240, 240)
+      doc.rect(izq, y - 4, der - izq, 7, 'F')
+      doc.setFont('helvetica', 'bold')
+      doc.setFontSize(11)
+      doc.text(cantidad + ' producto(s)', izq + 2, y + 0.5)
+      doc.text('TOTAL Bs  ' + num(tot), der - 1.5, y + 0.5, {align: 'right'})
+      doc.setFont('helvetica', 'normal')
+      doc.setFontSize(9)
+      y += 24
+
+      // Firmas
+      if (y > alto - 20) {
+        doc.addPage()
+        y = 30
+      }
+      doc.setDrawColor(0)
+      doc.line(30, y, 90, y)
+      doc.line(126, y, 186, y)
+      doc.text('Entregado por', 60, y + 4, {align: 'center'})
+      doc.text('Recibido por (cliente)', 156, y + 4, {align: 'center'})
+
+      doc.setFontSize(7)
+      doc.setTextColor(110)
+      doc.text('Generado por ' + usuario, izq, alto - 6)
+      doc.text(date.formatDate(new Date(), 'DD/MM/YYYY HH:mm:ss'), der, alto - 6, {align: 'right'})
+      return {doc, total: num(tot)}
     },
     agregarpedido() {
       if (this.producto.Producto == undefined) {

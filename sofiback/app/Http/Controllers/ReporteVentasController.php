@@ -1541,7 +1541,7 @@ class ReporteVentasController extends Controller
                 DB::raw("COALESCE(NULLIF(TRIM(f.nombre), ''), TRIM(c.Nombres)) as cliente"),
                 DB::raw('TRIM(d.cod_prod) as cod_prod'), 'd.nombre', 'd.unidad', 'd.cantidad', 'd.peso',
                 'd.canastillos', 'd.subtotal',
-                'pr.CantPren', 'pr.precio_compra', 'f.pedido_nro',
+                'pr.CantPren', 'pr.precio_compra', 'f.pedido_nro', 'f.cliente_id',
                 DB::raw('TRIM(g.Descripcion) as familia'), DB::raw('TRIM(gp.Descripcion) as subfamilia'), 'f.pedido_tipo', 'f.observacion',
                 DB::raw("TRIM(c.Nombres) as cliente_ficha"),
             ]);
@@ -1607,6 +1607,7 @@ class ReporteVentasController extends Controller
                 'recibio'       => $recibio,
                 'nro_factura'   => $l->tipo_comprobante === 'FACTURA' ? (int) $l->nro_factura : 0,
                 'nro_boleta'    => (int) $l->factura_id,
+                'cliente_id'    => (int) $l->cliente_id,
             ];
         }
 
@@ -1706,6 +1707,215 @@ class ReporteVentasController extends Controller
         $hoja->setAutoFilter("A1:{$ultimaCol}" . max($fila - 1, 1));
 
         $nombre = 'ventas_' . $desde . '_a_' . $hasta . '.xlsx';
+
+        return response()->streamDownload(function () use ($libro) {
+            (new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($libro))->save('php://output');
+        }, $nombre, [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        ]);
+    }
+
+    /** Columnas de la base de ventas, en el orden de la planilla BASE VENTAS. */
+    private const COLUMNAS_BASE = [
+        'nro_boleta'    => 'N.- BOLETA',
+        'cliente'       => 'CLIENTE',
+        'canal'         => 'CANAL',
+        'supracanal'    => 'SUPRACANAL',
+        'subcanal'      => 'SUBCANAL',
+        'zona'          => 'ZONA',
+        'latitud'       => 'LATITUD',
+        'longitud'      => 'LONGITUD',
+        'fecha_hora'    => 'FECHA EMISION',
+        'familia'       => 'FAMILIA',
+        'subfamilia'    => 'SUBFAMILIA',
+        'vendedor'      => 'VENDEDOR',
+        'cod_prod'      => 'COD. PRODUCTO',
+        'producto'      => 'PRODUCTO',
+        'peso'          => 'PESO',
+        'importe'       => 'IMPORTE',
+        'costo'         => 'COSTO',
+        'placa'         => 'PLACA',
+        'tipo_pago'     => 'TIP. PAGO',
+        'cantidad'      => 'CANTIDAD',
+        'cajas'         => 'CAJAS',
+        'direccion'     => 'DIRECCION',
+        'peso_promedio' => 'CANT',
+        'doc_cliente'   => 'DOC CLIENTE',
+        'anio'          => 'AÑO',
+        'mes'           => 'MES',
+        'fecha_entrega' => 'FECHA',
+        'semana'        => 'SEMANA',
+        'dia'           => 'DIA',
+        'dia_compra'    => 'PEDIDO EN DIA DE COMPRA',
+        'utilidad'      => 'UTILIDAD',
+    ];
+
+    /** Base de ventas en pantalla. */
+    public function baseVentas(Request $request)
+    {
+        [$desde, $hasta] = $this->rangoEntrega($request);
+        $filas = $this->base($desde, $hasta, $request);
+
+        return [
+            'desde'   => $desde,
+            'hasta'   => $hasta,
+            'filas'   => $filas,
+            'totales' => $this->totalesBase($filas),
+        ];
+    }
+
+    private function totalesBase(array $filas)
+    {
+        return [
+            'lineas'       => count($filas),
+            'comprobantes' => count(array_unique(array_column($filas, 'nro_boleta'))),
+            'clientes'     => count(array_unique(array_column($filas, 'cliente'))),
+            'peso'         => round(array_sum(array_column($filas, 'peso')), 3),
+            'importe'      => round(array_sum(array_column($filas, 'importe')), 2),
+            'costo'        => round(array_sum(array_column($filas, 'costo')), 2),
+            'utilidad'     => round(array_sum(array_column($filas, 'utilidad')), 2),
+        ];
+    }
+
+    /**
+     * El detalle de ventas con los datos del cliente (canal, zona, ubicacion,
+     * dias de visita) y las columnas de calendario de la planilla BASE VENTAS.
+     *
+     * - COSTO: el P.COMPRA del detalle; UTILIDAD = IMPORTE - COSTO (vacias si
+     *   el producto no tiene precio de compra).
+     * - PEDIDO EN DIA DE COMPRA: 1 si la fecha de entrega cae en un dia de
+     *   visita del cliente (tbclientes lu..do).
+     * - Filtros opcionales: clientes[] (nombre como sale en CLIENTE) y
+     *   productos[] (cod_prod).
+     */
+    private function base($desde, $hasta, Request $request)
+    {
+        $clientes = array_filter((array) $request->input('clientes', []), 'strlen');
+        $productos = array_filter((array) $request->input('productos', []), 'strlen');
+
+        $filas = array_values(array_filter($this->detalle($desde, $hasta), function ($f) use ($clientes, $productos) {
+            return (!$clientes || in_array($f['cliente'], $clientes, true))
+                && (!$productos || in_array($f['cod_prod'], $productos, true));
+        }));
+
+        $ids = array_values(array_unique(array_filter(array_column($filas, 'cliente_id'))));
+        $fichas = [];
+        foreach (array_chunk($ids, 1000) as $grupo) {
+            DB::table('tbclientes')->whereIn('Cod_Aut', $grupo)
+                ->get(['Cod_Aut', 'Canal', 'SupraCanal', 'subcanal', 'zona', 'Latitud', 'longitud',
+                    'lu', 'Ma', 'Mi', 'Ju', 'Vi', 'Sa', 'do'])
+                ->each(function ($c) use (&$fichas) { $fichas[$c->Cod_Aut] = $c; });
+        }
+
+        $meses = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre',
+            'octubre', 'noviembre', 'diciembre'];
+        $dias = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
+        // Columna de visita de tbclientes por dia de la semana (0 = domingo).
+        $visita = ['do', 'lu', 'Ma', 'Mi', 'Ju', 'Vi', 'Sa'];
+
+        return array_map(function ($f) use ($fichas, $meses, $dias, $visita) {
+            $c = $fichas[$f['cliente_id']] ?? null;
+            $t = strtotime($f['fecha_entrega']);
+            $diaSemana = (int) date('w', $t);
+            $coordenada = function ($v) {
+                $v = trim((string) $v);
+                return is_numeric($v) ? (float) $v : null;
+            };
+
+            return [
+                'nro_boleta'    => $f['nro_boleta'],
+                'cliente'       => $f['cliente'],
+                'canal'         => $c ? trim((string) $c->Canal) : '',
+                'supracanal'    => $c ? trim((string) $c->SupraCanal) : '',
+                'subcanal'      => $c ? trim((string) $c->subcanal) : '',
+                'zona'          => $c ? trim((string) $c->zona) : '',
+                'latitud'       => $c ? $coordenada($c->Latitud) : null,
+                'longitud'      => $c ? $coordenada($c->longitud) : null,
+                'fecha_hora'    => $f['fecha_hora'],
+                'familia'       => $f['familia'],
+                'subfamilia'    => $f['subfamilia'],
+                'vendedor'      => $f['vendedor'],
+                'cod_prod'      => $f['cod_prod'],
+                'producto'      => $f['producto'],
+                'peso'          => $f['peso'],
+                'importe'       => $f['importe'],
+                'costo'         => $f['p_compra'],
+                'placa'         => $f['placa'],
+                'tipo_pago'     => $f['tipo_pago'],
+                'cantidad'      => $f['cantidad'],
+                'cajas'         => $f['cajas'],
+                'direccion'     => $f['direccion'],
+                'peso_promedio' => $f['peso_promedio'],
+                'doc_cliente'   => $f['doc_cliente'],
+                'anio'          => (int) date('Y', $t),
+                'mes'           => $meses[(int) date('n', $t) - 1],
+                'fecha_entrega' => $f['fecha_entrega'],
+                'semana'        => (int) date('W', $t),
+                'dia'           => $dias[$diaSemana],
+                'dia_compra'    => $c && (int) $c->{$visita[$diaSemana]} ? 1 : 0,
+                'utilidad'      => $f['p_compra'] !== null ? round($f['importe'] - $f['p_compra'], 2) : null,
+            ];
+        }, $filas);
+    }
+
+    /** La base de ventas en Excel, con los mismos filtros que en pantalla. */
+    public function baseVentasExcel(Request $request)
+    {
+        [$desde, $hasta] = $this->rangoEntrega($request);
+        $filas = $this->base($desde, $hasta, $request);
+
+        $libro = new Spreadsheet();
+        $hoja = $libro->getActiveSheet();
+        $hoja->setTitle('Base ventas');
+
+        $campos = array_keys(self::COLUMNAS_BASE);
+        $hoja->fromArray(array_values(self::COLUMNAS_BASE), null, 'A1');
+        $ultimaCol = Coordinate::stringFromColumnIndex(count($campos));
+        $hoja->getStyle("A1:{$ultimaCol}1")->applyFromArray([
+            'font' => ['bold' => true, 'size' => 9],
+            'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'D9D9D9']],
+        ]);
+
+        $fila = 2;
+        foreach ($filas as $f) {
+            foreach ($campos as $i => $campo) {
+                $celda = Coordinate::stringFromColumnIndex($i + 1) . $fila;
+                // Codigos y documentos como texto: si no, Excel les come los ceros.
+                if (in_array($campo, ['cod_prod', 'doc_cliente'], true)) {
+                    $hoja->setCellValueExplicit($celda, (string) $f[$campo], DataType::TYPE_STRING);
+                } else {
+                    $hoja->setCellValue($celda, $f[$campo]);
+                }
+            }
+            $fila++;
+        }
+
+        $letra = function ($campo) use ($campos) {
+            return Coordinate::stringFromColumnIndex(array_search($campo, $campos, true) + 1);
+        };
+
+        $totales = $this->totalesBase($filas);
+        $hoja->setCellValue('A' . $fila, 'TOTAL');
+        foreach (['peso', 'importe', 'costo', 'utilidad'] as $campo) {
+            $hoja->setCellValue($letra($campo) . $fila, $totales[$campo]);
+        }
+        $hoja->getStyle("A{$fila}:{$ultimaCol}{$fila}")->getFont()->setBold(true);
+
+        foreach (['peso' => '#,##0.000', 'importe' => '#,##0.00', 'costo' => '#,##0.00', 'utilidad' => '#,##0.00',
+                     'cantidad' => '#,##0.00', 'peso_promedio' => '#,##0.00'] as $campo => $formato) {
+            $hoja->getStyle($letra($campo) . '2:' . $letra($campo) . $fila)->getNumberFormat()->setFormatCode($formato);
+        }
+        $hoja->getStyle("A1:{$ultimaCol}{$fila}")->getFont()->setSize(9);
+        foreach (['nro_boleta' => 10, 'cliente' => 34, 'canal' => 20, 'supracanal' => 10, 'subcanal' => 14, 'zona' => 10,
+                     'latitud' => 11, 'longitud' => 11, 'fecha_hora' => 16, 'familia' => 18, 'subfamilia' => 16,
+                     'vendedor' => 30, 'cod_prod' => 10, 'producto' => 44, 'placa' => 18, 'tipo_pago' => 11,
+                     'direccion' => 40, 'doc_cliente' => 13, 'fecha_entrega' => 11, 'dia_compra' => 12] as $campo => $ancho) {
+            $hoja->getColumnDimension($letra($campo))->setWidth($ancho);
+        }
+        $hoja->freezePane('A2');
+        $hoja->setAutoFilter("A1:{$ultimaCol}" . max($fila - 1, 1));
+
+        $nombre = 'base_ventas_' . $desde . '_a_' . $hasta . '.xlsx';
 
         return response()->streamDownload(function () use ($libro) {
             (new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($libro))->save('php://output');

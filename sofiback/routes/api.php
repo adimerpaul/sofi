@@ -139,6 +139,9 @@ Route::group(['middleware'=>'auth:sanctum'],function (){
     // Detalle de lo facturado en el turno (ayer 18:00 a hoy 18:00), una fila por producto.
     Route::get('/reportes/detalle-ventas',[\App\Http\Controllers\ReporteVentasController::class,'detalleVentas']);
     Route::get('/reportes/detalle-ventas/excel',[\App\Http\Controllers\ReporteVentasController::class,'detalleVentasExcel']);
+    // Base de ventas (planilla BASE VENTAS): el detalle con canal, zona y calendario; filtros clientes[] y productos[].
+    Route::get('/reportes/base-ventas',[\App\Http\Controllers\ReporteVentasController::class,'baseVentas']);
+    Route::get('/reportes/base-ventas/excel',[\App\Http\Controllers\ReporteVentasController::class,'baseVentasExcel']);
     // Reporte auxiliar del dia de pollo: stock, ventas por preventista y stock final.
     Route::get('/reportes/auxiliar-pollo',[\App\Http\Controllers\ReporteVentasController::class,'auxiliarPollo']);
     Route::get('/reportes/auxiliar-pollo/excel',[\App\Http\Controllers\ReporteVentasController::class,'auxiliarPolloExcel']);
@@ -308,6 +311,8 @@ Route::group(['middleware'=>'auth:sanctum'],function (){
     Route::post('/bloquear',[\App\Http\Controllers\ClienteController::class,'bloquear']);
     Route::post('/desbloq2',[\App\Http\Controllers\ClienteController::class,'desbloq2']);
     Route::post('/todosclientes',[\App\Http\Controllers\ClienteController::class,'todosclientes']);
+    // El listado de Clientes en Excel con los filtros de la pantalla (buscar, vendedor, zona, estado).
+    Route::get('/clientes/excel',[\App\Http\Controllers\ClienteController::class,'exportarExcel']);
     Route::post('/desbloquear',[\App\Http\Controllers\ClienteController::class,'desbloquear']);
     Route::get('/listapersonal',[\App\Http\Controllers\ClienteController::class,'listapersonal']);
     Route::get('/personalCliente',[\App\Http\Controllers\ClienteController::class,'personalCliente']);

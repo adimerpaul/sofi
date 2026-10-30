@@ -11,6 +11,7 @@
       <q-tab name="ranking" icon="leaderboard" label="Productos facturados"/>
       <q-tab name="anulados" icon="block" label="Anulados de facturación"/>
       <q-tab name="general" icon="table_view" label="Reporte general"/>
+      <q-tab name="base" icon="dataset" label="Base de ventas"/>
     </q-tabs>
     <q-separator/>
 
@@ -705,6 +706,56 @@
           </template>
         </q-table>
       </q-tab-panel>
+
+      <!-- La planilla BASE VENTAS: el detalle de ventas con canal, zona y
+           calendario, filtrable por cliente y producto. -->
+      <q-tab-panel name="base" class="q-pa-none q-pt-sm">
+        <div class="row items-center q-gutter-sm">
+          <q-input v-model="base.desde" type="date" dense outlined label="Desde" style="width: 150px"
+                   @update:model-value="consultarBase"/>
+          <q-input v-model="base.hasta" type="date" dense outlined label="Hasta" style="width: 150px"
+                   @update:model-value="consultarBase"/>
+          <q-select v-model="base.clientes" :options="opcionesBase.clientes" multiple use-chips use-input
+                    input-debounce="0" dense outlined clearable label="Clientes" style="min-width: 240px; max-width: 420px"
+                    @filter="(t, u) => filtrarBase('clientes', t, u)"/>
+          <q-select v-model="base.productos" :options="opcionesBase.productos" multiple use-chips use-input
+                    emit-value map-options input-debounce="0" dense outlined clearable label="Productos"
+                    style="min-width: 240px; max-width: 420px" @filter="(t, u) => filtrarBase('productos', t, u)"/>
+          <q-btn color="primary" icon="refresh" label="Actualizar" no-caps unelevated :loading="base.cargando"
+                 @click="consultarBase"/>
+          <q-btn color="green-8" icon="download" label="Excel" no-caps unelevated :loading="base.descargando"
+                 :disable="!baseVisibles.length" @click="descargarBase"/>
+        </div>
+
+        <div class="text-caption text-grey-7 q-mt-xs">
+          Facturas y vouchers no anulados por fecha de entrega. COSTO usa el precio de compra cargado en Productos y
+          UTILIDAD = IMPORTE − COSTO. "Día de compra" es 1 si la entrega cae en un día de visita del cliente.
+        </div>
+
+        <div class="row q-col-gutter-sm q-mt-xs">
+          <div v-for="t in tarjetasBase" :key="t.titulo" class="col-6 col-sm">
+            <q-card flat bordered class="tarjeta">
+              <div class="tarjeta-titulo">{{ t.titulo }}</div>
+              <div class="tarjeta-valor" :class="t.clase">{{ t.valor }}</div>
+              <div v-if="t.sub" class="tarjeta-sub">{{ t.sub }}</div>
+            </q-card>
+          </div>
+        </div>
+
+        <q-table
+          class="q-mt-sm tabla-detalle" flat bordered dense virtual-scroll
+          :rows="baseVisibles" :columns="columnasBase" :filter="base.buscar"
+          :rows-per-page-options="[0]" row-key="_k" :loading="base.cargando"
+          no-data-label="No hay ventas con esos filtros"
+        >
+          <template v-slot:top-right>
+            <q-input v-model="base.buscar" dense outlined clearable debounce="300"
+                     placeholder="Buscar en la tabla…" style="width: 280px">
+              <template v-slot:append><q-icon name="search"/></template>
+            </q-input>
+          </template>
+        </q-table>
+      </q-tab-panel>
     </q-tab-panels>
   </q-page>
 </template>
@@ -807,6 +858,52 @@ export default {
         anulados: this.nuevoComp(),
         general: Object.assign(this.nuevoComp(), { relacion: '' })
       },
+      // Base de ventas: por fecha de entrega, por defecto hoy.
+      base: {
+        desde: date.formatDate(Date.now(), 'YYYY-MM-DD'),
+        hasta: date.formatDate(Date.now(), 'YYYY-MM-DD'),
+        clientes: [],
+        productos: [],
+        filas: [],
+        buscar: '',
+        cargando: false,
+        descargando: false,
+        consultado: false
+      },
+      opcionesBase: { clientes: [], productos: [] },
+      columnasBase: [
+        { name: 'nro_boleta', label: 'N° boleta', field: 'nro_boleta', align: 'right', sortable: true },
+        { name: 'cliente', label: 'Cliente', field: 'cliente', align: 'left', sortable: true },
+        { name: 'canal', label: 'Canal', field: 'canal', align: 'left', sortable: true },
+        { name: 'supracanal', label: 'Supracanal', field: 'supracanal', align: 'left', sortable: true },
+        { name: 'subcanal', label: 'Subcanal', field: 'subcanal', align: 'left', sortable: true },
+        { name: 'zona', label: 'Zona', field: 'zona', align: 'left', sortable: true },
+        { name: 'latitud', label: 'Latitud', field: 'latitud', align: 'right' },
+        { name: 'longitud', label: 'Longitud', field: 'longitud', align: 'right' },
+        { name: 'fecha_hora', label: 'Emitido', field: 'fecha_hora', align: 'left', sortable: true },
+        { name: 'familia', label: 'Familia', field: 'familia', align: 'left', sortable: true },
+        { name: 'subfamilia', label: 'Subfamilia', field: 'subfamilia', align: 'left', sortable: true },
+        { name: 'vendedor', label: 'Vendedor', field: 'vendedor', align: 'left', sortable: true },
+        { name: 'cod_prod', label: 'Cód. producto', field: 'cod_prod', align: 'left', sortable: true },
+        { name: 'producto', label: 'Producto', field: 'producto', align: 'left', sortable: true },
+        { name: 'peso', label: 'Peso', field: 'peso', align: 'right', sortable: true, format: v => this.numero(v) },
+        { name: 'importe', label: 'Importe', field: 'importe', align: 'right', sortable: true, format: v => this.bs(v) },
+        { name: 'costo', label: 'Costo', field: 'costo', align: 'right', sortable: true, format: v => v === null ? '—' : this.bs(v) },
+        { name: 'placa', label: 'Placa', field: 'placa', align: 'left', sortable: true },
+        { name: 'tipo_pago', label: 'Tip. pago', field: 'tipo_pago', align: 'left', sortable: true },
+        { name: 'cantidad', label: 'Cantidad', field: 'cantidad', align: 'right', sortable: true, format: v => this.numero(v) },
+        { name: 'cajas', label: 'Cajas', field: 'cajas', align: 'right', sortable: true },
+        { name: 'direccion', label: 'Dirección', field: 'direccion', align: 'left' },
+        { name: 'peso_promedio', label: 'Cant', field: 'peso_promedio', align: 'right', format: v => v === null ? '—' : this.numero(v) },
+        { name: 'doc_cliente', label: 'Doc. cliente', field: 'doc_cliente', align: 'left', sortable: true },
+        { name: 'anio', label: 'Año', field: 'anio', align: 'right', sortable: true },
+        { name: 'mes', label: 'Mes', field: 'mes', align: 'left', sortable: true },
+        { name: 'fecha_entrega', label: 'Fecha', field: 'fecha_entrega', align: 'left', sortable: true },
+        { name: 'semana', label: 'Semana', field: 'semana', align: 'right', sortable: true },
+        { name: 'dia', label: 'Día', field: 'dia', align: 'left', sortable: true },
+        { name: 'dia_compra', label: 'Día de compra', field: 'dia_compra', align: 'right', sortable: true },
+        { name: 'utilidad', label: 'Utilidad', field: 'utilidad', align: 'right', sortable: true, format: v => v === null ? '—' : this.bs(v) }
+      ],
       tiposComp: [
         { label: 'Todos', value: '' },
         { label: 'Embutidos', value: 'NORMAL' },
@@ -879,9 +976,29 @@ export default {
       if (valor === 'ranking' && !this.ranking.datos.filas.length) this.consultarRanking()
       if (valor === 'cerdo' && !this.cerdo.datos) this.consultarCerdo()
       if ((valor === 'anulados' || valor === 'general') && !this.comp[valor].consultado) this.consultarComp(valor)
+      if (valor === 'base' && !this.base.consultado) this.consultarBase()
     }
   },
   computed: {
+    // Los filtros de cliente y producto se aplican aqui; el Excel los repite en el backend.
+    baseVisibles () {
+      const { clientes, productos } = this.base
+      return this.base.filas.filter(f =>
+        (!clientes.length || clientes.includes(f.cliente)) &&
+        (!productos.length || productos.includes(f.cod_prod)))
+    },
+    tarjetasBase () {
+      const filas = this.baseVisibles
+      const suma = campo => filas.reduce((s, f) => s + Number(f[campo] || 0), 0)
+      return [
+        { titulo: 'Comprobantes', valor: new Set(filas.map(f => f.nro_boleta)).size, sub: filas.length + ' líneas' },
+        { titulo: 'Clientes', valor: new Set(filas.map(f => f.cliente)).size },
+        { titulo: 'Importe Bs', valor: this.bs(suma('importe')), clase: 'text-positive' },
+        { titulo: 'Peso kg', valor: this.numero(suma('peso')) },
+        { titulo: 'Costo Bs', valor: this.bs(suma('costo')), clase: 'text-blue-9' },
+        { titulo: 'Utilidad Bs', valor: this.bs(suma('utilidad')), clase: 'text-green-9' }
+      ]
+    },
     rankingVisibles () {
       const texto = (this.buscarRanking || '').toLowerCase()
       const lista = this.ranking.datos.filas
@@ -1052,6 +1169,58 @@ export default {
       if (relacion.startsWith('PADRE')) return 'deep-purple-6'
       if (relacion.includes('RETORNO')) return 'teal-7'
       return 'indigo-5'
+    },
+    // Se trae todo el rango; las opciones de cliente y producto salen de lo vendido en el.
+    consultarBase () {
+      const b = this.base
+      if (!b.desde || !b.hasta) return
+      b.cargando = true
+      b.consultado = true
+      this.$api.get('reportes/base-ventas', { params: { desde: b.desde, hasta: b.hasta } }).then(res => {
+        res.data.filas.forEach((f, i) => { f._k = i })
+        b.filas = res.data.filas
+      }).catch(err => {
+        this.$q.notify({ type: 'negative', message: err.response?.data?.message || 'No se pudo cargar la base de ventas' })
+      }).finally(() => {
+        b.cargando = false
+      })
+    },
+    filtrarBase (campo, texto, actualizar) {
+      actualizar(() => {
+        const t = (texto || '').toLowerCase()
+        let lista
+        if (campo === 'clientes') {
+          lista = [...new Set(this.base.filas.map(f => f.cliente))].sort()
+        } else {
+          const vistos = {}
+          this.base.filas.forEach(f => { vistos[f.cod_prod] = f.cod_prod + ' - ' + f.producto })
+          lista = Object.keys(vistos).sort((a, b) => vistos[a].localeCompare(vistos[b]))
+            .map(cod => ({ label: vistos[cod], value: cod }))
+        }
+        this.opcionesBase[campo] = t
+          ? lista.filter(o => (typeof o === 'string' ? o : o.label).toLowerCase().includes(t))
+          : lista
+      })
+    },
+    async descargarBase () {
+      const b = this.base
+      b.descargando = true
+      try {
+        const res = await this.$api.get('reportes/base-ventas/excel', {
+          params: { desde: b.desde, hasta: b.hasta, clientes: b.clientes, productos: b.productos },
+          responseType: 'blob'
+        })
+        const url = window.URL.createObjectURL(res.data)
+        const enlace = document.createElement('a')
+        enlace.href = url
+        enlace.download = 'base_ventas_' + b.desde + '_a_' + b.hasta + '.xlsx'
+        enlace.click()
+        window.URL.revokeObjectURL(url)
+      } catch (e) {
+        this.$q.notify({ type: 'negative', message: 'No se pudo descargar el Excel' })
+      } finally {
+        b.descargando = false
+      }
     },
     paramsRanking () {
       return { desde: this.ranking.desde, hasta: this.ranking.hasta, orden: this.ranking.orden }
