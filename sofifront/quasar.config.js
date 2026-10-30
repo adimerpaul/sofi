@@ -45,7 +45,7 @@ export default defineConfig(function (ctx) {
 
       env: {
         API: ctx.dev
-          ? 'http://192.168.1.2:8000/api/'
+          ? 'http://localhost:8000/api/'
           : 'https://bsofia.tuprogam.com/api/',
         SOCKET: ctx.dev
           ? 'http://127.0.0.1:3000'

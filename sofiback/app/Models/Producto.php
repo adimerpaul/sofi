@@ -59,6 +59,15 @@ class Producto extends Model implements Auditable{
         'codgruppasin',
         'credit',
     ];
+    // tbproductos guarda muchos codigos con espacios al final ('590208   ') y
+    // tbpedidos sin ellos. MySQL los da por iguales, pero Eloquent empareja las
+    // relaciones en PHP con comparacion exacta y el pedido quedaba sin producto
+    // (sin nombre en Mis pedidos y Visita).
+    public function getCodProdAttribute($value)
+    {
+        return $value === null ? null : trim($value);
+    }
+
     public function stock()
     {
         return $this->hasMany(Stock::class, 'cod_prod', 'cod_prod');
