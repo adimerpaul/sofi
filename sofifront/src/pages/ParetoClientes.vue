@@ -2,7 +2,8 @@
   <q-page class="q-pa-sm">
     <div class="text-h6 text-weight-bold">Pareto de clientes</div>
     <div class="text-caption text-grey-7 q-mb-sm">
-      Busca un producto y mira qué clientes tuyos lo pidieron más y cuándo fue la última vez.
+      Busca un producto y mira qué clientes tuyos lo compraron más (según lo facturado) y cuándo fue la última vez.
+      Toca un cliente para ver sus compras.
     </div>
 
     <div class="row q-col-gutter-sm">
@@ -103,7 +104,7 @@
       </div>
 
       <q-list bordered separator class="rounded-borders q-mt-sm">
-        <q-item v-for="f in visibles" :key="f.cliente_id" class="q-py-sm">
+        <q-item v-for="f in visibles" :key="f.cliente_id" class="q-py-sm" clickable v-ripple @click="verDetalle(f)">
           <q-item-section avatar top>
             <q-avatar :color="colorClase(f.clase)" text-color="white" size="34px" class="text-weight-bold">
               {{ f.puesto }}
@@ -123,19 +124,117 @@
               <span :class="f.dias > 14 ? 'text-negative' : 'text-grey-7'">({{ hace(f.dias) }})</span>
               · {{ numero(f.ultima_cantidad) }} {{ f.ultima_unidad }}
             </q-item-label>
-            <q-item-label caption>{{ f.pedidos }} pedidos · {{ f.porcentaje }}% · acumulado {{ f.acumulado }}%</q-item-label>
+            <q-item-label caption>
+              {{ f.comprobantes }} compras · Bs {{ bs(f.importe) }} · {{ f.porcentaje }}% · acumulado {{ f.acumulado }}%
+            </q-item-label>
           </q-item-section>
           <q-item-section side top class="text-right">
             <q-item-label class="text-subtitle1 text-weight-bold text-grey-9">{{ numero(f[medida]) }}</q-item-label>
             <q-item-label caption>{{ medida === 'peso' ? 'kg' : f.unidades }}</q-item-label>
             <q-btn v-if="telefono(f)" round dense flat color="green-7" icon="call" type="a" :href="'tel:' + telefono(f)"
-                   class="q-mt-xs">
+                   class="q-mt-xs" @click.stop>
               <q-tooltip>{{ f.telefono }}</q-tooltip>
             </q-btn>
           </q-item-section>
         </q-item>
       </q-list>
     </template>
+
+    <!-- Lo facturado al cliente con los mismos filtros, el comprobante mas reciente arriba. -->
+    <q-dialog v-model="detalle.abierto" :maximized="$q.screen.lt.sm">
+      <q-card style="width: 640px; max-width: 100vw">
+        <q-card-section class="row items-start no-wrap q-pb-sm">
+          <div class="col">
+            <div class="text-subtitle1 text-weight-bold">{{ detalle.cliente.cliente }}</div>
+            <div class="text-caption text-grey-7">
+              {{ detalle.cliente.zona }}<span v-if="detalle.cliente.zona && detalle.cliente.direccion"> · </span>{{ detalle.cliente.direccion }}
+            </div>
+            <div class="text-caption text-grey-7">{{ fechaCorta(desde) }} al {{ fechaCorta(hasta) }} · {{ filtroTexto }}</div>
+          </div>
+          <q-btn v-if="telefono(detalle.cliente)" round dense flat color="green-7" icon="call" type="a"
+                 :href="'tel:' + telefono(detalle.cliente)"/>
+          <q-btn round dense flat icon="close" v-close-popup/>
+        </q-card-section>
+
+        <q-card-section class="row q-col-gutter-sm q-pt-none">
+          <div class="col-4">
+            <q-card flat bordered class="tarjeta">
+              <div class="tarjeta-titulo">Con el producto</div>
+              <div class="tarjeta-valor">{{ detalle.cliente.comprobantes }}</div>
+            </q-card>
+          </div>
+          <div class="col-4">
+            <q-card flat bordered class="tarjeta">
+              <div class="tarjeta-titulo">Peso kg</div>
+              <div class="tarjeta-valor">{{ numero(detalle.cliente.peso) }}</div>
+            </q-card>
+          </div>
+          <div class="col-4">
+            <q-card flat bordered class="tarjeta">
+              <div class="tarjeta-titulo">Importe Bs</div>
+              <div class="tarjeta-valor text-positive">{{ bs(detalle.cliente.importe) }}</div>
+            </q-card>
+          </div>
+        </q-card-section>
+
+        <q-card-section class="q-pt-none q-pb-sm row items-center q-gutter-sm">
+          <q-btn-toggle v-model="detalle.todo" dense no-caps unelevated rounded toggle-color="primary" color="grey-3"
+                        text-color="grey-9" :options="[
+                          { label: 'Con el producto', value: false },
+                          { label: 'Todas sus compras', value: true }
+                        ]" @update:model-value="cargarDetalle"/>
+          <span v-if="!detalle.cargando" class="text-caption text-grey-7">
+            {{ detalle.comprobantes.length }} compras<template v-if="detalle.todo"> · {{ conProducto }} con el producto</template>
+          </span>
+        </q-card-section>
+
+        <q-card-section class="q-pt-none detalle-cuerpo">
+          <q-inner-loading :showing="detalle.cargando"/>
+          <div v-if="!detalle.cargando && !detalle.comprobantes.length" class="text-center text-grey-6 q-pa-md">
+            Sin compras en estas fechas
+          </div>
+          <q-card v-for="comp in detalle.comprobantes" :key="comp.factura_id" flat bordered class="q-mb-sm"
+                  :class="{ 'comp-coincide': comp.coincide }">
+            <q-item dense :class="comp.coincide ? 'bg-amber-1' : 'bg-grey-2'">
+              <q-item-section>
+                <q-item-label class="text-weight-bold">
+                  {{ fechaCorta(comp.fecha_entrega) }} · {{ comp.comprobante }}
+                </q-item-label>
+                <q-item-label caption>
+                  Emitido {{ comp.emitido }} · {{ comp.tipo_pago }}<span v-if="comp.placa"> · {{ comp.placa }}</span>
+                </q-item-label>
+              </q-item-section>
+              <q-item-section side class="text-right">
+                <q-item-label class="text-weight-bold text-grey-9">Bs {{ bs(comp.total) }}</q-item-label>
+                <q-item-label v-if="comp.coincide && comp.importe !== comp.total" caption class="text-amber-10">
+                  producto: Bs {{ bs(comp.importe) }}
+                </q-item-label>
+              </q-item-section>
+            </q-item>
+            <q-markup-table flat dense separator="horizontal" class="tabla-lineas">
+              <thead>
+              <tr>
+                <th class="text-left">Producto</th>
+                <th class="text-right">Cant.</th>
+                <th class="text-right">Peso kg</th>
+                <th class="text-right">Precio</th>
+                <th class="text-right">Importe</th>
+              </tr>
+              </thead>
+              <tbody>
+              <tr v-for="(l, i) in comp.lineas" :key="i" :class="{ 'linea-coincide': l.coincide }">
+                <td class="text-left producto">{{ l.producto }}</td>
+                <td class="text-right">{{ numero(l.cantidad) }} {{ l.unidad }}</td>
+                <td class="text-right">{{ numero(l.peso) }}</td>
+                <td class="text-right">{{ bs(l.precio) }}</td>
+                <td class="text-right text-weight-medium">{{ bs(l.importe) }}</td>
+              </tr>
+              </tbody>
+            </q-markup-table>
+          </q-card>
+        </q-card-section>
+      </q-card>
+    </q-dialog>
   </q-page>
 </template>
 
@@ -153,13 +252,15 @@ export default {
       productos: [],
       opciones: [],
       buscando: false,
-      // Por defecto, los ultimos 90 dias.
-      desde: date.formatDate(date.subtractFromDate(Date.now(), { days: 90 }), 'YYYY-MM-DD'),
+      // Por defecto, el mes en curso hasta hoy.
+      desde: date.formatDate(Date.now(), 'YYYY-MM') + '-01',
       hasta: date.formatDate(Date.now(), 'YYYY-MM-DD'),
       medida: 'peso',
       orden: 'mas',
       buscar: '',
       cargando: false,
+      // Por defecto solo las compras con el producto, completas y con lo filtrado resaltado.
+      detalle: { abierto: false, cargando: false, todo: false, cliente: {}, comprobantes: [] },
       datos: { filas: [], totales: { clientes: 0, clase_a: 0, peso: 0, cantidad: 0 } }
     }
   },
@@ -176,6 +277,14 @@ export default {
     },
     hayFiltro () {
       return this.codGrupos.length > 0 || this.codProductos.length > 0
+    },
+    conProducto () {
+      return this.detalle.comprobantes.filter(c => c.coincide).length
+    },
+    // Lo que se esta mirando, para el encabezado del detalle.
+    filtroTexto () {
+      if (this.codProductos.length) return this.productos.map(p => p.producto).join(', ')
+      return 'Grupo ' + (this.grupos || []).map(g => g.grupo).join(', ')
     },
     visibles () {
       const texto = (this.buscar || '').toLowerCase()
@@ -247,6 +356,28 @@ export default {
         this.cargando = false
       })
     },
+    verDetalle (cliente) {
+      this.detalle.cliente = cliente
+      this.detalle.abierto = true
+      this.cargarDetalle()
+    },
+    cargarDetalle () {
+      const d = this.detalle
+      d.comprobantes = []
+      d.cargando = true
+      const params = Object.assign(
+        { productos: this.codProductos, grupos: this.codGrupos, todo: d.todo ? 1 : 0 }, this.paramsFechas())
+      this.$api.get('pareto-clientes/' + d.cliente.cliente_id + '/detalle', { params }).then(res => {
+        d.comprobantes = res.data.comprobantes
+      }).catch(err => {
+        this.$q.notify({ type: 'negative', message: err.response?.data?.message || 'No se pudo cargar el detalle' })
+      }).finally(() => {
+        d.cargando = false
+      })
+    },
+    bs (valor) {
+      return Number(valor || 0).toLocaleString('es-BO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+    },
     colorClase (clase) {
       return clase === 'A' ? 'positive' : clase === 'B' ? 'orange-8' : 'grey-6'
     },
@@ -288,5 +419,33 @@ export default {
 .tarjeta-sub {
   font-size: 10px;
   color: rgba(0, 0, 0, 0.55);
+}
+.detalle-cuerpo {
+  max-height: 60vh;
+  overflow-y: auto;
+  position: relative;
+  min-height: 80px;
+}
+.tabla-lineas th,
+.tabla-lineas td {
+  font-size: 11px;
+  padding: 2px 6px;
+}
+.tabla-lineas td.producto {
+  white-space: normal;
+}
+/* El producto filtrado dentro del comprobante completo. */
+.comp-coincide {
+  border-color: #ffb300;
+}
+.tabla-lineas tr.linea-coincide td {
+  background: #fff8e1;
+  font-weight: 700;
+}
+</style>
+<style>
+/* Maximizado en el celular: el cuerpo usa todo el alto. */
+.q-dialog__inner--maximized .detalle-cuerpo {
+  max-height: none;
 }
 </style>

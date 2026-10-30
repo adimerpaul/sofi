@@ -18,7 +18,7 @@
         </q-btn>
         <q-btn v-if="$store.getters['login/can']('paretoclientes')" dense unelevated no-caps color="deep-purple-6"
                icon="leaderboard" label="Pareto" to="/paretoclientes">
-          <q-tooltip>Pareto de clientes: quién me pidió cada producto</q-tooltip>
+          <q-tooltip>Pareto de clientes: quién me compró cada producto</q-tooltip>
         </q-btn>
         <q-btn dense unelevated no-caps color="red-8" icon="picture_as_pdf" label="PDF" @click="exportarPdf"
                :disable="!clientes.length"/>

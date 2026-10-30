@@ -317,6 +317,7 @@ Route::group(['middleware'=>'auth:sanctum'],function (){
     Route::get('/pareto-clientes/grupos',[\App\Http\Controllers\ParetoClienteController::class,'grupos']);
     Route::get('/pareto-clientes/productos',[\App\Http\Controllers\ParetoClienteController::class,'productos']);
     Route::get('/pareto-clientes',[\App\Http\Controllers\ParetoClienteController::class,'index']);
+    Route::get('/pareto-clientes/{cliente}/detalle',[\App\Http\Controllers\ParetoClienteController::class,'detalle'])->where('cliente', '[0-9]+');
     // Alta paso a paso del preventista (permiso clienteNuevo) y su aprobacion
     // por Ventas y Logistica desde Clientes (permiso clientes).
     Route::get('/clientes/catalogos',[\App\Http\Controllers\ClienteController::class,'catalogos']);
