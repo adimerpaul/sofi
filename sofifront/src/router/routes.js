@@ -61,6 +61,9 @@ const routes = [
       { path: '/entregafactura', component: () => import('pages/EntregaFactura.vue'), meta: { requiresAuth: true } },
       { path: '/despacho', component: Despacho ,meta: {requiresAuth: true}},
       { path: '/clientevisita', component: Clientevisita ,meta: {requiresAuth: true}},
+      // Alta de cliente paso a paso del preventista (reemplaza el JotForm de "Alta Cliente").
+      { path: '/paretoclientes', component: () => import('pages/ParetoClientes.vue'), meta: { requiresAuth: true } },
+      { path: '/clientenuevo', component: () => import('pages/ClienteNuevo.vue'), meta: { requiresAuth: true } },
       { path: '/clientepedido', component: Pedidoresumen ,meta: {requiresAuth: true}},
       { path: '/listpedido', component: Despachoresumen ,meta: {requiresAuth: true}},
       { path: '/avance', component: Avance ,meta: {requiresAuth: true}},

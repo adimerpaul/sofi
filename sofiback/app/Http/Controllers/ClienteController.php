@@ -3,13 +3,16 @@
 namespace App\Http\Controllers;
 
 use App\Models\Cliente;
+use App\Models\ClientePhoto;
 use App\Models\MisVisita;
 use App\Models\User;
 use App\Services\DeudaCliente;
+use App\Services\FotoWebp;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
 use PhpOffice\PhpSpreadsheet\Cell\DataType;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
@@ -827,6 +830,9 @@ class ClienteController extends Controller{
         ,d.fechaminima
         ,(SELECT TRIM(CONCAT(TRIM(p.Nombre1),' ',TRIM(p.App1))) FROM personal p WHERE TRIM(p.ci)=TRIM(tbclientes.CiVend) LIMIT 1) as vendedor
         ,(SELECT count(*) FROM cliente_photos f WHERE f.cliente_id=tbclientes.Cod_Aut AND f.deleted_at IS NULL) as fotos_count
+        ,(SELECT TRIM(CONCAT(TRIM(p.Nombre1),' ',TRIM(p.App1))) FROM personal p WHERE p.CodAut=tbclientes.creado_por) as creado_por_nombre
+        ,(SELECT TRIM(CONCAT(TRIM(p.Nombre1),' ',TRIM(p.App1))) FROM personal p WHERE p.CodAut=tbclientes.aprobado_ventas_por) as aprobado_ventas_nombre
+        ,(SELECT TRIM(CONCAT(TRIM(p.Nombre1),' ',TRIM(p.App1))) FROM personal p WHERE p.CodAut=tbclientes.aprobado_logistica_por) as aprobado_logistica_nombre
         FROM tbclientes
         LEFT JOIN (" . DeudaCliente::sqlPorCliente() . ") d ON d.cliente_id = tbclientes.Cod_Aut
         ");
@@ -879,12 +885,22 @@ class ClienteController extends Controller{
             // Supra canal solo es ON u OFF (en la pantalla es un select).
             'SupraCanal' => 'nullable|in:ON,OFF,on,off',
         ]);
+        // Un CI/NIT repetido se permite (la base no lo impide y hay sucursales de
+        // un mismo NIT), pero la pantalla tiene que confirmarlo: sin
+        // confirmar_duplicado se devuelve 409 con los clientes que ya lo usan.
         $ci = trim($request->Id);
-        $duplicado = Cliente::whereRaw('TRIM(Id) = ?', [$ci])
-            ->when($codAut, fn ($q) => $q->where('Cod_Aut', '!=', $codAut))
-            ->exists();
-        if ($duplicado) {
-            abort(422, 'Ya existe otro cliente con el CI/NIT ' . $ci);
+        if (!$request->boolean('confirmar_duplicado')) {
+            $existentes = Cliente::whereRaw('TRIM(Id) = ?', [$ci])
+                ->when($codAut, fn ($q) => $q->where('Cod_Aut', '!=', $codAut))
+                ->get(['Cod_Aut', 'Nombres', 'venta'])
+                ->map(fn ($c) => ['Cod_Aut' => $c->Cod_Aut, 'Nombres' => trim($c->Nombres), 'venta' => $c->venta]);
+            if ($existentes->isNotEmpty()) {
+                abort(response()->json([
+                    'message' => 'Ya existe otro cliente con el CI/NIT ' . $ci,
+                    'duplicado' => true,
+                    'clientes' => $existentes,
+                ], 409));
+            }
         }
 
         // En el alta se completan todas las columnas; al editar solo las que llegan.
@@ -938,10 +954,131 @@ class ClienteController extends Controller{
     {
         $datos = $this->datosCliente($request);
         if (empty($datos['venta'])) $datos['venta'] = 'ACTIVO';
+        $datos['creado_por'] = optional($request->user())->CodAut;
+        $datos['creado_en'] = now();
         $codAut = DB::table('tbclientes')->insertGetId($datos, 'Cod_Aut');
         // Todo cliente nuevo arranca con todos los grupos en el precio 1.
         \App\Models\ClientePrecio::completarCliente($codAut, optional($request->user())->CodAut);
         return DB::table('tbclientes')->where('Cod_Aut', $codAut)->first();
+    }
+
+    /** Rubro del cliente: los mismos del formulario JotForm que reemplaza "Nuevo Cliente". */
+    const SUBCANALES = ['POLLO', 'CERDO', 'EMBUTIDO', 'COMIDA DE MASCOTA', 'DESPENSA', 'HUEVO', 'MIXTO'];
+
+    /** Listas para el alta paso a paso (las mismas que valida datosCliente). */
+    public function catalogos()
+    {
+        return response()->json([
+            'canales' => self::CANALES,
+            'zonas' => self::ZONAS,
+            'subcanales' => self::SUBCANALES,
+        ]);
+    }
+
+    /**
+     * Alta de cliente por el preventista ("Nuevo Cliente", permiso clienteNuevo),
+     * con la foto de la fachada. Queda a su nombre (CiVend) y pendiente de
+     * aprobacion de Ventas y de Logistica, que lo revisan en Clientes.
+     */
+    public function altaPreventista(Request $request)
+    {
+        $usuario = $request->user();
+        abort_unless($usuario && $usuario->can('clienteNuevo'), 403, 'No tiene permiso para crear clientes');
+
+        $request->validate([
+            'Id' => 'required|string|max:15',
+            'Nombres' => 'required|string|max:70',
+            'Telf' => ['required', 'string', 'max:100', 'regex:/\d{7,}/'],
+            'Correcli' => 'nullable|email|max:50',
+            'Direccion' => 'required|string|max:100',
+            'SupraCanal' => 'required|in:ON,OFF',
+            'Canal' => 'required|string',
+            'subcanal' => 'required|in:' . implode(',', self::SUBCANALES),
+            'zona' => 'required|string',
+            'Latitud' => 'required|numeric|between:-90,90',
+            'longitud' => 'required|numeric|between:-180,180',
+            'foto' => 'required|image|max:20480',
+        ], [
+            'Telf.regex' => 'El celular debe tener al menos 7 dígitos',
+            'foto.required' => 'Falta la foto de la fachada',
+            'Latitud.required' => 'Falta la ubicación del cliente',
+        ]);
+        $dias = ['lu', 'Ma', 'Mi', 'Ju', 'Vi', 'Sa', 'do'];
+        if (!collect($dias)->contains(fn ($d) => (int) $request->input($d) === 1)) {
+            abort(422, 'Elija al menos un día de visita');
+        }
+
+        // Mismas reglas que el alta de Clientes (CI repetido, canal, zona).
+        $datos = $this->datosCliente($request);
+        $datos['Nombres'] = mb_strtoupper($datos['Nombres']);
+        $datos['Direccion'] = mb_strtoupper($datos['Direccion']);
+        $datos['CiVend'] = trim((string) $usuario->ci);
+        $datos['venta'] = 'ACTIVO';
+        $datos['aprobado_ventas'] = 0;
+        $datos['aprobado_logistica'] = 0;
+        $datos['creado_por'] = $usuario->CodAut;
+        $datos['creado_en'] = now();
+
+        $relativa = null;
+        try {
+            $codAut = DB::transaction(function () use ($datos, $request, $usuario, &$relativa) {
+                $codAut = DB::table('tbclientes')->insertGetId($datos, 'Cod_Aut');
+                \App\Models\ClientePrecio::completarCliente($codAut, $usuario->CodAut);
+
+                $relativa = "cliente_photos/{$codAut}/" . Str::uuid()->toString() . '.webp';
+                FotoWebp::guardar($request->file('foto')->getPathname(), public_path($relativa));
+                ClientePhoto::create(['cliente_id' => $codAut, 'photo_path' => $relativa]);
+
+                return $codAut;
+            });
+        } catch (\Throwable $e) {
+            if ($relativa && is_file(public_path($relativa))) @unlink(public_path($relativa));
+            throw $e;
+        }
+
+        return response()->json([
+            'message' => 'Cliente creado, pendiente de aprobación',
+            'cliente' => DB::table('tbclientes')->where('Cod_Aut', $codAut)
+                ->first(['Cod_Aut', 'Nombres', 'Id', 'Telf', 'Direccion', 'zona', 'Canal', 'aprobado_ventas', 'aprobado_logistica']),
+        ], 201);
+    }
+
+    /** Los clientes que dio de alta el preventista, con su estado de aprobacion. */
+    public function misAltas(Request $request)
+    {
+        return DB::table('tbclientes')
+            ->where('creado_por', $request->user()->CodAut)
+            ->orderByDesc('Cod_Aut')
+            ->limit(30)
+            ->get(['Cod_Aut', 'Nombres', 'Id', 'zona', 'Canal', 'creado_en',
+                'aprobado_ventas', 'aprobado_logistica']);
+    }
+
+    /**
+     * Aprueba (o quita la aprobacion de) Ventas o Logistica de un cliente.
+     * Solo con el permiso clientes; guarda quien y cuando.
+     */
+    public function aprobar(Request $request, $cliente)
+    {
+        $usuario = $request->user();
+        abort_unless($usuario && $usuario->can('clientes'), 403, 'No tiene permiso para aprobar clientes');
+        $request->validate([
+            'tipo' => 'required|in:ventas,logistica',
+            'aprobado' => 'required|boolean',
+        ]);
+        abort_unless(DB::table('tbclientes')->where('Cod_Aut', $cliente)->exists(), 404, 'Cliente no encontrado');
+
+        $campo = 'aprobado_' . $request->tipo;
+        $aprobado = $request->boolean('aprobado');
+        DB::table('tbclientes')->where('Cod_Aut', $cliente)->update([
+            $campo => $aprobado ? 1 : 0,
+            $campo . '_por' => $aprobado ? $usuario->CodAut : null,
+            $campo . '_en' => $aprobado ? now() : null,
+        ]);
+
+        return DB::table('tbclientes')->where('Cod_Aut', $cliente)
+            ->first(['Cod_Aut', 'aprobado_ventas', 'aprobado_ventas_por', 'aprobado_ventas_en',
+                'aprobado_logistica', 'aprobado_logistica_por', 'aprobado_logistica_en']);
     }
 
     public function comentario(Request $request){

@@ -143,6 +143,8 @@
 </template>
 
 <script>
+import {comprimirImagenes} from 'src/utils/comprimirImagen.js'
+
 export default {
   name: 'ClienteFotografias',
   data () {
@@ -229,8 +231,9 @@ export default {
       try {
         const fd = new FormData()
         fd.append('cliente_id', this.clienteSel.Cod_Aut)
-        // QFile entrega File[] nativos
-        this.files.forEach(f => fd.append('photos[]', f))
+        // QFile entrega File[] nativos; se achican antes de subir.
+        const archivos = await comprimirImagenes(this.files)
+        archivos.forEach(f => fd.append('photos[]', f))
 
         await this.$api.post('cliente-photos', fd, {
           headers: { 'Content-Type': 'multipart/form-data' }

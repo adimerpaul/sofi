@@ -5,9 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\Cliente;
 use App\Models\ClientePhoto;
 use Illuminate\Http\Request;
+use App\Services\FotoWebp;
 use Illuminate\Support\Str;
-use Intervention\Image\ImageManager;
-use Intervention\Image\Drivers\Gd\Driver;
 
 class ClientePhotoController extends Controller
 {
@@ -76,24 +75,12 @@ class ClientePhotoController extends Controller
             @mkdir($destDir, 0775, true);
         }
 
-        // 4) Image manager (GD por defecto; usa Imagick si lo prefieres)
-        $manager = new ImageManager(new Driver());
-
-        // 5) Guardar cada imagen comprimida a JPG
+        // 4) Guardar cada imagen en WebP comprimido (maximo 1600px, sin deformar)
         $saved = [];
         foreach ($files as $file) {
-            // leer
-            $image = $manager->read($file->getPathname());
-
-            // reducir sin sobre-escalar (máximo 1600x1600)
-            $image->resizeDown(width: 1600, height: 1600);
-
-            // nombre único y ruta
-            $filename = Str::uuid()->toString() . '.jpg';
+            $filename = Str::uuid()->toString() . '.webp';
             $fullPath = $destDir . DIRECTORY_SEPARATOR . $filename;
-
-            // guardar JPEG calidad 85
-            $image->toJpeg(quality: 85)->save($fullPath);
+            FotoWebp::guardar($file->getPathname(), $fullPath);
 
             // ruta relativa para servir desde /public
             $relativePath = "cliente_photos/{$clienteId}/{$filename}";

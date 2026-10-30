@@ -56,6 +56,8 @@ class ProductoController extends Controller{
         'Precio', 'Precio_Costo', 'Precio3', 'Precio4', 'Precio5', 'Precio6',
         'Precio7', 'Precio8', 'Precio9', 'Precio10', 'Precio11', 'Precio12', 'Precio13',
         'precioAprox', 'stock_actual',
+        // Peso de una unidad en kg (decimal(10,3)): lo usan los reportes que pasan unidades a kilos.
+        'CantPren',
     ];
 
     /**
@@ -142,6 +144,8 @@ class ProductoController extends Controller{
             // Precio referencial que se muestra al vendedor; la columna es
             // decimal(10,3) y admite 0 como "sin referencia".
             'precioAprox'  => 'nullable|numeric|min:0',
+            // Peso de una unidad en kg.
+            'CantPren'     => 'nullable|numeric|min:0',
             // El formulario manda un check; en la tabla se guarda 'SI' o 'NO'.
             'trozado'      => 'nullable|boolean',
         ]);
@@ -286,6 +290,7 @@ class ProductoController extends Controller{
             // Vacio = sin precio de compra cargado.
             'precio_compra' => 'nullable|numeric|min:0',
             'precioAprox'  => 'nullable|numeric|min:0',
+            'CantPren'     => 'nullable|numeric|min:0',
             'trozado'      => 'nullable|boolean',
         ]);
 
@@ -321,8 +326,9 @@ class ProductoController extends Controller{
         $producto->tipo_producto_id = $datos['tipo_producto_id'] ?? null;
         $producto->trozado = $request->boolean('trozado') ? 'SI' : 'NO';
 
+        // Sin dato, el valor de alta del sistema viejo (CantPren = 1 kg) o 0.
         foreach (self::CAMPOS_NUMERICOS as $campo) {
-            $producto->$campo = round((float) ($datos[$campo] ?? 0), 3);
+            $producto->$campo = round((float) ($datos[$campo] ?? self::DEFECTOS_ALTA[$campo] ?? 0), 3);
         }
         $producto->precio_compra = isset($datos['precio_compra']) ? round((float) $datos['precio_compra'], 2) : null;
 
@@ -462,6 +468,7 @@ class ProductoController extends Controller{
                 'p.Precio6', 'p.Precio7', 'p.Precio8', 'p.Precio9', 'p.Precio10',
                 'p.Precio11', 'p.Precio12', 'p.Precio13', 'p.PreCosto',
                 'p.precioAprox', 'p.precio_compra',
+                'p.CantPren',
                 'p.imagen',
                 // Bandera de texto: la pantalla la maneja como check.
                 DB::raw("UPPER(TRIM(COALESCE(p.trozado, 'NO'))) as trozado"),

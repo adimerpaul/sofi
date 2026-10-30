@@ -313,6 +313,16 @@ Route::group(['middleware'=>'auth:sanctum'],function (){
     Route::post('/todosclientes',[\App\Http\Controllers\ClienteController::class,'todosclientes']);
     // El listado de Clientes en Excel con los filtros de la pantalla (buscar, vendedor, zona, estado).
     Route::get('/clientes/excel',[\App\Http\Controllers\ClienteController::class,'exportarExcel']);
+    // Pareto de clientes del preventista (permiso paretoclientes): quien le pidio un producto y cuando.
+    Route::get('/pareto-clientes/grupos',[\App\Http\Controllers\ParetoClienteController::class,'grupos']);
+    Route::get('/pareto-clientes/productos',[\App\Http\Controllers\ParetoClienteController::class,'productos']);
+    Route::get('/pareto-clientes',[\App\Http\Controllers\ParetoClienteController::class,'index']);
+    // Alta paso a paso del preventista (permiso clienteNuevo) y su aprobacion
+    // por Ventas y Logistica desde Clientes (permiso clientes).
+    Route::get('/clientes/catalogos',[\App\Http\Controllers\ClienteController::class,'catalogos']);
+    Route::post('/clientes/alta-preventista',[\App\Http\Controllers\ClienteController::class,'altaPreventista']);
+    Route::get('/clientes/mis-altas',[\App\Http\Controllers\ClienteController::class,'misAltas']);
+    Route::post('/clientes/{cliente}/aprobar',[\App\Http\Controllers\ClienteController::class,'aprobar'])->where('cliente', '[0-9]+');
     Route::post('/desbloquear',[\App\Http\Controllers\ClienteController::class,'desbloquear']);
     Route::get('/listapersonal',[\App\Http\Controllers\ClienteController::class,'listapersonal']);
     Route::get('/personalCliente',[\App\Http\Controllers\ClienteController::class,'personalCliente']);
@@ -337,6 +347,9 @@ Route::group(['middleware'=>'auth:sanctum'],function (){
     // El Excel de embutidos ya armado y con formato; enviados=1 deja solo lo
     // que los preventistas mandaron, que es lo que se va a despachar.
     Route::get('/reporteEmbutidoExcel',[\App\Http\Controllers\ExcelController::class,'reporteEmbutidoExcel']);
+    // Lo mismo para pollo y cerdo (detalle + resumen por producto y por preventista).
+    Route::get('/reportePolloExcel',[\App\Http\Controllers\ExcelController::class,'reportePolloExcel']);
+    Route::get('/reporteCerdoExcel',[\App\Http\Controllers\ExcelController::class,'reporteCerdoExcel']);
     Route::post('/reporteCerdo',[\App\Http\Controllers\ExcelController::class,'reporteCerdo']);
     Route::post('/reporteCerdoTodo',[\App\Http\Controllers\ExcelController::class,'reporteCerdoTodo']);
     Route::post('/reportePollo',[\App\Http\Controllers\ExcelController::class,'reportePollo']);

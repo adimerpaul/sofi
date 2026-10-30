@@ -161,14 +161,16 @@
             </div>
           </template>
           <template v-slot:top-left>
-            <div class="row">
-              <div class="col-6 " @click="misclientes">
-                <q-btn icon="list" size="xs" color="orange" :loading="loading"/>
-              </div>
-              <div class="col-6 " @click="listhoy">
-                <q-btn icon="today" size="xs" color="cyan" :loading="loading"/>
-              </div>
-
+            <div class="row items-center no-wrap q-gutter-xs">
+              <q-btn icon="list" size="xs" color="orange" :loading="loading" @click="misclientes">
+                <q-tooltip>Todos mis clientes</q-tooltip>
+              </q-btn>
+              <q-btn icon="today" size="xs" color="cyan" :loading="loading" @click="listhoy">
+                <q-tooltip>{{ semana ? 'Clientes del día elegido' : 'Clientes de hoy' }}</q-tooltip>
+              </q-btn>
+              <!-- Clientes del Día (Clientevisita): se elige el día de la semana para adelantar pedidos. -->
+              <q-select v-if="semana" dense outlined options-dense v-model="dia" :options="diasSemana"
+                        label="Día" style="min-width: 120px" @update:model-value="cambiarDia"/>
             </div>
           </template>
           <!--          <template v-slot:top>-->
@@ -209,14 +211,32 @@
                 Cliente bloqueado por deuda (cobranzas/créditos): debe más de 12 000 Bs o tiene una deuda pendiente de más de 9 días.
                 El pedido se puede registrar, pero no se enviará a despacho hasta que pague o lo desbloqueen.
               </q-banner>
-              <div>
-<!--                <pre>{{ cliente.fotografias }}</pre>-->
-<!--                <q-img :src="cliente.fotografias" style="max-width: 150px; max-height: 150px"/>-->
-                <template v-for="( img, index ) in cliente.fotografias" :key="index">
-                  <a :href="img" target="_blank">
-                    <q-img :src="img" style="max-width: 150px; max-height: 150px" class="q-mr-sm q-mb-sm"/>
-                  </a>
-                </template>
+              <!-- Fotos del cliente: el vendedor las agrega, cambia o borra en la visita. -->
+              <div class="q-mt-sm">
+                <div class="row items-center q-mb-xs">
+                  <div class="text-subtitle2">Fotos</div>
+                  <q-spinner v-if="cargandoFotos" size="xs" class="q-ml-sm"/>
+                  <q-space/>
+                  <q-btn dense no-caps unelevated color="primary" icon="add_a_photo" label="Agregar"
+                         :loading="subiendoFoto && !fotoACambiar" :disable="subiendoFoto" @click="elegirFoto(null)"/>
+                </div>
+                <input ref="fotoInput" type="file" accept="image/*" style="display:none" @change="fotoElegida"/>
+                <div v-if="!fotos.length && !cargandoFotos" class="text-grey-7 text-caption">Sin fotos.</div>
+                <div class="row q-gutter-sm">
+                  <q-card v-for="f in fotos" :key="f.id" flat bordered class="foto-visita">
+                    <a :href="f.url" target="_blank"><q-img :src="f.url" ratio="1" fit="cover"/></a>
+                    <q-card-actions align="between" class="q-pa-none">
+                      <q-btn flat dense size="sm" color="primary" icon="sync" :loading="subiendoFoto && fotoACambiar === f.id"
+                             :disable="subiendoFoto" @click="elegirFoto(f)">
+                        <q-tooltip>Cambiar foto</q-tooltip>
+                      </q-btn>
+                      <q-btn flat dense size="sm" color="negative" icon="delete" :loading="borrandoFoto === f.id"
+                             :disable="subiendoFoto" @click="borrarFoto(f)">
+                        <q-tooltip>Eliminar foto</q-tooltip>
+                      </q-btn>
+                    </q-card-actions>
+                  </q-card>
+                </div>
               </div>
 
 
@@ -827,6 +847,7 @@ import "leaflet/dist/leaflet.css";
 import {date} from "quasar";
 
 import * as reglasPedido from 'src/utils/reglasPedido.js'
+import {comprimirImagen} from 'src/utils/comprimirImagen.js'
 
 const {addToDate} = date
 // Los 13 precios del producto en orden: el numero de precio es la posicion + 1.
@@ -835,7 +856,34 @@ const CAMPOS_PRECIO = ['Precio', 'Precio_Costo', 'Precio3', 'Precio4', 'Precio5'
   'Precio12', 'Precio13']
 
 
+// Dias que entiende filtrarlista: 8 hoy, 0..6 de domingo a sabado, 9 todos.
+const DIAS_SEMANA = [
+  {label: 'Hoy', value: '8'},
+  {label: 'Lunes', value: '1'},
+  {label: 'Martes', value: '2'},
+  {label: 'Miércoles', value: '3'},
+  {label: 'Jueves', value: '4'},
+  {label: 'Viernes', value: '5'},
+  {label: 'Sábado', value: '6'},
+  {label: 'Domingo', value: '0'},
+  {label: 'Todos', value: '9'}
+]
+
+function diaGuardado() {
+  try {
+    const guardado = JSON.parse(localStorage.getItem('dia'))
+    return DIAS_SEMANA.find(d => guardado && d.value === String(guardado.value)) || DIAS_SEMANA[0]
+  } catch (e) {
+    return DIAS_SEMANA[0]
+  }
+}
+
 export default {
+  props: {
+    // Clientes del Dia (Clientevisita): misma pantalla y mismas reglas del
+    // pedido, pero la lista es la del dia de la semana que se elija.
+    semana: {type: Boolean, default: false}
+  },
   components: {
     LMap,
     LIcon,
@@ -851,6 +899,14 @@ export default {
   },
   data() {
     return {
+      diasSemana: DIAS_SEMANA,
+      dia: diaGuardado(),
+      // Fotos del cliente en el dialogo de opciones
+      fotos: [],
+      cargandoFotos: false,
+      subiendoFoto: false,
+      fotoACambiar: null,
+      borrandoFoto: null,
       clienteBonificacion: null,
       horarios: ['06:00-07:30', '07:30-09:00', '09:00-10:30', '10:30-12:00', 'SEGUNDA VUELTA', 'SE RECOGE'],
       tipopagos: ['CONTADO', 'CREDITO', 'BOLETA ANTERIOR'],
@@ -975,10 +1031,18 @@ export default {
       })
 
     },
+    // El dia queda guardado: al volver a Clientes del Dia se abre el mismo.
+    cambiarDia(valor) {
+      try {
+        localStorage.setItem('dia', JSON.stringify(valor))
+      } catch (e) { /* sin almacenamiento: solo no se recuerda */ }
+      this.listhoy()
+    },
     listhoy() {
       // this.$q.loading.show()
       this.loading = true
-      this.$api.post('filtrarlista', {filtradia: 8}).then(res => {
+      // 8 = hoy; en modo semana, el dia elegido (0 domingo ... 6 sabado, 9 todos).
+      this.$api.post('filtrarlista', {filtradia: this.semana ? this.dia.value : 8}).then(res => {
         console.log(res.data)
         this.clientes = []
         // this.clientes=res.data
@@ -1557,11 +1621,76 @@ export default {
       this.modalopciones = true
       this.cliente = cliente
       this.comentario = {}
+      this.cargarFotos()
 
       this.$api.post('comentario', {ci: this.cliente.Id}).then(res => {
         //console.log(res.data)
         this.comentario = res.data
       })
+    },
+    // La lista del mapa trae solo las URLs; aqui se piden con su id para poder cambiarlas o borrarlas.
+    cargarFotos() {
+      const cliente = this.cliente.Cod_Aut
+      this.fotos = (this.cliente.fotografias || []).map((url, i) => ({id: 'f' + i, url, temporal: true}))
+      this.cargandoFotos = true
+      this.$api.get('cliente-photos', {params: {cliente_id: cliente}}).then(res => {
+        if (cliente === this.cliente.Cod_Aut) this.fotos = res.data || []
+      }).catch(() => {
+        this.$q.notify({type: 'negative', message: 'No se pudieron cargar las fotos'})
+      }).finally(() => {
+        this.cargandoFotos = false
+      })
+    },
+    // foto: la que se reemplaza; null para agregar una nueva.
+    elegirFoto(foto) {
+      if (foto && foto.temporal) return
+      this.fotoACambiar = foto ? foto.id : null
+      this.$refs.fotoInput.click()
+    },
+    async fotoElegida(e) {
+      const archivo = (e.target.files || [])[0]
+      e.target.value = ''
+      if (!archivo) return
+      const cliente = this.cliente.Cod_Aut
+      const anterior = this.fotoACambiar
+      this.subiendoFoto = true
+      try {
+        // Se achica antes de subir: del celular llega de varios MB.
+        const fd = new FormData()
+        fd.append('cliente_id', cliente)
+        fd.append('photos[]', await comprimirImagen(archivo))
+        await this.$api.post('cliente-photos', fd, {headers: {'Content-Type': 'multipart/form-data'}})
+        // Cambiar = subir la nueva y recien entonces borrar la anterior.
+        if (anterior) await this.$api.delete('cliente-photos/' + anterior)
+        this.$q.notify({type: 'positive', message: anterior ? 'Foto cambiada' : 'Foto agregada'})
+      } catch (err) {
+        this.$q.notify({type: 'negative', message: err.response?.data?.message || 'No se pudo guardar la foto'})
+      } finally {
+        this.subiendoFoto = false
+        this.fotoACambiar = null
+        if (cliente === this.cliente.Cod_Aut) await this.refrescarFotos()
+      }
+    },
+    borrarFoto(foto) {
+      if (foto.temporal) return
+      this.$q.dialog({title: 'Eliminar foto', message: '¿Eliminar esta foto del cliente?', cancel: true}).onOk(() => {
+        this.borrandoFoto = foto.id
+        this.$api.delete('cliente-photos/' + foto.id).then(() => {
+          this.refrescarFotos()
+        }).catch(err => {
+          this.$q.notify({type: 'negative', message: err.response?.data?.message || 'No se pudo eliminar la foto'})
+        }).finally(() => {
+          this.borrandoFoto = null
+        })
+      })
+    },
+    // Recarga las fotos del dialogo y deja al dia la lista del cliente (mapa y tabla).
+    async refrescarFotos() {
+      const res = await this.$api.get('cliente-photos', {params: {cliente_id: this.cliente.Cod_Aut}}).catch(() => null)
+      if (!res) return
+      this.fotos = res.data || []
+      this.cliente.fotografias = this.fotos.map(f => f.url)
+      this.cliente.fotos_count = this.fotos.length
     },
     ubicacion(e) {
       // console.log(e.latlng)
@@ -1771,6 +1900,9 @@ export default {
 .foto-producto
   border: 1px solid rgba(0, 0, 0, 0.12)
   background: #fafafa
+
+.foto-visita
+  width: 110px
 
 .nombre-producto
   /* Nombre completo sin "...": baja a otra linea con interlineado corto */

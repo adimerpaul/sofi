@@ -22,7 +22,7 @@
             <template #prepend><q-icon name="search" size="xs"/></template>
           </q-input>
         </div>
-        <div class="col-12 col-sm-6 col-md-3">
+        <div class="col-12 col-sm-6 col-md-2">
           <q-select v-model="filterVendedor" :options="vendedoresFiltrados" use-input fill-input hide-selected input-debounce="0" @filter="filtrarVendedores" option-label="label" option-value="ci"
                     emit-value map-options clearable dense outlined options-dense label="Vendedor"/>
         </div>
@@ -33,6 +33,11 @@
         <div class="col-6 col-md-1">
           <q-select v-model="filterEstado" :options="['ACTIVO', 'INACTIVO']" clearable dense outlined options-dense
                     label="Estado"/>
+        </div>
+        <!-- Altas de preventistas: falta que las apruebe Ventas o Logistica. -->
+        <div class="col-6 col-md-1">
+          <q-select v-model="filterAprobacion" :options="['PENDIENTES', 'APROBADOS']" clearable dense outlined options-dense
+                    label="Aprobación"/>
         </div>
         <div class="col-12 col-md-3 row no-wrap justify-end items-center q-gutter-xs">
           <q-btn dense unelevated color="green" icon="add" no-caps label="Nuevo" @click="nuevoCliente"/>
@@ -107,6 +112,22 @@
             <q-toggle dense size="xs" color="orange-8" :model-value="Number(props.row.acepta_credito) === 1"
                       :disable="cambiandoCredito === props.row.Cod_Aut" @update:model-value="cambiarCredito(props.row, $event)">
               <q-tooltip>Acepta crédito: en el pedido puede elegir crédito</q-tooltip>
+            </q-toggle>
+          </q-td>
+        </template>
+        <template #body-cell-aprobado_ventas="props">
+          <q-td :props="props">
+            <q-toggle dense size="xs" color="positive" :model-value="Number(props.row.aprobado_ventas) === 1"
+                      :disable="aprobando === props.row.Cod_Aut + 'ventas'" @update:model-value="aprobar(props.row, 'ventas', $event)">
+              <q-tooltip>{{ textoAprobacion(props.row, 'ventas') }}</q-tooltip>
+            </q-toggle>
+          </q-td>
+        </template>
+        <template #body-cell-aprobado_logistica="props">
+          <q-td :props="props">
+            <q-toggle dense size="xs" color="positive" :model-value="Number(props.row.aprobado_logistica) === 1"
+                      :disable="aprobando === props.row.Cod_Aut + 'logistica'" @update:model-value="aprobar(props.row, 'logistica', $event)">
+              <q-tooltip>{{ textoAprobacion(props.row, 'logistica') }}</q-tooltip>
             </q-toggle>
           </q-td>
         </template>
@@ -345,6 +366,7 @@
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import {date} from 'quasar'
+import {comprimirImagenes} from 'src/utils/comprimirImagen.js'
 
 const ORURO_CENTRO = [-17.967, -67.106]
 
@@ -396,6 +418,8 @@ export default {
       filterVendedor: null,
       filterZona: null,
       filterEstado: null,
+      filterAprobacion: null,
+      aprobando: null,
       clientes: [],
       vendedores: [],
       dialog: false,
@@ -440,6 +464,8 @@ export default {
         {label: 'Días', name: 'dias', field: 'dias', align: 'left'},
         {label: 'Excep.', name: 'excepcion_deuda', field: 'excepcion_deuda', align: 'center', sortable: true},
         {label: 'Crédito', name: 'acepta_credito', field: 'acepta_credito', align: 'center', sortable: true},
+        {label: 'Ventas', name: 'aprobado_ventas', field: 'aprobado_ventas', align: 'center', sortable: true},
+        {label: 'Logística', name: 'aprobado_logistica', field: 'aprobado_logistica', align: 'center', sortable: true},
         {label: 'Estado', name: 'venta', field: 'venta', align: 'center', sortable: true}
       ],
       vendedoresFiltrados: [],
@@ -458,7 +484,9 @@ export default {
       let conFotos = 0
       let sinUbicacion = 0
       let conExcepcion = 0
+      let porAprobar = 0
       lista.forEach(c => {
+        if (this.pendienteAprobacion(c)) porAprobar++
         if (c.venta === 'INACTIVO') inactivos++
         const d = Number(c.totdeuda) || 0
         if (d > 0) {
@@ -474,6 +502,7 @@ export default {
       return [
         {label: 'Clientes', valor: lista.length, icon: 'groups', color: 'primary'},
         {label: 'Activos', valor: lista.length - inactivos, icon: 'check_circle', color: 'positive'},
+        {label: 'Por aprobar', valor: porAprobar, icon: 'pending_actions', color: 'orange-8'},
         {label: 'Inactivos', valor: inactivos, icon: 'block', color: 'negative'},
         {label: `Deuda (${conDeuda} clientes)`, valor: bs(deuda), icon: 'payments', color: 'orange-9'},
         {label: 'Con excepción', valor: conExcepcion, icon: 'verified_user', color: 'purple'},
@@ -495,6 +524,7 @@ export default {
         if (this.filterVendedor && (c.CiVend || '').trim() !== this.filterVendedor) return false
         if (this.filterZona && (c.zona || '').trim() !== this.filterZona) return false
         if (this.filterEstado && c.venta !== this.filterEstado) return false
+        if (this.filterAprobacion && (this.filterAprobacion === 'PENDIENTES') !== this.pendienteAprobacion(c)) return false
         if (!texto) return true
         return [c.Nombres, c.Id, c.Telf, c.Cod_Aut, c.Direccion]
           .some(v => String(v == null ? '' : v).toLowerCase().includes(texto))
@@ -555,6 +585,32 @@ export default {
         this.$q.notify({type: 'negative', message: e.response?.data?.message || 'No se pudo guardar'})
       }).finally(() => {
         this.cambiandoExcepcion = null
+      })
+    },
+    pendienteAprobacion (c) {
+      return Number(c.aprobado_ventas) !== 1 || Number(c.aprobado_logistica) !== 1
+    },
+    textoAprobacion (c, tipo) {
+      const area = tipo === 'ventas' ? 'Ventas' : 'Logística'
+      const quien = c['aprobado_' + tipo + '_nombre']
+      const cuando = c['aprobado_' + tipo + '_en']
+      const alta = c.creado_por_nombre ? ' · Alta: ' + c.creado_por_nombre : ''
+      if (Number(c['aprobado_' + tipo]) !== 1) return 'Pendiente de aprobación de ' + area + alta
+      return 'Aprobado por ' + area + (quien ? ': ' + quien : '') + (cuando ? ' el ' + String(cuando).substring(0, 16) : '') + alta
+    },
+    // Ventas y Logistica aprueban por separado el alta que hizo el preventista.
+    aprobar (row, tipo, valor) {
+      this.aprobando = row.Cod_Aut + tipo
+      this.$api.post('clientes/' + row.Cod_Aut + '/aprobar', {tipo, aprobado: valor}).then(res => {
+        Object.assign(row, res.data)
+        const usuario = this.$store.state.login.user || {}
+        row['aprobado_' + tipo + '_nombre'] = valor ? ((usuario.Nombre1 || '') + ' ' + (usuario.App1 || '')).trim() : null
+        const area = tipo === 'ventas' ? 'Ventas' : 'Logística'
+        this.$q.notify({type: valor ? 'positive' : 'warning', message: (valor ? 'Aprobado por ' : 'Quitada la aprobación de ') + area})
+      }).catch(e => {
+        this.$q.notify({type: 'negative', message: e.response?.data?.message || 'No se pudo guardar la aprobación'})
+      }).finally(() => {
+        this.aprobando = null
       })
     },
     // Igual que la excepcion: se guarda el cliente con el endpoint de editar.
@@ -652,10 +708,12 @@ export default {
       if (tab === 'ubicacion') this.$nextTick(() => this.iniciarMapa())
       if (tab === 'precios') this.cargarPrecios()
     },
-    guardarCliente () {
+    // confirmado: el usuario ya acepto guardar aunque el CI/NIT este repetido.
+    guardarCliente (confirmado = false) {
       this.guardando = true
       const c = this.cliente
-      const peticion = c.Cod_Aut ? this.$api.put('cliente/' + c.Cod_Aut, c) : this.$api.post('cliente', c)
+      const datos = confirmado === true ? {...c, confirmar_duplicado: true} : c
+      const peticion = c.Cod_Aut ? this.$api.put('cliente/' + c.Cod_Aut, datos) : this.$api.post('cliente', datos)
       peticion.then(res => {
         this.$q.notify({type: 'positive', message: c.Cod_Aut ? 'Cliente actualizado' : 'Cliente creado'})
         if (!c.Cod_Aut && res.data && res.data.Cod_Aut) {
@@ -667,10 +725,29 @@ export default {
         }
         this.misclientes()
       }).catch(e => {
+        if (e.response?.status === 409 && e.response.data?.duplicado) {
+          this.confirmarCiDuplicado(e.response.data.clientes || [])
+          return
+        }
         this.$q.notify({type: 'negative', message: e.response?.data?.message || 'No se pudo guardar el cliente'})
       }).finally(() => {
         this.guardando = false
       })
+    },
+    // El CI/NIT ya lo tiene otro cliente: se muestra quien y se guarda solo si confirma.
+    confirmarCiDuplicado (clientes) {
+      const esc = v => String(v ?? '').replace(/[&<>"]/g, ch => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[ch]))
+      const lista = clientes.map(c => `<li><b>${esc(c.Cod_Aut)}</b> · ${esc(c.Nombres)} <span class="text-grey-7">(${esc(c.venta)})</span></li>`).join('')
+      this.$q.dialog({
+        title: 'CI/NIT repetido',
+        message: `Ya existe ${clientes.length === 1 ? 'un cliente' : clientes.length + ' clientes'} con el CI/NIT ` +
+          `<b>${esc(String(this.cliente.Id || '').trim())}</b>:<ul class="q-my-sm">${lista}</ul>` +
+          `¿Seguro que quiere ${this.cliente.Cod_Aut ? 'guardar este cliente' : 'crear el cliente'} con el mismo CI/NIT?`,
+        html: true,
+        persistent: true,
+        cancel: {label: 'No', flat: true, color: 'grey-8'},
+        ok: {label: 'Sí, ' + (this.cliente.Cod_Aut ? 'guardar' : 'crear'), color: 'orange-9', unelevated: true}
+      }).onOk(() => this.guardarCliente(true))
     },
     cargarPrecios () {
       if (!this.cliente.Cod_Aut) return
@@ -714,14 +791,16 @@ export default {
         this.cargandoFotos = false
       })
     },
-    subirFotos (e) {
-      const archivos = Array.from(e.target.files || [])
+    async subirFotos (e) {
+      const seleccion = Array.from(e.target.files || [])
       e.target.value = ''
-      if (!archivos.length) return
+      if (!seleccion.length) return
+      this.subiendo = true
+      // Se achican antes de subir: del celular llegan de varios MB.
+      const archivos = await comprimirImagenes(seleccion)
       const fd = new FormData()
       fd.append('cliente_id', this.cliente.Cod_Aut)
       archivos.forEach(f => fd.append('photos[]', f))
-      this.subiendo = true
       this.$api.post('cliente-photos', fd, {headers: {'Content-Type': 'multipart/form-data'}}).then(() => {
         this.$q.notify({type: 'positive', message: 'Fotos subidas'})
         this.cargarFotos()

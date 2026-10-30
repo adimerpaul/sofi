@@ -982,7 +982,9 @@ export default {
   computed: {
     // Los filtros de cliente y producto se aplican aqui; el Excel los repite en el backend.
     baseVisibles () {
-      const { clientes, productos } = this.base
+      // clearable deja el select en null.
+      const clientes = this.base.clientes || []
+      const productos = this.base.productos || []
       return this.base.filas.filter(f =>
         (!clientes.length || clientes.includes(f.cliente)) &&
         (!productos.length || productos.includes(f.cod_prod)))
@@ -1207,7 +1209,7 @@ export default {
       b.descargando = true
       try {
         const res = await this.$api.get('reportes/base-ventas/excel', {
-          params: { desde: b.desde, hasta: b.hasta, clientes: b.clientes, productos: b.productos },
+          params: { desde: b.desde, hasta: b.hasta, clientes: b.clientes || [], productos: b.productos || [] },
           responseType: 'blob'
         })
         const url = window.URL.createObjectURL(res.data)

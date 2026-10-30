@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Models\ClientePhoto;
+use App\Services\FotoWebp;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
@@ -102,8 +103,11 @@ class ImportarFotosSofiafactu extends Command
         foreach ($fotos as $ruta) {
             if (!is_string($ruta) || $ruta === '') continue;
             // El nombre lleva el prefijo sofiafactu_ para reconocer lo ya importado.
-            $relativa = "cliente_photos/{$codAut}/sofiafactu_" . basename($ruta);
-            if (ClientePhoto::withTrashed()->where('cliente_id', $codAut)->where('photo_path', $relativa)->exists()) {
+            // Se guarda en WebP: el original de sofiafactu pesa varios MB. Lo ya
+            // importado antes puede estar todavia con su extension original.
+            $original = "cliente_photos/{$codAut}/sofiafactu_" . basename($ruta);
+            $relativa = preg_replace('/\.[A-Za-z0-9]+$/', '', $original) . '.webp';
+            if (ClientePhoto::withTrashed()->where('cliente_id', $codAut)->whereIn('photo_path', [$original, $relativa])->exists()) {
                 $this->yaExistian++;
                 continue;
             }
@@ -119,9 +123,17 @@ class ImportarFotosSofiafactu extends Command
                 continue;
             }
 
-            $dir = public_path("cliente_photos/{$codAut}");
-            if (!is_dir($dir)) @mkdir($dir, 0775, true);
-            file_put_contents(public_path($relativa), $img->body());
+            $tmp = tempnam(sys_get_temp_dir(), 'foto');
+            file_put_contents($tmp, $img->body());
+            try {
+                FotoWebp::guardar($tmp, public_path($relativa));
+            } catch (\Throwable $e) {
+                $this->warn("No se pudo convertir $ruta: " . $e->getMessage());
+                $this->errores++;
+                continue;
+            } finally {
+                @unlink($tmp);
+            }
 
             ClientePhoto::create(['cliente_id' => $codAut, 'photo_path' => $relativa]);
             $this->importadas++;

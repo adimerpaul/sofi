@@ -3,38 +3,48 @@
     <div class="row">
       <div class="col-12">
         <q-form @submit="consultar">
-          <div class="row q-col-gutter-xs items-center">
-            <div class="col-12 col-sm-3">
+          <div class="row q-col-gutter-sm items-center">
+            <div class="col-6 col-sm-3">
               <q-input type="date" dense outlined label="Desde" v-model="fecha"/>
             </div>
-            <div class="col-12 col-sm-3">
+            <div class="col-6 col-sm-3">
               <q-input type="date" dense outlined label="Hasta" v-model="fecha2"/>
             </div>
             <div class="col-12 col-sm-3">
-              <q-btn class="full-width" color="info" icon="search" label="Consultar" type="submit"/>
-            </div>
-          </div>
-          <!-- Embutidos sale en dos: todo lo que cargaron los preventistas
-               (incluido lo que todavia pueden cambiar) y solo lo enviado, que
-               es lo que de verdad se va a despachar. -->
-          <div class="row q-col-gutter-xs q-mt-xs q-mb-sm">
-            <div class="col-6 col-sm-3">
-              <q-btn class="full-width" color="green" icon="description" label="Pollo EXCEL" @click="abrirReporte('pollo')" dense/>
-            </div>
-            <div class="col-6 col-sm-3">
-              <q-btn class="full-width" color="accent" icon="description" label="Cerdo EXCEL" @click="abrirReporte('cerdo')" dense/>
-            </div>
-            <div class="col-6 col-sm-3">
-              <q-btn class="full-width" color="orange-10" icon="description" label="Embut. todos" @click="abrirReporte('embutido')" dense/>
-            </div>
-            <div class="col-6 col-sm-3">
-              <q-btn class="full-width" color="deep-orange-9" icon="fact_check" label="Embut. enviados" @click="abrirReporte('embutidoEnviados')" dense/>
+              <q-btn class="full-width" color="primary" icon="search" label="Consultar" type="submit" no-caps unelevated/>
             </div>
           </div>
         </q-form>
+        <!-- Cada tipo sale en dos: todo lo que cargaron los preventistas
+             (incluido lo que todavia pueden cambiar) y solo lo enviado, que
+             es lo que de verdad se va a despachar. -->
+        <div class="row q-col-gutter-sm q-mt-xs q-mb-sm">
+          <div v-for="t in tiposReporte" :key="t.tipo" class="col-12 col-sm-4">
+            <q-card flat bordered class="tarjeta-reporte" :style="{ borderTopColor: t.borde }">
+              <q-card-section class="row items-center no-wrap q-pb-xs">
+                <q-avatar :color="t.color" text-color="white" :icon="t.icono" size="38px"/>
+                <div class="q-ml-sm">
+                  <div class="text-subtitle1 text-weight-bold">{{ t.nombre }}</div>
+                  <div class="text-caption text-grey-7">Excel con detalle y resúmenes</div>
+                </div>
+              </q-card-section>
+              <q-card-actions class="q-pt-none">
+                <q-btn class="col" outline :color="t.color" icon="list_alt" label="Todos" no-caps
+                       @click="abrirReporte(t.tipo)">
+                  <q-tooltip>Enviados y sin enviar</q-tooltip>
+                </q-btn>
+                <q-btn class="col" unelevated :color="t.color" icon="fact_check" label="Enviados" no-caps
+                       @click="abrirReporte(t.tipo + 'Enviados')">
+                  <q-tooltip>Solo lo que se va a despachar</q-tooltip>
+                </q-btn>
+              </q-card-actions>
+            </q-card>
+          </div>
+        </div>
       </div>
       <div class="col-12">
-        <q-table dense title="Pedidos" :columns="columspedido" :rows="personales" :filter="filter">
+        <q-table dense flat bordered title="Pedidos por preventista" :columns="columspedido" :rows="personales"
+                 :filter="filter" :rows-per-page-options="[20, 50, 0]">
           <template v-slot:top-right>
             <q-input outlined dense debounce="300" v-model="filter" placeholder="Buscar">
               <template v-slot:append>
@@ -44,7 +54,8 @@
           </template>
           <template v-slot:body-cell-excel="props">
             <q-td :props="props">
-              <q-btn color="green" icon="list" size="xs" label="Excel" @click="abrirReporte('vendedor', props.row)"/>
+              <q-btn color="green-7" icon="download" size="sm" label="Excel" no-caps unelevated dense class="q-px-sm"
+                     @click="abrirReporte('vendedor', props.row)"/>
             </q-td>
           </template>
           <template v-slot:body-cell-vendedor="props">
@@ -78,7 +89,7 @@
         </q-card-section>
         <q-card-actions align="right">
           <q-btn flat label="Cancelar" v-close-popup :disable="generandoReporte"/>
-          <q-btn color="green" icon="download" label="Descargar Excel" :loading="generandoReporte" @click="descargarReporte"/>
+          <q-btn color="green-7" icon="download" label="Descargar Excel" no-caps unelevated :loading="generandoReporte" @click="descargarReporte"/>
         </q-card-actions>
       </q-card>
     </q-dialog>
@@ -108,6 +119,12 @@ export default {
         {label: 'VENDEDOR', name: 'vendedor', field: 'vendedor', align: 'left'},
         {label: 'EXCEL', name: 'excel', field: 'excel', align: 'left'},
       ],
+      // Endpoint del backend de cada tipo; los dos botones solo cambian enviados=0/1.
+      tiposReporte: [
+        { tipo: 'embutido', nombre: 'Embutidos', icono: 'kebab_dining', color: 'deep-orange-8', borde: '#e64a19', url: 'reporteEmbutidoExcel' },
+        { tipo: 'pollo', nombre: 'Pollo', icono: 'egg', color: 'amber-9', borde: '#ff8f00', url: 'reportePolloExcel' },
+        { tipo: 'cerdo', nombre: 'Cerdo', icono: 'savings', color: 'pink-6', borde: '#d81b60', url: 'reporteCerdoExcel' }
+      ],
       fecha: date.formatDate(new Date(), 'YYYY-MM-DD'),
       fecha1: date.formatDate(new Date(), 'YYYY-MM-DD'),
       fecha2: date.formatDate(new Date(), 'YYYY-MM-DD'),
@@ -117,39 +134,43 @@ export default {
     this.consultar()
   },
   methods: {
+    // tipo: 'vendedor', o el tipo de tiposReporte con 'Enviados' al final para solo lo enviado.
     abrirReporte(tipo, vendedor = null) {
-      const titulos = {
-        pollo: 'Pollo',
-        cerdo: 'Cerdo',
-        embutido: 'Embutidos · todos los pedidos',
-        embutidoEnviados: 'Embutidos · solo los enviados'
-      }
-      // Lo que dice el dialogo antes de bajar: que se lleva cada reporte.
-      const detalles = {
-        embutido: 'Incluye los pedidos que el preventista todavía no envió y puede cambiar. Trae el detalle y los resúmenes por producto y por preventista.',
-        embutidoEnviados: 'Solo los pedidos ya enviados: lo que se va a despachar. Trae el detalle y los resúmenes por producto y por preventista.'
-      }
-      this.reporteSeleccionado = {
-        tipo,
-        vendedor,
-        titulo: vendedor ? 'Pedidos de ' + vendedor.vendedor : titulos[tipo],
-        detalle: detalles[tipo] || 'El Excel incluye la zona del cliente.'
+      if (vendedor) {
+        this.reporteSeleccionado = {
+          tipo,
+          vendedor,
+          titulo: 'Pedidos de ' + vendedor.vendedor,
+          detalle: 'El Excel incluye la zona del cliente.'
+        }
+      } else {
+        const soloEnviados = tipo.endsWith('Enviados')
+        const base = this.tiposReporte.find(t => t.tipo === tipo.replace('Enviados', ''))
+        // Lo que dice el dialogo antes de bajar: que se lleva cada reporte.
+        this.reporteSeleccionado = {
+          tipo,
+          base,
+          soloEnviados,
+          titulo: base.nombre + (soloEnviados ? ' · solo los enviados' : ' · todos los pedidos'),
+          detalle: (soloEnviados
+            ? 'Solo los pedidos ya enviados: lo que se va a despachar.'
+            : 'Incluye los pedidos que el preventista todavía no envió y puede cambiar.') +
+            ' Trae el detalle y los resúmenes por producto y por preventista.'
+        }
       }
       this.dialogReporte = true
     },
     async descargarReporte() {
       if (this.generandoReporte) return
       if (!this.fecha || !this.fecha2 || this.fecha > this.fecha2) {
-        this.$q.notify({ message: 'Seleccione un rango de fechas v?lido.', color: 'negative' })
+        this.$q.notify({ message: 'Seleccione un rango de fechas válido.', color: 'negative' })
         return
       }
       this.generandoReporte = true
       try {
-        const { tipo, vendedor } = this.reporteSeleccionado
+        const { tipo, vendedor, base, soloEnviados } = this.reporteSeleccionado
         if (tipo === 'vendedor') await this.generarConsulta(vendedor)
-        else if (tipo === 'pollo') await this.exportPollo()
-        else if (tipo === 'cerdo') await this.exportCerdo()
-        else await this.exportEmbutido(tipo === 'embutidoEnviados')
+        else await this.exportReporte(base, soloEnviados)
         this.dialogReporte = false
       } catch (error) {
         let mensaje = error.response?.data?.message || 'No se pudo generar el reporte. Intente nuevamente.'
@@ -214,124 +235,20 @@ export default {
 
       return content
     },
-    exportPollo() {
-
-
-      return this.$api.post('reportePollo2', {ini: this.fecha, fin: this.fecha2}).then(res => {
-        if (res.data.length == 0) {
-          this.$q.notify({
-            message: 'No Ay pedido Pollo',
-            color: 'red',
-            icon: 'info'
-          })
-          return false
-        }
-        let datacaja = [
-          {
-            sheet: "Pollo",
-            columns: [
-              {label: "preventista", value: "preventista"},
-              // {label: "Cliente", value: "Nombres"},
-              {label: "cliente", value: row => row.bonificacionId == null? row.Nombres : row.bonificacionId == 2728 ? this.cliente2728 : this.cliente3070},
-
-              {label: "Zona", value: row => row.zona ?? ''},
-              {label: "fecha", value: "fecha"},
-              {label: "Observaciones", value: "Observaciones"},
-              {label: "producto", value: "producto"},
-              {label: "cantidad", value: "cantidad"},
-              {label: "precio", value: "precio"},
-              // Peso aproximado que pidio el cliente en /visita (switch "Rango").
-              {label: "rango kg", value: row => row.rango_kg == null ? '' : parseFloat(row.rango_kg)},
-              {label: "pago", value: row => row.pago == 'CONTADO' ? 'si' : 'no'},
-              {label: "fact", value: "fact"},
-              {label: "horario", value: "horario"},
-              // {label: "comentario", value: "comentario"},
-              {label: "comentario", value: row => row.bonificacionId == null? row.comentario : row.Nombres+ ' '+ row.comentario},
-              {label: "sincronizado", value: row => row.estado == 'ENVIADO' ? 'si' : 'no'},
-            ],
-            content: res.data
-          },
-        ]
-
-        let settings = {
-          fileName: "Pollo Frial", // Name of the resulting spreadsheet
-          extraLength: 5, // A bigger number means that columns will be wider
-          writeOptions: {}, // Style options from https://github.com/SheetJS/sheetjs#writing-options
-        }
-
-        xlsx(datacaja, settings) // Will download the excel file
-
-      })
-
-
-    },
-    exportCerdo() {
-
-
-      return this.$api.post('reporteCerdoTodo', {ini: this.fecha, fin: this.fecha2}).then(res => {
-        if (res.data.length == 0) {
-          this.$q.notify({
-            message: 'No Ay pedido Cerdo',
-            color: 'red',
-            icon: 'info'
-          })
-          return false
-        }
-        let datacaja = [
-          {
-
-            sheet: "Cerdo",
-            columns: [
-              {label: "fecha", value: "fecha"},
-              {label: "preventista", value: row => row.Nombre1 + ' ' + row.App1 + ' ' + row.Apm},
-              {label: "CI/NIT", value: "Id"},
-              // {label: "cliente", value: "Nombres"},
-              {label: "cliente", value: row => row.bonificacionId == null? row.Nombres : row.bonificacionId == 2728 ? this.cliente2728 : this.cliente3070},
-
-              {label: "Zona", value: row => row.zona ?? ''},
-              {label: "pfrial", value: "pfrial"},
-              {label: "entero", value: "entero"},
-              {label: "desmembre", value: "desmembre"},
-              {label: "corte", value: "corte"},
-              {label: "kilo", value: "kilo"},
-              {label: "observaciones", value: "Observaciones"},
-              {label: "pago", value: row => row.pago == 'CONTADO' ? 'si' : 'no'},
-              {label: "fact", value: "fact"},
-              {label: "horario", value: "horario"},
-              // {label: "comentario", value: "comentario"},
-              {label: "comentario", value: row => row.bonificacionId == null? row.comentario : row.Nombres+ ' '+ row.comentario},
-              {label: "sincronizado", value: row => row.estado == 'ENVIADO' ? 'si' : 'no'},
-            ],
-            content: res.data
-          },
-        ]
-
-        let settings = {
-          fileName: "Cerdo Frial", // Name of the resulting spreadsheet
-          extraLength: 5, // A bigger number means that columns will be wider
-          writeOptions: {}, // Style options from https://github.com/SheetJS/sheetjs#writing-options
-        }
-
-        xlsx(datacaja, settings) // Will download the excel file
-
-      })
-
-
-    },
     /**
-     * El Excel de embutidos lo arma el backend con PhpSpreadsheet.
+     * El Excel de embutidos, pollo o cerdo lo arma el backend con PhpSpreadsheet.
      *
      * Viene con encabezado, importes con formato, totales y dos hojas de
      * resumen (por producto y por preventista). `soloEnviados` deja fuera lo
      * que el preventista todavia puede cambiar, que es la diferencia entre los
      * dos botones.
      */
-    async exportEmbutido(soloEnviados = false) {
-      const res = await this.$api.get('reporteEmbutidoExcel', {
+    async exportReporte(base, soloEnviados = false) {
+      const res = await this.$api.get(base.url, {
         params: { ini: this.fecha, fin: this.fecha2, enviados: soloEnviados ? 1 : 0 },
         responseType: 'blob'
       })
-      this.descargarArchivo(res, 'embutidos_' + (soloEnviados ? 'enviados' : 'todos') + '_' + this.fecha + '.xlsx')
+      this.descargarArchivo(res, base.tipo + '_' + (soloEnviados ? 'enviados' : 'todos') + '_' + this.fecha + '.xlsx')
     },
     consultar() {
       this.$q.loading.show()
@@ -517,5 +434,10 @@ export default {
 </script>
 
 <style scoped>
-
+/* Cada tipo con su color arriba, para ubicarlo de un vistazo. */
+.tarjeta-reporte {
+  border-top-width: 4px;
+  border-top-style: solid;
+  border-radius: 8px;
+}
 </style>

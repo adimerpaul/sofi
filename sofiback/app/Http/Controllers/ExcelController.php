@@ -466,6 +466,16 @@ class ExcelController extends Controller
     }
 
     /**
+     * Como se nombra cada tipo de pedido en el Excel: titulo y archivo.
+     * La clave es tbpedidos.tipo.
+     */
+    private const TIPOS_REPORTE = [
+        'NORMAL' => ['EMBUTIDOS', 'embutidos'],
+        'POLLO'  => ['POLLO', 'pollo'],
+        'CERDO'  => ['CERDO', 'cerdo'],
+    ];
+
+    /**
      * Reporte de embutidos en Excel, listo para la oficina.
      *
      * Son dos miradas de los mismos dias: todo lo que cargaron los
@@ -479,20 +489,39 @@ class ExcelController extends Controller
      */
     public function reporteEmbutidoExcel(Request $request)
     {
+        return $this->reportePedidosExcel($request, 'NORMAL');
+    }
+
+    /** El mismo reporte para los pedidos de pollo. */
+    public function reportePolloExcel(Request $request)
+    {
+        return $this->reportePedidosExcel($request, 'POLLO');
+    }
+
+    /** El mismo reporte para los pedidos de cerdo. */
+    public function reporteCerdoExcel(Request $request)
+    {
+        return $this->reportePedidosExcel($request, 'CERDO');
+    }
+
+    private function reportePedidosExcel(Request $request, $tipo)
+    {
         $datos = $request->validate([
             'ini' => 'required|date_format:Y-m-d',
             'fin' => 'required|date_format:Y-m-d|after_or_equal:ini',
             'enviados' => 'nullable|boolean',
         ]);
         $soloEnviados = (bool) ($datos['enviados'] ?? false);
+        list($nombreTipo, $archivoTipo) = self::TIPOS_REPORTE[$tipo];
 
-        $filas = $this->filasEmbutido($datos['ini'], $datos['fin'], $soloEnviados);
+        $filas = $this->filasPedidos($datos['ini'], $datos['fin'], $soloEnviados, $tipo);
 
         if (!count($filas)) {
+            $deTipo = $tipo === 'NORMAL' ? 'embutidos' : strtolower($nombreTipo);
             return response()->json([
                 'message' => $soloEnviados
-                    ? 'No hay pedidos de embutidos enviados en esas fechas'
-                    : 'No hay pedidos de embutidos en esas fechas',
+                    ? "No hay pedidos de {$deTipo} enviados en esas fechas"
+                    : "No hay pedidos de {$deTipo} en esas fechas",
             ], 422);
         }
 
@@ -506,23 +535,25 @@ class ExcelController extends Controller
 
         $this->hojaReporte(
             $libro->getActiveSheet()->setTitle('Detalle'),
-            'EMBUTIDOS · DETALLE', $subtitulo, $this->columnasEmbutido(), $filas
+            $nombreTipo . ' · DETALLE', $subtitulo, $this->columnasPedidos($tipo), $filas
         );
         $this->hojaReporte(
             $libro->createSheet()->setTitle('Por producto'),
-            'EMBUTIDOS · RESUMEN POR PRODUCTO', $subtitulo,
+            $nombreTipo . ' · RESUMEN POR PRODUCTO', $subtitulo,
             [
                 ['Código', 'cod_prod', 12, 'texto'],
                 ['Producto', 'producto', 38, 'texto'],
+                ['Unidad', 'unidad', 8, 'texto'],
                 ['Pedidos', 'pedidos', 10, 'entero'],
                 ['Cantidad', 'cantidad', 12, 'cantidad'],
                 ['Importe Bs', 'importe', 14, 'importe'],
             ],
-            $this->resumenEmbutido($filas, ['cod_prod', 'producto'], true)
+            // Por unidad tambien: cajas y kilos de un mismo producto no se suman.
+            $this->resumenEmbutido($filas, ['cod_prod', 'producto', 'unidad'], true)
         );
         $this->hojaReporte(
             $libro->createSheet()->setTitle('Por preventista'),
-            'EMBUTIDOS · RESUMEN POR PREVENTISTA', $subtitulo,
+            $nombreTipo . ' · RESUMEN POR PREVENTISTA', $subtitulo,
             [
                 ['Preventista', 'preventista', 30, 'texto'],
                 ['Clientes', 'clientes', 10, 'entero'],
@@ -535,7 +566,7 @@ class ExcelController extends Controller
         $libro->setActiveSheetIndex(0);
 
         $writer = new Xlsx($libro);
-        $nombre = 'embutidos_' . ($soloEnviados ? 'enviados' : 'todos') . '_' . $datos['ini']
+        $nombre = $archivoTipo . '_' . ($soloEnviados ? 'enviados' : 'todos') . '_' . $datos['ini']
             . ($datos['ini'] === $datos['fin'] ? '' : '_a_' . $datos['fin']) . '.xlsx';
 
         return response()->streamDownload(function () use ($writer) {
@@ -546,19 +577,29 @@ class ExcelController extends Controller
     }
 
     /**
-     * Las lineas de embutidos del rango, ya armadas como salen en el Excel.
+     * Las lineas de pedidos del rango, ya armadas como salen en el Excel.
      *
      * Es la misma consulta de reporteEmbutidoTodo —incluido el calculo de si
-     * el cliente estaba en la ruta del dia— con el filtro de lo enviado.
+     * el cliente estaba en la ruta del dia— con el filtro de lo enviado. Solo
+     * entran las lineas por producto (cod_prod y Cant), que es como se cargan
+     * pollo y cerdo desde /visita; las columnas viejas de pollo (ubrasa5,
+     * ala...) no, porque esos pedidos tambien traen su linea por producto.
+     *
+     * En pollo y cerdo un pedido cargado a una cuenta de bajas
+     * (bonificacionId) sale a nombre de esa cuenta y el cliente que lo recibio
+     * pasa al comentario, como en el Excel que se usaba antes.
      */
-    private function filasEmbutido($ini, $fin, $soloEnviados)
+    private function filasPedidos($ini, $fin, $soloEnviados, $tipo = 'NORMAL')
     {
         $sql = "
         SELECT
             p.fecha, p.NroPed, p.cod_prod, p.Cant, p.precio, p.Observaciones,
-            p.pago, p.fact, p.horario, p.comentario, p.estado, p.idCli,
+            p.pago, p.fact, p.horario, p.comentario, p.estado, p.idCli, p.rango_kg,
             c.Id, c.Nombres, c.zona,
             u.Producto,
+            -- La unidad que eligio el preventista (tbpedidos.caja); si no, la del producto.
+            COALESCE(NULLIF(TRIM(p.caja), ''), NULLIF(TRIM(u.codUnid), ''), 'U') AS unidad,
+            TRIM(b.Nombres) AS cuenta_baja,
             TRIM(CONCAT_WS(' ', NULLIF(TRIM(e.Nombre1), ''), NULLIF(TRIM(e.App1), ''), NULLIF(TRIM(e.Apm), ''))) AS preventista,
             CASE
                 WHEN TRIM(COALESCE(c.CiVend, '')) <> '' AND TRIM(COALESCE(c.CiVend, '')) <> TRIM(COALESCE(e.ci, '')) THEN 'FUERA DE RUTA'
@@ -575,27 +616,38 @@ class ExcelController extends Controller
         INNER JOIN tbclientes c ON p.idCli = c.Cod_Aut
         INNER JOIN tbproductos u ON u.cod_prod = p.cod_prod
         INNER JOIN personal e ON p.CIfunc = e.CodAut
-        WHERE p.deleted_at IS NULL AND p.tipo = 'NORMAL'
+        LEFT JOIN tbclientes b ON b.Cod_Aut = p.bonificacionId
+        WHERE p.deleted_at IS NULL AND p.tipo = ?
+          AND p.Cant IS NOT NULL
           AND DATE(p.fecha) >= ?
           AND DATE(p.fecha) <= ?
           " . ($soloEnviados ? "AND UPPER(TRIM(p.estado)) = 'ENVIADO'" : '') . "
         ORDER BY p.fecha, preventista, p.NroPed, u.Producto";
 
-        return array_map(function ($r) {
+        return array_map(function ($r) use ($tipo) {
             $cantidad = (float) $r->Cant;
             $precio = (float) $r->precio;
+            $cliente = trim((string) $r->Nombres);
+            $comentario = trim((string) $r->comentario);
+            if ($tipo !== 'NORMAL' && $r->cuenta_baja) {
+                $comentario = trim($cliente . ' ' . $comentario);
+                $cliente = $r->cuenta_baja;
+            }
 
             return [
                 'fecha' => date('d/m/Y', strtotime($r->fecha)),
                 'pedido' => (string) $r->NroPed,
                 'preventista' => $r->preventista ?: 'Sin preventista',
                 'nit' => trim((string) $r->Id),
-                'cliente' => trim((string) $r->Nombres),
+                'cliente' => $cliente,
                 'zona' => trim((string) $r->zona),
                 'ruta' => $r->estado_ruta,
                 'cod_prod' => trim((string) $r->cod_prod),
                 'producto' => trim((string) $r->Producto),
                 'cantidad' => $cantidad,
+                'unidad' => strtoupper((string) $r->unidad),
+                // Peso aproximado que pidio el cliente en /visita (pollo).
+                'rango_kg' => $r->rango_kg === null ? null : (float) $r->rango_kg,
                 'precio' => $precio,
                 'importe' => round($cantidad * $precio, 2),
                 'pago' => trim((string) $r->pago),
@@ -603,12 +655,44 @@ class ExcelController extends Controller
                 'horario' => trim((string) $r->horario),
                 'estado' => trim((string) $r->estado),
                 'observaciones' => trim((string) $r->Observaciones),
-                'comentario' => trim((string) $r->comentario),
+                'comentario' => $comentario,
                 // No se imprimen: son para contar clientes y pedidos distintos.
                 'cliente_id' => (int) $r->idCli,
                 'nro_pedido' => (string) $r->NroPed,
             ];
-        }, DB::select($sql, [$ini, $fin]));
+        }, DB::select($sql, [$tipo, $ini, $fin]));
+    }
+
+    /** Columnas del detalle: etiqueta, clave, ancho y formato. Pollo suma el rango (kg). */
+    private function columnasPedidos($tipo)
+    {
+        $columnas = [
+            ['Fecha', 'fecha', 11, 'texto'],
+            ['Nº pedido', 'pedido', 11, 'texto'],
+            ['Preventista', 'preventista', 26, 'texto'],
+            ['CI / NIT', 'nit', 13, 'texto'],
+            ['Cliente', 'cliente', 32, 'texto'],
+            ['Zona', 'zona', 16, 'texto'],
+            ['Ruta', 'ruta', 14, 'texto'],
+            ['Código', 'cod_prod', 10, 'texto'],
+            ['Producto', 'producto', 36, 'texto'],
+            ['Cantidad', 'cantidad', 10, 'cantidad'],
+            ['Unidad', 'unidad', 8, 'texto'],
+        ];
+        if ($tipo === 'POLLO') {
+            $columnas[] = ['Rango kg', 'rango_kg', 10, 'cantidad'];
+        }
+
+        return array_merge($columnas, [
+            ['Precio Bs', 'precio', 11, 'importe'],
+            ['Importe Bs', 'importe', 13, 'importe'],
+            ['Pago', 'pago', 12, 'texto'],
+            ['Factura', 'fact', 9, 'texto'],
+            ['Horario', 'horario', 11, 'texto'],
+            ['Estado', 'estado', 11, 'texto'],
+            ['Observaciones', 'observaciones', 26, 'texto'],
+            ['Comentario', 'comentario', 26, 'texto'],
+        ]);
     }
 
     /**
@@ -656,31 +740,6 @@ class ExcelController extends Controller
         });
 
         return $resumen;
-    }
-
-    /** Columnas del detalle de embutidos: etiqueta, clave, ancho y formato. */
-    private function columnasEmbutido()
-    {
-        return [
-            ['Fecha', 'fecha', 11, 'texto'],
-            ['Nº pedido', 'pedido', 11, 'texto'],
-            ['Preventista', 'preventista', 26, 'texto'],
-            ['CI / NIT', 'nit', 13, 'texto'],
-            ['Cliente', 'cliente', 32, 'texto'],
-            ['Zona', 'zona', 16, 'texto'],
-            ['Ruta', 'ruta', 14, 'texto'],
-            ['Código', 'cod_prod', 10, 'texto'],
-            ['Producto', 'producto', 36, 'texto'],
-            ['Cantidad', 'cantidad', 10, 'cantidad'],
-            ['Precio Bs', 'precio', 11, 'importe'],
-            ['Importe Bs', 'importe', 13, 'importe'],
-            ['Pago', 'pago', 12, 'texto'],
-            ['Factura', 'fact', 9, 'texto'],
-            ['Horario', 'horario', 11, 'texto'],
-            ['Estado', 'estado', 11, 'texto'],
-            ['Observaciones', 'observaciones', 26, 'texto'],
-            ['Comentario', 'comentario', 26, 'texto'],
-        ];
     }
 
     /**
