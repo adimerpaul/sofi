@@ -799,6 +799,11 @@ import {jsPDF} from "jspdf";
 import * as reglasPedido from 'src/utils/reglasPedido.js'
 
 const {addToDate} = date
+// Los 13 precios del producto en orden: el numero de precio es la posicion + 1.
+const CAMPOS_PRECIO = ['Precio', 'Precio_Costo', 'Precio3', 'Precio4', 'Precio5',
+  'Precio6', 'Precio7', 'Precio8', 'Precio9', 'Precio10', 'Precio11',
+  'Precio12', 'Precio13']
+
 export default {
   data() {
     return {
@@ -828,6 +833,8 @@ export default {
       clientes: [],
       options: [],
       cliente: {},
+      // Precio (1 a 13) del cliente por grupo de productos: { cod_grup: numero }.
+      preciosCliente: {},
       pedido: {},
       dialog_pollo: false,
       dialog_res: false,
@@ -1984,10 +1991,12 @@ ${primera.comentario ? `<div class="coment"><b>Comentario:</b> ${esc(primera.com
         // Solo los productos por caja eligen unidad; por defecto se piden en
         // kilos, salvo el cerdo y el frial, que se piden por unidad.
         caja: this.unidadPorDefecto(this.producto),
-        precio: parseFloat(this.producto.Precio).toFixed(2),
+        // Igual que en la visita: arranca con el precio que el cliente tiene
+        // para el grupo del producto (Clientes > Precios).
+        precio: this.precioDelCliente(this.producto),
         precios: this.listaPrecios(this.producto),
         cantidad: 1,
-        subtotal: parseFloat(this.producto.Precio).toFixed(2)
+        subtotal: this.precioDelCliente(this.producto)
       })
     },
 
@@ -2010,11 +2019,8 @@ ${primera.comentario ? `<div class="coment"><b>Comentario:</b> ${esc(primera.com
     // ninguno desaparezca de la lista.
     listaPrecios(producto) {
       if (!producto) return []
-      const campos = ['Precio', 'Precio_Costo', 'Precio3', 'Precio4', 'Precio5',
-        'Precio6', 'Precio7', 'Precio8', 'Precio9', 'Precio10', 'Precio11',
-        'Precio12', 'Precio13']
       const opciones = []
-      campos.forEach((campo, indice) => {
+      CAMPOS_PRECIO.forEach((campo, indice) => {
         const valor = parseFloat(producto[campo])
         if (!valor || isNaN(valor)) return
         const texto = valor.toFixed(2)
@@ -2023,6 +2029,27 @@ ${primera.comentario ? `<div class="coment"><b>Comentario:</b> ${esc(primera.com
         else opciones.push({numeros: [indice + 1], valor: texto})
       })
       return opciones.map(o => ({etiqueta: 'Precio ' + o.numeros.join(' / '), valor: o.valor}))
+    },
+    // Que precio (1 a 13) le toca al cliente en cada grupo; sin cargar, el 1.
+    cargarPreciosCliente(cliente) {
+      this.preciosCliente = {}
+      if (!cliente) return
+      this.$api.get('cliente/' + cliente + '/precios').then(res => {
+        const mapa = {}
+        ;(res.data || []).forEach(p => { mapa[String(p.cod_grup).trim()] = Number(p.precio) || 1 })
+        this.preciosCliente = mapa
+      }).catch(() => {
+        // Sin los precios del cliente el pedido sigue con el precio 1.
+      })
+    },
+    /**
+     * El precio del producto que corresponde al cliente segun el grupo. Si
+     * ese precio esta vacio o en cero en el producto, el precio 1.
+     */
+    precioDelCliente(producto) {
+      const numero = this.preciosCliente[String(producto.cod_grup || '').trim()] || 1
+      const valor = parseFloat(producto[CAMPOS_PRECIO[numero - 1]])
+      return (valor > 0 ? valor : parseFloat(producto.Precio) || 0).toFixed(2)
     },
     elegirPrecio(fila, valor) {
       fila.precio = valor
@@ -2042,6 +2069,7 @@ ${primera.comentario ? `<div class="coment"><b>Comentario:</b> ${esc(primera.com
     },
     listpedidos(cliente) {
       this.cliente = cliente
+      this.cargarPreciosCliente(cliente.cliente ? cliente.cliente.Cod_Aut : null)
       console.log(this.cliente)
       // this.$q.loading.show()
       this.loading = true

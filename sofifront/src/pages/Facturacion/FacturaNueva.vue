@@ -161,7 +161,7 @@
                     v-model.number="item.cantidad"
                     dense outlined type="number" class="col"
                     :label="item.con_canastillos ? 'Piezas' : (item.unidad === 'KG' ? 'Kilos' : 'Cant.')"
-                    :step="item.con_canastillos ? 1 : paso(item)" :min="item.con_canastillos ? 1 : paso(item)"
+                    :step="paso(item)" :min="paso(item)"
                     @update:model-value="normalizar(item)"
                   />
                   <!-- Pollo, cerdo y res se pesan en canastillos: se cobra el
@@ -269,7 +269,7 @@
               v-model.number="cantidadElegida"
               outlined dense :autofocus="!porKiloSinCanastillos(elegido)" type="number" class="col-6"
               :label="elegido.con_canastillos ? 'Piezas' : (elegido.unidad === 'KG' ? 'Kilos' : 'Cantidad')"
-              :step="elegido.con_canastillos ? 1 : paso(elegido)" :min="elegido.con_canastillos ? 1 : paso(elegido)"
+              :step="paso(elegido)" :min="paso(elegido)"
               @focus="$event.target.select()"
             />
             <q-select
@@ -819,7 +819,7 @@ export default {
       }
     },
     normalizar (item) {
-      const minimo = item.con_canastillos ? 1 : this.paso(item)
+      const minimo = this.paso(item)
       if (!item.cantidad || item.cantidad < minimo) {
         item.cantidad = minimo
       }

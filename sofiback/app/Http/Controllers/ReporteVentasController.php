@@ -1450,8 +1450,6 @@ class ReporteVentasController extends Controller
         'vendedor'     => 'VENDEDOR',
         'cod_prod'     => 'COD. PRODUCTO',
         'producto'     => 'PRODUCTO',
-        'familia'      => 'FAMILIA',
-        'subfamilia'   => 'SUBFAMILIA',
         'peso'         => 'PESO',
         'importe'      => 'IMPORTE',
         'p_compra'     => 'P.COMPRA',
@@ -1468,6 +1466,8 @@ class ReporteVentasController extends Controller
         'nro_factura'  => 'NRO FACT',
         // El numero del comprobante: el Nro que sale impreso en la boleta.
         'nro_boleta'   => 'NRO BOLETA',
+        'familia'      => 'FAMILIA',
+        'subfamilia'   => 'SUBFAMILIA',
     ];
 
     /** Detalle de ventas en pantalla. */

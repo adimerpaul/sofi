@@ -218,7 +218,7 @@
               <div class="monto">{{ money(entrega.total) }}</div>
               <div class="linea-pie">
                 <q-icon :name="entrega.cobrada ? 'check_circle' : 'schedule'" size="11px"/>
-                {{ entrega.cobrada ? entrega.tipago : '#' + entrega.nro_pedido }}
+                {{ entrega.cobrada ? etiquetaPago(entrega) : '#' + entrega.nro_pedido }}
               </div>
             </td>
             <td class="col-acciones">
@@ -402,7 +402,7 @@
 
                   <div v-if="props.row.cobrada && !esRectificacion(props.row)" class="text-caption text-green-9">
                     <q-icon name="task_alt" size="14px"/>
-                    {{ props.row.tipago }} · cobrado Bs {{ money(cobrado(props.row)) }}
+                    {{ etiquetaPago(props.row) }}<span v-if="!sinCobro(props.row)"> · cobrado Bs {{ money(cobrado(props.row)) }}</span>
                     <span v-if="falto(props.row) > 0.009" class="text-red-9 text-weight-bold">
                       · faltó Bs {{ money(falto(props.row)) }}
                     </span>
@@ -419,6 +419,11 @@
 
                   <!-- El credito ya venia decidido de caja: al caminero solo se
                        le recuerda que ahi no cobra nada. -->
+                  <div v-else-if="esBonificacion(props.row)" class="text-body2 text-purple-9 q-mt-xs">
+                    <q-icon name="card_giftcard" size="16px"/>
+                    <b>Bonificación</b> · es gratis, no se cobra nada
+                  </div>
+
                   <div v-else-if="esCredito(props.row)" class="text-body2 text-orange-9 q-mt-xs">
                     <q-icon name="schedule" size="16px"/>
                     <b>A crédito</b> · se entrega sin cobrar
@@ -551,7 +556,7 @@
                   </div>
 
                   <div v-if="props.row.cobrada && !esRectificacion(props.row)" class="text-caption text-green-9">
-                    {{ props.row.tipago }} · cobrado Bs {{ money(cobrado(props.row)) }}
+                    {{ etiquetaPago(props.row) }}<span v-if="!sinCobro(props.row)"> · cobrado Bs {{ money(cobrado(props.row)) }}</span>
                     <span v-if="falto(props.row) > 0.009" class="text-red-9 text-weight-bold">
                       · faltó Bs {{ money(falto(props.row)) }}
                     </span>
@@ -562,6 +567,11 @@
 
                   <div v-else-if="cerrada(props.row)" class="text-caption text-red-9">
                     {{ props.row.entrega_estado }}
+                  </div>
+
+                  <div v-else-if="esBonificacion(props.row)" class="text-caption text-purple-9">
+                    <q-icon name="card_giftcard" size="14px"/>
+                    <b>Bonificación.</b> Es gratis, no se cobra nada.
                   </div>
 
                   <div v-else-if="esCredito(props.row)" class="text-caption text-orange-9">
@@ -643,7 +653,13 @@
 
         <q-card-actions class="q-px-sm q-py-xs">
           <div class="text-caption text-grey-7">
-            Punto: <b>Bs {{ money(punto.total) }}</b>
+            Efectivo/QR: <b>Bs {{ money(punto.aCobrar) }}</b>
+            <span v-if="punto.credito > 0" class="text-orange-9">
+              · Crédito Bs {{ money(punto.credito) }}
+            </span>
+            <span v-if="punto.bonificacion > 0" class="text-purple-9">
+              · Bonificación Bs {{ money(punto.bonificacion) }}
+            </span>
             <span v-if="sumaACobrar > 0" class="text-green-9">
               · cobrás Bs {{ money(sumaACobrar) }}
             </span>
@@ -1074,6 +1090,11 @@ export default {
         lat: Number(primera.latitud) || 0,
         lng: Number(primera.longitud) || 0,
         total: entregas.reduce((suma, entrega) => suma + Number(entrega.total || 0), 0),
+        // El total mezclaba credito y bonificaciones con lo que se cobra, y el
+        // caminero terminaba pidiendo plata por algo que no se paga en la puerta.
+        aCobrar: this.sumaTotales(entregas.filter(entrega => !this.sinCobro(entrega))),
+        credito: this.sumaTotales(entregas.filter(entrega => this.esCredito(entrega) && !this.esBonificacion(entrega))),
+        bonificacion: this.sumaTotales(entregas.filter(this.esBonificacion)),
         porCobrar: entregas.filter(entrega => !entrega.cobrada).length
       }
     },
@@ -1259,6 +1280,24 @@ export default {
       const forma = String(entrega.tipo_pago || '').toUpperCase()
 
       return forma === 'CRÉDITO' || forma === 'CREDITO'
+    },
+    /**
+     * Si el pedido es una baja (bonificacion o calidad): caja la emite como
+     * credito, pero el cliente no la paga nunca.
+     */
+    esBonificacion (entrega) {
+      return !!entrega.bonificacion
+    },
+    /** Lo que se entrega sin recibir plata en la puerta. */
+    sinCobro (entrega) {
+      return this.esCredito(entrega) || this.esBonificacion(entrega)
+    },
+    /** Como se cerro la nota, dicho como lo entiende el caminero. */
+    etiquetaPago (entrega) {
+      return this.esBonificacion(entrega) ? 'BONIFICACIÓN' : entrega.tipago
+    },
+    sumaTotales (entregas) {
+      return entregas.reduce((suma, entrega) => suma + Number(entrega.total || 0), 0)
     },
     /**
      * El nombre que va en una fila del punto, o vacio si no hace falta.
@@ -1539,6 +1578,7 @@ export default {
     },
     /** Lo que quedo debiendo: la nota menos lo que el cliente entrego. */
     falto (entrega) {
+      if (this.sinCobro(entrega)) return 0
       return Math.max(Number(entrega.total || 0) - this.cobrado(entrega), 0)
     },
     /** Lo que se lleva escrito en la fila que se esta cobrando. */
@@ -1611,6 +1651,7 @@ export default {
     },
     leyendaSaldo (entrega) {
       const cobro = this.cobros[entrega.factura_id]
+      if (this.esBonificacion(entrega)) return 'Bonificación: no se cobra'
       if (cobro.forma === 'CRÉDITO') return 'Queda debiendo Bs ' + this.money(entrega.total)
 
       const pagado = this.pagando(entrega)

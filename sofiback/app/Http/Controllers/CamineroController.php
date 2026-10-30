@@ -205,6 +205,10 @@ class CamineroController extends Controller
                     DB::raw('MIN(fecha_entrega) as fecha_entrega'),
                     DB::raw('COUNT(*) as productos'),
                     DB::raw('ROUND(SUM(COALESCE(Cant, 0) * COALESCE(precio, 0)), 2) as total_pedido'),
+                    // Una baja (bonificacion o calidad) sale de caja como
+                    // credito, pero el cliente no la paga nunca: el caminero
+                    // tiene que saber que ahi no se cobra.
+                    DB::raw('MAX(CASE WHEN bonificacionId IN (' . implode(',', FacturacionController::CUENTAS_BAJA) . ') THEN 1 ELSE 0 END) as bonificacion'),
                 ])
                 ->keyBy(function ($pedido) {
                     return $pedido->nro_pedido . '-' . $pedido->tipo;
@@ -231,6 +235,7 @@ class CamineroController extends Controller
                 $factura->pedido_fecha = $factura->factura_fecha;
                 $factura->productos = (int) $productosDirecta->get($factura->factura_id, 0);
                 $factura->total_pedido = round((float) $factura->total, 2);
+                $factura->bonificacion = false;
                 return true;
             }
             $pedido = $pedidos->get($factura->nro_pedido . '-' . $factura->tipo);
@@ -242,6 +247,7 @@ class CamineroController extends Controller
             $factura->pedido_fecha = $pedido->pedido_fecha;
             $factura->productos = $pedido->productos;
             $factura->total_pedido = $pedido->total_pedido;
+            $factura->bonificacion = (bool) $pedido->bonificacion;
             return true;
         });
 
