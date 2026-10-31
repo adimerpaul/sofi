@@ -474,7 +474,7 @@
                     <div class="col-6">
                       <q-btn
                         class="full-width boton-accion" unelevated no-caps stack color="positive" icon="check_circle"
-                        :label="esCredito(props.row) ? 'Entregar' : 'Entregar y cobrar'"
+                        :label="sinCobro(props.row) ? 'Entregar' : 'Entregar y cobrar'"
                         :loading="guardando === props.row.factura_id"
                         :disable="!cobroValido(props.row)" @click="cobrar(props.row)"
                       />
@@ -631,7 +631,7 @@
                     />
                     <q-btn
                       class="boton-accion" unelevated no-caps stack color="positive" icon="check_circle"
-                      :label="esCredito(props.row) ? 'Entregar' : 'Entregar y cobrar'"
+                      :label="sinCobro(props.row) ? 'Entregar' : 'Entregar y cobrar'"
                       :loading="guardando === props.row.factura_id"
                       :disable="!cobroValido(props.row)" @click="cobrar(props.row)"
                     />
@@ -1206,7 +1206,7 @@ export default {
         persistent: true
       }).onOk(() => {
         this.rectificando = { ...this.rectificando, [entrega.factura_id]: true }
-        this.cobros[entrega.factura_id] = this.esCredito(entrega)
+        this.cobros[entrega.factura_id] = this.sinCobro(entrega)
           ? { forma: 'CRÉDITO', efectivo: null, qr: null }
           : { forma: 'CONTADO', efectivo: null, qr: null }
       })
@@ -1331,7 +1331,7 @@ export default {
         // El monto arranca vacio a proposito: primero se cuenta la plata que
         // el cliente pone en la mano y recien ahi se escribe. Debajo del campo
         // queda el recordatorio de cuanto tendria que entrar.
-        this.cobros[entrega.factura_id] = this.esCredito(entrega)
+        this.cobros[entrega.factura_id] = this.sinCobro(entrega)
           ? { forma: 'CRÉDITO', efectivo: null, qr: null }
           : { forma: 'CONTADO', efectivo: null, qr: null }
       })
