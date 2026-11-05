@@ -117,6 +117,17 @@ Route::group(['middleware'=>'auth:sanctum'],function (){
     // Caja marca como revisadas las canastas elegidas en la grilla.
     Route::post('/facturacion/carga/marcar',[\App\Http\Controllers\FacturacionController::class,'marcarCargaVarias']);
     Route::get('/facturacion/camiones',[\App\Http\Controllers\FacturacionController::class,'camiones']);
+    // Verificacion de facturas: libro de ventas del SIAT (Excel) contra Sofia por CUF.
+    Route::get('/verificacion-facturas',[\App\Http\Controllers\VerificacionFacturasController::class,'index']);
+    Route::get('/verificacion-facturas/resumen',[\App\Http\Controllers\VerificacionFacturasController::class,'resumen']);
+    Route::get('/verificacion-facturas/faltantes',[\App\Http\Controllers\VerificacionFacturasController::class,'faltantes']);
+    Route::post('/verificacion-facturas/importar',[\App\Http\Controllers\VerificacionFacturasController::class,'importar']);
+    Route::post('/verificacion-facturas/reenviar',[\App\Http\Controllers\VerificacionFacturasController::class,'reenviar']);
+    // Anula solo en Impuestos lo que esta en el libro del SIAT y no en Sofia.
+    Route::get('/verificacion-facturas/motivos-anulacion',[\App\Http\Controllers\VerificacionFacturasController::class,'motivosAnulacion']);
+    Route::put('/verificacion-facturas/{id}/anular',[\App\Http\Controllers\VerificacionFacturasController::class,'anular'])->where('id', '[0-9]+');
+    Route::get('/verificacion-facturas/{id}',[\App\Http\Controllers\VerificacionFacturasController::class,'show'])->where('id', '[0-9]+');
+    Route::delete('/verificacion-facturas/{id}',[\App\Http\Controllers\VerificacionFacturasController::class,'destroy'])->where('id', '[0-9]+');
     // Facturacion ficticia: emite al SIAT sin tocar facturas ni inventario.
     Route::get('/facturacion-ficticia',[\App\Http\Controllers\FacturaFicticiaController::class,'index']);
     Route::post('/facturacion-ficticia',[\App\Http\Controllers\FacturaFicticiaController::class,'store']);
@@ -168,6 +179,8 @@ Route::group(['middleware'=>'auth:sanctum'],function (){
     // Caja marca la canasta de un comprobante como revisada o sin revisar.
     Route::post('/facturacion/{factura}/carga',[\App\Http\Controllers\FacturacionController::class,'marcarCarga']);
     Route::put('/facturacion/{factura}/anular',[\App\Http\Controllers\FacturacionController::class,'anular']);
+    // Saca (o devuelve) una factura del control de envio al SIAT.
+    Route::put('/facturacion/{factura}/ocultar-siat',[\App\Http\Controllers\FacturacionController::class,'ocultarSiat']);
     // Pasa el comprobante (y su pedido) a otro camion.
     Route::put('/facturacion/{factura}/camion',[\App\Http\Controllers\FacturacionController::class,'cambiarCamion']);
     // Contado (efectivo o QR) <-> credito de un comprobante ya emitido.
@@ -282,6 +295,9 @@ Route::group(['middleware'=>'auth:sanctum'],function (){
     Route::get('/impuestos/facturas',[\App\Http\Controllers\ImpuestoController::class,'facturas']);
     Route::post('/impuestos/facturas/{id}/verificar',[\App\Http\Controllers\ImpuestoController::class,'verificarFactura']);
     Route::post('/impuestos/facturas/{id}/reenviar',[\App\Http\Controllers\ImpuestoController::class,'reenviarFactura']);
+    // Contingencia: las que dieron ERROR salen fuera de linea con su fecha original.
+    Route::get('/impuestos/eventos/motivos',[\App\Http\Controllers\ImpuestoController::class,'motivosEvento']);
+    Route::post('/impuestos/facturas/evento-significativo',[\App\Http\Controllers\ImpuestoController::class,'eventoSignificativo']);
 
     // Administracion de proveedores (tbproveedor).
     Route::get('/proveedores',[\App\Http\Controllers\ProveedorController::class,'index']);

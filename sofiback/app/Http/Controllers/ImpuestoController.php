@@ -290,6 +290,7 @@ class ImpuestoController extends Controller
                 'id', 'fecha', 'hora', 'nro_factura', 'nit', 'nombre', 'total',
                 'estado', 'estado_siat', 'mensaje_siat', 'codigo_recepcion',
                 'cuf', 'codigo_sucursal', 'codigo_punto_venta', 'online',
+                'cufd', 'fecha_emision', 'fecha_envio_siat',
             ])
         );
     }
@@ -350,19 +351,90 @@ class ImpuestoController extends Controller
             ], 422);
         }
 
-        $factura = (new SiatService())->emitirFactura($factura, optional($request->user())->CodAut);
+        @set_time_limit(180);
+        $siat = new SiatService();
 
-        if ($factura->estado_siat === 'ERROR') {
+        // Solo si el usuario lo pide a proposito (por ejemplo, el SIAT ya dijo
+        // "fuera de plazo"): en linea con fecha de hoy, conservando el numero.
+        if ($request->boolean('fecha_hoy')) {
+            $factura = $siat->emitirFactura($factura, optional($request->user())->CodAut, true);
+            if ($factura->estado_siat === 'ERROR') {
+                return response()->json(['message' => 'No se pudo enviar: ' . $factura->mensaje_siat, 'factura' => $factura], 422);
+            }
+
             return response()->json([
-                'message' => 'No se pudo enviar: ' . $factura->mensaje_siat,
+                'message' => 'Factura ' . $factura->nro_factura . ' enviada al SIAT con fecha de hoy (' . $factura->estado_siat . ')',
                 'factura' => $factura,
-            ], 422);
+            ]);
         }
 
+        // Conserva numero y fecha: si fallo otro dia va por evento significativo
+        // con su fecha original; si el SIAT lo rechaza no cae a la fecha de hoy.
+        try {
+            $r = $siat->reenviarConservandoFecha($factura, optional($request->user())->CodAut);
+        } catch (\Throwable $e) {
+            return response()->json(['message' => $e->getMessage(), 'factura' => $factura->fresh()], 422);
+        }
+        $factura = $r['factura'];
+
         return response()->json([
-            'message' => 'Factura ' . $factura->nro_factura . ' enviada al SIAT (' . $factura->estado_siat . ')',
+            'message' => 'Factura ' . $factura->nro_factura . ' enviada al SIAT (' . $factura->estado_siat . ')'
+                . ($r['por_evento'] ? ' con su fecha original, por evento significativo ' . $r['evento']->codigo_evento : ''),
             'factura' => $factura,
         ]);
+    }
+
+    /**
+     * Manda facturas que dieron ERROR por evento significativo (fuera de
+     * linea), conservando su numero y su fecha/hora de emision original.
+     * Ver SiatService::enviarPorEvento.
+     */
+    public function eventoSignificativo(Request $request)
+    {
+        $data = $request->validate([
+            'ids' => ['required', 'array', 'min:1', 'max:500'],
+            'ids.*' => ['integer'],
+            'codigo_motivo' => ['required', 'integer', 'in:' . implode(',', array_keys(SiatService::MOTIVOS_EVENTO))],
+            'descripcion' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        $facturas = Factura::with('detalles', 'usuario')
+            ->where('tipo_comprobante', 'FACTURA')
+            ->whereIn('id', $data['ids'])
+            ->orderBy('fecha_emision')
+            ->get();
+        if ($facturas->count() !== count(array_unique($data['ids']))) {
+            return response()->json(['message' => 'Alguna de las facturas elegidas no existe o es un voucher'], 422);
+        }
+
+        // Registrar el evento, mandar el paquete y esperar la validacion tarda.
+        @set_time_limit(180);
+
+        try {
+            $evento = (new SiatService())->enviarPorEvento(
+                $facturas,
+                (int) $data['codigo_motivo'],
+                $data['descripcion'] ?? null,
+                optional($request->user())->CodAut
+            );
+        } catch (\Throwable $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
+
+        $numeros = $facturas->pluck('nro_factura')->implode(', ');
+
+        return response()->json([
+            'message' => "Facturas {$numeros} enviadas con su fecha original (evento {$evento->codigo_evento}, {$evento->estado})",
+            'evento' => $evento,
+        ]);
+    }
+
+    /** Catalogo de motivos para el dialogo de evento significativo. */
+    public function motivosEvento()
+    {
+        return response()->json(collect(SiatService::MOTIVOS_EVENTO)->map(function ($descripcion, $codigo) {
+            return ['codigo' => $codigo, 'descripcion' => $descripcion];
+        })->values());
     }
 
     /* ------------------------------------------------------------------ */

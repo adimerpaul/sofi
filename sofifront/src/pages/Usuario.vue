@@ -200,7 +200,8 @@ export default {
         entregaFactura: 'Entrega factura — entregas del día con facturación',
         facturacionPrecio: 'Cambiar precio al facturar pedidos',
         facturacionAprobarCarga: 'Aprobar la carga de un camión (facturación)',
-        facturacionFicticia: 'Facturación ficticia — facturar al SIAT sin tocar facturación ni inventario'
+        facturacionFicticia: 'Facturación ficticia — facturar al SIAT sin tocar facturación ni inventario',
+        verificacionFacturas: 'Verificación de facturas — subir el libro del SIAT y compararlo con Sofia por CUF'
       }
       return nombres[p] || p
     },

@@ -197,6 +197,13 @@
             label="Estado" :options="['ACTIVO', 'ANULADO']"
           />
         </div>
+        <!-- Control del envio a Impuestos, como el de Ventas en Area Fresca. -->
+        <div class="col-6 col-md-2">
+          <q-select
+            v-model="filtros.envioSiat" dense outlined clearable emit-value map-options
+            label="Envío SIAT" :options="opcionesEnvioSiat" @update:model-value="recargar"
+          />
+        </div>
         <!-- col-md-auto y no col-md: con los filtros sumando 12 columnas, un
              col-md (ancho base 0) se metia en la misma linea sin ancho y los
              botones desaparecian. -->
@@ -207,6 +214,19 @@
                  @click="limpiar"/>
         </div>
       </div>
+
+      <!-- Facturas que no llegaron al SIAT, de cualquier dia: hay que mandarlas
+           el mismo dia, porque pasado el plazo de contingencia ya no se pueden
+           declarar con su fecha. -->
+      <q-banner v-if="sinEnviarSiat.cantidad" dense class="q-mt-sm bg-red-1 text-red-10 rounded-borders">
+        <template v-slot:avatar><q-icon name="cloud_off" color="negative"/></template>
+        <b>{{ sinEnviarSiat.cantidad }} factura(s) sin enviar al SIAT</b>
+        (Bs {{ Number(sinEnviarSiat.total || 0).toFixed(2) }}, desde el {{ fechaCorta(sinEnviarSiat.desde) }}).
+        Mándelas hoy: pasado el plazo ya no se pueden declarar con su fecha.
+        <template v-slot:action>
+          <q-btn dense unelevated no-caps color="negative" icon="filter_alt" label="Ver las que faltan" @click="verSinEnviarSiat"/>
+        </template>
+      </q-banner>
 
       <!-- Una linea por camion con lo que ya lleva facturado, igual que en
            pedidos por facturar; tocando se filtra a ese camion. -->
@@ -557,12 +577,18 @@
         <q-td :props="props">
           <template v-if="props.row.tipo_comprobante === 'FACTURA'">
             <q-badge
-              :color="props.row.estado_siat === 'ERROR' ? 'negative' : (props.row.online ? 'positive' : 'orange-8')"
+              :color="['ERROR', 'RECHAZADA', 'OBSERVADA'].includes(props.row.estado_siat) ? 'negative' : (props.row.online ? 'positive' : 'orange-8')"
             >
               {{ props.row.estado_siat || 'NO ENVIADA' }}
             </q-badge>
+            <q-badge v-if="props.row.siat_oculta" outline color="grey-7" class="q-ml-xs" label="Oculta">
+              <q-tooltip>
+                Fuera del control SIAT{{ props.row.siat_oculta_motivo ? ': ' + props.row.siat_oculta_motivo : '' }}
+                <span v-if="props.row.siat_oculta_at"><br>Desde {{ String(props.row.siat_oculta_at).substr(0, 16).replace('T', ' ') }}</span>
+              </q-tooltip>
+            </q-badge>
             <div
-              v-if="props.row.estado_siat === 'ERROR' && props.row.mensaje_siat"
+              v-if="sinEnviar(props.row) && props.row.mensaje_siat"
               class="text-caption text-negative q-mt-xs"
               style="max-width: 280px; white-space: normal"
             >
@@ -711,13 +737,46 @@
               </q-item>
 
               <q-item
-                v-if="props.row.tipo_comprobante === 'FACTURA' && props.row.estado_siat === 'ERROR'"
+                v-if="sinEnviar(props.row)"
                 clickable v-close-popup @click="reenviarSiat(props.row)"
               >
                 <q-item-section avatar><q-icon name="cloud_upload" color="orange-8"/></q-item-section>
                 <q-item-section>
                   Reenviar al SIAT
-                  <q-item-label caption>Corrige el envío fiscal pendiente</q-item-label>
+                  <q-item-label caption>Conserva número y fecha (si es de otro día, por evento significativo)</q-item-label>
+                </q-item-section>
+              </q-item>
+
+              <q-item
+                v-if="sinEnviar(props.row)"
+                clickable v-close-popup @click="reenviarSiat(props.row, true)"
+              >
+                <q-item-section avatar><q-icon name="today" color="deep-orange"/></q-item-section>
+                <q-item-section>
+                  Enviar con fecha de hoy
+                  <q-item-label caption>Solo si el SIAT ya dijo «fuera de plazo»: se declara en el mes actual</q-item-label>
+                </q-item-section>
+              </q-item>
+
+              <q-item
+                v-if="sinEnviar(props.row) && !props.row.siat_oculta"
+                clickable v-close-popup @click="ocultarSiat(props.row, true)"
+              >
+                <q-item-section avatar><q-icon name="visibility_off" color="grey-7"/></q-item-section>
+                <q-item-section>
+                  Ocultar del control SIAT
+                  <q-item-label caption>No se va a poder mandar: sale del aviso y de «Faltan enviar»</q-item-label>
+                </q-item-section>
+              </q-item>
+
+              <q-item
+                v-if="props.row.siat_oculta"
+                clickable v-close-popup @click="ocultarSiat(props.row, false)"
+              >
+                <q-item-section avatar><q-icon name="visibility" color="primary"/></q-item-section>
+                <q-item-section>
+                  Volver a mostrar en el control SIAT
+                  <q-item-label caption>Vuelve al aviso y a «Faltan enviar»</q-item-label>
                 </q-item-section>
               </q-item>
 
@@ -1050,7 +1109,8 @@ function filtrosPorDefecto () {
     tipo: null,
     pedidoTipo: null,
     estado: null,
-    camion: null
+    camion: null,
+    envioSiat: null
   }
 }
 
@@ -1172,6 +1232,15 @@ export default {
       // Cuantos comprobantes de cada tipo hay con los filtros puestos; el
       // backend los cuenta ignorando el chip elegido.
       conteos: { TODOS: 0, FACTURA: 0, VENTA: 0 },
+      // Facturas activas que no llegaron al SIAT, de cualquier dia.
+      sinEnviarSiat: { cantidad: 0, desde: null, total: 0 },
+      opcionesEnvioSiat: [
+        { label: 'Faltan enviar', value: 'pendientes' },
+        { label: 'Con error de envío', value: 'error' },
+        { label: 'Rechazadas / observadas', value: 'rechazadas' },
+        { label: 'Enviadas (validadas)', value: 'enviadas' },
+        { label: 'Ocultas del control', value: 'ocultas' }
+      ],
       filtros: filtrosPorDefecto(),
       pagination: { page: 1, rowsPerPage: 20, rowsNumber: 0 },
       columns: [
@@ -1421,6 +1490,7 @@ export default {
         this.facturas.forEach(row => { nuevas[row.id] = row })
         this.seleccionadas = this.seleccionadas.map(row => nuevas[row.id] || row)
         this.conteos = res.data.conteos || { TODOS: 0, FACTURA: 0, VENTA: 0 }
+        this.sinEnviarSiat = res.data.sin_enviar_siat || { cantidad: 0, desde: null, total: 0 }
         this.pagination.page = res.data.current_page
         this.pagination.rowsPerPage = rowsPerPage
         this.pagination.rowsNumber = res.data.total
@@ -1470,7 +1540,8 @@ export default {
         tipo: this.filtros.tipo || '',
         pedido_tipo: this.filtros.pedidoTipo || '',
         estado: this.filtros.estado || '',
-        camion: this.filtros.camion || ''
+        camion: this.filtros.camion || '',
+        envio_siat: this.filtros.envioSiat || ''
       }
     },
 
@@ -1900,15 +1971,61 @@ export default {
         .finally(() => aviso())
     },
 
-    reenviarSiat (row) {
+    /** Factura activa que todavia no esta validada en el SIAT. */
+    sinEnviar (row) {
+      return row.tipo_comprobante === 'FACTURA' && row.estado !== 'ANULADO' && row.estado_siat !== 'VALIDADA'
+    },
+
+    /** Filtra a las que faltan enviar, desde el dia mas antiguo hasta hoy. */
+    verSinEnviarSiat () {
+      this.filtros = Object.assign(filtrosPorDefecto(), {
+        fechaEntrega: String(this.sinEnviarSiat.desde || '').substr(0, 10) || date.formatDate(new Date(), 'YYYY-MM-DD'),
+        fechaEntregaHasta: date.formatDate(new Date(), 'YYYY-MM-DD'),
+        envioSiat: 'pendientes'
+      })
+      this.recargar()
+    },
+
+    /** Saca la factura del aviso y del filtro "Faltan enviar", o la devuelve. */
+    ocultarSiat (row, ocultar) {
+      const nro = row.nro_factura || ('#' + row.id)
+      const enviar = motivo => {
+        this.$api.put('facturacion/' + row.id + '/ocultar-siat', { ocultar, motivo: motivo || null })
+          .then(res => {
+            this.$q.notify({ type: 'positive', position: 'top', message: res.data.message })
+            this.onRequest({ pagination: this.pagination })
+          })
+          .catch(err => { this.avisar(err, 'No se pudo cambiar el control SIAT') })
+      }
+      if (!ocultar) {
+        enviar(null)
+        return
+      }
       this.$q.dialog({
-        title: 'Reenviar al SIAT',
-        message: 'Se volverá a generar y enviar la factura fiscal #' + row.id + '. ' +
-          'Si Impuestos ya la tiene válida quedará duplicada: use antes "Verificar en Impuestos". ¿Continuar?',
+        title: 'Ocultar del control SIAT',
+        message: 'La factura ' + nro + ' saldrá del aviso y del filtro «Faltan enviar». Sigue en Facturación y se puede ' +
+          'ver con el filtro «Ocultas del control». ¿Por qué no se va a mandar?',
+        prompt: { model: '', type: 'text', placeholder: 'Ej.: fuera de plazo (983), se decide luego' },
+        cancel: true,
+        persistent: true
+      }).onOk(motivo => enviar(motivo))
+    },
+
+    reenviarSiat (row, fechaHoy = false) {
+      const nro = row.nro_factura || ('#' + row.id)
+      this.$q.dialog({
+        title: fechaHoy ? 'Enviar con fecha de hoy' : 'Reenviar al SIAT',
+        message: fechaHoy
+          ? 'La factura ' + nro + ' se enviará EN LÍNEA con la fecha y hora de hoy (conserva el número). ' +
+            'Se declara en el mes actual, no en el de la venta. Úselo solo si el SIAT ya rechazó el envío con su fecha por estar fuera de plazo. ¿Continuar?'
+          : 'La factura ' + nro + ' se enviará conservando su número y su fecha. Si se emitió otro día va por evento significativo ' +
+            '(fuera de línea); si el SIAT lo rechaza no se manda con la fecha de hoy. Antes se consulta si Impuestos ya la tiene. ¿Continuar?',
         cancel: true,
         persistent: true
       }).onOk(() => {
-        this.$api.post('impuestos/facturas/' + row.id + '/reenviar')
+        const aviso = this.$q.notify({ type: 'ongoing', message: 'Enviando al SIAT…', position: 'top' })
+        this.$api.post('impuestos/facturas/' + row.id + '/reenviar', { fecha_hoy: fechaHoy }, { timeout: 200000 })
+          .finally(() => aviso())
           .then(res => {
             this.$q.notify({
               type: 'positive', position: 'top', timeout: 8000,

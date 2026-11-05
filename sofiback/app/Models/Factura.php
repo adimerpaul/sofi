@@ -59,6 +59,13 @@ class Factura extends Model
         'estado_siat',
         'mensaje_siat',
         'fecha_emision',
+        // Cuando el SIAT la recibio de verdad; ver AddFechaEnvioSiatToFacturas.
+        'fecha_envio_siat',
+        // Fuera del control de envio al SIAT; ver AddSiatOcultaToFacturas.
+        'siat_oculta',
+        'siat_oculta_motivo',
+        'siat_oculta_por',
+        'siat_oculta_at',
         'xml',
         'leyenda',
         'online',
@@ -77,6 +84,7 @@ class Factura extends Model
         'descuento'  => 'decimal:2',
         'total'      => 'decimal:2',
         'online'     => 'boolean',
+        'siat_oculta' => 'boolean',
         'anulado_at' => 'datetime',
         // Lo que cambio al editar: ver App\Services\ModificacionFactura.
         'modificacion_campos' => 'array',

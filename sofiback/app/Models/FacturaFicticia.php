@@ -36,6 +36,7 @@ class FacturaFicticia extends Factura
         'estado_siat',
         'mensaje_siat',
         'fecha_emision',
+        'fecha_envio_siat',
         'xml',
         'leyenda',
         'online',

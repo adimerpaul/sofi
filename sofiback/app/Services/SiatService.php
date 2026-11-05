@@ -7,6 +7,7 @@ use App\Models\FacturaFicticia;
 use App\Models\SiatConfiguracion;
 use App\Models\SiatCufd;
 use App\Models\SiatCui;
+use App\Models\SiatEventoSignificativo;
 use App\Models\SiatMotivoAnulacion;
 use Illuminate\Support\Facades\DB;
 
@@ -40,6 +41,20 @@ class SiatService
 
     /** Emision 1 = EN LINEA. */
     const EMISION_EN_LINEA = 1;
+
+    /** Emision 2 = FUERA DE LINEA (contingencia, va en paquete con un evento). */
+    const EMISION_FUERA_DE_LINEA = 2;
+
+    /** Catalogo de motivos de evento significativo del SIAT. */
+    const MOTIVOS_EVENTO = [
+        1 => 'CORTE DEL SERVICIO DE INTERNET',
+        2 => 'INACCESIBILIDAD AL SERVICIO WEB DE LA ADMINISTRACIÓN TRIBUTARIA',
+        3 => 'INGRESO A ZONAS SIN INTERNET POR DESPLIEGUE DE PUNTO DE VENTA',
+        4 => 'VENTA EN LUGARES SIN INTERNET',
+        5 => 'VIRUS INFORMÁTICO O FALLA DE SOFTWARE',
+        6 => 'CAMBIO DE INFRAESTRUCTURA O FALLA DE HARDWARE',
+        7 => 'CORTE DE SUMINISTRO DE ENERGÍA ELÉCTRICA',
+    ];
 
     /** Tipo 1 = FACTURA CON DERECHO A CREDITO FISCAL. */
     const TIPO_FACTURA = 1;
@@ -198,13 +213,13 @@ class SiatService
      *
      * @param string $fechaHora en formato YmdHis + 3 digitos de milisegundo.
      */
-    public function calcularCuf($fechaHora, $sucursal, $puntoVenta, $numeroFactura, $codigoControl)
+    public function calcularCuf($fechaHora, $sucursal, $puntoVenta, $numeroFactura, $codigoControl, $tipoEmision = self::EMISION_EN_LINEA)
     {
         $cadena = str_pad($this->config->nit, 13, '0', STR_PAD_LEFT)
             . $fechaHora
             . str_pad($sucursal, 4, '0', STR_PAD_LEFT)
             . $this->config->codigo_modalidad
-            . self::EMISION_EN_LINEA
+            . $tipoEmision
             . self::TIPO_FACTURA
             . str_pad(self::DOCUMENTO_SECTOR, 2, '0', STR_PAD_LEFT)
             . str_pad($numeroFactura, 10, '0', STR_PAD_LEFT)
@@ -227,11 +242,15 @@ class SiatService
      * Devuelve la misma factura actualizada. No lanza excepciones de negocio
      * hacia afuera: si algo falla, la factura queda con estado_siat = ERROR y
      * el motivo en mensaje_siat, para no perder la venta que ya se cobro.
+     *
+     * $conservarNumero: reenvia con el mismo nro_factura en vez de tomar el
+     * siguiente. Solo para facturas que nunca llegaron al SIAT (ese numero no
+     * quedo registrado alla); quien llama debe comprobarlo antes.
      */
-    public function emitirFactura(Factura $factura, $userId = null)
+    public function emitirFactura(Factura $factura, $userId = null, $conservarNumero = false)
     {
         try {
-            return $this->emitir($factura, $userId);
+            return $this->emitir($factura, $userId, false, $conservarNumero);
         } catch (\Throwable $e) {
             $factura->update([
                 'estado_siat'  => 'ERROR',
@@ -297,8 +316,9 @@ class SiatService
     /**
      * @param bool $reintentoCufd true cuando se reintenta con un CUFD recien
      *                            pedido porque el SIAT rechazo el anterior.
+     * @param bool $conservarNumero reusar nro_factura (ver emitirFactura).
      */
-    private function emitir(Factura $factura, $userId, $reintentoCufd = false)
+    private function emitir(Factura $factura, $userId, $reintentoCufd = false, $conservarNumero = false)
     {
         if ($faltan = $this->config->faltantes()) {
             throw new \RuntimeException('Falta ' . implode(', ', $faltan) . ' en los datos de Impuestos');
@@ -331,7 +351,7 @@ class SiatService
 
         // En el reintento se conserva el numero: el SIAT rechazo la factura, asi
         // que ese numero no quedo usado, y siguienteNumero() ya la contaria.
-        $numero = $reintentoCufd && $factura->nro_factura
+        $numero = ($reintentoCufd || $conservarNumero) && $factura->nro_factura
             ? (int) $factura->nro_factura
             : $this->siguienteNumero($sucursal, $puntoVenta);
 
@@ -394,7 +414,7 @@ class SiatService
             $cufd->delete();
             $this->pedirCufd($sucursal, $puntoVenta, $userId);
 
-            return $this->emitir($factura, $userId, true);
+            return $this->emitir($factura, $userId, true, $conservarNumero);
         }
 
         $factura->update([
@@ -403,6 +423,8 @@ class SiatService
             'mensaje_siat'     => $this->mensajes($respuesta, ''),
             // Solo se da por emitida si el SIAT la acepto.
             'online'           => in_array($estado, ['VALIDADA', 'PENDIENTE', 'RECIBIDA'], true),
+            // Cuando el SIAT la recibio; solo si la acepto.
+            'fecha_envio_siat' => in_array($estado, ['VALIDADA', 'PENDIENTE', 'RECIBIDA'], true) ? now() : $factura->fecha_envio_siat,
         ]);
 
         return $factura->fresh();
@@ -420,6 +442,337 @@ class SiatService
         }
 
         return stripos($this->mensajes($respuesta, ''), 'CUFD') !== false;
+    }
+
+    /* ---------------------------------------------------------------- */
+    /* Contingencia: evento significativo + paquete                      */
+    /* ---------------------------------------------------------------- */
+
+    /**
+     * Manda al SIAT, con su fecha y hora de emision ORIGINAL, facturas que no
+     * pudieron salir en linea (se cayo internet o el servicio de Impuestos).
+     *
+     * Todas tienen que haberse emitido con el mismo CUFD (el del momento del
+     * corte). Pasos, como pide el SIAT:
+     *   1. Se recalcula el CUF como emision fuera de linea (tipo 2) con la
+     *      fecha, el numero y el codigo de control originales.
+     *   2. Se registra el evento significativo: cufdEvento = el del corte,
+     *      cufd = el vigente hoy, y el rango de horas de las facturas.
+     *   3. Se manda el paquete (tar.gz con los XML) y se espera la validacion.
+     *
+     * La factura solo se toca en la base si el SIAT acepta el paquete; si el
+     * SIAT rechaza el evento (por ejemplo, fuera de plazo) queda como estaba.
+     *
+     * @param \Illuminate\Support\Collection $facturas Factura con detalles
+     * @return SiatEventoSignificativo
+     * @throws \RuntimeException con el mensaje del SIAT si algo falla.
+     */
+    public function enviarPorEvento($facturas, $codigoMotivo, $descripcion, $userId = null)
+    {
+        if ($facturas->isEmpty()) {
+            throw new \RuntimeException('No se eligió ninguna factura');
+        }
+        if (!isset(self::MOTIVOS_EVENTO[$codigoMotivo])) {
+            throw new \RuntimeException('Motivo de evento significativo inválido');
+        }
+        if ($faltan = $this->config->faltantes()) {
+            throw new \RuntimeException('Falta ' . implode(', ', $faltan) . ' en los datos de Impuestos');
+        }
+
+        foreach ($facturas as $f) {
+            $n = $f->nro_factura ?: '#' . $f->id;
+            if ($f->estado === 'ANULADO') {
+                throw new \RuntimeException("La factura {$n} está anulada en Sofia");
+            }
+            if ($f->online && $f->estado_siat === 'VALIDADA') {
+                throw new \RuntimeException("La factura {$n} ya está validada en el SIAT");
+            }
+            if (!$f->nro_factura || !$f->cufd || !$f->codigo_control || !$f->fecha_emision) {
+                throw new \RuntimeException("La factura {$n} no tiene los datos de su emisión original (número, CUFD o fecha)");
+            }
+        }
+
+        $primera = $facturas->first();
+        if ($facturas->pluck('cufd')->unique()->count() > 1) {
+            throw new \RuntimeException('Las facturas elegidas se emitieron con CUFD distintos (días distintos): mande cada día por separado');
+        }
+
+        $sucursal = (int) $primera->codigo_sucursal;
+        $puntoVenta = (int) $primera->codigo_punto_venta;
+
+        // El CUFD del momento del corte: se usa para la direccion del XML.
+        $cufdEvento = SiatCufd::withTrashed()->where('codigo', $primera->cufd)->first()
+            ?: (new SiatCufd())->forceFill(['codigo' => $primera->cufd, 'codigo_control' => $primera->codigo_control]);
+
+        $cufdActual = $this->cufdDelDia($sucursal, $puntoVenta, true, $userId);
+        $cuis = $this->cuisVigente($sucursal, $puntoVenta, true, $userId);
+        if (!$cufdActual || !$cuis) {
+            throw new \RuntimeException('No hay CUFD o CUIS vigente para hoy');
+        }
+        if ($cufdActual->codigo === $primera->cufd) {
+            throw new \RuntimeException('El CUFD de esas facturas sigue vigente: reenvíelas en línea, no hace falta un evento');
+        }
+
+        // 1. CUF fuera de linea + XML, todo en memoria.
+        $xmls = [];
+        $cufs = [];
+        $instantes = [];
+        foreach ($facturas as $f) {
+            $instante = $this->instanteEmision($f->fecha_emision);
+            $instantes[] = $instante;
+            $cufs[$f->id] = $this->calcularCuf(
+                $instante->format('YmdHis') . $instante->format('v'),
+                $sucursal,
+                $puntoVenta,
+                (int) $f->nro_factura,
+                (string) $f->codigo_control,
+                self::EMISION_FUERA_DE_LINEA
+            );
+            // armarXml lee el CUF de la factura; se pone el nuevo solo mientras
+            // se arma, para que un fallo despues no lo deje guardado.
+            $cufOriginal = $f->cuf;
+            $f->cuf = $cufs[$f->id];
+            try {
+                $xml = $this->armarXml($f, $cufdEvento, $f->fecha_emision);
+            } finally {
+                $f->cuf = $cufOriginal;
+                $f->syncOriginalAttribute('cuf');
+            }
+            $this->validarXsd($xml);
+            $xmls[$f->id] = $xml;
+        }
+
+        usort($instantes, function ($a, $b) { return $a <=> $b; });
+        $inicio = (clone $instantes[0])->setTime((int) $instantes[0]->format('H'), (int) $instantes[0]->format('i'), (int) $instantes[0]->format('s'));
+        $fin = (clone end($instantes))->modify('+1 second');
+
+        // 2. Evento: si uno anterior quedo registrado pero el paquete fallo, se reusa.
+        $evento = SiatEventoSignificativo::where('cufd_evento', $primera->cufd)
+            ->whereNotNull('codigo_evento')
+            ->where('estado', '!=', 'VALIDADO')
+            ->where('inicio', '<=', $inicio->format('Y-m-d H:i:s'))
+            ->where('fin', '>=', $fin->format('Y-m-d H:i:s'))
+            ->orderByDesc('id')
+            ->first();
+
+        if (!$evento) {
+            $evento = SiatEventoSignificativo::create([
+                'codigo_motivo' => $codigoMotivo,
+                'descripcion' => mb_substr($descripcion ?: self::MOTIVOS_EVENTO[$codigoMotivo], 0, 255),
+                'inicio' => $inicio->format('Y-m-d H:i:s'),
+                'fin' => $fin->format('Y-m-d H:i:s'),
+                'cufd' => $cufdActual->codigo,
+                'cufd_evento' => $primera->cufd,
+                'codigo_sucursal' => $sucursal,
+                'codigo_punto_venta' => $puntoVenta,
+                'estado' => 'PENDIENTE',
+                'factura_ids' => $facturas->pluck('id')->values()->all(),
+                'user_id' => $userId,
+            ]);
+
+            try {
+                $respuesta = $this->llamar('FacturacionOperaciones', 'registroEventoSignificativo', [
+                    'SolicitudEventoSignificativo' => [
+                        'codigoAmbiente'        => $this->config->codigo_ambiente,
+                        'codigoMotivoEvento'    => (int) $codigoMotivo,
+                        'codigoPuntoVenta'      => $puntoVenta,
+                        'codigoSistema'         => $this->config->codigo_sistema,
+                        'codigoSucursal'        => $sucursal,
+                        'cufd'                  => $cufdActual->codigo,
+                        'cufdEvento'            => $primera->cufd,
+                        'cuis'                  => $cuis->codigo,
+                        'descripcion'           => $evento->descripcion,
+                        'fechaHoraFinEvento'    => $fin->format('Y-m-d\TH:i:s.v'),
+                        'fechaHoraInicioEvento' => $inicio->format('Y-m-d\TH:i:s.v'),
+                        'nit'                   => $this->config->nit,
+                    ],
+                ], 'RespuestaListaEventos');
+            } catch (\Throwable $e) {
+                $evento->update(['estado' => 'ERROR', 'mensaje' => $this->mensajeError($e)]);
+                throw new \RuntimeException('No se pudo registrar el evento: ' . $this->mensajeError($e));
+            }
+
+            if (empty($respuesta->transaccion) || empty($respuesta->codigoRecepcionEventoSignificativo)) {
+                $msg = $this->mensajes($respuesta, 'El SIAT rechazó el evento significativo');
+                $evento->update(['estado' => 'ERROR', 'mensaje' => $msg]);
+                throw new \RuntimeException('El SIAT rechazó el evento: ' . $msg);
+            }
+
+            $evento->update([
+                'codigo_evento' => (string) $respuesta->codigoRecepcionEventoSignificativo,
+                'estado' => 'REGISTRADO',
+                'mensaje' => null,
+            ]);
+        } else {
+            $evento->update(['factura_ids' => $facturas->pluck('id')->values()->all()]);
+        }
+
+        // 3. Paquete tar.gz con los XML.
+        $archivo = $this->armarPaquete($evento->id, $xmls);
+        $base = [
+            'codigoAmbiente'        => $this->config->codigo_ambiente,
+            'codigoDocumentoSector' => self::DOCUMENTO_SECTOR,
+            'codigoEmision'         => self::EMISION_FUERA_DE_LINEA,
+            'codigoModalidad'       => $this->config->codigo_modalidad,
+            'codigoPuntoVenta'      => $puntoVenta,
+            'codigoSistema'         => $this->config->codigo_sistema,
+            'codigoSucursal'        => $sucursal,
+            'cufd'                  => $cufdActual->codigo,
+            'cuis'                  => $cuis->codigo,
+            'nit'                   => $this->config->nit,
+            'tipoFacturaDocumento'  => self::TIPO_FACTURA,
+        ];
+
+        try {
+            $ahora = microtime(true);
+            $recepcion = $this->llamar('ServicioFacturacionCompraVenta', 'recepcionPaqueteFactura', [
+                'SolicitudServicioRecepcionPaquete' => $base + [
+                    'archivo'          => $archivo,
+                    'fechaEnvio'       => date('Y-m-d\TH:i:s', (int) $ahora) . '.' . str_pad((string) ((int) (($ahora - floor($ahora)) * 1000)), 3, '0', STR_PAD_LEFT),
+                    'hashArchivo'      => hash('sha256', $archivo),
+                    'cafc'             => null,
+                    'cantidadFacturas' => count($xmls),
+                    'codigoEvento'     => $evento->codigo_evento,
+                ],
+            ], 'RespuestaServicioFacturacion');
+        } catch (\Throwable $e) {
+            $evento->update(['estado' => 'ERROR', 'mensaje' => $this->mensajeError($e)]);
+            throw new \RuntimeException('El evento quedó registrado, pero no se pudo mandar el paquete: ' . $this->mensajeError($e) . '. Puede reintentar.');
+        }
+
+        if (empty($recepcion->codigoRecepcion)) {
+            $msg = $this->mensajes($recepcion, 'El SIAT no recibió el paquete');
+            $evento->update(['estado' => 'ERROR', 'mensaje' => $msg]);
+            throw new \RuntimeException('El SIAT no recibió el paquete: ' . $msg);
+        }
+        $evento->update(['codigo_recepcion' => (string) $recepcion->codigoRecepcion]);
+
+        // El SIAT valida el paquete en segundo plano: se pregunta unas veces.
+        $estado = 'PENDIENTE';
+        $validacion = null;
+        for ($intento = 1; $intento <= 10; $intento++) {
+            sleep(2);
+            try {
+                $validacion = $this->llamar('ServicioFacturacionCompraVenta', 'validacionRecepcionPaqueteFactura', [
+                    'SolicitudServicioValidacionRecepcionPaquete' => $base + ['codigoRecepcion' => (string) $recepcion->codigoRecepcion],
+                ], 'RespuestaServicioFacturacion');
+            } catch (\Throwable $e) {
+                continue;
+            }
+            $estado = strtoupper((string) ($validacion->codigoDescripcion ?? 'PENDIENTE'));
+            if ($estado !== 'PENDIENTE' && $estado !== 'RECIBIDA') {
+                break;
+            }
+        }
+
+        $mensaje = $validacion ? $this->mensajes($validacion, '') : '';
+        $evento->update([
+            'estado' => $estado === 'VALIDADA' ? 'VALIDADO' : ($estado === 'OBSERVADA' ? 'OBSERVADO' : $estado),
+            'mensaje' => $mensaje ?: null,
+        ]);
+
+        if ($estado === 'VALIDADA' || $estado === 'PENDIENTE' || $estado === 'RECIBIDA') {
+            foreach ($facturas as $f) {
+                $f->update([
+                    'cuf'              => $cufs[$f->id],
+                    'xml'              => $xmls[$f->id],
+                    'codigo_recepcion' => (string) $recepcion->codigoRecepcion,
+                    'estado_siat'      => $estado === 'VALIDADA' ? 'VALIDADA' : 'PENDIENTE',
+                    'mensaje_siat'     => 'Enviada fuera de línea con el evento significativo ' . $evento->codigo_evento,
+                    'online'           => true,
+                    // fecha_emision queda la original; aca, cuando se mando de verdad.
+                    'fecha_envio_siat' => now(),
+                ]);
+            }
+        } else {
+            // OBSERVADA / RECHAZADA: las facturas quedan como estaban, con el motivo a la vista.
+            foreach ($facturas as $f) {
+                $f->update(['mensaje_siat' => "Paquete del evento {$evento->codigo_evento} {$estado}: {$mensaje}"]);
+            }
+            throw new \RuntimeException("El SIAT dejó el paquete {$estado}: " . ($mensaje ?: 'sin detalle'));
+        }
+
+        return $evento->fresh();
+    }
+
+    /**
+     * true si la factura fallo con un CUFD que ya no es el de hoy y guarda los
+     * datos de su emision original: entonces se reenvia por evento
+     * significativo (conserva su fecha) y no en linea (saldria con la de hoy).
+     */
+    public function requiereEvento(Factura $factura)
+    {
+        if (!$factura->cufd || !$factura->codigo_control || !$factura->fecha_emision || !$factura->nro_factura) {
+            return false;
+        }
+        $vigente = $this->cufdDelDia($factura->codigo_sucursal, $factura->codigo_punto_venta, false);
+
+        return !$vigente || $vigente->codigo !== $factura->cufd;
+    }
+
+    /**
+     * Reenvio de una factura que no llego al SIAT, sin cambiarle la fecha:
+     * si su CUFD ya vencio va por evento significativo con su fecha y numero
+     * originales; si es del dia, en linea con el mismo numero.
+     *
+     * @return array ['factura' => Factura, 'por_evento' => bool, 'evento' => ?SiatEventoSignificativo]
+     * @throws \RuntimeException si el SIAT rechaza (nunca cae a la fecha de hoy).
+     */
+    public function reenviarConservandoFecha(Factura $factura, $userId = null)
+    {
+        if ($this->requiereEvento($factura)) {
+            $evento = $this->enviarPorEvento(
+                collect([$factura]),
+                2,
+                'Sin conexión con el servicio web de Impuestos al momento de emitir',
+                $userId
+            );
+
+            return ['factura' => $factura->fresh(), 'por_evento' => true, 'evento' => $evento];
+        }
+
+        $factura = $this->emitirFactura($factura, $userId, true);
+        if ($factura->estado_siat === 'ERROR') {
+            throw new \RuntimeException('No se pudo enviar: ' . $factura->mensaje_siat);
+        }
+
+        return ['factura' => $factura, 'por_evento' => false, 'evento' => null];
+    }
+
+    /** "2026-10-15T03:58:57.018" (como se guarda fecha_emision) -> DateTime con milisegundos. */
+    private function instanteEmision($fechaEmision)
+    {
+        $texto = substr(str_replace(' ', 'T', (string) $fechaEmision), 0, 23);
+        $instante = \DateTime::createFromFormat('Y-m-d\TH:i:s.v', $texto)
+            ?: \DateTime::createFromFormat('Y-m-d\TH:i:s', substr($texto, 0, 19));
+        if (!$instante) {
+            throw new \RuntimeException("Fecha de emisión inválida: {$fechaEmision}");
+        }
+
+        return $instante;
+    }
+
+    /** tar.gz con un XML por factura, como lo pide recepcionPaqueteFactura. */
+    private function armarPaquete($eventoId, array $xmls)
+    {
+        $dir = storage_path('app/siat/paquetes');
+        if (!is_dir($dir)) {
+            mkdir($dir, 0755, true);
+        }
+        $tar = $dir . "/evento_{$eventoId}_" . time() . '.tar';
+        $gz = $tar . '.gz';
+
+        $paquete = new \PharData($tar);
+        foreach ($xmls as $id => $xml) {
+            $paquete->addFromString("{$id}.xml", $xml);
+        }
+        $paquete->compress(\Phar::GZ);
+        unset($paquete);
+
+        $contenido = file_get_contents($gz);
+        @unlink($tar);
+
+        return $contenido;
     }
 
     /**
@@ -474,8 +827,27 @@ class SiatService
             throw new \RuntimeException('La factura no fue enviada al SIAT: no tiene CUF');
         }
 
-        $cufd = $this->cufdDelDia($factura->codigo_sucursal, $factura->codigo_punto_venta, true);
-        $cuis = $this->cuisVigente($factura->codigo_sucursal, $factura->codigo_punto_venta, true);
+        $resultado = $this->anularCuf($factura->cuf, $codigoMotivo, $factura->codigo_sucursal, $factura->codigo_punto_venta);
+
+        $factura->update([
+            'estado_siat'  => $resultado['estado'] ?: $factura->estado_siat,
+            'mensaje_siat' => $resultado['mensaje'],
+        ]);
+
+        return $resultado;
+    }
+
+    /**
+     * Anula en el SIAT solo con el CUF, sin tocar ninguna tabla de Sofia. Lo
+     * usa anularFactura y la verificacion de facturas, para lo que esta en el
+     * libro del SIAT pero no en Sofia.
+     */
+    public function anularCuf($cuf, $codigoMotivo = 1, $sucursal = null, $puntoVenta = null)
+    {
+        list($sucursal, $puntoVenta) = $this->serie($sucursal, $puntoVenta);
+
+        $cufd = $this->cufdDelDia($sucursal, $puntoVenta, true);
+        $cuis = $this->cuisVigente($sucursal, $puntoVenta, true);
 
         $respuesta = $this->llamar('ServicioFacturacionCompraVenta', 'anulacionFactura', [
             'SolicitudServicioAnulacionFactura' => [
@@ -483,31 +855,25 @@ class SiatService
                 'codigoDocumentoSector' => self::DOCUMENTO_SECTOR,
                 'codigoEmision'         => self::EMISION_EN_LINEA,
                 'codigoModalidad'       => $this->config->codigo_modalidad,
-                'codigoPuntoVenta'      => (int) $factura->codigo_punto_venta,
+                'codigoPuntoVenta'      => (int) $puntoVenta,
                 'codigoSistema'         => $this->config->codigo_sistema,
-                'codigoSucursal'        => (int) $factura->codigo_sucursal,
+                'codigoSucursal'        => (int) $sucursal,
                 'cufd'                  => $cufd->codigo,
                 'cuis'                  => $cuis->codigo,
                 'nit'                   => $this->config->nit,
                 'tipoFacturaDocumento'  => self::TIPO_FACTURA,
                 'codigoMotivo'          => $codigoMotivo,
-                'cuf'                   => $factura->cuf,
+                'cuf'                   => $cuf,
             ],
         ], 'RespuestaServicioFacturacion');
 
         $estado = isset($respuesta->codigoDescripcion) ? strtoupper($respuesta->codigoDescripcion) : null;
         $transaccion = isset($respuesta->transaccion) ? (bool) $respuesta->transaccion : false;
-        $mensaje = $this->mensajes($respuesta, $estado ?: 'El SIAT no confirmó la anulación');
-
-        $factura->update([
-            'estado_siat'  => $estado ?: $factura->estado_siat,
-            'mensaje_siat' => $mensaje,
-        ]);
 
         return [
             'transaccion' => $transaccion,
             'estado'      => $estado,
-            'mensaje'     => $mensaje,
+            'mensaje'     => $this->mensajes($respuesta, $estado ?: 'El SIAT no confirmó la anulación'),
             // 924: el SIN no la conoce (nunca llego, p. ej. emitida sin
             // conexion y no reenviada). No hay nada que anular alli.
             'no_existe'   => !$transaccion && $this->tieneCodigo($respuesta, self::CODIGO_NO_EXISTE),

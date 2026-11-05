@@ -158,7 +158,8 @@ export default {
             { label: 'Pedido factura', caption: 'Facturar pedidos de preventistas', icon: 'assignment_turned_in', to: 'facturacion/pedidos', show: can('facturacionNueva') },
             { label: 'Reportes', caption: 'Quiebre de stock y ventas', icon: 'assessment', to: 'facturacion/reportes', show: can('reportesVentas') },
             { label: 'Impuestos', caption: 'CUIS, CUFD y token', icon: 'gavel', to: 'impuestos', show: can('impuestos') },
-            { label: 'Facturación ficticia', caption: 'Al SIAT sin tocar inventario', icon: 'receipt', to: 'facturacion-ficticia', show: can('facturacionFicticia') }
+            { label: 'Facturación ficticia', caption: 'Al SIAT sin tocar inventario', icon: 'receipt', to: 'facturacion-ficticia', show: can('facturacionFicticia') },
+            { label: 'Verificación de facturas', caption: 'Libro del SIAT contra Sofia por CUF', icon: 'fact_check', to: 'verificacion-facturas', show: can('verificacionFacturas') }
           ]
         },
         {

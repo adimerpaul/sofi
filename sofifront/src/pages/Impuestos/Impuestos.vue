@@ -341,12 +341,25 @@
             </div>
           </div>
 
+          <q-banner v-if="puedeGenerar && facturasConError.length" dense class="bg-orange-1 text-orange-10 q-mb-sm rounded-borders">
+            <template v-slot:avatar><q-icon name="cloud_off" color="deep-orange"/></template>
+            Hay {{ facturasConError.length }} factura(s) con ERROR (no llegaron al SIAT). Márquelas y envíelas por
+            <b>evento significativo</b> para que conserven su número y su <b>fecha y hora original</b>.
+            <template v-slot:action>
+              <q-btn dense flat no-caps color="deep-orange" label="Marcar todas" @click="seleccionEvento = facturasConError.map(f => f.id)"/>
+              <q-btn dense unelevated no-caps color="deep-orange" icon="event_busy"
+                     :label="`Enviar con fecha original (${seleccionEvento.length})`"
+                     :disable="!seleccionEvento.length" @click="abrirEvento"/>
+            </template>
+          </q-banner>
+
           <q-markup-table flat bordered dense wrap-cells>
             <thead>
             <tr class="bg-grey-2">
               <th class="text-left">Opciones</th>
               <th class="text-left">Nº factura</th>
               <th class="text-left">Fecha</th>
+              <th class="text-left">Emisión / envío SIAT</th>
               <th class="text-left">Cliente</th>
               <th class="text-right">Total Bs.</th>
               <th class="text-center">Estado SIAT</th>
@@ -357,6 +370,9 @@
             <tbody>
             <tr v-for="f in listaFacturas" :key="f.id">
               <td style="white-space: nowrap">
+                <q-checkbox v-if="puedeGenerar && esErrorEvento(f)" v-model="seleccionEvento" :val="f.id" dense size="sm" color="deep-orange">
+                  <q-tooltip>Marcar para enviar por evento significativo</q-tooltip>
+                </q-checkbox>
                 <q-btn dense flat round size="sm" icon="fact_check" color="primary"
                        :loading="verificando === f.id" @click="verificarFactura(f)">
                   <q-tooltip>Preguntar al SIAT</q-tooltip>
@@ -372,11 +388,18 @@
                   dense flat round size="sm" icon="send" color="negative"
                   :loading="reenviando === f.id" @click="reenviarFactura(f)"
                 >
-                  <q-tooltip>Reintentar el envío</q-tooltip>
+                  <q-tooltip>Reintentar el envío (conserva número y fecha; si falló otro día va por evento significativo)</q-tooltip>
                 </q-btn>
               </td>
               <td class="text-weight-medium">{{ f.nro_factura || '—' }}</td>
               <td>{{ String(f.fecha || '').substr(0, 10) }} {{ f.hora }}</td>
+              <td style="white-space: nowrap; font-size: 12px">
+                <div>{{ fechaHora(f.fecha_emision) || '—' }}</div>
+                <div :class="enviadaOtroDia(f) ? 'text-deep-orange text-weight-medium' : 'text-grey-7'">
+                  Envío: {{ fechaHora(f.fecha_envio_siat) || 'sin enviar' }}
+                  <q-tooltip v-if="enviadaOtroDia(f)">Se mandó al SIAT después de su fecha de emisión</q-tooltip>
+                </div>
+              </td>
               <td>
                 {{ f.nombre || 'Sin cliente' }}
                 <div class="text-caption text-grey-7">NIT {{ f.nit || '—' }}</div>
@@ -394,7 +417,7 @@
               <td style="max-width: 200px; word-break: break-all; font-size: 11px">{{ f.cuf || '—' }}</td>
             </tr>
             <tr v-if="!listaFacturas.length">
-              <td colspan="8" class="text-center text-grey-7 q-pa-md">
+              <td colspan="9" class="text-center text-grey-7 q-pa-md">
                 No hay facturas enviadas en ese rango
               </td>
             </tr>
@@ -417,6 +440,44 @@
           <q-btn flat dense no-caps label="Cancelar" v-close-popup/>
           <q-btn color="negative" unelevated dense no-caps label="Dar de baja"
                  :loading="dandoBaja" @click="darBaja"/>
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
+
+    <!-- Contingencia: POST impuestos/facturas/evento-significativo -->
+    <q-dialog v-model="dialogEvento" :persistent="enviandoEvento">
+      <q-card style="width: 560px; max-width: 94vw">
+        <q-card-section class="row items-center q-py-sm bg-deep-orange text-white">
+          <q-icon name="event_busy" size="26px"/>
+          <div class="q-ml-sm">
+            <div class="text-subtitle1 text-weight-bold">Enviar por evento significativo</div>
+            <div class="text-caption">{{ seleccionadas.length }} factura(s): {{ seleccionadas.map(f => f.nro_factura).join(', ') }}</div>
+          </div>
+          <q-space/><q-btn flat round dense icon="close" color="white" :disable="enviandoEvento" v-close-popup/>
+        </q-card-section>
+        <q-card-section class="q-pa-sm">
+          <q-markup-table flat bordered dense class="q-mb-sm">
+            <thead><tr class="bg-grey-2"><th class="text-left">Nº</th><th class="text-left">Cliente</th><th class="text-left">Fecha original</th><th class="text-right">Total</th></tr></thead>
+            <tbody>
+              <tr v-for="f in seleccionadas" :key="f.id">
+                <td>{{ f.nro_factura }}</td><td>{{ f.nombre }}</td><td>{{ fechaHora(f.fecha_emision) }}</td><td class="text-right">{{ Number(f.total || 0).toFixed(2) }}</td>
+              </tr>
+            </tbody>
+          </q-markup-table>
+          <q-select v-model="evento.codigo_motivo" :options="motivosEvento" option-value="codigo" option-label="descripcion"
+                    emit-value map-options dense outlined label="Motivo del evento" class="q-mb-sm"/>
+          <q-input v-model="evento.descripcion" dense outlined maxlength="255" label="Descripción (opcional)"
+                   placeholder="Ej.: No se pudo conectar con el servicio de Impuestos"/>
+          <div class="text-caption text-grey-8 q-mt-sm">
+            Se envían <b>fuera de línea</b> con su <b>mismo número y su fecha y hora original</b>. En Sofia queda
+            registrada aparte la fecha y hora del envío. El SIAT puede rechazar el evento si ya pasó el plazo
+            de contingencia: en ese caso las facturas quedan como estaban y se muestra el motivo.
+          </div>
+        </q-card-section>
+        <q-card-actions align="right" class="q-pa-sm">
+          <q-btn flat dense no-caps label="Cancelar" :disable="enviandoEvento" v-close-popup/>
+          <q-btn unelevated dense no-caps color="deep-orange" icon="send" label="Enviar al SIAT"
+                 :loading="enviandoEvento" :disable="!evento.codigo_motivo" @click="enviarEvento"/>
         </q-card-actions>
       </q-card>
     </q-dialog>
@@ -484,6 +545,12 @@ export default {
       cargandoFacturas: false,
       verificando: null,
       reenviando: null,
+      // Evento significativo: ids de facturas con ERROR elegidas para mandar fuera de linea.
+      seleccionEvento: [],
+      dialogEvento: false,
+      enviandoEvento: false,
+      evento: { codigo_motivo: 2, descripcion: '' },
+      motivosEvento: [],
       verToken: true,
       cargando: false,
       guardando: false,
@@ -512,6 +579,12 @@ export default {
     },
     puedeGenerar () {
       return this.can('impuestosGenerar')
+    },
+    facturasConError () {
+      return this.listaFacturas.filter(f => this.esErrorEvento(f))
+    },
+    seleccionadas () {
+      return this.listaFacturas.filter(f => this.seleccionEvento.includes(f.id))
     },
     textoToken () {
       if (!this.estado.configuracion.token) return 'Sin token'
@@ -616,10 +689,52 @@ export default {
         .finally(() => { this.verificando = null })
     },
 
+    // Activas que no llegaron al SIAT y guardan los datos de su emision original.
+    esErrorEvento (f) {
+      return f.estado !== 'ANULADO' && f.estado_siat === 'ERROR' && !!f.cufd && !!f.fecha_emision
+    },
+    fechaHora (valor) {
+      if (!valor) return ''
+      const t = String(valor).replace('T', ' ')
+      return t.substr(8, 2) + '/' + t.substr(5, 2) + '/' + t.substr(0, 4) + ' ' + t.substr(11, 8)
+    },
+    enviadaOtroDia (f) {
+      return !!f.fecha_envio_siat && !!f.fecha_emision &&
+        String(f.fecha_envio_siat).substr(0, 10) !== String(f.fecha_emision).substr(0, 10)
+    },
+    abrirEvento () {
+      this.evento = { codigo_motivo: 2, descripcion: '' }
+      this.dialogEvento = true
+      if (!this.motivosEvento.length) {
+        this.$api.get('impuestos/eventos/motivos')
+          .then(res => { this.motivosEvento = res.data })
+          .catch(err => { this.avisar(err, 'No se pudieron cargar los motivos') })
+      }
+    },
+    enviarEvento () {
+      this.enviandoEvento = true
+      this.$api.post('impuestos/facturas/evento-significativo', {
+        ids: this.seleccionEvento,
+        codigo_motivo: this.evento.codigo_motivo,
+        descripcion: this.evento.descripcion || null
+      }, { timeout: 200000 })
+        .then(res => {
+          this.exito(res.data.message)
+          this.dialogEvento = false
+          this.seleccionEvento = []
+          this.cargarFacturas()
+        })
+        .catch(err => {
+          this.avisar(err, 'No se pudo enviar por evento significativo')
+          this.cargarFacturas()
+        })
+        .finally(() => { this.enviandoEvento = false })
+    },
+
     reenviarFactura (fila) {
       this.reenviando = fila.id
 
-      this.$api.post('impuestos/facturas/' + fila.id + '/reenviar')
+      this.$api.post('impuestos/facturas/' + fila.id + '/reenviar', null, { timeout: 200000 })
         .then(res => {
           this.exito(res.data.message)
           this.cargarFacturas()

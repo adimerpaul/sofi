@@ -64,7 +64,12 @@ class FacturacionController extends Controller
         // Los conteos van pegados a la pagina y no en otra ruta: la pantalla
         // los muestra junto a los filtros y pedirlos aparte era una segunda
         // vuelta con los mismos parametros.
-        return response()->json($pagina->toArray() + ['conteos' => $this->conteos($request)]);
+        return response()->json($pagina->toArray() + [
+            'conteos' => $this->conteos($request),
+            // Sin importar el filtro de fechas: el aviso tiene que verse aunque
+            // la que falte sea de otro dia.
+            'sin_enviar_siat' => $this->resumenSinEnviarSiat(),
+        ]);
     }
 
     /**
@@ -384,6 +389,23 @@ class FacturacionController extends Controller
             }
         }
 
+        // Control del envio al SIAT (como el filtro "Envio SIAT" de Area Fresca).
+        $envio = (string) $request->input('envio_siat', '');
+        if ($envio !== '') {
+            $query->where('tipo_comprobante', 'FACTURA');
+            if ($envio === 'pendientes') {
+                self::scopeSinEnviarSiat($query);
+            } elseif ($envio === 'ocultas') {
+                $query->where('facturas.siat_oculta', 1);
+            } elseif ($envio === 'error') {
+                $query->where('estado', 'ACTIVO')->where('estado_siat', 'ERROR');
+            } elseif ($envio === 'rechazadas') {
+                $query->where('estado', 'ACTIVO')->whereIn('estado_siat', ['RECHAZADA', 'OBSERVADA']);
+            } elseif ($envio === 'enviadas') {
+                $query->where('online', 1)->where('estado_siat', 'VALIDADA');
+            }
+        }
+
         if ($buscar = trim((string) $request->input('buscar', ''))) {
             $like = '%' . $buscar . '%';
             $query->where(function ($w) use ($like, $buscar) {
@@ -403,6 +425,72 @@ class FacturacionController extends Controller
         }
 
         return $query;
+    }
+
+    /**
+     * Facturas activas que todavia no estan validadas en el SIAT (ERROR,
+     * RECHAZADA, OBSERVADA, PENDIENTE, SIMULADO o sin estado): las que hay que
+     * mandar, y cuanto antes, porque pasado el plazo de contingencia ya no se
+     * pueden declarar con su fecha.
+     */
+    public static function scopeSinEnviarSiat($query)
+    {
+        return $query->where('facturas.tipo_comprobante', 'FACTURA')
+            ->where('facturas.estado', 'ACTIVO')
+            // Las que se ocultaron a proposito (no se van a poder mandar) no cuentan.
+            ->where('facturas.siat_oculta', 0)
+            ->where(function ($w) {
+                $w->whereNull('facturas.estado_siat')->orWhere('facturas.estado_siat', '!=', 'VALIDADA');
+            });
+    }
+
+    /**
+     * Oculta (o vuelve a mostrar) una factura del control de envio al SIAT.
+     * Solo saca la factura del aviso y del filtro "Faltan enviar"; nada mas.
+     */
+    public function ocultarSiat(Request $request, Factura $factura)
+    {
+        $data = $request->validate([
+            'ocultar' => ['required', 'boolean'],
+            'motivo' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        if ($data['ocultar']) {
+            if ($factura->tipo_comprobante !== 'FACTURA') {
+                return response()->json(['message' => 'Solo las facturas se envían al SIAT'], 422);
+            }
+            $factura->update([
+                'siat_oculta' => true,
+                'siat_oculta_motivo' => trim((string) ($data['motivo'] ?? '')) ?: null,
+                'siat_oculta_por' => optional($request->user())->CodAut,
+                'siat_oculta_at' => now(),
+            ]);
+            $mensaje = 'Factura ' . ($factura->nro_factura ?: '#' . $factura->id) . ' oculta del control SIAT';
+        } else {
+            $factura->update([
+                'siat_oculta' => false,
+                'siat_oculta_motivo' => null,
+                'siat_oculta_por' => null,
+                'siat_oculta_at' => null,
+            ]);
+            $mensaje = 'Factura ' . ($factura->nro_factura ?: '#' . $factura->id) . ' vuelve al control SIAT';
+        }
+
+        return response()->json(['message' => $mensaje, 'factura' => $factura->fresh()]);
+    }
+
+    /** Resumen para el aviso de la pantalla: cuantas faltan y desde que dia. */
+    private function resumenSinEnviarSiat()
+    {
+        $fila = self::scopeSinEnviarSiat(Factura::query())
+            ->selectRaw('COUNT(*) as cantidad, MIN(fecha_entrega) as desde, MIN(fecha) as desde_fecha, SUM(total) as total')
+            ->first();
+
+        return [
+            'cantidad' => (int) ($fila->cantidad ?? 0),
+            'desde' => $fila->desde ?: $fila->desde_fecha,
+            'total' => round((float) ($fila->total ?? 0), 2),
+        ];
     }
 
     /** 'ids' llega como arreglo o como '1,2,3' (en un GET); solo numeros. */
