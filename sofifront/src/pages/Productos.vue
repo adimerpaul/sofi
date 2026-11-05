@@ -18,14 +18,14 @@
           <q-tooltip>Movimientos de stock de todos los productos, con Excel</q-tooltip>
         </q-btn>
       </div>
-      <div class="col-auto">
+      <div v-if="puedeModificar" class="col-auto">
         <q-btn
           dense unelevated no-caps color="orange-8" icon="sync"
           label="Actualizar pollos" :loading="actualizandoPollos"
           @click="actualizarPollos"
         />
       </div>
-      <div class="col-auto">
+      <div v-if="puedeModificar" class="col-auto">
         <q-btn
           dense unelevated no-caps color="primary" icon="add"
           label="Nuevo producto" @click="abrirCreacion"
@@ -179,6 +179,8 @@
             :loading="subiendo === props.row.cod_prod"
           >
             <q-list dense style="min-width: 190px">
+              <!-- Modificar pide el permiso productosModificar; ver basta con productos. -->
+              <template v-if="puedeModificar">
               <q-item clickable v-close-popup @click="abrirEdicion(props.row)">
                 <q-item-section avatar><q-icon name="edit" color="primary"/></q-item-section>
                 <q-item-section>Actualizar datos</q-item-section>
@@ -199,6 +201,7 @@
                 <q-item-section avatar><q-icon name="hide_image" color="orange-8"/></q-item-section>
                 <q-item-section>Quitar imagen</q-item-section>
               </q-item>
+              </template>
 
               <q-item clickable v-close-popup @click="abrirEntradasSalidas(props.row)">
                 <q-item-section avatar><q-icon name="swap_vert" color="indigo"/></q-item-section>
@@ -208,6 +211,7 @@
                 </q-item-section>
               </q-item>
 
+              <template v-if="puedeModificar">
               <q-separator/>
 
               <!-- Eliminar es borrado logico: el eliminado se puede restaurar. -->
@@ -225,6 +229,7 @@
                   <q-item-label caption>Se puede restaurar después</q-item-label>
                 </q-item-section>
               </q-item>
+              </template>
             </q-list>
           </q-btn-dropdown>
         </q-td>
@@ -235,12 +240,12 @@
         <q-td :props="props" class="text-center">
           <div
             class="foto-zona"
-            :class="{ 'foto-zona--activa': arrastrando === props.row.cod_prod }"
-            @click="elegirImagen(props.row)"
+            :class="{ 'foto-zona--activa': arrastrando === props.row.cod_prod, 'foto-zona--solo-ver': !puedeModificar }"
+            @click="puedeModificar && elegirImagen(props.row)"
             @dragenter.prevent.stop="arrastrando = props.row.cod_prod"
             @dragover.prevent.stop="arrastrando = props.row.cod_prod"
             @dragleave.prevent.stop="arrastrando = null"
-            @drop.prevent.stop="soltarImagen($event, props.row)"
+            @drop.prevent.stop="puedeModificar ? soltarImagen($event, props.row) : (arrastrando = null)"
           >
             <img v-if="props.row.imagen" :src="urlImagen(props.row.imagen)" alt=""/>
             <q-icon v-else name="add_a_photo" size="20px" color="grey-6"/>
@@ -249,13 +254,13 @@
               <q-spinner size="18px" color="primary"/>
             </q-inner-loading>
 
-            <q-tooltip>
+            <q-tooltip v-if="puedeModificar">
               {{ props.row.imagen ? 'Clic o arrastra una imagen para cambiarla' : 'Clic o arrastra una imagen aquí' }}
             </q-tooltip>
           </div>
 
           <q-btn
-            v-if="props.row.imagen"
+            v-if="props.row.imagen && puedeModificar"
             dense flat round size="xs" icon="close" color="negative"
             @click.stop="quitarImagen(props.row)"
           >
@@ -695,6 +700,9 @@ export default {
     }
   },
   computed: {
+    puedeModificar () {
+      return this.$store.getters['login/can']('productosModificar')
+    },
     opcionesTipo () {
       return this.tiposProducto.map(t => ({ value: t.id, label: t.nombre, modo: t.modo, color: t.color }))
     },

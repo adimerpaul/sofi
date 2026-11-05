@@ -1510,12 +1510,11 @@ class ReporteVentasController extends Controller
      */
     private function detalle($desde, $hasta)
     {
+        // tbproductos y la placa del pedido se buscan aparte, una sola vez: el
+        // join por cod_prod cruza collations (utf8mb4 vs latin1) y no usa
+        // indice, y la placa por subconsulta se evaluaba linea por linea.
         $lineas = DB::table('facturas as f')
             ->join('factura_detalles as d', 'd.factura_id', '=', 'f.id')
-            ->leftJoin('tbproductos as pr', DB::raw('TRIM(pr.cod_prod)'), '=', DB::raw('TRIM(d.cod_prod)'))
-            // Familia = grupo del producto; subfamilia = el grupo padre de ese grupo.
-            ->leftJoin('tbgrupos as g', 'g.Cod_grup', '=', 'pr.cod_grup')
-            ->leftJoin('tbgrupopadre as gp', 'gp.cod_grup', '=', 'g.Cod_pdr')
             ->leftJoin('tbclientes as c', 'c.Cod_Aut', '=', 'f.cliente_id')
             ->whereNull('f.deleted_at')
             ->whereNull('d.deleted_at')
@@ -1525,14 +1524,7 @@ class ReporteVentasController extends Controller
             ->orderBy('d.id')
             ->get([
                 'f.id as factura_id', 'f.fecha_entrega', 'f.fecha', 'f.hora', 'f.tipo_comprobante', 'f.nro_factura', 'f.tipo_pago', 'f.nit',
-                // El camion: el de la venta directa o el del pedido (igual que en facturacion).
-                DB::raw("COALESCE(NULLIF(TRIM(f.placa), ''), (
-                    SELECT CONVERT(TRIM(COALESCE(pc.placa, '')) USING utf8mb4)
-                    FROM tbpedidos pc
-                    WHERE pc.deleted_at IS NULL AND pc.NroPed = f.pedido_nro
-                      AND " . TipoPedido::sql('pc') . " = UPPER(TRIM(f.pedido_tipo))
-                    LIMIT 1
-                )) as placa"),
+                DB::raw('TRIM(f.placa) as placa'),
                 // Por subconsulta: personal.ci no es unico y un join duplicaria filas.
                 DB::raw("(SELECT TRIM(CONCAT_WS(' ', NULLIF(TRIM(pe.Nombre1), ''), NULLIF(TRIM(pe.Nombre2), ''),
                     NULLIF(TRIM(pe.App1), ''), NULLIF(TRIM(pe.Apm), '')))
@@ -1541,10 +1533,23 @@ class ReporteVentasController extends Controller
                 DB::raw("COALESCE(NULLIF(TRIM(f.nombre), ''), TRIM(c.Nombres)) as cliente"),
                 DB::raw('TRIM(d.cod_prod) as cod_prod'), 'd.nombre', 'd.unidad', 'd.cantidad', 'd.peso',
                 'd.canastillos', 'd.subtotal',
-                'pr.CantPren', 'pr.precio_compra', 'f.pedido_nro', 'f.cliente_id',
-                DB::raw('TRIM(g.Descripcion) as familia'), DB::raw('TRIM(gp.Descripcion) as subfamilia'), 'f.pedido_tipo', 'f.observacion',
+                'f.pedido_nro', 'f.cliente_id', 'f.pedido_tipo', 'f.observacion',
                 DB::raw("TRIM(c.Nombres) as cliente_ficha"),
             ]);
+
+        $productos = $this->fichasProducto();
+        $placas = $this->placasDePedido($lineas);
+        foreach ($lineas as $l) {
+            $p = $productos[strtoupper((string) $l->cod_prod)] ?? null;
+            $l->CantPren = $p->CantPren ?? null;
+            $l->precio_compra = $p->precio_compra ?? null;
+            $l->familia = $p->familia ?? null;
+            $l->subfamilia = $p->subfamilia ?? null;
+            // El camion: el de la venta directa o el del pedido (igual que en facturacion).
+            if ((string) $l->placa === '') {
+                $l->placa = $placas[$l->pedido_nro . '|' . strtoupper(trim((string) $l->pedido_tipo))] ?? null;
+            }
+        }
 
         $cuentasBaja = $this->cuentasDeBaja($lineas);
 
@@ -1647,6 +1652,56 @@ class ReporteVentasController extends Controller
         }
 
         return $cuentas;
+    }
+
+    /**
+     * Ficha de cada producto por codigo (sin espacios, en mayusculas, como
+     * compara MySQL): peso por unidad, precio de compra, familia (su grupo)
+     * y subfamilia (el grupo padre de ese grupo).
+     */
+    private function fichasProducto()
+    {
+        $fichas = [];
+        DB::table('tbproductos as pr')
+            ->leftJoin('tbgrupos as g', 'g.Cod_grup', '=', 'pr.cod_grup')
+            ->leftJoin('tbgrupopadre as gp', 'gp.cod_grup', '=', 'g.Cod_pdr')
+            ->get([DB::raw('TRIM(pr.cod_prod) as cod'), 'pr.CantPren', 'pr.precio_compra',
+                DB::raw('TRIM(g.Descripcion) as familia'), DB::raw('TRIM(gp.Descripcion) as subfamilia')])
+            ->each(function ($p) use (&$fichas) {
+                $clave = strtoupper((string) $p->cod);
+                if (!isset($fichas[$clave])) {
+                    $fichas[$clave] = $p;
+                }
+            });
+
+        return $fichas;
+    }
+
+    /**
+     * La placa del pedido de cada linea sin placa propia: la de la primera
+     * fila de tbpedidos de ese NroPed y tipo. ['NroPed|TIPO' => placa].
+     */
+    private function placasDePedido($lineas)
+    {
+        $nros = collect($lineas)->filter(function ($l) { return (string) $l->placa === '' && $l->pedido_nro; })
+            ->pluck('pedido_nro')->unique()->values();
+
+        $placas = [];
+        foreach ($nros->chunk(1000) as $grupo) {
+            DB::table('tbpedidos as p')
+                ->whereNull('p.deleted_at')
+                ->whereIn('p.NroPed', $grupo->values())
+                ->orderBy('p.codAut')
+                ->get(['p.NroPed', DB::raw(TipoPedido::sql('p') . ' as tipo'), DB::raw("TRIM(COALESCE(p.placa, '')) as placa")])
+                ->each(function ($p) use (&$placas) {
+                    $clave = $p->NroPed . '|' . $p->tipo;
+                    if (!isset($placas[$clave])) {
+                        $placas[$clave] = $p->placa;
+                    }
+                });
+        }
+
+        return $placas;
     }
 
     /** El detalle de ventas en Excel, con las columnas de la planilla. */
@@ -1798,6 +1853,11 @@ class ReporteVentasController extends Controller
                 && (!$productos || in_array($f['cod_prod'], $productos, true));
         }));
 
+        // Ordenado por N° de boleta; dentro de la boleta, sus lineas en el orden original.
+        $orden = array_keys($filas);
+        array_multisort(array_map('intval', array_column($filas, 'nro_boleta')), SORT_ASC, SORT_NUMERIC,
+            $orden, SORT_ASC, SORT_NUMERIC, $filas);
+
         $ids = array_values(array_unique(array_filter(array_column($filas, 'cliente_id'))));
         $fichas = [];
         foreach (array_chunk($ids, 1000) as $grupo) {
@@ -1861,6 +1921,11 @@ class ReporteVentasController extends Controller
     /** La base de ventas en Excel, con los mismos filtros que en pantalla. */
     public function baseVentasExcel(Request $request)
     {
+        // Un rango largo son cientos de miles de celdas: PhpSpreadsheet pasa
+        // del limite por defecto de PHP-FPM (30 s / 128 MB).
+        @set_time_limit(300);
+        @ini_set('memory_limit', '1024M');
+
         [$desde, $hasta] = $this->rangoEntrega($request);
         $filas = $this->base($desde, $hasta, $request);
 
@@ -1921,6 +1986,38 @@ class ReporteVentasController extends Controller
             (new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($libro))->save('php://output');
         }, $nombre, [
             'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        ]);
+    }
+
+    /**
+     * La base de ventas en CSV (UTF-8 con BOM, separado por comas, decimales
+     * con punto), con los mismos filtros. Se escribe fila por fila, sin
+     * formato ni totales: mucho mas rapido y liviano que el Excel para rangos
+     * largos.
+     */
+    public function baseVentasCsv(Request $request)
+    {
+        @set_time_limit(300);
+
+        [$desde, $hasta] = $this->rangoEntrega($request);
+        $filas = $this->base($desde, $hasta, $request);
+        $nombre = 'base_ventas_' . $desde . '_a_' . $hasta . '.csv';
+
+        return response()->streamDownload(function () use ($filas) {
+            $salida = fopen('php://output', 'w');
+            fwrite($salida, "\xEF\xBB\xBF");
+            fputcsv($salida, array_values(self::COLUMNAS_BASE));
+            $campos = array_keys(self::COLUMNAS_BASE);
+            foreach ($filas as $f) {
+                $linea = [];
+                foreach ($campos as $campo) {
+                    $linea[] = $f[$campo];
+                }
+                fputcsv($salida, $linea);
+            }
+            fclose($salida);
+        }, $nombre, [
+            'Content-Type' => 'text/csv; charset=UTF-8',
         ]);
     }
 

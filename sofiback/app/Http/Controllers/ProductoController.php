@@ -13,6 +13,19 @@ use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 
 class ProductoController extends Controller{
+
+    /**
+     * Crear, editar, eliminar, restaurar y cambiar imagenes pide el permiso
+     * productosModificar; para ver basta el permiso productos.
+     */
+    public function __construct()
+    {
+        $this->middleware(function ($request, $next) {
+            abort_unless($request->user() && $request->user()->can('productosModificar'), 403,
+                'No tiene permiso para modificar productos');
+            return $next($request);
+        })->only(['crear', 'actualizar', 'eliminar', 'restaurar', 'subirImagen', 'quitarImagen', 'actualizarPollos', 'crearGrupo', 'store', 'update', 'destroy']);
+    }
     public function index(){
 //        return DB::SELECT("SELECT p.cod_prod,p.Producto,p.Precio,p.codUnid,p.tipo, (select (SUM(s.cant)-SUM(s.saldo)) from tbstock s where s.cod_prod=p.cod_prod group by p.cod_prod) as cantidad from tbproductos p");
         $productos = Producto::select([

@@ -396,8 +396,8 @@ class RecojoDelDia
      * entrega registrada (siguen "en camion"). No traen plata, pero sin esto
      * un camion que aun no marco nada no aparecia y parecia que no existia.
      *
-     * El turno es el de facturacion: de las 18:00 del dia anterior a las 18:00
-     * del dia. El camion es el del pedido, o el de la venta directa, igual que
+     * El dia es la fecha_entrega de la factura; solo si no la tiene se usa el
+     * turno de facturacion (18:00 del dia anterior a 18:00 del dia). El camion es el del pedido, o el de la venta directa, igual que
      * en la grilla de facturacion.
      */
     public function pendientes($fecha, $placa = null): Collection
@@ -416,8 +416,16 @@ class RecojoDelDia
             ->leftJoin('tbclientes as c', 'c.Cod_Aut', '=', 'f.cliente_id')
             ->where('f.estado', '<>', 'ANULADO')
             ->whereNull('f.deleted_at')
-            ->whereRaw("TIMESTAMP(f.fecha, COALESCE(f.hora, '00:00:00')) >= ?", [$desde])
-            ->whereRaw("TIMESTAMP(f.fecha, COALESCE(f.hora, '00:00:00')) < ?", [$hasta])
+            // El dia de reparto es fecha_entrega (igual que en facturacion); el
+            // turno por hora solo queda para las que no la tienen.
+            ->where(function ($q) use ($fecha, $desde, $hasta) {
+                $q->where('f.fecha_entrega', $fecha)
+                    ->orWhere(function ($sin) use ($desde, $hasta) {
+                        $sin->whereNull('f.fecha_entrega')
+                            ->whereRaw("TIMESTAMP(f.fecha, COALESCE(f.hora, '00:00:00')) >= ?", [$desde])
+                            ->whereRaw("TIMESTAMP(f.fecha, COALESCE(f.hora, '00:00:00')) < ?", [$hasta]);
+                    });
+            })
             ->whereNotExists(function ($sub) {
                 $sub->from('entregas as e')->whereColumn('e.factura_id', 'f.id');
             })

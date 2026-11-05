@@ -13,6 +13,19 @@ use Illuminate\Validation\Rule;
  */
 class TipoProductoController extends Controller
 {
+
+    /**
+     * Crear, editar, eliminar, restaurar y cambiar imagenes pide el permiso
+     * productosModificar; para ver basta el permiso productos.
+     */
+    public function __construct()
+    {
+        $this->middleware(function ($request, $next) {
+            abort_unless($request->user() && $request->user()->can('productosModificar'), 403,
+                'No tiene permiso para modificar productos');
+            return $next($request);
+        })->only(['store', 'update', 'destroy']);
+    }
     public function index()
     {
         return TipoProducto::query()

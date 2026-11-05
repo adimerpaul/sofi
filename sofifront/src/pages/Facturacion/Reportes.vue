@@ -3,6 +3,7 @@
     <!-- Una pestaña por reporte. -->
     <q-tabs v-model="reporte" dense align="left" no-caps active-color="primary" indicator-color="primary"
             class="text-grey-8">
+      <template v-if="can('reportesVentas')">
       <q-tab name="quiebre" icon="production_quantity_limits" label="Quiebre de stock"/>
       <q-tab name="pollo" icon="egg" label="Reporte auxiliar de pollo"/>
       <q-tab name="cerdo" icon="savings" label="Reporte de cerdo"/>
@@ -12,6 +13,7 @@
       <q-tab name="anulados" icon="block" label="Anulados de facturación"/>
       <q-tab name="general" icon="table_view" label="Reporte general"/>
       <q-tab name="base" icon="dataset" label="Base de ventas"/>
+      </template>
     </q-tabs>
     <q-separator/>
 
@@ -723,8 +725,25 @@
                     style="min-width: 240px; max-width: 420px" @filter="(t, u) => filtrarBase('productos', t, u)"/>
           <q-btn color="primary" icon="refresh" label="Actualizar" no-caps unelevated :loading="base.cargando"
                  @click="consultarBase"/>
-          <q-btn color="green-8" icon="download" label="Excel" no-caps unelevated :loading="base.descargando"
-                 :disable="!baseVisibles.length" @click="descargarBase"/>
+          <q-btn-dropdown color="green-8" icon="download" label="Exportar" no-caps unelevated
+                          :loading="!!base.descargando" :disable="!baseVisibles.length">
+            <q-list dense>
+              <q-item clickable v-close-popup @click="descargarBase('csv')">
+                <q-item-section avatar><q-icon name="description" color="blue-grey-7"/></q-item-section>
+                <q-item-section>
+                  <q-item-label>CSV (rápido)</q-item-label>
+                  <q-item-label caption>Recomendado para rangos largos</q-item-label>
+                </q-item-section>
+              </q-item>
+              <q-item clickable v-close-popup @click="descargarBase('excel')">
+                <q-item-section avatar><q-icon name="grid_on" color="green-8"/></q-item-section>
+                <q-item-section>
+                  <q-item-label>Excel (.xlsx)</q-item-label>
+                  <q-item-label caption>Con formato y totales; más lento</q-item-label>
+                </q-item-section>
+              </q-item>
+            </q-list>
+          </q-btn-dropdown>
         </div>
 
         <div class="text-caption text-grey-7 q-mt-xs">
@@ -980,6 +999,9 @@ export default {
     }
   },
   computed: {
+    can () {
+      return this.$store.getters['login/can']
+    },
     // Los filtros de cliente y producto se aplican aqui; el Excel los repite en el backend.
     baseVisibles () {
       // clearable deja el select en null.
@@ -1044,6 +1066,7 @@ export default {
     }
   },
   created () {
+    if (!this.can('reportesVentas')) return
     this.consultar()
   },
   methods: {
@@ -1204,22 +1227,23 @@ export default {
           : lista
       })
     },
-    async descargarBase () {
+    async descargarBase (formato) {
       const b = this.base
-      b.descargando = true
+      const csv = formato === 'csv'
+      b.descargando = formato
       try {
-        const res = await this.$api.get('reportes/base-ventas/excel', {
+        const res = await this.$api.get('reportes/base-ventas/' + (csv ? 'csv' : 'excel'), {
           params: { desde: b.desde, hasta: b.hasta, clientes: b.clientes || [], productos: b.productos || [] },
           responseType: 'blob'
         })
         const url = window.URL.createObjectURL(res.data)
         const enlace = document.createElement('a')
         enlace.href = url
-        enlace.download = 'base_ventas_' + b.desde + '_a_' + b.hasta + '.xlsx'
+        enlace.download = 'base_ventas_' + b.desde + '_a_' + b.hasta + (csv ? '.csv' : '.xlsx')
         enlace.click()
         window.URL.revokeObjectURL(url)
       } catch (e) {
-        this.$q.notify({ type: 'negative', message: 'No se pudo descargar el Excel' })
+        this.$q.notify({ type: 'negative', message: 'No se pudo descargar el ' + (csv ? 'CSV' : 'Excel') })
       } finally {
         b.descargando = false
       }

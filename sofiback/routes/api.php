@@ -142,6 +142,7 @@ Route::group(['middleware'=>'auth:sanctum'],function (){
     // Base de ventas (planilla BASE VENTAS): el detalle con canal, zona y calendario; filtros clientes[] y productos[].
     Route::get('/reportes/base-ventas',[\App\Http\Controllers\ReporteVentasController::class,'baseVentas']);
     Route::get('/reportes/base-ventas/excel',[\App\Http\Controllers\ReporteVentasController::class,'baseVentasExcel']);
+    Route::get('/reportes/base-ventas/csv',[\App\Http\Controllers\ReporteVentasController::class,'baseVentasCsv']);
     // Reporte auxiliar del dia de pollo: stock, ventas por preventista y stock final.
     Route::get('/reportes/auxiliar-pollo',[\App\Http\Controllers\ReporteVentasController::class,'auxiliarPollo']);
     Route::get('/reportes/auxiliar-pollo/excel',[\App\Http\Controllers\ReporteVentasController::class,'auxiliarPolloExcel']);
@@ -255,6 +256,13 @@ Route::group(['middleware'=>'auth:sanctum'],function (){
     Route::get('/compras/{compra}',[\App\Http\Controllers\CompraController::class,'show']);
     Route::post('/compras',[\App\Http\Controllers\CompraController::class,'store']);
     Route::put('/compras/{compra}/anular',[\App\Http\Controllers\CompraController::class,'anular']);
+
+    // Transformacion de productos: sale stock de los de origen y entra a los de destino.
+    Route::get('/transformaciones',[\App\Http\Controllers\TransformacionController::class,'index']);
+    Route::get('/transformaciones/productos',[\App\Http\Controllers\TransformacionController::class,'productos']);
+    Route::get('/transformaciones/{id}',[\App\Http\Controllers\TransformacionController::class,'show'])->whereNumber('id');
+    Route::post('/transformaciones',[\App\Http\Controllers\TransformacionController::class,'store']);
+    Route::put('/transformaciones/{id}/anular',[\App\Http\Controllers\TransformacionController::class,'anular'])->whereNumber('id');
 
     // Impuestos (SIAT): datos del emisor y codigos CUIS/CUFD. Todo vive en la
     // base (siat_configuraciones) y se edita desde la pantalla /impuestos.

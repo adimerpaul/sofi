@@ -2529,7 +2529,9 @@ $resPedido = $rows->groupBy('NroPed')->map(function ($g) use ($bonis) {
             horario,
             color,
             ruta,
-            SUM(subtotal) as importe
+            SUM(subtotal) as importe,
+            GROUP_CONCAT(DISTINCT NULLIF(TRIM(comentario), \'\') SEPARATOR \' | \') as comentario,
+            GROUP_CONCAT(DISTINCT NULLIF(TRIM(Observaciones), \'\') SEPARATOR \' | \') as observacion
         ')
             ->whereDate('fecha', $fecha)
             ->where('estado', 'ENVIADO')
@@ -2554,6 +2556,8 @@ $resPedido = $rows->groupBy('NroPed')->map(function ($g) use ($bonis) {
                     'color'       => $pedido->color,
                     'importe'     => $pedido->importe,
                     'ruta'        => $pedido->ruta ?? '',
+                    'comentario'  => $pedido->comentario ?? '',
+                    'observacion' => $pedido->observacion ?? '',
                 ];
             });
 

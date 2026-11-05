@@ -65,7 +65,9 @@
                   :min-zoom="3"
                   :max-zoom="19"
                 ></LTileLayer>
-                <LGeoJson :geojson="geojsonData" :options="geoJsonOptions"/>
+                <!-- El color de cada zona va por options-style: vue-leaflet 0.10 pisa
+                     options.style con undefined y quedaban todas en el azul por defecto. -->
+                <LGeoJson :geojson="geojsonData" :options-style="estiloZona"/>
                 <l-marker
                   v-for="(pedido, i) in clientesEnMapa"
                   :key="i"
@@ -94,6 +96,9 @@
                     <div class="tt-row" v-if="pedido.horario"><span class="tt-label">Horario:</span> {{
                         pedido.horario
                       }}
+                    </div>
+                    <div class="tt-row tt-obs" v-if="observacionDe(pedido)">
+                      <span class="tt-label">Observación:</span> {{ observacionDe(pedido) }}
                     </div>
                   </l-tooltip>
                   <l-icon>
@@ -182,7 +187,9 @@
                 >
                   <!--                  {{props.row.color}}-->
                   <td v-for="col in column" :key="col.name"
-                      style="font-size:10px">
+                      :style="col.name === 'obs'
+                        ? 'font-size:10px; white-space:normal; min-width:180px; font-weight:600'
+                        : 'font-size:10px'">
                     {{ props.row[col.field] }}
                   </td>
                   <td key="op">
@@ -447,6 +454,7 @@ export default {
         {label: 'DIRECCION', name: 'direccion', field: 'Direccion', sortable: true, align: 'left'},
         {label: 'IMPORTE', name: 'importe', field: 'importe', sortable: true, align: 'right'},
         {label: 'HORARIO', name: 'horario', field: 'horario', sortable: true, align: 'left'},
+        {label: 'OBSERVACION', name: 'obs', field: 'obs', sortable: true, align: 'left'},
         {label: 'VENDEDOR', name: 'vendedor', field: 'vendedor', sortable: true},
         {label: 'ZONA', name: 'zona', field: 'territorio', sortable: true},
         {label: 'PLACA', name: 'placa', field: 'placa', sortable: true},
@@ -720,14 +728,12 @@ export default {
       },
       vendedores: [],
       filtercliente: [],
-      geoJsonOptions: {
-        style: (feature) => ({
+      estiloZona: (feature) => ({
           color: feature.properties.color, // Color según la propiedad del GeoJSON
           weight: 0.5,
           opacity: 0.1,
           fillOpacity: 0.2,
         }),
-      },
       detalle: [],
       dialogDetalle: false,
       usuario: []
@@ -845,6 +851,14 @@ export default {
       if (this.filtercliente) this.filtercliente.forEach(cliente => { cliente.selected = false; });
       this.seleccionados = [];
     },
+    // Comentario del pedido + observaciones de sus productos, sin repetir.
+    observacionDe(p) {
+      const partes = [p.comentario, p.observacion]
+        .flatMap(t => String(t || '').split(' | '))
+        .map(t => t.trim())
+        .filter(t => t && t !== '-');
+      return [...new Set(partes)].join(' · ');
+    },
     tooltipOptions(p) {
       return {
         permanent: false,
@@ -957,6 +971,7 @@ export default {
           r.num = numero
           r.selected = false
           r.showTooltip = false
+          r.obs = this.observacionDe(r)
           numero++
           setVendedores.add(r.vendedor);
         });
@@ -1104,5 +1119,19 @@ export default {
   border-radius: 10px; /* bordes más redondeados */
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2); /* sombra más suave */
   width: 90%; /* ancho completo del contenedor */
+}
+</style>
+<style>
+/* El tooltip vive en el pane de Leaflet, fuera del scope del componente. */
+.pedido-tooltip {
+  width: 360px;
+  max-width: 90vw;
+  white-space: normal;
+  font-size: 12px;
+}
+.pedido-tooltip .tt-obs {
+  margin-top: 2px;
+  color: #bf360c;
+  font-weight: 600;
 }
 </style>

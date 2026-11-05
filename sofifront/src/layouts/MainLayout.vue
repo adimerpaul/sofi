@@ -156,7 +156,7 @@ export default {
             { label: 'Facturación', caption: 'Ventas y facturas', icon: 'request_quote', to: 'facturacion', show: can('facturacion') },
             { label: 'Nueva Venta', caption: 'Armar carrito y cobrar', icon: 'add_shopping_cart', to: 'facturacion/nueva', show: can('facturacionNueva') },
             { label: 'Pedido factura', caption: 'Facturar pedidos de preventistas', icon: 'assignment_turned_in', to: 'facturacion/pedidos', show: can('facturacionNueva') },
-            { label: 'Reportes', caption: 'Quiebre de stock', icon: 'assessment', to: 'facturacion/reportes', show: can('reportesVentas') },
+            { label: 'Reportes', caption: 'Quiebre de stock y ventas', icon: 'assessment', to: 'facturacion/reportes', show: can('reportesVentas') },
             { label: 'Impuestos', caption: 'CUIS, CUFD y token', icon: 'gavel', to: 'impuestos', show: can('impuestos') },
             { label: 'Facturación ficticia', caption: 'Al SIAT sin tocar inventario', icon: 'receipt', to: 'facturacion-ficticia', show: can('facturacionFicticia') }
           ]
@@ -168,7 +168,9 @@ export default {
           children: [
             { label: 'Compras', caption: 'Ingresos a proveedor', icon: 'local_shipping', to: 'compras', show: can('compras') },
             { label: 'Nueva Compra', caption: 'Sube el stock', icon: 'add_business', to: 'compras/nueva', show: can('comprasNueva') },
-            { label: 'Proveedores', caption: 'Administrar', icon: 'store', to: 'proveedores', show: can('proveedores') }
+            { label: 'Proveedores', caption: 'Administrar', icon: 'store', to: 'proveedores', show: can('proveedores') },
+            { label: 'Crear transformación', caption: 'Productos de origen a transformados', icon: 'transform', to: 'compras/transformaciones/nueva', show: can('transformacionCrear') },
+            { label: 'Ver transformaciones', caption: 'Listado y anulación', icon: 'list', to: 'compras/transformaciones', show: ['transformacionVer', 'transformacionCrear', 'transformacionAnular'].some(p => can(p)) }
           ]
         },
         {
