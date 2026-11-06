@@ -121,6 +121,8 @@ Route::group(['middleware'=>'auth:sanctum'],function (){
     Route::get('/verificacion-facturas',[\App\Http\Controllers\VerificacionFacturasController::class,'index']);
     Route::get('/verificacion-facturas/resumen',[\App\Http\Controllers\VerificacionFacturasController::class,'resumen']);
     Route::get('/verificacion-facturas/faltantes',[\App\Http\Controllers\VerificacionFacturasController::class,'faltantes']);
+    // Excel del mes: hoja del libro SIAT + hoja de ventas facturadas en Sofia.
+    Route::get('/verificacion-facturas/excel',[\App\Http\Controllers\VerificacionFacturasController::class,'excel']);
     Route::post('/verificacion-facturas/importar',[\App\Http\Controllers\VerificacionFacturasController::class,'importar']);
     Route::post('/verificacion-facturas/reenviar',[\App\Http\Controllers\VerificacionFacturasController::class,'reenviar']);
     // Anula solo en Impuestos lo que esta en el libro del SIAT y no en Sofia.

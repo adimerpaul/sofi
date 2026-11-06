@@ -4,6 +4,9 @@
       <div class="text-subtitle1 text-weight-bold">Verificación de facturas</div>
       <div class="text-caption text-grey-7 q-ml-sm gt-xs">Libro de ventas del SIAT contra Sofia, por CUF</div>
       <q-space />
+      <q-btn dense outline size="sm" color="green-8" icon="grid_on" label="Exportar Excel" no-caps class="q-px-sm q-mr-xs" :loading="exportando" @click="exportarExcel">
+        <q-tooltip>Libro del SIAT y ventas facturadas en Sofia del mes elegido (dos hojas)</q-tooltip>
+      </q-btn>
       <q-btn dense unelevated size="sm" color="primary" icon="upload_file" label="Subir libro del SIAT" no-caps class="q-px-sm" @click="dialogImportar = true" />
     </div>
 
@@ -273,7 +276,8 @@ export default {
       aAnular: null,
       anulando: false,
       motivoAnulando: null,
-      motivosAnulacion: []
+      motivosAnulacion: [],
+      exportando: false
     }
   },
   computed: {
@@ -331,6 +335,27 @@ export default {
         tab: this.tab,
         page: this.pagination.page,
         per_page: this.pagination.rowsPerPage
+      }
+    },
+    // GET verificacion-facturas/excel: hoja "Libro SIAT" + hoja "Ventas facturadas" (solo tipo factura con CUF).
+    async exportarExcel () {
+      this.exportando = true
+      try {
+        const { data } = await this.$api.get('verificacion-facturas/excel', {
+          params: { q: this.filtros.q || '', mes: this.filtros.mes || '', estado: this.filtros.estado || '' },
+          responseType: 'blob',
+          timeout: 300000
+        })
+        const url = URL.createObjectURL(data)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = 'FACTURAS SIAT Y VENTAS ' + (this.filtros.mes || mesDe(0)) + '.xlsx'
+        a.click()
+        URL.revokeObjectURL(url)
+      } catch (err) {
+        this.$q.notify({ message: 'No se pudo generar el Excel', color: 'negative', icon: 'error', position: 'top' })
+      } finally {
+        this.exportando = false
       }
     },
     async cargar () {

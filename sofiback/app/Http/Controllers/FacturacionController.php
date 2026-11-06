@@ -2239,6 +2239,11 @@ class FacturacionController extends Controller
      *
      * Con retorno parcial ademas el monto pasa a ser el del comprobante nuevo
      * y la carga queda revisada, porque el camion ya salio con ella.
+     *
+     * Una entrega a credito tambien toma el monto nuevo: no entro plata en la
+     * puerta, asi que el recojo tiene que mostrar lo que el cliente quedo
+     * debiendo. En contado, QR y mixto el monto no se toca, porque ahi hubo un
+     * cobro real con el comprobante anterior.
      */
     private function heredarRetorno(Factura $nueva, $usuario)
     {
@@ -2261,6 +2266,18 @@ class FacturacionController extends Controller
         ]);
 
         if (!$retorno) {
+            // Solo la ultima entrega vale; las anteriores quedan como historial.
+            $ultima = DB::table('entregas')
+                ->where('factura_id', $nueva->id)
+                ->orderByDesc('id')
+                ->first(['id', 'estado', 'tipago']);
+
+            if ($ultima && $ultima->estado === 'ENTREGADO' && $ultima->tipago === 'CRÉDITO') {
+                DB::table('entregas')->where('id', $ultima->id)->update([
+                    'monto' => round((float) $nueva->total, 2),
+                ]);
+            }
+
             return;
         }
 

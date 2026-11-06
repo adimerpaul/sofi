@@ -11,6 +11,11 @@ use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use PhpOffice\PhpSpreadsheet\Cell\DataType;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Style\Border;
+use PhpOffice\PhpSpreadsheet\Style\Fill;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use RuntimeException;
 use Throwable;
 
@@ -148,6 +153,200 @@ class VerificacionFacturasController extends Controller
         });
 
         return response()->json($page);
+    }
+
+    /**
+     * Excel del mes con dos hojas: el libro de ventas del SIAT (lo que tiene
+     * Impuestos) y las ventas de Sofia que salieron como factura (facturas
+     * tipo FACTURA + ficticias, con CUF y no simuladas). Cada hoja dice si la
+     * fila esta del otro lado. Respeta el filtro de busqueda y de estado SIAT.
+     */
+    public function excel(Request $request)
+    {
+        @set_time_limit(300);
+        @ini_set('memory_limit', '512M');
+
+        $month = $this->month($request);
+        $desde = $month->copy()->startOfMonth()->toDateString();
+        $hasta = $month->copy()->endOfMonth()->toDateString();
+        $mesTexto = $month->format('Y-m');
+
+        // --- Hoja 1: libro del SIAT ---------------------------------------
+        $libroFilas = $this->filteredQuery($request, false)
+            ->orderBy('fecha_factura')
+            ->orderByRaw('LENGTH(numero_factura)')
+            ->orderBy('numero_factura')
+            ->get();
+
+        $cufsLibro = $libroFilas->pluck('cuf')->filter()->unique()->values()->all();
+        $enSofia = collect();
+        foreach (array_chunk($cufsLibro, 1000) as $lote) {
+            foreach (['facturas' => 'Factura', 'facturas_ficticias' => 'Ficticia'] as $tabla => $origen) {
+                DB::table($tabla)->whereNull('deleted_at')->whereIn('cuf', $lote)
+                    ->get(['cuf', 'nro_factura', 'total', 'estado'])
+                    ->each(function ($f) use ($enSofia, $origen) {
+                        if (!$enSofia->has($f->cuf)) {
+                            $enSofia->put($f->cuf, (object) ['origen' => $origen, 'nro' => $f->nro_factura, 'total' => $f->total, 'estado' => $f->estado]);
+                        }
+                    });
+            }
+            $this->cajaPorCuf($lote)->each(function ($c, $cuf) use ($enSofia) {
+                if (!$enSofia->has($cuf)) {
+                    $enSofia->put($cuf, (object) ['origen' => 'Caja', 'nro' => $c->nro_factura, 'total' => $c->total, 'estado' => $c->estado]);
+                }
+            });
+        }
+
+        $libro = new Spreadsheet();
+        $hoja = $libro->getActiveSheet();
+        $hoja->setTitle('Libro SIAT ' . $mesTexto);
+        $columnas = ['N°', 'Fecha', 'Nº factura', 'CUF', 'NIT / CI', 'Compl.', 'Razón social', 'Importe total',
+            'Descuentos', 'Subtotal', 'Base débito fiscal', 'Débito fiscal', 'Estado SIAT', 'En Sofia', 'Total Sofia', 'Diferencia'];
+        $this->encabezadoExcel($hoja, 'LIBRO DE VENTAS DEL SIAT (IMPUESTOS)', 'Mes: ' . $mesTexto, $columnas);
+
+        $r = 5;
+        foreach ($libroFilas as $i => $f) {
+            $s = $enSofia->get($f->cuf);
+            $dif = $s && $s->total !== null ? round((float) $s->total - (float) $f->importe_total, 2) : null;
+            $valores = [
+                $i + 1, optional($f->fecha_factura)->format('d/m/Y'), $f->numero_factura, $f->cuf,
+                $f->nit_ci_cliente, $f->complemento, $f->razon_social, (float) $f->importe_total,
+                (float) $f->descuentos, (float) $f->subtotal, (float) $f->importe_base_debito_fiscal, (float) $f->debito_fiscal,
+                $f->estado, $s ? $s->origen . ' ' . $s->nro . ' (' . $s->estado . ')' : 'NO ESTÁ EN SOFIA',
+                $s && $s->total !== null ? (float) $s->total : '', $dif !== null && abs($dif) > self::TOLERANCIA ? $dif : '',
+            ];
+            $this->filaExcel($hoja, $r, $valores, [3, 4, 5]);
+            if ($f->estado !== 'VALIDA') {
+                $this->pintarFila($hoja, $r, count($columnas), 'EEEEEE');
+            } elseif (!$s) {
+                $this->pintarFila($hoja, $r, count($columnas), 'FFEBEE');
+            }
+            $r++;
+        }
+        $validas = $libroFilas->where('estado', 'VALIDA');
+        $hoja->setCellValue('G' . $r, 'TOTAL VÁLIDAS (' . $validas->count() . ')');
+        $hoja->setCellValue('H' . $r, round((float) $validas->sum('importe_total'), 2));
+        $hoja->setCellValue('I' . $r, round((float) $validas->sum('descuentos'), 2));
+        $hoja->setCellValue('J' . $r, round((float) $validas->sum('subtotal'), 2));
+        $hoja->setCellValue('K' . $r, round((float) $validas->sum('importe_base_debito_fiscal'), 2));
+        $hoja->setCellValue('L' . $r, round((float) $validas->sum('debito_fiscal'), 2));
+        $this->cerrarHojaExcel($hoja, $r, count($columnas), 'H5:L' . $r, 'O5:P' . $r);
+
+        // --- Hoja 2: ventas facturadas en Sofia ----------------------------
+        $buscar = trim((string) $request->input('q', ''));
+        $ventas = function ($tabla, $origen) use ($desde, $hasta, $buscar) {
+            $q = DB::table($tabla)
+                ->selectRaw("'$origen' as origen, id, nro_factura, cuf, fecha, hora, nit, nombre, subtotal, descuento, total, estado, estado_siat, COALESCE(LEFT(fecha_emision, 10), fecha) as fecha_fiscal")
+                ->whereNull('deleted_at')
+                ->whereNotNull('cuf')->where('cuf', '!=', '')
+                ->where(function ($w) { $w->whereNull('estado_siat')->orWhere('estado_siat', '!=', SiatService::ESTADO_SIMULADO); })
+                ->whereRaw('COALESCE(LEFT(fecha_emision, 10), fecha) BETWEEN ? AND ?', [$desde, $hasta]);
+            if ($tabla === 'facturas') {
+                $q->where('tipo_comprobante', 'FACTURA');
+            }
+            if ($buscar !== '') {
+                $like = '%' . $buscar . '%';
+                $q->where(function ($w) use ($like, $buscar) {
+                    $w->where('nro_factura', $buscar)->orWhere('cuf', 'like', $like)
+                        ->orWhere('nit', 'like', $like)->orWhere('nombre', 'like', $like);
+                });
+            }
+
+            return $q;
+        };
+        $ventasFilas = DB::query()->fromSub($ventas('facturas', 'FACTURA')->unionAll($ventas('facturas_ficticias', 'FICTICIA')), 'x')
+            ->orderBy('fecha_fiscal')->orderBy('nro_factura')->get();
+
+        $enLibro = collect();
+        foreach (array_chunk($ventasFilas->pluck('cuf')->unique()->values()->all(), 1000) as $lote) {
+            LibroVentaSiat::whereIn('cuf', $lote)->get(['cuf', 'importe_total', 'estado'])
+                ->each(function ($l) use ($enLibro) { $enLibro->put($l->cuf, $l); });
+        }
+
+        $hoja = $libro->createSheet();
+        $hoja->setTitle('Ventas facturadas ' . $mesTexto);
+        $columnas = ['N°', 'Fecha', 'Origen', 'Nº factura', 'CUF', 'NIT / CI', 'Cliente', 'Subtotal', 'Descuento',
+            'Total', 'Estado Sofia', 'Estado SIAT', 'En libro SIAT', 'Importe SIAT', 'Diferencia'];
+        $this->encabezadoExcel($hoja, 'VENTAS FACTURADAS EN SOFIA', 'Mes: ' . $mesTexto . ' · solo comprobantes tipo factura con CUF', $columnas);
+
+        $r = 5;
+        foreach ($ventasFilas as $i => $v) {
+            $l = $enLibro->get($v->cuf);
+            $dif = $l ? round((float) $v->total - (float) $l->importe_total, 2) : null;
+            $valores = [
+                $i + 1, date('d/m/Y', strtotime($v->fecha_fiscal)), $v->origen === 'FICTICIA' ? 'Ficticia' : 'Factura',
+                $v->nro_factura, $v->cuf, $v->nit, $v->nombre, (float) $v->subtotal, (float) $v->descuento, (float) $v->total,
+                $v->estado, $v->estado_siat, $l ? 'SÍ (' . $l->estado . ')' : 'NO',
+                $l ? (float) $l->importe_total : '', $dif !== null && abs($dif) > self::TOLERANCIA ? $dif : '',
+            ];
+            $this->filaExcel($hoja, $r, $valores, [4, 5, 6]);
+            if ($v->estado !== 'ACTIVO') {
+                $this->pintarFila($hoja, $r, count($columnas), 'EEEEEE');
+            } elseif (!$l) {
+                $this->pintarFila($hoja, $r, count($columnas), 'FFF3E0');
+            }
+            $r++;
+        }
+        $activas = $ventasFilas->where('estado', 'ACTIVO');
+        $hoja->setCellValue('G' . $r, 'TOTAL ACTIVAS (' . $activas->count() . ')');
+        $hoja->setCellValue('H' . $r, round((float) $activas->sum('subtotal'), 2));
+        $hoja->setCellValue('I' . $r, round((float) $activas->sum('descuento'), 2));
+        $hoja->setCellValue('J' . $r, round((float) $activas->sum('total'), 2));
+        $this->cerrarHojaExcel($hoja, $r, count($columnas), 'H5:J' . $r, 'N5:O' . $r);
+
+        $libro->setActiveSheetIndex(0);
+        $writer = new Xlsx($libro);
+
+        return response()->streamDownload(function () use ($writer) {
+            $writer->save('php://output');
+        }, 'facturas_' . $mesTexto . '.xlsx', [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        ]);
+    }
+
+    private function encabezadoExcel($hoja, $titulo, $subtitulo, array $columnas)
+    {
+        $hoja->setCellValue('A1', $titulo);
+        $hoja->setCellValue('A2', $subtitulo);
+        $hoja->getStyle('A1')->getFont()->setBold(true)->setSize(14);
+        foreach ($columnas as $i => $t) {
+            $hoja->setCellValueByColumnAndRow($i + 1, 4, $t);
+        }
+        $rango = 'A4:' . \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex(count($columnas)) . '4';
+        $hoja->getStyle($rango)->getFont()->setBold(true)->getColor()->setRGB('FFFFFF');
+        $hoja->getStyle($rango)->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB('37474F');
+    }
+
+    /** $texto: columnas (1-based) que van como texto (CUF, NIT, numero) para que Excel no las redondee. */
+    private function filaExcel($hoja, $r, array $valores, array $texto)
+    {
+        foreach ($valores as $c => $v) {
+            if (in_array($c + 1, $texto, true)) {
+                $hoja->setCellValueExplicitByColumnAndRow($c + 1, $r, (string) $v, DataType::TYPE_STRING);
+            } else {
+                $hoja->setCellValueByColumnAndRow($c + 1, $r, $v === null ? '' : $v);
+            }
+        }
+    }
+
+    private function pintarFila($hoja, $r, $n, $rgb)
+    {
+        $rango = 'A' . $r . ':' . \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($n) . $r;
+        $hoja->getStyle($rango)->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB($rgb);
+    }
+
+    private function cerrarHojaExcel($hoja, $r, $n, ...$montos)
+    {
+        $ultima = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($n);
+        $hoja->getStyle('A' . $r . ':' . $ultima . $r)->getFont()->setBold(true);
+        $hoja->getStyle('A4:' . $ultima . $r)->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_THIN)->getColor()->setRGB('BDBDBD');
+        foreach ($montos as $rango) {
+            $hoja->getStyle($rango)->getNumberFormat()->setFormatCode('#,##0.00');
+        }
+        for ($c = 1; $c <= $n; $c++) {
+            $hoja->getColumnDimensionByColumn($c)->setAutoSize(true);
+        }
+        $hoja->freezePane('A5');
     }
 
     public function importar(Request $request, LibroVentasSiatImporter $importer)

@@ -162,7 +162,7 @@
                             @update:model-value="filtrarClientes"/>
                 </div>
                 <div class="col-12 col-md-2">
-                  <q-select square outlined v-model="tipoProducto" :options="['NORMAL','POLLO','CERDO']"
+                  <q-select square outlined v-model="tipoProducto" :options="['TODOS','NORMAL','POLLO','CERDO']"
                             label="Producto" dense
                             @update:model-value="buscar"/>
                 </div>
@@ -903,6 +903,7 @@ export default {
     },
     verDetalle(dato) {
       dato.fecha = this.fecha
+      dato.tipo = this.tipoProducto
       console.log(dato)
       this.$api.post("detallePedMap", dato).then((res) => {
         console.log(res.data)

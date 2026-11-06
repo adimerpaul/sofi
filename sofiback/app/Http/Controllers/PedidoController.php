@@ -2535,7 +2535,9 @@ $resPedido = $rows->groupBy('NroPed')->map(function ($g) use ($bonis) {
         ')
             ->whereDate('fecha', $fecha)
             ->where('estado', 'ENVIADO')
-            ->where('tipo', $tipo)
+            ->when($tipo !== 'TODOS', function ($query) use ($tipo) {
+                $query->where('tipo', $tipo);
+            })
             ->where('bonificacion', 0)
             ->groupBy('idCli', 'placa', 'horario', 'color', 'CIfunc', 'ruta')
             ->get()
@@ -2566,12 +2568,19 @@ $resPedido = $rows->groupBy('NroPed')->map(function ($g) use ($bonis) {
 
     public function detallePedMap(Request $request)
     {
+        // Sin tipo (versiones del front aun no actualizadas) se mantiene NORMAL.
+        $tipo = $request->input('tipo', 'NORMAL');
+        $filtroTipo = $tipo === 'TODOS' ? '' : 'AND p.tipo = ?';
+        $parametros = $tipo === 'TODOS'
+            ? [$request->fecha, $request->idCli]
+            : [$request->fecha, $tipo, $request->idCli];
+
         $resultado = DB::select("
                 SELECT p.NroPed, p.Cant, tpr.cod_prod, tpr.Producto
                 FROM tbpedidos p
                 INNER JOIN tbproductos tpr ON p.cod_prod = tpr.cod_prod
-                WHERE p.deleted_at IS NULL AND DATE(p.fecha) = ? AND p.tipo = 'NORMAL' AND p.idCli = ?
-            ", [$request->fecha, $request->idCli]);
+                WHERE p.deleted_at IS NULL AND DATE(p.fecha) = ? $filtroTipo AND p.idCli = ?
+            ", $parametros);
         return response()->json($resultado);
     }
 
