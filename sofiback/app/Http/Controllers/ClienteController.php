@@ -59,7 +59,11 @@ class ClienteController extends Controller{
 //             ORDER BY tipo desc;"
 //        );
 
-        $misClientes = Cliente::whereRaw("TRIM(CiVend)='".$request->user()->ci."'")->get();
+        $misClientes = Cliente::whereRaw("TRIM(CiVend)='".$request->user()->ci."'")
+            // Siempre: solo clientes aprobados por Ventas y Logistica.
+            ->where('aprobado_ventas', 1)
+            ->where('aprobado_logistica', 1)
+            ->get();
 
         $codAuts = $misClientes->pluck('Cod_Aut')->toArray();
         $Ids = $misClientes->pluck('Id')->toArray();
@@ -115,6 +119,43 @@ class ClienteController extends Controller{
 
 
         return $misClientes;
+    }
+
+    // Visita: lo que mas pidio el cliente en los ultimos 3 meses (moda por producto).
+    // idCli en tbpedidos es el Cod_Aut; los pedidos borrados no cuentan.
+    public function masPedidos($cliente)
+    {
+        $filas = DB::select(
+            "SELECT p.cod_prod, COUNT(DISTINCT p.NroPed) AS veces, SUM(p.Cant) AS total,
+                    MAX(p.fecha) AS ultima, pr.Producto, pr.codUnid, pr.imagen
+             FROM tbpedidos p
+             LEFT JOIN tbproductos pr ON pr.cod_prod = p.cod_prod
+             WHERE p.idCli = ? AND p.deleted_at IS NULL AND p.fecha >= ?
+             GROUP BY p.cod_prod, pr.Producto, pr.codUnid, pr.imagen
+             ORDER BY veces DESC, total DESC
+             LIMIT 8",
+            [(string) $cliente, Carbon::now()->subMonths(3)->format('Y-m-d')]
+        );
+        $pedidos = DB::selectOne(
+            "SELECT COUNT(DISTINCT NroPed) AS n FROM tbpedidos WHERE idCli = ? AND deleted_at IS NULL AND fecha >= ?",
+            [(string) $cliente, Carbon::now()->subMonths(3)->format('Y-m-d')]
+        );
+        return [
+            'pedidos' => (int) ($pedidos->n ?? 0),
+            'productos' => array_map(function ($f) {
+                $veces = (int) $f->veces;
+                return [
+                    'cod_prod' => $f->cod_prod,
+                    'Producto' => $f->Producto ?: $f->cod_prod,
+                    'codUnid' => $f->codUnid,
+                    'imagen' => $f->imagen,
+                    'veces' => $veces,
+                    'total' => round((float) $f->total, 2),
+                    'promedio' => $veces ? round((float) $f->total / $veces, 2) : 0,
+                    'ultima' => $f->ultima ? substr($f->ultima, 0, 10) : null,
+                ];
+            }, $filas),
+        ];
     }
 
     public function filtrarlista2(Request $request){
@@ -264,8 +305,11 @@ class ClienteController extends Controller{
         ];
 
         // Primera consulta: clientes normales
+        // En Visita solo salen clientes aprobados por Ventas y Logistica.
         $clientesQuery = Cliente::query()
             ->whereRaw('TRIM(CiVend) = ?', [$user_ci])
+            ->where('aprobado_ventas', 1)
+            ->where('aprobado_logistica', 1)
             ->select($baseSelect);
 
         // Día de la semana
@@ -280,6 +324,8 @@ class ClienteController extends Controller{
         // Segunda consulta: clientes forzados por ID
         $clientesExtraQuery = Cliente::query()
             ->whereIn('Id', $idsExtra)
+            ->where('aprobado_ventas', 1)
+            ->where('aprobado_logistica', 1)
             ->select($baseSelect);
 
         // Unión de ambas

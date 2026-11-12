@@ -247,6 +247,33 @@
                   <q-btn round dense flat icon="edit" @click="modcomentario"/>
                 </template>
               </q-input>
+              <!-- Lo que mas pidio en los ultimos 3 meses (ClienteController::masPedidos):
+                   se carga al abrir este modal para que el preventista lo vea antes del pedido. -->
+              <div class="q-mt-sm">
+                <div class="row items-center">
+                  <div class="text-subtitle2">Lo que más pide <span class="text-caption text-grey-7">(3 meses<template v-if="masPedidos.pedidos">, {{ masPedidos.pedidos }} pedidos</template>)</span></div>
+                  <q-spinner v-if="cargandoMasPedidos" size="xs" class="q-ml-sm"/>
+                </div>
+                <div v-if="!cargandoMasPedidos && !masPedidos.productos.length" class="text-grey-7 text-caption">Sin pedidos en los últimos 3 meses.</div>
+                <q-list dense separator class="mas-pedidos">
+                  <q-item v-for="m in masPedidos.productos" :key="m.cod_prod" dense class="q-px-xs">
+                    <q-item-section avatar class="opcion-foto">
+                      <q-avatar rounded size="30px" class="foto-producto">
+                        <img v-if="m.imagen" :src="urlImagen(m.imagen)" alt="">
+                        <q-icon v-else name="inventory_2" size="16px" color="grey-6"/>
+                      </q-avatar>
+                    </q-item-section>
+                    <q-item-section>
+                      <q-item-label class="text-weight-medium nombre-producto">{{ m.Producto }}</q-item-label>
+                      <q-item-label caption>{{ m.cod_prod }} · últ. {{ m.ultima }}</q-item-label>
+                    </q-item-section>
+                    <q-item-section side class="text-right">
+                      <q-item-label class="text-weight-bold text-primary">{{ m.promedio }} {{ m.codUnid }}</q-item-label>
+                      <q-item-label caption>{{ m.veces }} veces · {{ m.total }} {{ m.codUnid }}</q-item-label>
+                    </q-item-section>
+                  </q-item>
+                </q-list>
+              </div>
             </div>
 <!--            <div class="col-12">-->
 <!--              <pre>{{cliente}}</pre>-->
@@ -341,17 +368,6 @@
         </q-card-section>
         <q-card-section class="q-pt-none">
           <div class="row">
-            <!-- Tipos administrados en Productos: tocar uno limita el buscador
-                 a ese tipo; tocarlo de nuevo vuelve a todos. -->
-            <div v-if="tiposProducto.length" class="col-12 row no-wrap q-px-xs tipos-pedido">
-              <q-chip
-                v-for="t in tiposProducto" :key="t.id" dense clickable
-                :outline="tipoFiltro !== t.id" :color="t.color"
-                :text-color="tipoFiltro === t.id ? 'white' : t.color"
-                :icon="tipoFiltro === t.id ? 'check' : undefined"
-                :label="t.nombre" @click="elegirTipo(t.id)"
-              />
-            </div>
             <div class="col-10">
               <q-select label="Producto" dense outlined class="q-ma-xs" use-input input-debounce="0"
                         @filter="filterFn" :options="productos" v-model="producto"
@@ -938,6 +954,8 @@ export default {
       // Tipos de producto (Productos > Tipo) y el elegido en el pedido.
       tiposProducto: [],
       tipoFiltro: null,
+      masPedidos: {pedidos: 0, productos: []},
+      cargandoMasPedidos: false,
       misproductos: [],
       miproducto: {},
       producto: {label: ''},
@@ -997,7 +1015,7 @@ export default {
       }
     },
     clientesBonificacion() {
-      this.$api.get('cliente').then(res => {
+      this.$api.get('cliente', {params: {aprobados: 1}}).then(res => {
         this.clientes2 = []
         res.data.forEach(r => {
           let d = r
@@ -1078,7 +1096,7 @@ export default {
     misclientes() {
       // this.$q.loading.show()
       this.loading = true
-      this.$api.get('cliente').then(res => {
+      this.$api.get('cliente', {params: {aprobados: 1}}).then(res => {
         console.log(res.data)
         this.clientes = []
         // this.clientes=res.data
@@ -1113,10 +1131,6 @@ export default {
       })
     },
     consultamisproductos() {
-      // Solo para los chips: si falla, el pedido funciona igual sin ellos.
-      this.$api.get('tipos-producto').then(res => {
-        this.tiposProducto = res.data
-      }).catch(() => {})
       this.$api.get('producto').then(res => {
         // console.log(res.data)
         this.productos = []
@@ -1622,10 +1636,21 @@ export default {
       this.cliente = cliente
       this.comentario = {}
       this.cargarFotos()
+      this.cargarMasPedidos()
 
       this.$api.post('comentario', {ci: this.cliente.Id}).then(res => {
         //console.log(res.data)
         this.comentario = res.data
+      })
+    },
+    cargarMasPedidos() {
+      const cliente = this.cliente.Cod_Aut
+      this.masPedidos = {pedidos: 0, productos: []}
+      this.cargandoMasPedidos = true
+      this.$api.get('cliente/' + cliente + '/mas-pedidos').then(res => {
+        if (cliente === this.cliente.Cod_Aut) this.masPedidos = {pedidos: res.data.pedidos || 0, productos: res.data.productos || []}
+      }).catch(() => {}).finally(() => {
+        if (cliente === this.cliente.Cod_Aut) this.cargandoMasPedidos = false
       })
     },
     // La lista del mapa trae solo las URLs; aqui se piden con su id para poder cambiarlas o borrarlas.

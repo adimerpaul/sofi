@@ -353,6 +353,7 @@ Route::group(['middleware'=>'auth:sanctum'],function (){
     Route::post('/clientes/alta-preventista',[\App\Http\Controllers\ClienteController::class,'altaPreventista']);
     Route::get('/clientes/mis-altas',[\App\Http\Controllers\ClienteController::class,'misAltas']);
     Route::post('/clientes/{cliente}/aprobar',[\App\Http\Controllers\ClienteController::class,'aprobar'])->where('cliente', '[0-9]+');
+    Route::get('/cliente/{cliente}/mas-pedidos',[\App\Http\Controllers\ClienteController::class,'masPedidos'])->where('cliente', '[0-9]+');
     Route::post('/desbloquear',[\App\Http\Controllers\ClienteController::class,'desbloquear']);
     Route::get('/listapersonal',[\App\Http\Controllers\ClienteController::class,'listapersonal']);
     Route::get('/personalCliente',[\App\Http\Controllers\ClienteController::class,'personalCliente']);
