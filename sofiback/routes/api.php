@@ -347,6 +347,16 @@ Route::group(['middleware'=>'auth:sanctum'],function (){
     Route::get('/pareto-clientes/productos',[\App\Http\Controllers\ParetoClienteController::class,'productos']);
     Route::get('/pareto-clientes',[\App\Http\Controllers\ParetoClienteController::class,'index']);
     Route::get('/pareto-clientes/{cliente}/detalle',[\App\Http\Controllers\ParetoClienteController::class,'detalle'])->where('cliente', '[0-9]+');
+    // Avance de ventas del mes por linea y vendedor (permiso avanceventas).
+    Route::get('/avance-ventas',[\App\Http\Controllers\AvanceVentasController::class,'index']);
+    Route::post('/avance-ventas/objetivos',[\App\Http\Controllers\AvanceVentasController::class,'guardarObjetivos']);
+    Route::get('/avance-ventas/grupos',[\App\Http\Controllers\AvanceVentasController::class,'grupos']);
+    Route::get('/avance-ventas/productos',[\App\Http\Controllers\AvanceVentasController::class,'productos']);
+    Route::put('/avance-ventas/lineas/{id}',[\App\Http\Controllers\AvanceVentasController::class,'actualizarLinea'])->where('id', '[0-9]+');
+    Route::get('/avance-ventas/excel',[\App\Http\Controllers\AvanceVentasController::class,'excel']);
+    // Avance de ventas vendedores (permiso avanceventasvendedores): el vendedor logueado ve solo lo suyo.
+    Route::get('/mi-avance-ventas',[\App\Http\Controllers\AvanceVentasController::class,'miAvance']);
+    Route::get('/mi-avance-ventas/excel',[\App\Http\Controllers\AvanceVentasController::class,'miExcel']);
     // Alta paso a paso del preventista (permiso clienteNuevo) y su aprobacion
     // por Ventas y Logistica desde Clientes (permiso clientes).
     Route::get('/clientes/catalogos',[\App\Http\Controllers\ClienteController::class,'catalogos']);
@@ -422,6 +432,7 @@ Route::group(['middleware'=>'auth:sanctum'],function (){
     Route::post('/mapClient',[\App\Http\Controllers\PedidoController::class,'mapClient']);
     Route::post('/mapaVendedor',[\App\Http\Controllers\MapaVendedorController::class,'mapaVendedor']);
     Route::post('/mapaVendedorVisita',[\App\Http\Controllers\MapaVendedorController::class,'mapaVendedorVisita']);
+    Route::get('/mapaVendedorVisita/excel-visitas',[\App\Http\Controllers\MapaVendedorController::class,'excelVisitas']);
 
     Route::post('/mapClientes',[\App\Http\Controllers\PedidoController::class,'mapClientes']);
     Route::post('/detallePedMap',[\App\Http\Controllers\PedidoController::class,'detallePedMap']);

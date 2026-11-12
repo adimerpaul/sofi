@@ -35,6 +35,8 @@ const routes = [
       { path: '/clientevisita', component: () => import('pages/Clientevisita.vue') ,meta: {requiresAuth: true}},
       // Alta de cliente paso a paso del preventista (reemplaza el JotForm de "Alta Cliente").
       { path: '/paretoclientes', component: () => import('pages/ParetoClientes.vue'), meta: { requiresAuth: true } },
+      { path: '/avanceventas', component: () => import('pages/AvanceVentas.vue'), meta: { requiresAuth: true } },
+      { path: '/avanceventasvendedores', component: () => import('pages/AvanceVentas.vue'), meta: { requiresAuth: true, mio: true } },
       { path: '/clientenuevo', component: () => import('pages/ClienteNuevo.vue'), meta: { requiresAuth: true } },
       { path: '/clientepedido', component: () => import('pages/Pedidoresumen.vue') ,meta: {requiresAuth: true}},
       { path: '/listpedido', component: () => import('pages/Despachoresumen.vue') ,meta: {requiresAuth: true}},

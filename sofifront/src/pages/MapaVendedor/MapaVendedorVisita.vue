@@ -1,128 +1,190 @@
 <template>
-  <q-page class="bg-grey-3 q-pa-xs">
+  <q-page class="bg-grey-3 q-pa-xs mapa-visita">
     <q-card flat bordered>
-      <q-card-section>
-        <div class="row">
-          <!-- Filtros -->
-          <div class="col-12 col-md-3">
-            <q-input v-model="fecha" label="Fecha" type="date" dense outlined />
+      <q-card-section class="q-pa-xs">
+        <!-- Filtros -->
+        <div class="row q-col-gutter-xs items-center">
+          <div class="col-6 col-sm-3 col-md-2">
+            <q-input v-model="fecha" label="Fecha" type="date" dense outlined @update:model-value="buscar"/>
           </div>
-          <div class="col-12 col-md-3">
-            <q-select v-model="tipo" label="Tipo" dense outlined :options="tipos" emit-value map-options />
+          <div class="col-6 col-sm-3 col-md-2">
+            <q-select v-model="tipo" label="Tipo" dense outlined :options="tipos" emit-value map-options
+                      @update:model-value="buscar"/>
           </div>
-          <div class="col-12 col-md-2 text-center">
-            <q-btn label="Buscar" color="primary" dense @click="buscar" icon="search" no-caps :loading="loading" />
+          <div class="col-12 col-sm-6 col-md-3">
+            <q-select v-model="vendedor" label="Vendedor" dense outlined :options="opcionesVendedor"
+                      emit-value map-options/>
           </div>
-          <div class="col-12 col-md-2 text-center">
-            <q-btn label="Ver Todos" color="grey" dense flat @click="verTodos" icon="list" no-caps />
+          <div class="col-12 col-sm-auto">
+            <!-- Ruta normal: clientes que tienen marcado el dia. Fuera de ruta: no les
+                 tocaba ese dia pero se los visito o se les hizo pedido. -->
+            <q-btn-toggle v-model="ruta" dense no-caps unelevated toggle-color="primary" color="white"
+                          text-color="grey-9" class="filtro-ruta"
+                          :options="[
+                            {label: 'Completo', value: 'TODOS'},
+                            {label: 'Ruta normal', value: 'RUTA'},
+                            {label: 'Fuera de ruta', value: 'FUERA'}
+                          ]"/>
           </div>
+          <div class="col-auto">
+            <q-btn label="Buscar" color="primary" dense no-caps icon="search" :loading="loading" @click="buscar"/>
+          </div>
+          <div class="col-auto">
+            <q-btn-dropdown label="Excel" color="green-8" dense no-caps icon="file_download" :loading="exportando">
+              <q-list dense>
+                <q-item clickable v-close-popup :disable="!clientesFiltrados.length" @click="exportarExcel">
+                  <q-item-section avatar><q-icon name="table_view" color="green-8"/></q-item-section>
+                  <q-item-section>
+                    <q-item-label>Resumen y clientes</q-item-label>
+                    <q-item-label caption>Lo que se ve en pantalla: por vendedor y por cliente</q-item-label>
+                  </q-item-section>
+                </q-item>
+                <q-item clickable v-close-popup @click="exportarVisitas">
+                  <q-item-section avatar><q-icon name="schedule" color="green-8"/></q-item-section>
+                  <q-item-section>
+                    <q-item-label>Registro de visitas</q-item-label>
+                    <q-item-label caption>Cada visita por hora, no visitado (&gt;100 m) y en ruta / fuera de ruta</q-item-label>
+                  </q-item-section>
+                </q-item>
+              </q-list>
+            </q-btn-dropdown>
+          </div>
+        </div>
 
-          <!-- Tabla y Mapa -->
-          <div class="col-12 col-md-4">
-            <q-markup-table flat bordered dense wrap-cells>
+        <div class="row q-col-gutter-xs q-mt-xs">
+          <!-- Resumen y detalle -->
+          <div class="col-12 col-md-5">
+            <q-markup-table flat bordered dense separator="cell" class="tabla-compacta">
               <thead>
               <tr>
-                <th>#</th>
-                <th>Pedidos</th>
-                <th>Cantidades</th>
+                <th class="text-left">Vendedor</th>
+                <th>Cli.</th>
+                <th title="En ruta / fuera de ruta">Ruta/Fuera</th>
+                <th class="text-green-8">Ped.</th>
+                <th class="text-red-8">No P.</th>
+                <th class="text-orange-8">Ret.</th>
+                <th class="text-grey-7">Falt.</th>
+                <th>Efect.</th>
+                <th class="text-right">Bs</th>
               </tr>
               </thead>
               <tbody>
-              <tr v-for="(user, index) in pedidos.users" :key="index" @click="seleccionar(user)" class="cursor-pointer">
-                <td>{{ index + 1 }}</td>
-                <td>
-                  <div style="max-width: 80px;">{{ $filters.capitalize(user.nombreCompleto) }}</div>
-                </td>
-                <td>
-                  <q-linear-progress size="20px" :value="1" color="accent">
-                    <div class="absolute-full flex flex-center">
-                      <q-badge color="white" text-color="black" :label="'Clientes ' + user.clientes.length" />
-                    </div>
-                  </q-linear-progress>
-                  <q-linear-progress size="20px" :value="user.pedidos.creados / user.pedidos.cantidad" color="green">
-                    <div class="absolute-full flex flex-center">
-                      <q-badge color="white" text-color="black" :label="'Pedido ' + user.pedidos.creados" />
-                    </div>
-                  </q-linear-progress>
-                  <q-linear-progress size="20px" :value="user.pedidos.nopedido / user.pedidos.cantidad" color="red">
-                    <div class="absolute-full flex flex-center">
-                      <q-badge color="white" text-color="black" :label="'No pedido ' + user.pedidos.nopedido" />
-                    </div>
-                  </q-linear-progress>
-                  <q-linear-progress size="20px" :value="user.pedidos.parado / user.pedidos.cantidad" color="orange">
-                    <div class="absolute-full flex flex-center">
-                      <q-badge color="white" text-color="black" :label="'Parado ' + user.pedidos.parado" />
-                    </div>
-                  </q-linear-progress>
-                </td>
+              <tr v-for="r in resumen" :key="r.CodAut" class="cursor-pointer"
+                  :class="vendedor === r.CodAut ? 'bg-blue-1' : ''" @click="vendedor = vendedor === r.CodAut ? null : r.CodAut">
+                <td class="text-left ellipsis" style="max-width: 120px">{{ $filters.capitalize(r.nombre) }}</td>
+                <td class="text-center">{{ r.total }}</td>
+                <td class="text-center">{{ r.ruta }}/<span class="text-purple-8">{{ r.fuera }}</span></td>
+                <td class="text-center text-green-8 text-weight-bold">{{ r.pedido }}</td>
+                <td class="text-center text-red-8">{{ r.nopedido }}</td>
+                <td class="text-center text-orange-8">{{ r.parado }}</td>
+                <td class="text-center text-grey-7">{{ r.faltaron }}</td>
+                <td class="text-center">{{ r.efectividad }}%</td>
+                <td class="text-right">{{ r.bs.toFixed(2) }}</td>
+              </tr>
+              <tr v-if="!resumen.length">
+                <td colspan="9" class="text-center text-grey-7">{{ loading ? 'Cargando…' : 'Sin datos' }}</td>
               </tr>
               </tbody>
-              <tfoot>
-              <tr>
-                <td></td>
-                <td class="text-right text-bold">Total</td>
-                <td class="text-bold text-right">{{ total }}</td>
+              <tfoot v-if="resumen.length > 1">
+              <tr class="text-weight-bold">
+                <td class="text-left">Total</td>
+                <td class="text-center">{{ totales.total }}</td>
+                <td class="text-center">{{ totales.ruta }}/<span class="text-purple-8">{{ totales.fuera }}</span></td>
+                <td class="text-center text-green-8">{{ totales.pedido }}</td>
+                <td class="text-center text-red-8">{{ totales.nopedido }}</td>
+                <td class="text-center text-orange-8">{{ totales.parado }}</td>
+                <td class="text-center text-grey-7">{{ totales.faltaron }}</td>
+                <td class="text-center">{{ totales.efectividad }}%</td>
+                <td class="text-right">{{ totales.bs.toFixed(2) }}</td>
               </tr>
               </tfoot>
             </q-markup-table>
+
+            <q-table flat bordered dense class="tabla-compacta tabla-clientes q-mt-xs"
+                     :rows="clientesFiltrados" :columns="columnas" row-key="clave"
+                     :filter="buscarCliente" :rows-per-page-options="[0]" hide-bottom
+                     virtual-scroll :virtual-scroll-item-size="22">
+              <template v-slot:top>
+                <div class="row items-center full-width no-wrap">
+                  <div class="text-caption text-weight-bold">Clientes ({{ clientesFiltrados.length }})</div>
+                  <q-space/>
+                  <q-input v-model="buscarCliente" dense borderless placeholder="Buscar…" class="buscar-cliente">
+                    <template v-slot:prepend><q-icon name="search" size="14px"/></template>
+                  </q-input>
+                </div>
+              </template>
+              <template v-slot:body="props">
+                <q-tr :props="props" class="cursor-pointer" @click="enfocar(props.row)">
+                  <q-td key="Cod_Aut" :props="props">{{ props.row.Cod_Aut }}</q-td>
+                  <q-td key="Nombres" :props="props" class="ellipsis" style="max-width: 150px">
+                    {{ props.row.Nombres }}
+                    <q-tooltip>{{ props.row.Nombres }} · {{ props.row.Direccion }}</q-tooltip>
+                  </q-td>
+                  <q-td key="en_ruta" :props="props">
+                    <span :class="props.row.en_ruta ? 'text-grey-8' : 'text-purple-8 text-weight-bold'">
+                      {{ props.row.en_ruta ? 'Ruta' : 'Fuera' }}
+                    </span>
+                  </q-td>
+                  <q-td key="estado" :props="props">
+                    <span class="punto" :class="'bg-' + colorEstado(props.row.estado)"></span>
+                    {{ props.row.estado || 'FALTA' }}
+                  </q-td>
+                  <q-td key="hora" :props="props">{{ hora(props.row.visita_hora || props.row.pedido_hora) }}</q-td>
+                  <q-td key="pedido_total" :props="props">{{ props.row.pedido_total ? props.row.pedido_total.toFixed(2) : '' }}</q-td>
+                </q-tr>
+              </template>
+            </q-table>
           </div>
 
           <!-- Mapa -->
-          <div class="col-12 col-md-8">
-            <div style="height: 350px; width: 100%;">
-              <l-map v-model="zoom" :zoom="zoom" :center="center">
-                <l-tile-layer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-                <template v-for="(user) in pedidosMapa?.users">
-                  <template v-for="(cliente, i) in user.clientes">
-                    <l-marker
-                      v-if="isValidLatLng(cliente.Latitud, cliente.longitud)"
-                      :key="i"
-                      :lat-lng="[parseFloat(cliente.Latitud), parseFloat(cliente.longitud)]"
-                    >
-                      <l-tooltip :content="cliente.Nombres"></l-tooltip>
-                      <l-icon>
-                        <q-badge
-                          style="padding: 2px"
-                          :color="cliente.estado === 'PEDIDO' ? 'green' : cliente.estado === 'NO PEDIDO' ? 'red' : cliente.estado === 'PARADO' ? 'orange' : 'grey'"
-                        >
-                          {{ cliente.Cod_Aut }}
-                        </q-badge>
-                      </l-icon>
-                    </l-marker>
-                  </template>
-                </template>
+          <div class="col-12 col-md-7">
+            <div class="contenedor-mapa">
+              <l-map ref="mapa" v-model:zoom="zoom" v-model:center="center" :use-global-leaflet="true">
+                <l-tile-layer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" layer-type="base"
+                              name="OpenStreetMap"/>
+                <l-marker v-for="c in clientesMapa" :key="c.clave"
+                          :lat-lng="[parseFloat(c.Latitud), parseFloat(c.longitud)]">
+                  <l-icon :icon-size="[0, 0]" :icon-anchor="[0, 0]" class-name="icono-vacio">
+                    <div class="marcador" :class="['bg-' + colorEstado(c.estado), c.en_ruta ? '' : 'marcador-fuera']">
+                      {{ c.Cod_Aut }}
+                    </div>
+                  </l-icon>
+                  <l-tooltip :options="{direction: 'top', offset: [8, -4]}">
+                    <div class="tip">
+                      <div class="text-weight-bold">{{ c.Cod_Aut }} · {{ c.Nombres }}</div>
+                      <div>
+                        <b :class="'text-' + colorEstado(c.estado)">{{ c.estado || 'SIN VISITA' }}</b>
+                        · <span :class="c.en_ruta ? '' : 'text-purple-8 text-weight-bold'">{{ c.en_ruta ? 'En ruta' : 'Fuera de ruta' }}</span>
+                      </div>
+                      <div v-if="c.Direccion">Dir.: {{ c.Direccion }}</div>
+                      <div v-if="c.zona || c.Telf">
+                        <span v-if="c.zona">Zona: {{ c.zona }}</span>
+                        <span v-if="c.zona && c.Telf"> · </span>
+                        <span v-if="c.Telf">Telf.: {{ c.Telf }}</span>
+                      </div>
+                      <div>Días de ruta: {{ c.dias || '—' }}</div>
+                      <div>Vendedor: {{ $filters.capitalize(c.vendedor) }}</div>
+                      <div v-if="c.visita_hora">
+                        Visita: {{ hora(c.visita_hora) }}
+                        <template v-if="c.visita_distancia"> · a {{ metros(c.visita_distancia) }}</template>
+                      </div>
+                      <div v-if="c.visita_obs">Obs.: {{ c.visita_obs }}</div>
+                      <div v-if="c.pedido_nros">
+                        Pedido {{ c.pedido_nros }} ({{ c.pedido_tipos }}) · {{ c.pedido_lineas }} prod. ·
+                        <b>{{ c.pedido_total.toFixed(2) }} Bs</b>
+                      </div>
+                    </div>
+                  </l-tooltip>
+                </l-marker>
               </l-map>
+              <div class="leyenda">
+                <span><span class="punto bg-green"></span>Pedido</span>
+                <span><span class="punto bg-red"></span>No pedido</span>
+                <span><span class="punto bg-orange"></span>Retorno</span>
+                <span><span class="punto bg-grey"></span>Falta</span>
+                <span><span class="punto punto-fuera"></span>Fuera de ruta</span>
+              </div>
             </div>
-          </div>
-          <div class="col-12 q-mt-md">
-            <q-markup-table flat bordered dense wrap-cells>
-              <thead>
-              <tr>
-                <th>#</th>
-                <th>Vendedor</th>
-                <th>Total Clientes</th>
-                <th>Pedido</th>
-                <th>No Pedido</th>
-                <th>Retorno</th>
-                <th>Faltaron</th>
-                <th>Efectividad</th>
-              </tr>
-              </thead>
-              <tbody>
-              <tr v-for="(user, i) in pedidos.users" :key="i">
-                <td>{{ i + 1 }}</td>
-                <td>{{ $filters.capitalize(user.nombreCompleto) }}</td>
-                <td class="text-center">{{ user.pedidos.cantidad }}</td>
-                <td class="text-center">{{ user.pedidos.creados }}</td>
-                <td class="text-center">{{ user.pedidos.nopedido }}</td>
-                <td class="text-center">{{ user.pedidos.parado }}</td>
-                <td class="text-center">{{ user.pedidos.faltaron }}</td>
-                <td class="text-center">
-                  {{ ((user.pedidos.creados / user.pedidos.cantidad) * 100).toFixed(1) }}%
-                </td>
-              </tr>
-              </tbody>
-            </q-markup-table>
           </div>
         </div>
       </q-card-section>
@@ -131,95 +193,303 @@
 </template>
 
 <script>
-import { LIcon, LMap, LMarker, LTileLayer, LTooltip } from "@vue-leaflet/vue-leaflet";
-import moment from "moment";
+// Leaflet global (como en Avance): con el que carga vue-leaflet por su cuenta
+// el l-icon con contenido propio no se aplica. Sin el CSS las teselas del mapa
+// salen desfasadas.
+import 'leaflet'
+import 'leaflet/dist/leaflet.css'
+import { LIcon, LMap, LMarker, LTileLayer, LTooltip } from '@vue-leaflet/vue-leaflet'
+import xlsx from 'json-as-xlsx'
+import moment from 'moment'
+
+const COLORES = { PEDIDO: 'green', 'NO PEDIDO': 'red', PARADO: 'orange' }
 
 export default {
-  name: "MapaVendedorVisita",
-  components: {
-    LMap,
-    LIcon,
-    LTileLayer,
-    LMarker,
-    LTooltip
-  },
-  data() {
+  name: 'MapaVendedorVisita',
+  components: { LMap, LIcon, LTileLayer, LMarker, LTooltip },
+  data () {
     return {
       center: [-17.969721, -67.114493],
       zoom: 13,
-      fecha: moment().format("YYYY-MM-DD"),
+      fecha: moment().format('YYYY-MM-DD'),
       loading: false,
-      pedidos: [],
-      pedidosAll: [],
-      pedidosMapa: [],
-      tipo: "",
+      exportando: false,
+      users: [],
+      vendedor: null,
+      ruta: 'TODOS',
+      buscarCliente: '',
+      tipo: '',
       tipos: [
-        { label: "TODOS", value: "" },
-        { label: "CERDO", value: "CERDO" },
-        { label: "EMBUTIDO", value: "NORMAL" },
-        { label: "POLLO", value: "POLLO" },
-        { label: "RES", value: "RES" }
+        { label: 'TODOS', value: '' },
+        { label: 'CERDO', value: 'CERDO' },
+        { label: 'EMBUTIDO', value: 'NORMAL' },
+        { label: 'POLLO', value: 'POLLO' },
+        { label: 'RES', value: 'RES' }
+      ],
+      columnas: [
+        { name: 'Cod_Aut', label: 'Cód.', field: 'Cod_Aut', align: 'left', sortable: true },
+        { name: 'Nombres', label: 'Cliente', field: 'Nombres', align: 'left', sortable: true },
+        { name: 'en_ruta', label: 'Ruta', field: r => (r.en_ruta ? 'Ruta' : 'Fuera'), align: 'left', sortable: true },
+        { name: 'estado', label: 'Estado', field: r => r.estado || 'FALTA', align: 'left', sortable: true },
+        { name: 'hora', label: 'Hora', field: r => r.visita_hora || r.pedido_hora || '', align: 'left', sortable: true },
+        { name: 'pedido_total', label: 'Bs', field: 'pedido_total', align: 'right', sortable: true }
       ]
-    };
-  },
-  mounted() {
-    this.buscar();
-  },
-  methods: {
-    isValidLatLng(lat, lng) {
-      const latNum = parseFloat(lat);
-      const lngNum = parseFloat(lng);
-      return !isNaN(latNum) && !isNaN(lngNum) && latNum !== 0 && lngNum !== 0;
-    },
-    buscar() {
-      this.loading = true;
-      this.$api.post("mapaVendedorVisita", {
-        fecha: this.fecha,
-        tipo: this.tipo
-      }).then((res) => {
-        // contar por estado
-        res.data.users.forEach(user => {
-          let creados = 0, nopedido = 0, parado = 0, faltaron = 0;
-          user.clientes.forEach(c => {
-            if (c.estado === 'PEDIDO') creados++;
-            else if (c.estado === 'NO PEDIDO') nopedido++;
-            else if (c.estado === 'PARADO') parado++;
-            else faltaron++;
-          });
-          user.pedidos = {
-            creados,
-            nopedido,
-            parado,
-            faltaron,
-            cantidad: user.clientes.length
-          };
-        });
-
-        this.pedidos = res.data;
-        this.pedidosMapa = { ...res.data };
-        this.pedidosAll = { ...res.data };
-      }).finally(() => {
-        this.loading = false;
-      });
-    },
-    seleccionar(user) {
-      this.pedidosMapa = {
-        ...this.pedidosMapa,
-        users: this.pedidosAll.users.filter(u => u.CodAut === user.CodAut)
-      };
-    },
-    verTodos() {
-      this.pedidosMapa = { ...this.pedidosAll };
     }
+  },
+  mounted () {
+    this.buscar()
   },
   computed: {
-    total() {
-      let sum = 0;
-      if (this.pedidos?.users?.length) {
-        sum = this.pedidos.users.reduce((acc, u) => acc + (u.pedidos?.cantidad || 0), 0);
+    opcionesVendedor () {
+      return [{ label: 'Todos', value: null }].concat(
+        this.users.map(u => ({ label: this.$filters.capitalize(u.nombreCompleto), value: u.CodAut })))
+    },
+    // Clientes de los vendedores elegidos con el filtro de ruta aplicado.
+    clientesPorRuta () {
+      const filas = []
+      this.users.forEach(u => {
+        u.clientes.forEach(c => {
+          if (this.ruta === 'RUTA' && !c.en_ruta) return
+          if (this.ruta === 'FUERA' && c.en_ruta) return
+          filas.push({ ...c, clave: u.CodAut + '-' + c.Cod_Aut, vendedorId: u.CodAut, vendedor: u.nombreCompleto })
+        })
+      })
+      return filas
+    },
+    clientesFiltrados () {
+      if (!this.vendedor) return this.clientesPorRuta
+      return this.clientesPorRuta.filter(c => c.vendedorId === this.vendedor)
+    },
+    clientesMapa () {
+      return this.clientesFiltrados.filter(c => this.coordenadaValida(c.Latitud, c.longitud))
+    },
+    resumen () {
+      return this.users.map(u => {
+        const filas = this.clientesPorRuta.filter(c => c.vendedorId === u.CodAut)
+        return { CodAut: u.CodAut, nombre: u.nombreCompleto, ...this.contar(filas) }
+      })
+    },
+    totales () {
+      return this.contar(this.clientesPorRuta)
+    }
+  },
+  methods: {
+    contar (filas) {
+      const r = { total: filas.length, ruta: 0, fuera: 0, pedido: 0, nopedido: 0, parado: 0, faltaron: 0, bs: 0 }
+      filas.forEach(c => {
+        if (c.en_ruta) r.ruta++
+        else r.fuera++
+        if (c.estado === 'PEDIDO') r.pedido++
+        else if (c.estado === 'NO PEDIDO') r.nopedido++
+        else if (c.estado === 'PARADO') r.parado++
+        else r.faltaron++
+        r.bs += parseFloat(c.pedido_total) || 0
+      })
+      r.efectividad = r.total ? ((r.pedido / r.total) * 100).toFixed(1) : '0.0'
+      return r
+    },
+    colorEstado (estado) {
+      return COLORES[estado] || 'grey'
+    },
+    hora (h) {
+      return h ? String(h).substring(0, 5) : ''
+    },
+    metros (d) {
+      const m = parseFloat(d) || 0
+      return m >= 1000 ? (m / 1000).toFixed(1) + ' km' : Math.round(m) + ' m'
+    },
+    coordenadaValida (lat, lng) {
+      const la = parseFloat(lat)
+      const ln = parseFloat(lng)
+      return !isNaN(la) && !isNaN(ln) && la !== 0 && ln !== 0
+    },
+    enfocar (c) {
+      if (!this.coordenadaValida(c.Latitud, c.longitud)) {
+        this.$q.notify({ type: 'warning', message: 'El cliente no tiene ubicación' })
+        return
       }
-      return sum;
+      this.center = [parseFloat(c.Latitud), parseFloat(c.longitud)]
+      this.zoom = 17
+    },
+    buscar () {
+      this.loading = true
+      this.$api.post('mapaVendedorVisita', { fecha: this.fecha, tipo: this.tipo }).then(res => {
+        this.users = res.data.users || []
+        if (this.vendedor && !this.users.some(u => u.CodAut === this.vendedor)) this.vendedor = null
+      }).catch(() => {
+        this.$q.notify({ type: 'negative', message: 'No se pudo cargar el mapa de visitas' })
+      }).finally(() => {
+        this.loading = false
+      })
+    },
+    // Lo arma el backend (MapaVendedorController::excelVisitas) con el vendedor
+    // y el filtro de ruta de la pantalla.
+    async exportarVisitas () {
+      this.exportando = true
+      try {
+        const { data } = await this.$api.get('mapaVendedorVisita/excel-visitas', {
+          params: { fecha: this.fecha, vendedor: this.vendedor || '', ruta: this.ruta },
+          responseType: 'blob'
+        })
+        const url = URL.createObjectURL(data)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = 'visitas_' + this.fecha + '.xlsx'
+        a.click()
+        URL.revokeObjectURL(url)
+      } catch (err) {
+        let mensaje = 'No se pudo generar el registro de visitas'
+        try {
+          mensaje = JSON.parse(await err.response.data.text()).message || mensaje
+        } catch (e) { /* el error no vino en JSON */ }
+        this.$q.notify({ type: 'negative', message: mensaje })
+      } finally {
+        this.exportando = false
+      }
+    },
+    exportarExcel () {
+      const filtro = { TODOS: 'Completo', RUTA: 'Ruta normal', FUERA: 'Fuera de ruta' }[this.ruta]
+      const tipo = (this.tipos.find(t => t.value === this.tipo) || {}).label
+      const vendedores = this.vendedor ? this.resumen.filter(r => r.CodAut === this.vendedor) : this.resumen
+      const resumen = vendedores.map(r => ({ ...r, bs: Number(r.bs.toFixed(2)), efectividad: r.efectividad + '%' }))
+      if (resumen.length > 1) {
+        const t = this.contar(this.clientesFiltrados)
+        resumen.push({ ...t, nombre: 'TOTAL', bs: Number(t.bs.toFixed(2)), efectividad: t.efectividad + '%' })
+      }
+      xlsx([
+        {
+          sheet: 'Resumen',
+          columns: [
+            { label: 'Vendedor', value: 'nombre' },
+            { label: 'Clientes', value: 'total' },
+            { label: 'En ruta', value: 'ruta' },
+            { label: 'Fuera de ruta', value: 'fuera' },
+            { label: 'Pedido', value: 'pedido' },
+            { label: 'No pedido', value: 'nopedido' },
+            { label: 'Retorno', value: 'parado' },
+            { label: 'Faltaron', value: 'faltaron' },
+            { label: 'Efectividad', value: 'efectividad' },
+            { label: 'Total pedido Bs', value: 'bs' }
+          ],
+          content: resumen
+        },
+        {
+          sheet: 'Clientes',
+          columns: [
+            { label: 'Vendedor', value: 'vendedor' },
+            { label: 'Código', value: 'Cod_Aut' },
+            { label: 'CI/NIT', value: 'Id' },
+            { label: 'Cliente', value: 'Nombres' },
+            { label: 'Dirección', value: 'Direccion' },
+            { label: 'Zona', value: 'zona' },
+            { label: 'Teléfono', value: 'Telf' },
+            { label: 'Ruta', value: r => (r.en_ruta ? 'En ruta' : 'Fuera de ruta') },
+            { label: 'Días de ruta', value: 'dias' },
+            { label: 'Estado', value: r => r.estado || 'FALTA' },
+            { label: 'Hora visita', value: r => this.hora(r.visita_hora) },
+            { label: 'Distancia visita (m)', value: r => (r.visita_distancia ? Math.round(r.visita_distancia) : '') },
+            { label: 'Observación', value: r => r.visita_obs || '' },
+            { label: 'Nro pedido', value: r => r.pedido_nros || '' },
+            { label: 'Tipo pedido', value: r => r.pedido_tipos || '' },
+            { label: 'Productos', value: 'pedido_lineas' },
+            { label: 'Total Bs', value: 'pedido_total' },
+            { label: 'Latitud', value: 'Latitud' },
+            { label: 'Longitud', value: 'longitud' }
+          ],
+          content: this.clientesFiltrados
+        }
+      ], {
+        fileName: ['Visitas', this.fecha, tipo, filtro].join('_').replace(/[^a-zA-Z0-9_-]+/g, '_'),
+        extraLength: 2
+      })
     }
   }
-};
+}
 </script>
+
+<style scoped>
+.tabla-compacta :deep(th),
+.tabla-compacta :deep(td) {
+  font-size: 11px;
+  line-height: 1.1;
+  padding: 2px 4px !important;
+  height: auto !important;
+}
+.tabla-compacta :deep(thead tr),
+.tabla-compacta :deep(tbody tr) {
+  height: auto !important;
+}
+.tabla-clientes {
+  height: calc(100vh - 330px);
+  min-height: 220px;
+}
+.tabla-clientes :deep(thead tr th) {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: #fff;
+}
+.buscar-cliente {
+  max-width: 160px;
+  font-size: 11px;
+}
+.filtro-ruta {
+  border: 1px solid rgba(0, 0, 0, 0.24);
+}
+.contenedor-mapa {
+  position: relative;
+  height: calc(100vh - 150px);
+  min-height: 380px;
+  width: 100%;
+}
+.punto {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 3px;
+  vertical-align: middle;
+}
+.punto-fuera {
+  background: #fff;
+  border: 2px dashed #7b1fa2;
+}
+.leyenda {
+  position: absolute;
+  bottom: 6px;
+  left: 6px;
+  z-index: 500;
+  background: rgba(255, 255, 255, 0.92);
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-size: 11px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.marcador {
+  display: inline-block;
+  transform: translate(-50%, -50%);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+  padding: 2px 3px;
+  border-radius: 3px;
+  white-space: nowrap;
+  border: 1px solid rgba(0, 0, 0, 0.25);
+}
+.marcador-fuera {
+  border: 2px dashed #7b1fa2;
+}
+.tip {
+  font-size: 11px;
+  line-height: 1.25;
+  max-width: 260px;
+  white-space: normal;
+}
+:deep(.icono-vacio) {
+  background: transparent;
+  border: none;
+}
+</style>
