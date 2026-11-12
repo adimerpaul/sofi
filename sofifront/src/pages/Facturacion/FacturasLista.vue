@@ -1098,7 +1098,6 @@
 import { date } from 'quasar'
 import xlsx from 'json-as-xlsx'
 import { imprimirPdfDirecto } from 'src/utils/impresion.js'
-import { PDFDocument } from 'pdf-lib'
 
 function filtrosPorDefecto () {
   return {
@@ -1802,6 +1801,8 @@ export default {
         await Promise.all([trabajar(), trabajar(), trabajar()])
 
         dialogo.update({ message: avance(97, 'Juntando las hojas…') })
+        // pdf-lib pesa ~400 KB: se baja recien cuando hay que juntar hojas.
+        const { PDFDocument } = await import('pdf-lib')
         const completo = await PDFDocument.create()
         for (const bytes of pdfs) {
           const parte = await PDFDocument.load(bytes)

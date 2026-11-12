@@ -2707,6 +2707,11 @@ class FacturacionController extends Controller
                         ? (int) $item['canastillos']
                         : null,
                     'precio'   => $precio,
+                    // El costo del momento, para la ganancia: no cambia aunque
+                    // despues una compra nueva actualice el del producto.
+                    'precio_compra' => $prod->precio_compra !== null
+                        ? round((float) $prod->precio_compra, 2)
+                        : null,
                     'subtotal' => $importe,
                 ];
             }
@@ -3667,6 +3672,8 @@ class FacturacionController extends Controller
                 'peso_bruto'  => $peso !== null && abs($peso - (float) $linea->peso) < 0.001 ? $linea->peso_bruto : null,
                 'canastillos' => $peso !== null && abs($peso - (float) $linea->peso) < 0.001 ? $linea->canastillos : null,
                 'precio'   => $precio,
+                // Lo entregado sigue costando lo mismo que en la nota original.
+                'precio_compra' => $linea->precio_compra,
                 'subtotal' => $importe,
             ];
         }

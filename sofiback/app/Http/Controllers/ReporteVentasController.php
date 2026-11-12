@@ -1500,7 +1500,8 @@ class ReporteVentasController extends Controller
      *   la venta de mostrador va como vendedor AGENCIA.
      * - PESO: lo cobrado por kilo; lo que va por unidad, cantidad x el peso de
      *   cada unidad (tbproductos.CantPren).
-     * - P.COMPRA: tbproductos.precio_compra x lo cobrado (kilos o unidades).
+     * - P.COMPRA: el precio de compra guardado en la linea al vender (o, si
+     *   no lo tiene, tbproductos.precio_compra) x lo cobrado (kilos o unidades).
      *   Vacio mientras el producto no tenga precio de compra cargado.
      * - CANTIDAD: las piezas; en lo que va a granel sin piezas contadas, 0.
      * - CAJAS: los canastillos con que se peso en caja.
@@ -1532,7 +1533,7 @@ class ReporteVentasController extends Controller
                 DB::raw('TRIM(c.Direccion) as direccion'),
                 DB::raw("COALESCE(NULLIF(TRIM(f.nombre), ''), TRIM(c.Nombres)) as cliente"),
                 DB::raw('TRIM(d.cod_prod) as cod_prod'), 'd.nombre', 'd.unidad', 'd.cantidad', 'd.peso',
-                'd.canastillos', 'd.subtotal',
+                'd.canastillos', 'd.subtotal', 'd.precio_compra as precio_compra_linea',
                 'f.pedido_nro', 'f.cliente_id', 'f.pedido_tipo', 'f.observacion',
                 DB::raw("TRIM(c.Nombres) as cliente_ficha"),
             ]);
@@ -1542,7 +1543,8 @@ class ReporteVentasController extends Controller
         foreach ($lineas as $l) {
             $p = $productos[strtoupper((string) $l->cod_prod)] ?? null;
             $l->CantPren = $p->CantPren ?? null;
-            $l->precio_compra = $p->precio_compra ?? null;
+            // El costo guardado al vender; si la linea no lo tiene, el de hoy.
+            $l->precio_compra = $l->precio_compra_linea ?? ($p->precio_compra ?? null);
             $l->familia = $p->familia ?? null;
             $l->subfamilia = $p->subfamilia ?? null;
             // El camion: el de la venta directa o el del pedido (igual que en facturacion).
@@ -2022,6 +2024,238 @@ class ReporteVentasController extends Controller
     }
 
     /** Productos facturados en el rango, de mayor a menor. */
+    /** Ganancia (precio de venta contra precio de compra) en pantalla. */
+    public function ganancia(Request $request)
+    {
+        return $this->calcularGanancia($request);
+    }
+
+    /** Como se llama cada agrupacion de la ganancia. */
+    private const AGRUPAR_GANANCIA = [
+        'producto' => 'PRODUCTO',
+        'vendedor' => 'VENDEDOR',
+        'cliente'  => 'CLIENTE',
+        'dia'      => 'DÍA',
+    ];
+
+    /**
+     * Ganancia de lo vendido entre dos fechas de entrega (ambas incluidas),
+     * agrupada por producto, vendedor, cliente o dia.
+     *
+     * - VENTA: el importe de la linea; si el comprobante tuvo descuento se le
+     *   reparte en proporcion, para no contar como ganancia lo que se rebajo.
+     * - COSTO: el precio de compra guardado en la linea al vender x lo cobrado
+     *   (kilos o piezas, lo mismo que multiplica al precio). Las lineas viejas
+     *   sin costo guardado usan el precio de compra de hoy del producto.
+     * - Lo que no tiene precio de compra va aparte (venta sin costo) y no entra
+     *   ni en la ganancia ni en el margen: si no, saldria como ganancia entera.
+     * - MARGEN: ganancia / venta con costo.
+     * Entran facturas y vouchers no anulados, de pedido o de mostrador.
+     */
+    private function calcularGanancia(Request $request): array
+    {
+        $datos = $request->validate([
+            'desde'   => 'nullable|date_format:Y-m-d',
+            'hasta'   => 'nullable|date_format:Y-m-d',
+            'agrupar' => 'nullable|in:' . implode(',', array_keys(self::AGRUPAR_GANANCIA)),
+        ]);
+        $desde = $datos['desde'] ?? date('Y-m-01');
+        $hasta = $datos['hasta'] ?? date('Y-m-d');
+        $agrupar = $datos['agrupar'] ?? 'producto';
+        if ($hasta < $desde) {
+            [$desde, $hasta] = [$hasta, $desde];
+        }
+
+        $lineas = DB::table('facturas as f')
+            ->join('factura_detalles as d', 'd.factura_id', '=', 'f.id')
+            ->leftJoin('tbclientes as c', 'c.Cod_Aut', '=', 'f.cliente_id')
+            ->whereNull('f.deleted_at')
+            ->whereNull('d.deleted_at')
+            ->where('f.estado', '<>', 'ANULADO')
+            ->whereBetween('f.fecha_entrega', [$desde, $hasta])
+            ->get(array_merge([
+                'f.id as factura_id', 'f.fecha_entrega', 'f.subtotal as f_subtotal', 'f.total as f_total',
+                'f.cliente_id', 'f.nit',
+                DB::raw('TRIM(d.cod_prod) as cod_prod'), 'd.nombre', 'd.unidad', 'd.cantidad', 'd.peso',
+                'd.subtotal', 'd.precio_compra',
+                DB::raw("COALESCE(NULLIF(TRIM(f.nombre), ''), TRIM(c.Nombres)) as cliente"),
+            ], $agrupar === 'vendedor' ? [
+                // Por subconsulta: personal.ci no es unico y un join duplicaria filas.
+                DB::raw("(SELECT TRIM(CONCAT_WS(' ', NULLIF(TRIM(pe.Nombre1), ''), NULLIF(TRIM(pe.Nombre2), ''),
+                    NULLIF(TRIM(pe.App1), ''), NULLIF(TRIM(pe.Apm), '')))
+                    FROM personal pe WHERE pe.ci = f.vendedor_ci LIMIT 1) as vendedor"),
+            ] : []));
+
+        // El costo de hoy solo para las lineas viejas que no lo guardaron.
+        $costoActual = DB::table('tbproductos')
+            ->whereIn(DB::raw('TRIM(cod_prod)'), $lineas->whereNull('precio_compra')->pluck('cod_prod')->unique()->values())
+            ->whereNotNull('precio_compra')
+            ->pluck('precio_compra', DB::raw('TRIM(cod_prod)'))
+            ->mapWithKeys(function ($v, $k) {
+                return [strtoupper((string) $k) => (float) $v];
+            });
+
+        $grupos = [];
+        foreach ($lineas as $l) {
+            $cantidad = (float) $l->peso > 0 ? (float) $l->peso : (float) $l->cantidad;
+            $factor = (float) $l->f_subtotal > 0 ? (float) $l->f_total / (float) $l->f_subtotal : 1.0;
+            $venta = (float) $l->subtotal * $factor;
+            $precioCompra = $l->precio_compra !== null
+                ? (float) $l->precio_compra
+                : ($costoActual[strtoupper((string) $l->cod_prod)] ?? null);
+
+            switch ($agrupar) {
+                case 'vendedor':
+                    $clave = $l->vendedor ?: 'AGENCIA';
+                    $nombre = $clave;
+                    break;
+                case 'cliente':
+                    $clave = $l->cliente_id ? 'c' . $l->cliente_id : 'n' . trim((string) $l->nit);
+                    $nombre = trim((string) $l->cliente) ?: 'SIN NOMBRE';
+                    break;
+                case 'dia':
+                    $clave = substr((string) $l->fecha_entrega, 0, 10);
+                    $nombre = $clave;
+                    break;
+                default:
+                    $clave = $l->cod_prod;
+                    $nombre = trim((string) $l->nombre);
+            }
+
+            $g = &$grupos[$clave];
+            if (!isset($g)) {
+                $g = [
+                    'clave' => (string) $clave, 'nombre' => $nombre,
+                    'unidad' => $agrupar === 'producto' ? strtoupper(trim((string) $l->unidad)) : '',
+                    'cantidad' => 0.0, 'venta' => 0.0, 'venta_con_costo' => 0.0, 'costo' => 0.0,
+                    'venta_sin_costo' => 0.0, '_comp' => [],
+                ];
+            }
+            $g['cantidad'] += $cantidad;
+            $g['venta'] += $venta;
+            if ($precioCompra !== null) {
+                $g['venta_con_costo'] += $venta;
+                $g['costo'] += $cantidad * $precioCompra;
+            } else {
+                $g['venta_sin_costo'] += $venta;
+            }
+            $g['_comp'][$l->factura_id] = true;
+            unset($g);
+        }
+
+        $filas = array_map(function ($g) {
+            $ganancia = $g['venta_con_costo'] - $g['costo'];
+            return [
+                'clave'           => $g['clave'],
+                'nombre'          => $g['nombre'],
+                'unidad'          => $g['unidad'],
+                'cantidad'        => round($g['cantidad'], 3),
+                'venta'           => round($g['venta'], 2),
+                'costo'           => round($g['costo'], 2),
+                'ganancia'        => round($ganancia, 2),
+                'margen'          => $g['venta_con_costo'] > 0 ? round($ganancia / $g['venta_con_costo'] * 100, 2) : null,
+                'venta_sin_costo' => round($g['venta_sin_costo'], 2),
+                'comprobantes'    => count($g['_comp']),
+            ];
+        }, array_values($grupos));
+
+        usort($filas, function ($a, $b) use ($agrupar) {
+            return $agrupar === 'dia'
+                ? strcmp($a['clave'], $b['clave'])
+                : [$b['ganancia'], $b['venta']] <=> [$a['ganancia'], $a['venta']];
+        });
+
+        $conCosto = array_sum(array_column($grupos, 'venta_con_costo'));
+        $costo = array_sum(array_column($grupos, 'costo'));
+
+        return [
+            'desde'   => $desde,
+            'hasta'   => $hasta,
+            'agrupar' => $agrupar,
+            'filas'   => $filas,
+            'totales' => [
+                'grupos'          => count($filas),
+                'comprobantes'    => count(array_unique(array_column($lineas->all(), 'factura_id'))),
+                'venta'           => round(array_sum(array_column($grupos, 'venta')), 2),
+                'costo'           => round($costo, 2),
+                'ganancia'        => round($conCosto - $costo, 2),
+                'margen'          => $conCosto > 0 ? round(($conCosto - $costo) / $conCosto * 100, 2) : null,
+                'venta_sin_costo' => round(array_sum(array_column($grupos, 'venta_sin_costo')), 2),
+            ],
+        ];
+    }
+
+    /** Ganancia en Excel. */
+    public function gananciaExcel(Request $request)
+    {
+        $datos = $this->calcularGanancia($request);
+        $porProducto = $datos['agrupar'] === 'producto';
+        $titulo = self::AGRUPAR_GANANCIA[$datos['agrupar']];
+
+        $libro = new Spreadsheet();
+        $hoja = $libro->getActiveSheet();
+        $hoja->setTitle('Ganancia');
+
+        $hoja->setCellValue('A1', 'GANANCIA POR ' . $titulo . ' (PRECIO DE VENTA VS PRECIO DE COMPRA)');
+        $hoja->setCellValue('A2', 'Entregas del ' . date('d/m/Y', strtotime($datos['desde'])) . ' al ' . date('d/m/Y', strtotime($datos['hasta'])));
+        $hoja->getStyle('A1')->getFont()->setBold(true)->setSize(12);
+
+        $hoja->fromArray([$porProducto ? 'CÓDIGO' : 'N°', $titulo, 'UNIDAD', 'CANTIDAD', 'VENTA BS', 'COSTO BS',
+            'GANANCIA BS', 'MARGEN', 'VENTA SIN COSTO BS', 'COMPROBANTES'], null, 'A4');
+        $hoja->getStyle('A4:J4')->applyFromArray([
+            'font' => ['bold' => true, 'size' => 9],
+            'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'D9D9D9']],
+        ]);
+
+        $fila = 5;
+        foreach ($datos['filas'] as $i => $f) {
+            $hoja->setCellValueExplicit('A' . $fila, $porProducto ? (string) $f['clave'] : (string) ($i + 1), DataType::TYPE_STRING);
+            $hoja->setCellValue('B' . $fila, $f['nombre']);
+            $hoja->setCellValue('C' . $fila, $f['unidad']);
+            $hoja->setCellValue('D' . $fila, $f['cantidad']);
+            $hoja->setCellValue('E' . $fila, $f['venta']);
+            $hoja->setCellValue('F' . $fila, $f['costo']);
+            $hoja->setCellValue('G' . $fila, $f['ganancia']);
+            $hoja->setCellValue('H' . $fila, $f['margen'] !== null ? $f['margen'] / 100 : null);
+            $hoja->setCellValue('I' . $fila, $f['venta_sin_costo']);
+            $hoja->setCellValue('J' . $fila, $f['comprobantes']);
+            if ($f['ganancia'] < 0) {
+                $hoja->getStyle("G{$fila}:H{$fila}")->getFont()->getColor()->setRGB('C00000');
+            }
+            $fila++;
+        }
+
+        $t = $datos['totales'];
+        $hoja->setCellValue('B' . $fila, 'TOTAL (' . $t['comprobantes'] . ' comprobantes)');
+        $hoja->setCellValue('E' . $fila, $t['venta']);
+        $hoja->setCellValue('F' . $fila, $t['costo']);
+        $hoja->setCellValue('G' . $fila, $t['ganancia']);
+        $hoja->setCellValue('H' . $fila, $t['margen'] !== null ? $t['margen'] / 100 : null);
+        $hoja->setCellValue('I' . $fila, $t['venta_sin_costo']);
+        $hoja->getStyle("A{$fila}:J{$fila}")->getFont()->setBold(true);
+        $hoja->getStyle("A{$fila}:J{$fila}")->getBorders()->getTop()->setBorderStyle(Border::BORDER_THIN);
+
+        $hoja->getStyle("D5:D{$fila}")->getNumberFormat()->setFormatCode('#,##0.000');
+        $hoja->getStyle("E5:G{$fila}")->getNumberFormat()->setFormatCode('#,##0.00');
+        $hoja->getStyle("H5:H{$fila}")->getNumberFormat()->setFormatCode('0.00%');
+        $hoja->getStyle("I5:I{$fila}")->getNumberFormat()->setFormatCode('#,##0.00');
+        $hoja->getStyle("A4:J{$fila}")->getFont()->setSize(9);
+        foreach (['A' => 11, 'B' => 44, 'C' => 8, 'D' => 12, 'E' => 14, 'F' => 14, 'G' => 14, 'H' => 10,
+                     'I' => 16, 'J' => 13] as $col => $ancho) {
+            $hoja->getColumnDimension($col)->setWidth($ancho);
+        }
+        $hoja->freezePane('A5');
+        $hoja->setAutoFilter('A4:J' . max($fila - 1, 4));
+
+        $nombre = 'ganancia_' . $datos['agrupar'] . '_' . $datos['desde'] . '_a_' . $datos['hasta'] . '.xlsx';
+
+        return response()->streamDownload(function () use ($libro) {
+            (new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($libro))->save('php://output');
+        }, $nombre, [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        ]);
+    }
+
     public function productosVendidos(Request $request)
     {
         return $this->ranking($request);

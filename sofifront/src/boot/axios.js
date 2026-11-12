@@ -1,7 +1,6 @@
 import { boot } from 'quasar/wrappers'
 import axios from 'axios'
 import store from "src/store";
-import moment from "moment";
 // import HighchartsVue from 'highcharts-vue'
 // Be careful when using SSR for cross-request state pollution
 // due to creating a Singleton instance here;
@@ -33,7 +32,13 @@ export default boot(({ app }) => {
     dateYmd: function (value) {
         if (!value) return ''
         const meses=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic']
-        return moment(value).format('DD')+'-'+meses[moment(value).format('MM')-1]+'-'+moment(value).format('YYYY')
+        // Sin moment: asi no entra al paquete principal que baja toda la app.
+        // 'YYYY-MM-DD' (con o sin hora) se toma como dia local, igual que moment;
+        // new Date la leeria en UTC y Safari no entiende 'YYYY-MM-DD HH:mm:ss'.
+        const texto = String(value)
+        const d = /^\d{4}-\d{2}-\d{2}/.test(texto) ? new Date(texto.slice(0, 10) + 'T00:00:00') : new Date(value)
+        if (isNaN(d)) return ''
+        return String(d.getDate()).padStart(2, '0') + '-' + meses[d.getMonth()] + '-' + d.getFullYear()
     }
   }
   //app.config.globalProperties.$api.defaults.baseURL=store.state.login.url+'api/'

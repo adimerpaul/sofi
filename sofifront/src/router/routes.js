@@ -1,72 +1,44 @@
 import Login from 'pages/Login.vue'
-import Index from "pages/Index.vue";
-import Asignar from "pages/Asignar.vue";
-import Cobranza from "pages/Cobranza.vue";
-import Misasignaciones from "pages/Misasignaciones.vue";
-import Mispedidos from "pages/Mispedidos.vue";
-import Visita from "pages/Visita.vue";
-import Miscobranzas from "pages/Miscobranzas.vue";
-import Clientes from "pages/Clientes.vue";
-import Generar from "pages/Generar.vue";
-import GenerarReporte from "pages/GenerarReporte.vue";
-import Cobrosrealizados from "pages/Cobrosrealizados.vue";
-import Modifica from "pages/Modifica.vue";
-import Pendientes from "pages/Pendientes.vue";
-import Monitoreo from "pages/Monitoreo.vue";
-import Ruta from "pages/Ruta.vue";
-import Reporte from "pages/Reporte.vue";
-import Productos from "pages/Productos.vue";
-import Nopedido from "pages/Nopedido.vue";
-import AlmacenPage from "pages/AlmacenPage.vue";
-import Entregas from "pages/Entregas.vue";
-import Despacho from "pages/Despacho.vue";
-import Clientevisita from "pages/Clientevisita.vue";
-import Pedidoresumen from "pages/Pedidoresumen.vue";
-import Avance from "pages/Avance.vue";
-import AlmacenVerificar from "pages/AlmacenVerificar.vue";
-import AlmacenVerificado from "pages/AlmacenVerificado.vue";
-import Despachoresumen from "pages/Despachoresumen.vue";
-import Mispedidostotales from "pages/Mispedidostotales.vue";
 
 const routes = [
   {
     path: '/',
     component: () => import('layouts/MainLayout.vue'),
     children: [
-      { path: '', component: Index},
-      { path: '/asignar', component: Asignar,meta: {requiresAuth: true} },
-      { path: '/misasignaciones', component: Misasignaciones ,meta: {requiresAuth: true}},
-      { path: '/mispedidos', component: Mispedidos ,meta: {requiresAuth: true}},
-      { path: '/mispedidostotales', component: Mispedidostotales ,meta: {requiresAuth: true}},
-      { path: '/cobranza', component: Cobranza ,meta: {requiresAuth: true}},
-      { path: '/visita', component: Visita ,meta: {requiresAuth: true}},
-      { path: '/miscobranzas', component: Miscobranzas ,meta: {requiresAuth: true}},
-      { path: '/clientes', component: Clientes ,meta: {requiresAuth: true}},
-      { path: '/generar', component: Generar ,meta: {requiresAuth: true}},
-      { path: '/genreporte', component: GenerarReporte ,meta: {requiresAuth: true}},
-      { path: '/cobrosrealizados', component: Cobrosrealizados ,meta: {requiresAuth: true}},
-      { path: '/modifica', component: Modifica ,meta: {requiresAuth: true}},
-      { path: '/pendientes', component: Pendientes ,meta: {requiresAuth: true}},
-      { path: '/monitoreo', component: Monitoreo ,meta: {requiresAuth: true}},
-      { path: '/ruta', component: Ruta ,meta: {requiresAuth: true}},
-      { path: '/reporte', component: Reporte ,meta: {requiresAuth: true}},
-      { path: '/productos', component: Productos ,meta: {requiresAuth: true}},
+      { path: '', component: () => import('pages/Index.vue')},
+      { path: '/asignar', component: () => import('pages/Asignar.vue'),meta: {requiresAuth: true} },
+      { path: '/misasignaciones', component: () => import('pages/Misasignaciones.vue') ,meta: {requiresAuth: true}},
+      { path: '/mispedidos', component: () => import('pages/Mispedidos.vue') ,meta: {requiresAuth: true}},
+      { path: '/mispedidostotales', component: () => import('pages/Mispedidostotales.vue') ,meta: {requiresAuth: true}},
+      { path: '/cobranza', component: () => import('pages/Cobranza.vue') ,meta: {requiresAuth: true}},
+      { path: '/visita', component: () => import('pages/Visita.vue') ,meta: {requiresAuth: true}},
+      { path: '/miscobranzas', component: () => import('pages/Miscobranzas.vue') ,meta: {requiresAuth: true}},
+      { path: '/clientes', component: () => import('pages/Clientes.vue') ,meta: {requiresAuth: true}},
+      { path: '/generar', component: () => import('pages/Generar.vue') ,meta: {requiresAuth: true}},
+      { path: '/genreporte', component: () => import('pages/GenerarReporte.vue') ,meta: {requiresAuth: true}},
+      { path: '/cobrosrealizados', component: () => import('pages/Cobrosrealizados.vue') ,meta: {requiresAuth: true}},
+      { path: '/modifica', component: () => import('pages/Modifica.vue') ,meta: {requiresAuth: true}},
+      { path: '/pendientes', component: () => import('pages/Pendientes.vue') ,meta: {requiresAuth: true}},
+      { path: '/monitoreo', component: () => import('pages/Monitoreo.vue') ,meta: {requiresAuth: true}},
+      { path: '/ruta', component: () => import('pages/Ruta.vue') ,meta: {requiresAuth: true}},
+      { path: '/reporte', component: () => import('pages/Reporte.vue') ,meta: {requiresAuth: true}},
+      { path: '/productos', component: () => import('pages/Productos.vue') ,meta: {requiresAuth: true}},
       { path: '/precios', component: () => import('pages/Precios.vue'), meta: { requiresAuth: true } },
-      { path: '/nopedido', component: Nopedido ,meta: {requiresAuth: true}},
-      { path: '/almacen', component: AlmacenPage ,meta: {requiresAuth: true}},
-      { path: '/almacenVerificar', component: AlmacenVerificar ,meta: {requiresAuth: true}},
-      { path: '/almacenVerificado', component: AlmacenVerificado ,meta: {requiresAuth: true}},
-      { path: '/entrega', component: Entregas ,meta: {requiresAuth: true}},
+      { path: '/nopedido', component: () => import('pages/Nopedido.vue') ,meta: {requiresAuth: true}},
+      { path: '/almacen', component: () => import('pages/AlmacenPage.vue') ,meta: {requiresAuth: true}},
+      { path: '/almacenVerificar', component: () => import('pages/AlmacenVerificar.vue') ,meta: {requiresAuth: true}},
+      { path: '/almacenVerificado', component: () => import('pages/AlmacenVerificado.vue') ,meta: {requiresAuth: true}},
+      { path: '/entrega', component: () => import('pages/Entregas.vue') ,meta: {requiresAuth: true}},
       // Entregas del dia sobre facturacion (reemplaza a /entrega).
       { path: '/entregafactura', component: () => import('pages/EntregaFactura.vue'), meta: { requiresAuth: true } },
-      { path: '/despacho', component: Despacho ,meta: {requiresAuth: true}},
-      { path: '/clientevisita', component: Clientevisita ,meta: {requiresAuth: true}},
+      { path: '/despacho', component: () => import('pages/Despacho.vue') ,meta: {requiresAuth: true}},
+      { path: '/clientevisita', component: () => import('pages/Clientevisita.vue') ,meta: {requiresAuth: true}},
       // Alta de cliente paso a paso del preventista (reemplaza el JotForm de "Alta Cliente").
       { path: '/paretoclientes', component: () => import('pages/ParetoClientes.vue'), meta: { requiresAuth: true } },
       { path: '/clientenuevo', component: () => import('pages/ClienteNuevo.vue'), meta: { requiresAuth: true } },
-      { path: '/clientepedido', component: Pedidoresumen ,meta: {requiresAuth: true}},
-      { path: '/listpedido', component: Despachoresumen ,meta: {requiresAuth: true}},
-      { path: '/avance', component: Avance ,meta: {requiresAuth: true}},
+      { path: '/clientepedido', component: () => import('pages/Pedidoresumen.vue') ,meta: {requiresAuth: true}},
+      { path: '/listpedido', component: () => import('pages/Despachoresumen.vue') ,meta: {requiresAuth: true}},
+      { path: '/avance', component: () => import('pages/Avance.vue') ,meta: {requiresAuth: true}},
       { path: '/mapavendedor', component: () => import('pages/MapaVendedor/MapaVendedor.vue') ,meta: {requiresAuth: true}},
       { path: '/mapavendedorvisita', component: () => import('pages/MapaVendedor/MapaVendedorVisita.vue') ,meta: {requiresAuth: true}},
       { path: '/mapacliente', component: () => import('pages/MapaCliente/MapaCliente.vue') ,meta: {requiresAuth: true}},

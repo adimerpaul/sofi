@@ -43,6 +43,23 @@ export default defineConfig(function (ctx) {
       // publicPath: '/',
       // analyze: true,
 
+      // Vue y Quasar en su propio archivo: no cambia entre deploys (solo al
+      // actualizar librerias), asi el navegador y la PWA lo reusan de cache
+      // y despues de cada deploy solo se baja el codigo propio que cambio.
+      extendViteConf (viteConf) {
+        viteConf.build = viteConf.build || {}
+        viteConf.build.rollupOptions = viteConf.build.rollupOptions || {}
+        const output = viteConf.build.rollupOptions.output || {}
+        viteConf.build.rollupOptions.output = {
+          ...output,
+          manualChunks (id) {
+            // Los componentes de Quasar quedan fuera: cada pagina baja solo los que usa.
+            if (/[\\/]node_modules[\\/]quasar[\\/]src[\\/](components|directives)[\\/]/.test(id)) return
+            if (/[\\/]node_modules[\\/](@vue|vue|vue-router|vuex|quasar)[\\/]/.test(id)) return 'vendor'
+          }
+        }
+      },
+
       env: {
         API: ctx.dev
           ? 'http://localhost:8000/api/'

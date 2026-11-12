@@ -171,6 +171,9 @@ Route::group(['middleware'=>'auth:sanctum'],function (){
     Route::get('/reportes/productos-vendidos',[\App\Http\Controllers\ReporteVentasController::class,'productosVendidos']);
     Route::get('/reportes/productos-vendidos/excel',[\App\Http\Controllers\ReporteVentasController::class,'productosVendidosExcel']);
     Route::get('/reportes/productos-vendidos/pdf',[\App\Http\Controllers\ReporteVentasController::class,'productosVendidosPdf']);
+    // Ganancia: precio de venta contra el precio de compra guardado en cada linea.
+    Route::get('/reportes/ganancia',[\App\Http\Controllers\ReporteVentasController::class,'ganancia']);
+    Route::get('/reportes/ganancia/excel',[\App\Http\Controllers\ReporteVentasController::class,'gananciaExcel']);
     Route::get('/facturacion/{factura}/voucher',[\App\Http\Controllers\FacturacionController::class,'voucher']);
     Route::get('/facturacion/{factura}/factura',[\App\Http\Controllers\FacturacionController::class,'factura']);
     // Pedido contra lo facturado, en una hoja, con el comentario de que cambio.

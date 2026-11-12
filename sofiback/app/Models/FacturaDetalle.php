@@ -38,6 +38,9 @@ class FacturaDetalle extends Model
         'peso_bruto',
         'canastillos',
         'precio',
+        // Lo que costaba el producto al venderlo (tbproductos.precio_compra),
+        // por kilo o pieza igual que precio; null si no tenia costo cargado.
+        'precio_compra',
         'subtotal',
     ];
 
@@ -48,6 +51,7 @@ class FacturaDetalle extends Model
         'peso_bruto'      => 'decimal:3',
         'canastillos'     => 'integer',
         'precio'   => 'decimal:2',
+        'precio_compra' => 'decimal:2',
         'subtotal' => 'decimal:2',
     ];
 

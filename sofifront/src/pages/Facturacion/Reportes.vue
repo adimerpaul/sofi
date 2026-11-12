@@ -10,6 +10,7 @@
       <q-tab name="detalle" icon="receipt_long" label="Detalle de ventas"/>
       <q-tab name="kardex" icon="inventory" label="Kardex por producto"/>
       <q-tab name="ranking" icon="leaderboard" label="Productos facturados"/>
+      <q-tab name="ganancia" icon="trending_up" label="Ganancia"/>
       <q-tab name="anulados" icon="block" label="Anulados de facturación"/>
       <q-tab name="general" icon="table_view" label="Reporte general"/>
       <q-tab name="base" icon="dataset" label="Base de ventas"/>
@@ -528,6 +529,111 @@
         </template>
       </q-tab-panel>
 
+      <!-- Ganancia: precio de venta contra el precio de compra guardado en cada linea. -->
+      <q-tab-panel name="ganancia" class="q-pa-none q-pt-sm">
+        <div class="row items-center q-gutter-sm">
+          <q-input v-model="ganancia.desde" type="date" dense outlined label="Entrega desde" style="width: 150px"
+                   @update:model-value="consultarGanancia"/>
+          <q-input v-model="ganancia.hasta" type="date" dense outlined label="Entrega hasta" style="width: 150px"
+                   @update:model-value="consultarGanancia"/>
+          <q-btn-toggle v-model="ganancia.agrupar" dense no-caps unelevated toggle-color="primary" color="grey-3"
+                        text-color="grey-9" :options="[
+                          { label: 'Por producto', value: 'producto' },
+                          { label: 'Por vendedor', value: 'vendedor' },
+                          { label: 'Por cliente', value: 'cliente' },
+                          { label: 'Por día', value: 'dia' }
+                        ]" @update:model-value="consultarGanancia"/>
+          <q-btn color="primary" icon="refresh" label="Actualizar" no-caps unelevated :loading="ganancia.cargando"
+                 @click="consultarGanancia"/>
+          <q-btn color="green-8" icon="download" label="Excel" no-caps unelevated :loading="ganancia.descargando"
+                 :disable="!ganancia.datos.filas.length" @click="descargarGanancia"/>
+        </div>
+
+        <div class="text-caption text-grey-7 q-mt-xs">
+          Facturas y vouchers no anulados por fecha de entrega. Costo = precio de compra guardado al vender × lo cobrado
+          (kg o piezas). Lo vendido sin precio de compra va aparte y no cuenta en la ganancia.
+        </div>
+
+        <div class="row q-col-gutter-sm q-mt-xs">
+          <div class="col-6 col-sm">
+            <q-card flat bordered class="tarjeta">
+              <div class="tarjeta-titulo">Venta Bs</div>
+              <div class="tarjeta-valor">{{ bs(ganancia.datos.totales.venta) }}</div>
+              <div class="tarjeta-sub">{{ ganancia.datos.totales.comprobantes }} comprobantes</div>
+            </q-card>
+          </div>
+          <div class="col-6 col-sm">
+            <q-card flat bordered class="tarjeta">
+              <div class="tarjeta-titulo">Costo Bs</div>
+              <div class="tarjeta-valor text-blue-9">{{ bs(ganancia.datos.totales.costo) }}</div>
+            </q-card>
+          </div>
+          <div class="col-6 col-sm">
+            <q-card flat bordered class="tarjeta">
+              <div class="tarjeta-titulo">Ganancia Bs</div>
+              <div class="tarjeta-valor" :class="ganancia.datos.totales.ganancia < 0 ? 'text-negative' : 'text-green-9'">
+                {{ bs(ganancia.datos.totales.ganancia) }}
+              </div>
+            </q-card>
+          </div>
+          <div class="col-6 col-sm">
+            <q-card flat bordered class="tarjeta">
+              <div class="tarjeta-titulo">Margen</div>
+              <div class="tarjeta-valor">{{ porcentajeGanancia(ganancia.datos.totales.margen) }}</div>
+            </q-card>
+          </div>
+          <div class="col-12 col-sm">
+            <q-card flat bordered class="tarjeta">
+              <div class="tarjeta-titulo">Venta sin costo Bs</div>
+              <div class="tarjeta-valor" :class="{ 'text-orange-9': ganancia.datos.totales.venta_sin_costo > 0 }">
+                {{ bs(ganancia.datos.totales.venta_sin_costo) }}
+              </div>
+              <div class="tarjeta-sub">productos sin precio de compra</div>
+            </q-card>
+          </div>
+        </div>
+
+        <q-input v-model="ganancia.buscar" dense outlined clearable placeholder="Buscar" class="q-mt-sm">
+          <template v-slot:append><q-icon name="search"/></template>
+        </q-input>
+
+        <q-markup-table flat bordered dense separator="horizontal" class="q-mt-sm tabla-quiebre">
+          <thead>
+          <tr class="bg-grey-3">
+            <th class="text-left">{{ ganancia.datos.agrupar === 'producto' ? 'Código' : 'N°' }}</th>
+            <th class="text-left">{{ etiquetaGanancia }}</th>
+            <th v-if="ganancia.datos.agrupar === 'producto'" class="text-left">Unidad</th>
+            <th class="text-right">Cantidad</th>
+            <th class="text-right">Venta Bs</th>
+            <th class="text-right">Costo Bs</th>
+            <th class="text-right">Ganancia Bs</th>
+            <th class="text-right">Margen</th>
+            <th class="text-right">Sin costo Bs</th>
+            <th class="text-right">Comprob.</th>
+          </tr>
+          </thead>
+          <tbody>
+          <tr v-if="!gananciaVisibles.length">
+            <td colspan="10" class="text-center text-grey-7 q-pa-md">
+              {{ ganancia.cargando ? 'Cargando…' : 'No hay ventas en este rango' }}
+            </td>
+          </tr>
+          <tr v-for="(g, i) in gananciaVisibles" :key="g.clave">
+            <td class="text-grey-7">{{ ganancia.datos.agrupar === 'producto' ? g.clave : i + 1 }}</td>
+            <td>{{ g.nombre }}</td>
+            <td v-if="ganancia.datos.agrupar === 'producto'">{{ g.unidad }}</td>
+            <td class="text-right">{{ numero(g.cantidad) }}</td>
+            <td class="text-right">{{ bs(g.venta) }}</td>
+            <td class="text-right text-blue-9">{{ bs(g.costo) }}</td>
+            <td class="text-right text-weight-bold" :class="g.ganancia < 0 ? 'text-negative' : 'text-green-9'">{{ bs(g.ganancia) }}</td>
+            <td class="text-right" :class="{ 'text-negative': g.margen !== null && g.margen < 0 }">{{ porcentajeGanancia(g.margen) }}</td>
+            <td class="text-right" :class="{ 'text-orange-9': g.venta_sin_costo > 0 }">{{ g.venta_sin_costo > 0 ? bs(g.venta_sin_costo) : '—' }}</td>
+            <td class="text-right">{{ g.comprobantes }}</td>
+          </tr>
+          </tbody>
+        </q-markup-table>
+      </q-tab-panel>
+
       <!-- Lo que salio en facturacion en el rango, un producto por fila, de mayor a menor. -->
       <q-tab-panel name="ranking" class="q-pa-none q-pt-sm">
         <div class="row items-center q-gutter-sm">
@@ -860,6 +966,20 @@ export default {
         orden: 'importe',
         datos: { filas: [], totales: { productos: 0, comprobantes: 0, cantidad: 0, peso: 0, importe: 0 } }
       },
+      // Ganancia: por fecha de entrega, por defecto el mes en curso hasta hoy.
+      ganancia: {
+        desde: date.formatDate(Date.now(), 'YYYY-MM') + '-01',
+        hasta: date.formatDate(Date.now(), 'YYYY-MM-DD'),
+        agrupar: 'producto',
+        buscar: '',
+        cargando: false,
+        descargando: false,
+        datos: {
+          agrupar: 'producto',
+          filas: [],
+          totales: { comprobantes: 0, venta: 0, costo: 0, ganancia: 0, margen: null, venta_sin_costo: 0 }
+        }
+      },
       buscarRanking: '',
       cargandoRanking: false,
       descargandoRanking: '',
@@ -993,6 +1113,7 @@ export default {
       // Sin producto elegido arranca con todos los productos.
       if (valor === 'kardex' && !this.kardex.todos && !this.kardex.cod_prod) this.consultarKardex()
       if (valor === 'ranking' && !this.ranking.datos.filas.length) this.consultarRanking()
+      if (valor === 'ganancia' && !this.ganancia.datos.filas.length) this.consultarGanancia()
       if (valor === 'cerdo' && !this.cerdo.datos) this.consultarCerdo()
       if ((valor === 'anulados' || valor === 'general') && !this.comp[valor].consultado) this.consultarComp(valor)
       if (valor === 'base' && !this.base.consultado) this.consultarBase()
@@ -1022,6 +1143,15 @@ export default {
         { titulo: 'Costo Bs', valor: this.bs(suma('costo')), clase: 'text-blue-9' },
         { titulo: 'Utilidad Bs', valor: this.bs(suma('utilidad')), clase: 'text-green-9' }
       ]
+    },
+    gananciaVisibles () {
+      const texto = (this.ganancia.buscar || '').toLowerCase()
+      const lista = this.ganancia.datos.filas
+      if (!texto) return lista
+      return lista.filter(g => String(g.clave).toLowerCase().includes(texto) || String(g.nombre).toLowerCase().includes(texto))
+    },
+    etiquetaGanancia () {
+      return { producto: 'Producto', vendedor: 'Vendedor', cliente: 'Cliente', dia: 'Día de entrega' }[this.ganancia.datos.agrupar] || ''
     },
     rankingVisibles () {
       const texto = (this.buscarRanking || '').toLowerCase()
@@ -1246,6 +1376,41 @@ export default {
         this.$q.notify({ type: 'negative', message: 'No se pudo descargar el ' + (csv ? 'CSV' : 'Excel') })
       } finally {
         b.descargando = false
+      }
+    },
+    porcentajeGanancia (v) {
+      return v === null || v === undefined ? '—' : Number(v).toFixed(1) + ' %'
+    },
+    paramsGanancia () {
+      return { desde: this.ganancia.desde, hasta: this.ganancia.hasta, agrupar: this.ganancia.agrupar }
+    },
+    consultarGanancia () {
+      const g = this.ganancia
+      if (!g.desde || !g.hasta) return
+      g.cargando = true
+      this.$api.get('reportes/ganancia', { params: this.paramsGanancia() }).then(res => {
+        g.datos = res.data
+      }).catch(err => {
+        this.$q.notify({ type: 'negative', message: err.response?.data?.message || 'No se pudo cargar el reporte' })
+      }).finally(() => {
+        g.cargando = false
+      })
+    },
+    async descargarGanancia () {
+      const g = this.ganancia
+      g.descargando = true
+      try {
+        const res = await this.$api.get('reportes/ganancia/excel', { params: this.paramsGanancia(), responseType: 'blob' })
+        const url = window.URL.createObjectURL(res.data)
+        const enlace = document.createElement('a')
+        enlace.href = url
+        enlace.download = 'ganancia_' + g.agrupar + '_' + g.desde + '_a_' + g.hasta + '.xlsx'
+        enlace.click()
+        window.URL.revokeObjectURL(url)
+      } catch (e) {
+        this.$q.notify({ type: 'negative', message: 'No se pudo descargar el Excel' })
+      } finally {
+        g.descargando = false
       }
     },
     paramsRanking () {
