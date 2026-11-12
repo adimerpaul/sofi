@@ -2059,7 +2059,7 @@ class ReporteVentasController extends Controller
             'hasta'   => 'nullable|date_format:Y-m-d',
             'agrupar' => 'nullable|in:' . implode(',', array_keys(self::AGRUPAR_GANANCIA)),
         ]);
-        $desde = $datos['desde'] ?? date('Y-m-01');
+        $desde = $datos['desde'] ?? date('Y-m-d');
         $hasta = $datos['hasta'] ?? date('Y-m-d');
         $agrupar = $datos['agrupar'] ?? 'producto';
         if ($hasta < $desde) {

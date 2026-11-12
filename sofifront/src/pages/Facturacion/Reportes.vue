@@ -966,9 +966,9 @@ export default {
         orden: 'importe',
         datos: { filas: [], totales: { productos: 0, comprobantes: 0, cantidad: 0, peso: 0, importe: 0 } }
       },
-      // Ganancia: por fecha de entrega, por defecto el mes en curso hasta hoy.
+      // Ganancia: por fecha de entrega, por defecto hoy.
       ganancia: {
-        desde: date.formatDate(Date.now(), 'YYYY-MM') + '-01',
+        desde: date.formatDate(Date.now(), 'YYYY-MM-DD'),
         hasta: date.formatDate(Date.now(), 'YYYY-MM-DD'),
         agrupar: 'producto',
         buscar: '',
