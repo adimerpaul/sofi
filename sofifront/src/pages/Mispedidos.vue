@@ -320,7 +320,9 @@
           </q-card-section>
           <q-card-section class="q-pt-none">
             <div class="row">
-              <!--            <pre>{{miproducto}}</pre>-->
+              <!-- Igual que en Visita: del pollo solo se pide la observacion; las
+                   cajas/unidades por calibre, el rango, las piezas con su unidad y
+                   BS/BS2 quedan comentados.
               <div class="col-6">
                 <q-input type="number" dense outlined label="Cja b5" v-model="miproducto.cbrasa5"/>
               </div>
@@ -436,6 +438,7 @@
               <div class="col-6">
                 <q-input type="text" dense outlined label="BS2" v-model="miproducto.bs2"/>
               </div>
+              -->
               <div class="col-12">
                 <q-input type="text" dense outlined label="OBS" v-model="miproducto.observacion"/>
               </div>

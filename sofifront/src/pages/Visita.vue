@@ -247,33 +247,6 @@
                   <q-btn round dense flat icon="edit" @click="modcomentario"/>
                 </template>
               </q-input>
-              <!-- Lo que mas pidio en los ultimos 3 meses (ClienteController::masPedidos):
-                   se carga al abrir este modal para que el preventista lo vea antes del pedido. -->
-              <div class="q-mt-sm">
-                <div class="row items-center">
-                  <div class="text-subtitle2">Lo que más pide <span class="text-caption text-grey-7">(3 meses<template v-if="masPedidos.pedidos">, {{ masPedidos.pedidos }} pedidos</template>)</span></div>
-                  <q-spinner v-if="cargandoMasPedidos" size="xs" class="q-ml-sm"/>
-                </div>
-                <div v-if="!cargandoMasPedidos && !masPedidos.productos.length" class="text-grey-7 text-caption">Sin pedidos en los últimos 3 meses.</div>
-                <q-list dense separator class="mas-pedidos">
-                  <q-item v-for="m in masPedidos.productos" :key="m.cod_prod" dense class="q-px-xs">
-                    <q-item-section avatar class="opcion-foto">
-                      <q-avatar rounded size="30px" class="foto-producto">
-                        <img v-if="m.imagen" :src="urlImagen(m.imagen)" alt="">
-                        <q-icon v-else name="inventory_2" size="16px" color="grey-6"/>
-                      </q-avatar>
-                    </q-item-section>
-                    <q-item-section>
-                      <q-item-label class="text-weight-medium nombre-producto">{{ m.Producto }}</q-item-label>
-                      <q-item-label caption>{{ m.cod_prod }} · últ. {{ m.ultima }}</q-item-label>
-                    </q-item-section>
-                    <q-item-section side class="text-right">
-                      <q-item-label class="text-weight-bold text-primary">{{ m.promedio }} {{ m.codUnid }}</q-item-label>
-                      <q-item-label caption>{{ m.veces }} veces · {{ m.total }} {{ m.codUnid }}</q-item-label>
-                    </q-item-section>
-                  </q-item>
-                </q-list>
-              </div>
             </div>
 <!--            <div class="col-12">-->
 <!--              <pre>{{cliente}}</pre>-->
@@ -342,6 +315,38 @@
             </div>
             <div class="col-12">
               <q-input dense outlined v-model="coment" label="Comentario"/>
+            </div>
+            <!-- Lo que mas pidio en los ultimos 3 meses (ClienteController::masPedidos):
+                 cada fila tiene un boton para sumarlo al pedido sin buscarlo. -->
+            <div class="col-12 q-mt-xs">
+              <div class="row items-center">
+                <div class="text-caption text-weight-bold">Lo que más compra <span class="text-grey-7 text-weight-regular">(3 meses<template v-if="masPedidos.pedidos">, {{ masPedidos.pedidos }} ventas facturadas</template>)</span></div>
+                <q-spinner v-if="cargandoMasPedidos" size="xs" class="q-ml-sm"/>
+              </div>
+              <div v-if="!cargandoMasPedidos && !masPedidos.productos.length" class="text-grey-7 text-caption">Sin ventas en los últimos 3 meses.</div>
+              <q-list dense separator bordered class="mas-pedidos rounded-borders" v-if="masPedidos.productos.length">
+                <q-item v-for="m in masPedidos.productos" :key="m.cod_prod" dense clickable
+                        @click="agregarFrecuente(m)">
+                  <q-item-section avatar>
+                    <q-avatar rounded size="22px" class="foto-producto">
+                      <img v-if="m.imagen" :src="urlImagen(m.imagen)" alt="">
+                      <q-icon v-else name="inventory_2" size="13px" color="grey-6"/>
+                    </q-avatar>
+                  </q-item-section>
+                  <q-item-section>
+                    <q-item-label class="text-weight-medium mas-nombre">{{ m.Producto }}</q-item-label>
+                    <q-item-label class="mas-detalle text-grey-7">{{ m.cod_prod }} · moda <b class="text-primary">{{ m.moda }} {{ m.moda_unidad }}</b> ({{ m.moda_veces }} de {{ m.veces }}) · últ. {{ m.ultima }}</q-item-label>
+                  </q-item-section>
+                  <q-item-section side>
+                    <q-btn round dense unelevated size="xs"
+                           :color="enPedido(m) ? 'grey-6' : 'positive'"
+                           :icon="enPedido(m) ? 'check' : 'add'"
+                           @click.stop="agregarFrecuente(m)">
+                      <q-tooltip>{{ enPedido(m) ? 'Ya está en el pedido (sumar 1)' : 'Agregar ' + m.moda + ' ' + m.moda_unidad }}</q-tooltip>
+                    </q-btn>
+                  </q-item-section>
+                </q-item>
+              </q-list>
             </div>
             <!--            $idsExtra = ['61839000', '0023456'];-->
             <div class="col-12" v-if="cliente.Id == '61839000' || cliente.Id == '0023456'">
@@ -1589,6 +1594,40 @@ export default {
       this.misproductos[0].subtotal = this.calcularSubtotal(this.misproductos[0])
       this.producto = {label: ''} //comentarpedido
     },
+    enPedido(m) {
+      return this.misproductos.some(p => p.cod_prod === String(m.cod_prod || '').trim())
+    },
+    // Boton de "Lo que mas pide": agrega el producto como si se eligiera en el
+    // buscador; si ya esta en el pedido le suma 1 (si se pide por cantidad).
+    agregarFrecuente(m) {
+      const cod = String(m.cod_prod || '').trim()
+      const linea = this.misproductos.find(p => p.cod_prod === cod)
+      if (linea) {
+        if (linea.tipo == 'NORMAL' || linea.precioAprox > 0 || linea.codUnid == 'CAJA') {
+          this.agregar(linea)
+        } else {
+          this.$q.notify({message: 'Ya está en el pedido, cargue las piezas en la línea', color: 'orange', icon: 'info'})
+        }
+        return
+      }
+      const producto = this.productos2.find(p => p.cod_prod === cod)
+      if (!producto) {
+        this.$q.notify({message: 'El producto ' + cod + ' no está disponible', color: 'red', icon: 'error'})
+        return
+      }
+      this.producto = producto
+      this.agregarpedido()
+      // Entra con la cantidad y la unidad de su moda de compra (ej. 100 KG de
+      // alas), solo en las lineas que se piden por cantidad; pollo, cerdo y
+      // res por piezas siguen cargandose en su dialogo.
+      const nueva = this.misproductos[0]
+      if (nueva && nueva.cod_prod === cod && parseFloat(m.moda) > 0 &&
+        (nueva.tipo == 'NORMAL' || nueva.precioAprox > 0 || nueva.codUnid == 'CAJA')) {
+        nueva.cantidad = parseFloat(m.moda)
+        if (m.moda_caja && this.unidadesCaja(nueva).includes(m.moda_caja)) nueva.caja = m.moda_caja
+        nueva.subtotal = this.calcularSubtotal(nueva)
+      }
+    },
     clickpedido() {
       this.clienteBonificacion = null
       this.coment = ''
@@ -1598,6 +1637,7 @@ export default {
       this.modalpedido = true
       this.misproductos = []
       this.cargarPreciosCliente()
+      this.cargarMasPedidos()
       if (this.cliente.Id == '61839000' || this.cliente.Id == '0023456') {
         this.pago = 'CREDITO'
         this.fact = 'NO'
@@ -1636,7 +1676,6 @@ export default {
       this.cliente = cliente
       this.comentario = {}
       this.cargarFotos()
-      this.cargarMasPedidos()
 
       this.$api.post('comentario', {ci: this.cliente.Id}).then(res => {
         //console.log(res.data)
@@ -1984,4 +2023,27 @@ export default {
 
 .zona-tooltip:before
   display: none
+
+.mas-pedidos
+  max-height: 170px
+  overflow-y: auto
+
+  .q-item
+    min-height: 0
+    padding: 2px 6px
+
+  .q-item__section--avatar
+    min-width: 0
+    padding-right: 6px
+
+  .q-item__label + .q-item__label
+    margin-top: 0
+
+  .mas-nombre
+    font-size: 11.5px
+    line-height: 1.15
+
+  .mas-detalle
+    font-size: 10.5px
+    line-height: 1.1
 </style>

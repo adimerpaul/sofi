@@ -121,37 +121,111 @@ class ClienteController extends Controller{
         return $misClientes;
     }
 
-    // Visita: lo que mas pidio el cliente en los ultimos 3 meses (moda por producto).
-    // idCli en tbpedidos es el Cod_Aut; los pedidos borrados no cuentan.
+    // Visita: lo que mas compro el cliente en los ultimos 3 meses segun lo
+    // facturado (facturas.cliente_id es el Cod_Aut), con la moda de cantidad.
     public function masPedidos($cliente)
     {
+        // Lo vendido (facturado), no lo digitado en tbpedidos: solo comprobantes
+        // vigentes. Una modificacion o un retorno parcial deja el anterior en
+        // ANULADO y el nuevo ACTIVO con lo que de verdad se entrego, asi que
+        // filtrando ACTIVO cada venta cuenta una sola vez.
+        $desde = Carbon::now()->subMonths(3)->format('Y-m-d');
         $filas = DB::select(
-            "SELECT p.cod_prod, COUNT(DISTINCT p.NroPed) AS veces, SUM(p.Cant) AS total,
-                    MAX(p.fecha) AS ultima, pr.Producto, pr.codUnid, pr.imagen
-             FROM tbpedidos p
-             LEFT JOIN tbproductos pr ON pr.cod_prod = p.cod_prod
-             WHERE p.idCli = ? AND p.deleted_at IS NULL AND p.fecha >= ?
-             GROUP BY p.cod_prod, pr.Producto, pr.codUnid, pr.imagen
+            "SELECT TRIM(d.cod_prod) AS cod_prod, COUNT(DISTINCT f.id) AS veces,
+                    SUM(d.cantidad) AS total, SUM(COALESCE(d.peso, 0)) AS peso,
+                    MAX(f.fecha) AS ultima, MAX(d.nombre) AS nombre, MAX(d.unidad) AS unidad,
+                    MAX(pr.Producto) AS Producto, MAX(pr.codUnid) AS codUnid, MAX(pr.imagen) AS imagen
+             FROM facturas f
+             JOIN factura_detalles d ON d.factura_id = f.id AND d.deleted_at IS NULL
+             LEFT JOIN tbproductos pr ON pr.cod_prod = d.cod_prod
+             WHERE f.cliente_id = ? AND f.estado = 'ACTIVO' AND f.deleted_at IS NULL AND f.fecha >= ?
+             GROUP BY TRIM(d.cod_prod)
              ORDER BY veces DESC, total DESC
              LIMIT 8",
-            [(string) $cliente, Carbon::now()->subMonths(3)->format('Y-m-d')]
+            [(int) $cliente, $desde]
         );
-        $pedidos = DB::selectOne(
-            "SELECT COUNT(DISTINCT NroPed) AS n FROM tbpedidos WHERE idCli = ? AND deleted_at IS NULL AND fecha >= ?",
-            [(string) $cliente, Carbon::now()->subMonths(3)->format('Y-m-d')]
+        $ventas = DB::selectOne(
+            "SELECT COUNT(*) AS n FROM facturas
+             WHERE cliente_id = ? AND estado = 'ACTIVO' AND deleted_at IS NULL AND fecha >= ?",
+            [(int) $cliente, $desde]
         );
+
+        // Moda: la cantidad que mas se repite por venta en cada producto, junto
+        // con la unidad en que se pidio. factura_detalles.unidad es la del
+        // producto (CAJA), pero lo que va por caja se pide en U, CAJA o KG y eso
+        // queda en tbpedidos.caja; sin pedido (venta directa) va la del detalle.
+        // Si en una venta el producto sale en varias lineas se suman. Empate:
+        // la que compro mas recientemente.
+        $modas = [];
+        $codigos = array_map(function ($f) { return $f->cod_prod; }, $filas);
+        if ($codigos) {
+            $lineas = DB::table('facturas as f')
+                ->join('factura_detalles as d', 'd.factura_id', '=', 'f.id')
+                ->whereNull('d.deleted_at')
+                ->whereNull('f.deleted_at')
+                ->where('f.cliente_id', (int) $cliente)
+                ->where('f.estado', 'ACTIVO')
+                ->where('f.fecha', '>=', $desde)
+                ->whereIn(DB::raw('TRIM(d.cod_prod)'), $codigos)
+                ->get([
+                    'f.id',
+                    'f.fecha',
+                    'd.cantidad',
+                    DB::raw('TRIM(d.cod_prod) as cod_prod'),
+                    DB::raw('TRIM(d.unidad) as unidad'),
+                    DB::raw("(SELECT MAX(TRIM(p.caja)) FROM tbpedidos p
+                              WHERE p.NroPed = f.pedido_nro AND p.idCli = f.cliente_id
+                                AND TRIM(p.cod_prod) = TRIM(d.cod_prod)) as caja"),
+                ]);
+            // Una fila por venta y producto.
+            $porVenta = [];
+            foreach ($lineas as $l) {
+                $k = $l->id . '|' . $l->cod_prod;
+                if (isset($porVenta[$k])) {
+                    $porVenta[$k]->cantidad += (float) $l->cantidad;
+                } else {
+                    $l->cantidad = (float) $l->cantidad;
+                    $porVenta[$k] = $l;
+                }
+            }
+            $conteo = [];
+            foreach ($porVenta as $l) {
+                $unidad = $l->caja ?: $l->unidad;
+                $clave = round((float) $l->cantidad, 2) . '|' . $unidad;
+                $c = &$conteo[$l->cod_prod][$clave];
+                $c['n'] = ($c['n'] ?? 0) + 1;
+                $c['fecha'] = max($c['fecha'] ?? '', (string) $l->fecha);
+                $c['cantidad'] = round((float) $l->cantidad, 2);
+                $c['unidad'] = $unidad;
+                // Lo que se pidio por caja (U, CAJA o KG): el front lo usa para
+                // elegir la misma unidad al agregarlo.
+                $c['caja'] = $l->caja;
+                unset($c);
+            }
+            foreach ($conteo as $cod => $grupos) {
+                uasort($grupos, function ($a, $b) {
+                    return [$b['n'], $b['fecha']] <=> [$a['n'], $a['fecha']];
+                });
+                $modas[$cod] = reset($grupos);
+            }
+        }
+
         return [
-            'pedidos' => (int) ($pedidos->n ?? 0),
-            'productos' => array_map(function ($f) {
-                $veces = (int) $f->veces;
+            'pedidos' => (int) ($ventas->n ?? 0),
+            'productos' => array_map(function ($f) use ($modas) {
+                $moda = $modas[$f->cod_prod] ?? ['cantidad' => 0, 'n' => 0, 'unidad' => null, 'caja' => null];
                 return [
                     'cod_prod' => $f->cod_prod,
-                    'Producto' => $f->Producto ?: $f->cod_prod,
-                    'codUnid' => $f->codUnid,
+                    'Producto' => trim((string) ($f->Producto ?: $f->nombre ?: $f->cod_prod)),
+                    'codUnid' => trim((string) ($f->unidad ?: $f->codUnid)),
                     'imagen' => $f->imagen,
-                    'veces' => $veces,
+                    'veces' => (int) $f->veces,
                     'total' => round((float) $f->total, 2),
-                    'promedio' => $veces ? round((float) $f->total / $veces, 2) : 0,
+                    'moda' => $moda['cantidad'],
+                    'moda_unidad' => $moda['unidad'] ?: trim((string) ($f->unidad ?: $f->codUnid)),
+                    'moda_caja' => $moda['caja'],
+                    // En cuantas ventas compro exactamente esa cantidad.
+                    'moda_veces' => $moda['n'],
                     'ultima' => $f->ultima ? substr($f->ultima, 0, 10) : null,
                 ];
             }, $filas),
