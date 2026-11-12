@@ -48,6 +48,9 @@ export default defineConfig(function (ctx) {
       // y despues de cada deploy solo se baja el codigo propio que cambio.
       extendViteConf (viteConf) {
         viteConf.build = viteConf.build || {}
+        // Calcular el gzip de cada archivo solo sirve para el reporte y en un
+        // servidor lento suma varios segundos (vfs_fonts pesa 2.5 MB).
+        viteConf.build.reportCompressedSize = false
         viteConf.build.rollupOptions = viteConf.build.rollupOptions || {}
         const output = viteConf.build.rollupOptions.output || {}
         viteConf.build.rollupOptions.output = {
