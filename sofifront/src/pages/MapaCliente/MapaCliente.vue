@@ -50,7 +50,7 @@
         </div>
         <div class="row">
           <div class="col-xs-12 col-md-12">
-            <div style="height: 450px; width: 100%;" :class="{ 'mapa-cuadro': modoCuadro }">
+            <div class="mapa-contenedor" :class="{ 'mapa-cuadro': modoCuadro }">
               <!-- max-zoom explicito: si no, vue-leaflet manda maxZoom undefined a la
                    capa, Leaflet lo vuelve NaN y al hacer zoom da "infinite number of tiles". -->
               <l-map
@@ -60,8 +60,11 @@
                 :max-zoom="19"
                 @ready="mapaListo"
               >
+                <!-- Mapa de Google (calles), igual que en Avance/Visita. -->
                 <LTileLayer
-                  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                  url="https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}"
+                  :subdomains="['mt0', 'mt1', 'mt2', 'mt3']"
+                  attribution="Map data © Google"
                   :min-zoom="3"
                   :max-zoom="19"
                 ></LTileLayer>
@@ -323,6 +326,7 @@
 <script>
 import moment from "moment";
 import {markRaw} from "vue";
+import "leaflet/dist/leaflet.css";
 import {LIcon, LMap, LMarker, LTileLayer, LTooltip, LGeoJson} from "@vue-leaflet/vue-leaflet";
 // La misma copia de Leaflet que usa vue-leaflet, para que el rectangulo sea
 // una capa que el mapa reconoce.
@@ -754,11 +758,19 @@ export default {
   },
 
   beforeUnmount() {
+    if (this.observadorMapa) this.observadorMapa.disconnect();
     this.quitarEventosCuadro();
   },
   methods: {
     mapaListo(mapa) {
       this.mapa = markRaw(mapa);
+      // Si el contenedor cambia de tamano (rotar el celular, abrir el menu
+      // lateral) Leaflet debe recalcular, si no las teselas quedan corridas.
+      this.$nextTick(() => this.mapa && this.mapa.invalidateSize());
+      if (window.ResizeObserver) {
+        this.observadorMapa = new ResizeObserver(() => this.mapa && this.mapa.invalidateSize());
+        this.observadorMapa.observe(this.mapa.getContainer());
+      }
     },
     alternarModoCuadro() {
       if (!this.mapa) return;
@@ -1080,6 +1092,18 @@ export default {
 };
 </script>
 <style scoped>
+/* Alto del mapa segun la pantalla: ocupa casi todo el alto visible. */
+.mapa-contenedor {
+  width: 100%;
+  height: calc(100vh - 170px);
+  min-height: 320px;
+  max-height: 800px;
+}
+@media (max-width: 599px) {
+  .mapa-contenedor {
+    height: 60vh;
+  }
+}
 /* Fila de filtros baja: inputs y botones de 32px. */
 .barra-compacta {
   overflow-x: auto;
