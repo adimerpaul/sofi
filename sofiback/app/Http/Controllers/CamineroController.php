@@ -334,9 +334,13 @@ class CamineroController extends Controller
             return $error;
         }
 
-        $entregados = collect($datos['items'])->mapWithKeys(function ($item) {
-            return [trim((string) $item['cod_prod']) => round((float) $item['entregado'], 3)];
-        });
+        // Un mismo producto puede venir en varias lineas del comprobante: lo
+        // entregado se guarda en una cola por codigo y cada linea toma el suyo
+        // en orden (la pantalla manda las lineas en el mismo orden, por id).
+        $entregados = [];
+        foreach ($datos['items'] as $item) {
+            $entregados[trim((string) $item['cod_prod'])][] = round((float) $item['entregado'], 3);
+        }
 
         $lineas = [];
         $nuevoTotal = 0.0;
@@ -354,7 +358,7 @@ class CamineroController extends Controller
             // Lo que va por kilo se devuelve en kilos: es lo que se cobra.
             $porPeso = (float) $detalle->peso > 0;
             $original = round((float) ($porPeso ? $detalle->peso : $detalle->cantidad), 3);
-            $entregado = $entregados->has($codigo) ? $entregados->get($codigo) : $original;
+            $entregado = !empty($entregados[$codigo]) ? array_shift($entregados[$codigo]) : $original;
             $unidad = $porPeso ? 'kg' : (trim((string) $detalle->unidad) ?: 'u');
 
             if ($entregado - $original > 0.001) {

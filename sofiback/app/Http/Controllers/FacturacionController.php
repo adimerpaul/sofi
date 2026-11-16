@@ -5381,7 +5381,7 @@ class FacturacionController extends Controller
     public function reporte(Request $request)
     {
         $datos = $request->validate([
-            'formato'    => 'nullable|in:pdf,excel',
+            'formato'    => 'nullable|in:pdf,excel,json',
             'contenido'  => 'nullable|in:ventas,cambios,anulados',
         ]);
 
@@ -5391,6 +5391,35 @@ class FacturacionController extends Controller
         if ($contenido === 'anulados') {
             $query->where('estado', 'ANULADO');
         }
+
+        // Para la pestaña Facturas de Reportes: una fila liviana por
+        // comprobante, con lo necesario para imprimirlo o abrirlo en el SIAT.
+        if (($datos['formato'] ?? null) === 'json') {
+            $facturas = $query->setEagerLoads([])->get();
+            return response()->json(['filas' => $facturas->map(function ($f) {
+                return [
+                    'id'               => $f->id,
+                    'nro_factura'      => $f->nro_factura,
+                    'tipo_comprobante' => $f->tipo_comprobante,
+                    'estado'           => $f->estado,
+                    'estado_siat'      => $f->estado_siat,
+                    'tiene_cuf'        => (bool) $f->cuf,
+                    'fecha'            => optional($f->fecha)->format('Y-m-d'),
+                    'hora'             => $f->hora,
+                    'fecha_entrega'    => $f->fecha_entrega ? date('Y-m-d', strtotime((string) $f->fecha_entrega)) : null,
+                    'pedido_nro'       => $f->pedido_nro,
+                    'placa'            => $f->placa,
+                    'cliente'          => $f->nombre ?: 'Sin cliente',
+                    'nit'              => $f->nit,
+                    'tipo_pago'        => $f->tipo_pago,
+                    'subtotal'         => (float) $f->subtotal,
+                    'descuento'        => (float) $f->descuento,
+                    'total'            => (float) $f->total,
+                    'impreso_veces'    => (int) $f->impreso_veces,
+                ];
+            })->values()]);
+        }
+
         $facturas = $query->get();
 
         if ($contenido === 'cambios') {

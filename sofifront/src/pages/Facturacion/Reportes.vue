@@ -14,6 +14,7 @@
       <q-tab name="anulados" icon="block" label="Anulados de facturación"/>
       <q-tab name="general" icon="table_view" label="Reporte general"/>
       <q-tab name="base" icon="dataset" label="Base de ventas"/>
+      <q-tab name="facturas" icon="verified" label="Facturas del mes"/>
       </template>
     </q-tabs>
     <q-separator/>
@@ -881,12 +882,112 @@
           </template>
         </q-table>
       </q-tab-panel>
+      <!-- Facturas fiscales vigentes del mes (por fecha de emision, como se
+           declaran al SIAT): totales, Excel/PDF y reimpresion de cada una. -->
+      <q-tab-panel name="facturas" class="q-pa-none q-pt-sm">
+        <div class="row items-center q-gutter-sm">
+          <q-input v-model="fact.mes" type="month" dense outlined label="Mes de emisión" style="width: 170px"
+                   @update:model-value="consultarFacturas"/>
+          <q-select v-model="fact.siat" :options="opcionesSiatFact" emit-value map-options dense outlined
+                    label="Estado SIAT" style="width: 170px"/>
+          <q-btn color="primary" icon="refresh" label="Actualizar" no-caps unelevated :loading="fact.cargando"
+                 @click="consultarFacturas"/>
+          <q-btn color="green-8" icon="grid_on" label="Excel" no-caps unelevated
+                 :loading="fact.descargando === 'excel'" :disable="!fact.filas.length"
+                 @click="descargarFacturas('excel')"/>
+          <q-btn color="red-7" icon="picture_as_pdf" label="PDF" no-caps unelevated
+                 :loading="fact.descargando === 'pdf'" :disable="!fact.filas.length"
+                 @click="descargarFacturas('pdf')"/>
+          <q-space/>
+          <div class="text-caption text-grey-8">{{ etiquetaMesFact }}</div>
+        </div>
+
+        <div class="text-caption text-grey-7 q-mt-xs">
+          Solo facturas (no vouchers) emitidas en Facturación durante el mes, sin las anuladas. Se cuenta por fecha de
+          emisión, que es como se declaran al SIAT. El Excel y el PDF traen el mes completo.
+        </div>
+
+        <div class="row q-col-gutter-sm q-mt-xs">
+          <div v-for="t in tarjetasFact" :key="t.titulo" class="col-6 col-sm">
+            <q-card flat bordered class="tarjeta">
+              <div class="tarjeta-titulo">{{ t.titulo }}</div>
+              <div class="tarjeta-valor" :class="t.clase">{{ t.valor }}</div>
+              <div v-if="t.sub" class="tarjeta-sub">{{ t.sub }}</div>
+            </q-card>
+          </div>
+        </div>
+
+        <q-table
+          class="q-mt-sm tabla-detalle" flat bordered dense virtual-scroll
+          :rows="factVisibles" :columns="columnasFact" :filter="fact.buscar"
+          :rows-per-page-options="[0]" row-key="id" :loading="fact.cargando"
+          no-data-label="No hay facturas en ese mes"
+        >
+          <template v-slot:top-right>
+            <q-input v-model="fact.buscar" dense outlined clearable debounce="300"
+                     placeholder="Cliente, NIT, Nro factura, pedido…" style="width: 280px">
+              <template v-slot:append><q-icon name="search"/></template>
+            </q-input>
+          </template>
+          <template v-slot:body-cell-estado_siat="props">
+            <q-td :props="props">
+              <q-badge :color="props.value === 'VALIDADA' ? 'positive' : 'negative'"
+                       :label="props.value || 'NO ENVIADA'"/>
+            </q-td>
+          </template>
+          <template v-slot:body-cell-acciones="props">
+            <q-td :props="props" auto-width>
+              <q-btn dense flat round size="sm" color="primary" icon="print" :loading="fact.imprimiendo === props.row.id">
+                <q-tooltip>Imprimir</q-tooltip>
+                <q-menu auto-close>
+                  <q-list dense style="min-width: 220px">
+                    <q-item clickable @click="imprimirFactura(props.row, 'ambas')">
+                      <q-item-section avatar><q-icon name="verified" color="green-7"/></q-item-section>
+                      <q-item-section>Imprimir original y copia</q-item-section>
+                    </q-item>
+                    <q-item clickable @click="imprimirFactura(props.row, 'ORIGINAL')">
+                      <q-item-section avatar><q-icon name="print" color="primary"/></q-item-section>
+                      <q-item-section>Solo original</q-item-section>
+                    </q-item>
+                    <q-item clickable @click="imprimirFactura(props.row, 'COPIA')">
+                      <q-item-section avatar><q-icon name="content_copy" color="grey-7"/></q-item-section>
+                      <q-item-section>Solo copia</q-item-section>
+                    </q-item>
+                    <q-separator/>
+                    <q-item clickable :disable="!props.row.tiene_cuf" @click="imprimirSiat(props.row)">
+                      <q-item-section avatar><q-icon name="account_balance" color="indigo-7"/></q-item-section>
+                      <q-item-section>
+                        Imprimir de Impuestos (SIAT)
+                        <q-item-label caption>{{ props.row.tiene_cuf ? 'Abre la factura oficial con su CUF' : 'Sin CUF todavía' }}</q-item-label>
+                      </q-item-section>
+                    </q-item>
+                    <q-item clickable @click="pdfFactura(props.row)">
+                      <q-item-section avatar><q-icon name="picture_as_pdf" color="red-7"/></q-item-section>
+                      <q-item-section>Descargar PDF</q-item-section>
+                    </q-item>
+                  </q-list>
+                </q-menu>
+              </q-btn>
+            </q-td>
+          </template>
+          <template v-slot:bottom-row>
+            <q-tr class="text-weight-bold bg-grey-2">
+              <q-td colspan="7" class="text-right">Total ({{ factVisibles.length }} facturas)</q-td>
+              <q-td class="text-right">{{ bs(sumaFact(factVisibles, 'subtotal')) }}</q-td>
+              <q-td class="text-right">{{ bs(sumaFact(factVisibles, 'descuento')) }}</q-td>
+              <q-td class="text-right">{{ bs(sumaFact(factVisibles, 'total')) }}</q-td>
+              <q-td colspan="2"/>
+            </q-tr>
+          </template>
+        </q-table>
+      </q-tab-panel>
     </q-tab-panels>
   </q-page>
 </template>
 
 <script>
 import { date } from 'quasar'
+import { imprimirPdfDirecto } from 'src/utils/impresion.js'
 
 export default {
   name: 'ReportesVentas',
@@ -997,6 +1098,37 @@ export default {
         anulados: this.nuevoComp(),
         general: Object.assign(this.nuevoComp(), { relacion: '' })
       },
+      // Facturas del mes: por fecha de emision, por defecto el mes actual.
+      fact: {
+        mes: date.formatDate(Date.now(), 'YYYY-MM'),
+        siat: '',
+        filas: [],
+        buscar: '',
+        cargando: false,
+        descargando: '',
+        imprimiendo: null,
+        consultado: false
+      },
+      opcionesSiatFact: [
+        { label: 'Todas', value: '' },
+        { label: 'Validadas', value: 'VALIDADA' },
+        { label: 'No validadas', value: 'PENDIENTE' }
+      ],
+      columnasFact: [
+        { name: 'nro_factura', label: 'Nro factura', field: 'nro_factura', align: 'left', sortable: true },
+        { name: 'fecha', label: 'Emisión', field: f => this.fechaCorta(f.fecha) + ' ' + String(f.hora || '').substr(0, 5),
+          align: 'left', sortable: true, sort: (a, b, x, y) => (x.fecha + x.hora).localeCompare(y.fecha + y.hora) },
+        { name: 'cliente', label: 'Cliente', field: 'cliente', align: 'left', sortable: true },
+        { name: 'nit', label: 'NIT / CI', field: 'nit', align: 'left' },
+        { name: 'pedido_nro', label: 'Pedido', field: f => f.pedido_nro || '—', align: 'left', sortable: true },
+        { name: 'placa', label: 'Camión', field: f => f.placa || '', align: 'left', sortable: true },
+        { name: 'tipo_pago', label: 'Pago', field: 'tipo_pago', align: 'left', sortable: true },
+        { name: 'subtotal', label: 'Subtotal Bs', field: 'subtotal', align: 'right', sortable: true, format: v => this.bs(v) },
+        { name: 'descuento', label: 'Desc. Bs', field: 'descuento', align: 'right', sortable: true, format: v => this.bs(v) },
+        { name: 'total', label: 'Total Bs', field: 'total', align: 'right', sortable: true, format: v => this.bs(v) },
+        { name: 'estado_siat', label: 'SIAT', field: 'estado_siat', align: 'center', sortable: true },
+        { name: 'acciones', label: '', field: 'id', align: 'center' }
+      ],
       // Base de ventas: por fecha de entrega, por defecto hoy.
       base: {
         desde: date.formatDate(Date.now(), 'YYYY-MM-DD'),
@@ -1117,9 +1249,39 @@ export default {
       if (valor === 'cerdo' && !this.cerdo.datos) this.consultarCerdo()
       if ((valor === 'anulados' || valor === 'general') && !this.comp[valor].consultado) this.consultarComp(valor)
       if (valor === 'base' && !this.base.consultado) this.consultarBase()
+      if (valor === 'facturas' && !this.fact.consultado) this.consultarFacturas()
     }
   },
   computed: {
+    factVisibles () {
+      const siat = this.fact.siat
+      if (!siat) return this.fact.filas
+      return this.fact.filas.filter(f => siat === 'VALIDADA' ? f.estado_siat === 'VALIDADA' : f.estado_siat !== 'VALIDADA')
+    },
+    etiquetaMesFact () {
+      if (!this.fact.mes) return ''
+      const meses = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre',
+        'Octubre', 'Noviembre', 'Diciembre']
+      const [a, m] = this.fact.mes.split('-')
+      return meses[Number(m) - 1] + ' ' + a
+    },
+    tarjetasFact () {
+      const filas = this.factVisibles
+      const total = this.sumaFact(filas, 'total')
+      const pago = tipo => filas.filter(f => String(f.tipo_pago || '').toUpperCase().includes(tipo))
+      const validadas = filas.filter(f => f.estado_siat === 'VALIDADA').length
+      const dias = new Set(filas.map(f => f.fecha)).size
+      return [
+        { titulo: 'Facturas', valor: filas.length, sub: new Set(filas.map(f => f.nit || f.cliente)).size + ' clientes' },
+        { titulo: 'Total facturado Bs', valor: this.bs(total), clase: 'text-positive',
+          sub: 'Descuentos Bs ' + this.bs(this.sumaFact(filas, 'descuento')) },
+        { titulo: 'Efectivo Bs', valor: this.bs(this.sumaFact(pago('EFECTIVO'), 'total')),
+          sub: 'QR Bs ' + this.bs(this.sumaFact(pago('QR'), 'total')) },
+        { titulo: 'Promedio por día Bs', valor: this.bs(dias ? total / dias : 0), sub: dias + ' días con facturas' },
+        { titulo: 'SIAT', valor: validadas + ' / ' + filas.length,
+          sub: (filas.length - validadas) + ' sin validar', clase: validadas === filas.length ? 'text-positive' : 'text-negative' }
+      ]
+    },
     can () {
       return this.$store.getters['login/can']
     },
@@ -1200,6 +1362,91 @@ export default {
     this.consultar()
   },
   methods: {
+    sumaFact (filas, campo) {
+      return filas.reduce((s, f) => s + Number(f[campo] || 0), 0)
+    },
+    // Facturas fiscales vigentes del mes, por fecha de emision.
+    paramsFacturas () {
+      const [a, m] = this.fact.mes.split('-').map(Number)
+      const ultimo = new Date(a, m, 0).getDate()
+      return {
+        tipo: 'FACTURA',
+        estado: 'ACTIVO',
+        contenido: 'ventas',
+        desde: this.fact.mes + '-01',
+        hasta: this.fact.mes + '-' + String(ultimo).padStart(2, '0')
+      }
+    },
+    consultarFacturas () {
+      if (!this.fact.mes) return
+      this.fact.cargando = true
+      this.fact.consultado = true
+      this.$api.get('facturacion/reporte', { params: Object.assign({ formato: 'json' }, this.paramsFacturas()) })
+        .then(res => { this.fact.filas = res.data.filas })
+        .catch(err => {
+          this.$q.notify({ type: 'negative', message: err.response?.data?.message || 'No se pudieron cargar las facturas' })
+        })
+        .finally(() => { this.fact.cargando = false })
+    },
+    async descargarFacturas (formato) {
+      this.fact.descargando = formato
+      try {
+        const params = Object.assign({ formato }, this.paramsFacturas())
+        const res = await this.$api.get('facturacion/reporte', { params, responseType: 'blob' })
+        const enlace = document.createElement('a')
+        enlace.href = window.URL.createObjectURL(res.data)
+        enlace.download = 'facturas_' + this.fact.mes + (formato === 'pdf' ? '.pdf' : '.xlsx')
+        enlace.click()
+        window.URL.revokeObjectURL(enlace.href)
+      } catch (err) {
+        let mensaje = 'No se pudo descargar el ' + (formato === 'pdf' ? 'PDF' : 'Excel')
+        try {
+          mensaje = JSON.parse(await err.response.data.text()).message || mensaje
+        } catch (e) { /* el error no vino en JSON */ }
+        this.$q.notify({ type: 'negative', message: mensaje })
+      } finally {
+        this.fact.descargando = ''
+      }
+    },
+    // hojas: 'ambas' (original y copia), 'ORIGINAL' o 'COPIA'; como en Facturación.
+    imprimirFactura (row, hojas) {
+      this.fact.imprimiendo = row.id
+      const params = Object.assign({ imprimir: 1 }, hojas === 'ambas' ? { copias: 1 } : { marca: hojas })
+      this.$api.get('facturacion/' + row.id + '/factura', { params, responseType: 'blob' })
+        .then(res => {
+          row.impreso_veces = Number(row.impreso_veces || 0) + 1
+          return imprimirPdfDirecto(res.data, 'factura_' + (row.nro_factura || row.id) + '.pdf')
+        })
+        .catch(() => { this.$q.notify({ type: 'negative', message: 'No se pudo imprimir la factura' }) })
+        .finally(() => { this.fact.imprimiendo = null })
+    },
+    pdfFactura (row) {
+      this.fact.imprimiendo = row.id
+      this.$api.get('facturacion/' + row.id + '/factura', { responseType: 'blob' })
+        .then(res => {
+          const url = window.URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }))
+          const enlace = document.createElement('a')
+          enlace.href = url
+          enlace.download = 'factura_' + (row.nro_factura || row.id) + '.pdf'
+          enlace.click()
+          window.URL.revokeObjectURL(url)
+        })
+        .catch(() => { this.$q.notify({ type: 'negative', message: 'No se pudo descargar la factura' }) })
+        .finally(() => { this.fact.imprimiendo = null })
+    },
+    // La factura oficial en la consulta publica del SIAT (por su CUF).
+    imprimirSiat (row) {
+      const ventana = window.open('', '_blank')
+      this.$api.get('facturacion/' + row.id + '/url-impuestos')
+        .then(res => {
+          if (ventana) ventana.location.href = res.data.url
+          else window.location.href = res.data.url
+        })
+        .catch(err => {
+          if (ventana) ventana.close()
+          this.$q.notify({ type: 'negative', message: err.response?.data?.message || 'No se pudo abrir la factura en Impuestos' })
+        })
+    },
     paramsCerdo () {
       return { reporte: this.cerdo.reporte, desde: this.cerdo.desde, hasta: this.cerdo.hasta || this.cerdo.desde }
     },

@@ -729,7 +729,7 @@
               </tr>
             </thead>
             <tbody>
-              <tr v-for="fila in retornoItems" :key="fila.cod_prod" :class="fila.entregado < fila.original ? 'bg-deep-orange-1' : ''">
+              <tr v-for="(fila, i) in retornoItems" :key="i" :class="fila.entregado < fila.original ? 'bg-deep-orange-1' : ''">
                 <td>
                   <div class="text-weight-medium">{{ fila.nombre }}</div>
                   <div class="text-caption text-grey-7">Bs {{ money(fila.precio) }} / {{ fila.unidadTexto }}</div>
