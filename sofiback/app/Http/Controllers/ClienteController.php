@@ -129,7 +129,7 @@ class ClienteController extends Controller{
         // vigentes. Una modificacion o un retorno parcial deja el anterior en
         // ANULADO y el nuevo ACTIVO con lo que de verdad se entrego, asi que
         // filtrando ACTIVO cada venta cuenta una sola vez.
-        $desde = Carbon::now()->subMonths(3)->format('Y-m-d');
+        $desde = Carbon::now()->subMonths(4)->format('Y-m-d');
         $filas = DB::select(
             "SELECT TRIM(d.cod_prod) AS cod_prod, COUNT(DISTINCT f.id) AS veces,
                     SUM(d.cantidad) AS total, SUM(COALESCE(d.peso, 0)) AS peso,
@@ -140,6 +140,7 @@ class ClienteController extends Controller{
              LEFT JOIN tbproductos pr ON pr.cod_prod = d.cod_prod
              WHERE f.cliente_id = ? AND f.estado = 'ACTIVO' AND f.deleted_at IS NULL AND f.fecha >= ?
              GROUP BY TRIM(d.cod_prod)
+             HAVING veces >= 5
              ORDER BY veces DESC, total DESC
              LIMIT 8",
             [(int) $cliente, $desde]
