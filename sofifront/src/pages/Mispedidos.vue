@@ -1811,9 +1811,23 @@ export default {
       })
     },
     eliminarcomanda() {
-      this.$api.post('deletecomanda', {comanda: this.cliente.NroPed}).then(res => {
-        this.modalpedido = false
-        this.misclientes()
+      this.$q.dialog({
+        title: 'Eliminar pedido',
+        message: '¿Seguro que desea eliminar el pedido N° ' + this.cliente.NroPed + '? Esta acción no se puede deshacer.',
+        persistent: true,
+        cancel: {label: 'Cancelar', flat: true},
+        ok: {label: 'Eliminar', color: 'red'},
+      }).onOk(() => {
+        this.$q.loading.show()
+        this.$api.post('deletecomanda', {comanda: this.cliente.NroPed}).then(res => {
+          this.$q.loading.hide()
+          this.$q.notify({message: 'Pedido eliminado', color: 'green', icon: 'check'})
+          this.modalpedido = false
+          this.misclientes()
+        }).catch(err => {
+          this.$q.loading.hide()
+          this.$q.notify({message: err.response?.data?.message || 'No se pudo eliminar el pedido', color: 'red', icon: 'error'})
+        })
       })
     },
     // Boleta de pedido enviado en PDF (jsPDF): encabezado con datos del pedido y

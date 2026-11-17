@@ -24,7 +24,7 @@
       </div>
       <q-space/>
       <div class="col-auto text-caption text-grey-7">
-        Según lo facturado · volumen en kg (en unidades lo que se vende por unidad)
+        Según lo facturado · volumen en kg (lo que va por unidad, por el peso de cada unidad)
       </div>
     </div>
 
@@ -36,7 +36,7 @@
           <tr>
             <th class="text-left">DESCRIPCIÓN</th>
             <th>OBJETIVO KG</th>
-            <th>VOLUMEN VENDIDO</th>
+            <th>VOLUMEN VENDIDO KG</th>
             <th>AVANCE %</th>
             <th>COBERTURA</th>
             <th>VENDIDO Bs</th>

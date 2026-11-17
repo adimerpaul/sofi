@@ -16,8 +16,10 @@ use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
  *
  * Lo vendido sale de lo facturado: facturas ACTIVO del mes (una modificacion o
  * un retorno parcial dejan el anterior ANULADO, asi cada venta cuenta una vez)
- * con su detalle. El volumen es el peso cuando la linea lo tiene (pollo, cerdo,
- * lo que va por kilo) y si no la cantidad (lo que se vende por unidad).
+ * con su detalle. El volumen va siempre en kg, como en el detalle de ventas:
+ * lo pesado si la linea lo tiene (pollo, cerdo, caja); si va por KG, la
+ * cantidad; si va por unidad, cantidad x peso de la unidad (tbproductos.CantPren),
+ * ej. 2 sachets de hamburguesa 2X113 GRS = 2 x 0.226 kg.
  *
  * Cada producto cae en una linea del formato (avance_lineas) por su codigo o,
  * si no, por su grupo. Lo que no esta en ninguna linea no entra al avance.
@@ -226,7 +228,9 @@ class AvanceVentasController extends Controller
 
         $filas = DB::select(
             "SELECT TRIM(f.vendedor_ci) AS ci, f.cliente_id, TRIM(d.cod_prod) AS cod_prod, TRIM(p.cod_grup) AS cod_grup,
-                    SUM(CASE WHEN COALESCE(d.peso, 0) > 0 THEN d.peso ELSE d.cantidad END) AS vol,
+                    SUM(CASE WHEN COALESCE(d.peso, 0) > 0 THEN d.peso
+                             WHEN UPPER(TRIM(d.unidad)) = 'KG' THEN d.cantidad
+                             ELSE d.cantidad * COALESCE(p.CantPren, 0) END) AS vol,
                     SUM(d.subtotal) AS bs
              FROM facturas f
              JOIN factura_detalles d ON d.factura_id = f.id AND d.deleted_at IS NULL
@@ -386,11 +390,11 @@ class AvanceVentasController extends Controller
         $hoja->setCellValue('A1', $titulo);
         $hoja->mergeCells('A1:F1');
         $hoja->getStyle('A1')->getFont()->setBold(true)->setSize(13);
-        $hoja->setCellValue('A2', 'Del ' . $datos['desde'] . ' al ' . $datos['hasta'] . ' · según lo facturado · volumen en kg (por unidad lo que se vende por unidad)');
+        $hoja->setCellValue('A2', 'Del ' . $datos['desde'] . ' al ' . $datos['hasta'] . ' · según lo facturado · volumen en kg (lo que va por unidad, por el peso de cada unidad)');
         $hoja->mergeCells('A2:F2');
         $hoja->getStyle('A2')->getFont()->setItalic(true)->setSize(9);
 
-        $enc = ['DESCRIPCION', 'OBJETIVO KG', 'VOLUMEN VENDIDO', 'AVANCE %', 'COBERTURA', 'VENDIDO Bs'];
+        $enc = ['DESCRIPCION', 'OBJETIVO KG', 'VOLUMEN VENDIDO KG','AVANCE %', 'COBERTURA', 'VENDIDO Bs'];
         $hoja->fromArray($enc, null, 'A4');
         $hoja->getStyle('A4:F4')->applyFromArray([
             'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
