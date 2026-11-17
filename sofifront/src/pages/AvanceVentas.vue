@@ -52,7 +52,7 @@
                      :title="f.sugerido ? 'Sin objetivo general: suma de los vendedores' : ''">
               <template v-else>{{ f.objetivo ? numero(f.objetivo) : '' }}</template>
             </td>
-            <td class="text-right" :class="f.tipo === 'seccion' ? 'amarillo' : ''">{{ numero(f.vol) }}</td>
+            <td class="text-right" :class="f.tipo === 'seccion' ? 'amarillo' : ''">{{ numero(f.vol) }}<span v-if="f.porCantidad" class="text-grey-7"> U</span></td>
             <td class="text-right" :class="f.tipo === 'seccion' ? 'amarillo' : ''">
               <span v-if="f.avance !== null" :class="colorAvance(f.avance)">{{ (f.avance * 100).toFixed(1) }}%</span>
             </td>
@@ -288,7 +288,7 @@ export default {
           const objetivo = propio || sugerido
           const r = (res.lineas && res.lineas[l.id]) || vacio
           filas.push({
-            tipo: 'linea', clave: 'l' + l.id, id: l.id, nombre: l.nombre, objetivo, sugerido: propio ? 0 : sugerido,
+            tipo: 'linea', clave: 'l' + l.id, id: l.id, nombre: l.nombre, porCantidad: l.por_cantidad, objetivo, sugerido: propio ? 0 : sugerido,
             vol: r.vol, bs: r.bs, cobertura: r.cobertura, avance: objetivo > 0 ? r.vol / objetivo : null
           })
           secObj += objetivo

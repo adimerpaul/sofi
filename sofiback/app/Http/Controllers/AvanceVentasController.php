@@ -19,7 +19,8 @@ use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
  * con su detalle. El volumen va siempre en kg, como en el detalle de ventas:
  * lo pesado si la linea lo tiene (pollo, cerdo, caja); si va por KG, la
  * cantidad; si va por unidad, cantidad x peso de la unidad (tbproductos.CantPren),
- * ej. 2 sachets de hamburguesa 2X113 GRS = 2 x 0.226 kg.
+ * ej. 2 sachets de hamburguesa 2X113 GRS = 2 x 0.226 kg. La unica excepcion es
+ * la linea marcada por_cantidad (HUEVO), que suma la cantidad vendida.
  *
  * Cada producto cae en una linea del formato (avance_lineas) por su codigo o,
  * si no, por su grupo. Lo que no esta en ninguna linea no entra al avance.
@@ -225,12 +226,15 @@ class AvanceVentasController extends Controller
             foreach (array_filter(explode(',', (string) $l->grupos)) as $grupo) $porGrupo[trim($grupo)] = $l->id;
         }
         $seccionDe = $lineas->pluck('seccion', 'id');
+        // Lineas que suman la cantidad vendida en vez de los kg (HUEVO).
+        $porCantidad = $lineas->filter(function ($l) { return !empty($l->por_cantidad); })->pluck('id')->flip();
 
         $filas = DB::select(
             "SELECT TRIM(f.vendedor_ci) AS ci, f.cliente_id, TRIM(d.cod_prod) AS cod_prod, TRIM(p.cod_grup) AS cod_grup,
                     SUM(CASE WHEN COALESCE(d.peso, 0) > 0 THEN d.peso
                              WHEN UPPER(TRIM(d.unidad)) = 'KG' THEN d.cantidad
                              ELSE d.cantidad * COALESCE(p.CantPren, 0) END) AS vol,
+                    SUM(d.cantidad) AS cant,
                     SUM(d.subtotal) AS bs
              FROM facturas f
              JOIN factura_detalles d ON d.factura_id = f.id AND d.deleted_at IS NULL
@@ -272,7 +276,7 @@ class AvanceVentasController extends Controller
             $lineaId = $porProducto[$f->cod_prod] ?? ($porGrupo[$f->cod_grup] ?? null);
             if (!$lineaId) continue;
             $seccion = $seccionDe[$lineaId];
-            $vol = (float) $f->vol;
+            $vol = isset($porCantidad[$lineaId]) ? (float) $f->cant : (float) $f->vol;
             $bs = (float) $f->bs;
             $sumar('g', $lineaId, $seccion, $f->cliente_id, $vol, $bs);
 
@@ -328,6 +332,7 @@ class AvanceVentasController extends Controller
                     'nombre' => $l->nombre,
                     'grupos' => array_values(array_filter(explode(',', (string) $l->grupos))),
                     'productos' => array_values(array_filter(explode(',', (string) $l->productos))),
+                    'por_cantidad' => !empty($l->por_cantidad),
                 ];
             })->values(),
             'vendedores' => $vendedores,
