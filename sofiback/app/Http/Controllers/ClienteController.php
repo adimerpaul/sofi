@@ -547,10 +547,31 @@ class ClienteController extends Controller{
         // Cada columna: titulo, ancho, alineacion (c|r|''), tipo (txt: texto
         // forzado, bs: moneda, coord: coordenada, wa/mapa: link, dia, estado)
         // y el valor de la fila. Agrupadas bajo una banda de color.
+        // Dia de visita: 1 o vacio, para poder sumar/filtrar en Excel.
         $diasVisita = [];
         foreach ($dias as $campo => $letraDia) {
-            $diasVisita[] = [$letraDia, 4, 'c', 'dia', function ($c) use ($campo) { return (int) $c->$campo ? '●' : ''; }];
+            $diasVisita[] = [$letraDia, 4, 'c', 'dia', function ($c) use ($campo) { return (int) $c->$campo ? 1 : ''; }];
         }
+        // Esporadico: el que solo tiene el domingo marcado (no se le visita en ruta fija).
+        $esporadico = function ($c) {
+            foreach (['lu', 'Ma', 'Mi', 'Ju', 'Vi', 'Sa'] as $campo) {
+                if ((int) $c->$campo) return 0;
+            }
+            return (int) $c->do ? 1 : 0;
+        };
+        // Nombre completo del vendedor (nombres y los dos apellidos), por CI.
+        $vendedores = DB::table('personal')
+            ->get([DB::raw('TRIM(ci) as ci'), 'Nombre1', 'Nombre2', 'App1', 'Apm'])
+            ->mapWithKeys(function ($p) {
+                $nombre = preg_replace('/\s+/', ' ', trim($p->Nombre1 . ' ' . $p->Nombre2 . ' ' . $p->App1 . ' ' . $p->Apm));
+                return [$p->ci => $nombre];
+            });
+        // CI y telefono como numero cuando son solo digitos (sin cero adelante,
+        // que Excel se lo comeria); si traen guion, complemento o letras, texto.
+        $numero = function ($v) {
+            $v = trim((string) $v);
+            return preg_match('/^[1-9]\d{0,14}$/', $v) ? (float) $v : $v;
+        };
         $diasVisita[] = ['Días/sem', 7, 'c', '', function ($c) use ($dias) {
             return count(array_filter(array_keys($dias), function ($campo) use ($c) { return (int) $c->$campo; }));
         }];
@@ -558,15 +579,15 @@ class ClienteController extends Controller{
             ['CLIENTE', [
                 ['Cod', 7, 'c', '', function ($c) { return (int) $c->Cod_Aut; }],
                 ['Cliente', 32, '', '', function ($c) use ($t) { return $t($c->Nombres); }],
-                ['CI/NIT', 12, '', 'txt', function ($c) use ($t) { return $t($c->Id) . ($t($c->complto) !== '' ? '-' . $t($c->complto) : ''); }],
-                ['Celular', 12, '', 'txt', function ($c) use ($t) { return $t($c->Telf); }],
+                ['CI/NIT', 12, '', 'num', function ($c) use ($t, $numero) { return $numero($t($c->Id) . ($t($c->complto) !== '' ? '-' . $t($c->complto) : '')); }],
+                ['Celular', 12, '', 'num', function ($c) use ($t, $numero) { return $numero($c->Telf); }],
                 ['WhatsApp', 10, 'c', 'wa', function ($c) { return $this->numeroWhatsapp($c->Telf) ? 'Abrir chat' : ''; }],
                 ['Dirección', 34, '', '', function ($c) use ($t) { return $t($c->Direccion); }],
                 ['Empresa / Razón social', 22, '', '', function ($c) use ($t) { return $t($c->Empresa); }],
             ]],
             ['VENDEDOR Y ZONA', [
-                ['Vendedor', 24, '', '', function ($c) use ($t) { return $t($c->vendedor) ?: $t($c->CiVend); }],
-                ['CI vendedor', 11, 'c', 'txt', function ($c) use ($t) { return $t($c->CiVend); }],
+                ['Vendedor', 30, '', '', function ($c) use ($t, $vendedores) { return $vendedores[$t($c->CiVend)] ?? ($t($c->vendedor) ?: $t($c->CiVend)); }],
+                ['CI vendedor', 11, 'c', 'num', function ($c) use ($t, $numero) { return $numero($c->CiVend); }],
                 ['Zona', 11, 'c', '', function ($c) use ($t) { return $t($c->zona); }],
                 ['Territorio', 11, 'c', '', function ($c) use ($t) { return $t($c->territorio); }],
             ]],
@@ -593,6 +614,9 @@ class ClienteController extends Controller{
                 ['Latitud', 11, 'r', 'coord', function ($c) { return $this->tieneUbicacion($c) ? (float) $c->Latitud : ''; }],
                 ['Longitud', 11, 'r', 'coord', function ($c) { return $this->tieneUbicacion($c) ? (float) $c->longitud : ''; }],
                 ['Mapa', 10, 'c', 'mapa', function ($c) { return $this->tieneUbicacion($c) ? 'Ver mapa' : ''; }],
+            ]],
+            ['ESPORÁDICO', [
+                ['Cliente esporádico', 11, 'c', '', $esporadico],
             ]],
         ];
         $planas = [];
@@ -640,13 +664,13 @@ class ClienteController extends Controller{
                 . '   ·   Con deuda: ' . $conDeuda->count()
                 . '   ·   Deuda total: ' . number_format($conDeuda->sum(function ($c) { return (float) $c->totdeuda; }), 2) . ' Bs'
                 . '   ·   Sin ubicación: ' . $sinUbicacion . '   ·   Sin día de visita: ' . $clientes->filter($sinDia)->count(),
-            'Generado por ' . $nombreUsuario . ' el ' . date('d/m/Y H:i') . '   ·   ● = día de visita   ·   Los links de WhatsApp y Mapa se abren con clic',
+            'Generado por ' . $nombreUsuario . ' el ' . date('d/m/Y H:i') . '   ·   1 = día de visita   ·   Esporádico = solo domingo   ·Los links de WhatsApp y Mapa se abren con clic',
         ]);
 
         // Encabezado en dos filas: grupos y columnas
         $grp = 6;
         $cab = 7;
-        $colores = ['1F4E78', '385723', '7F6000', '2E75B6', 'C55A11', '595959', '7030A0'];
+        $colores = ['1F4E78', '385723', '7F6000', '2E75B6', 'C55A11', '595959', '7030A0', 'BF8F00'];
         $inicio = 1;
         foreach ($columnas as $i => $grupo) {
             $desde = Coordinate::stringFromColumnIndex($inicio);
@@ -702,6 +726,7 @@ class ClienteController extends Controller{
             if ($col[2] === 'r') $hoja->getStyle($rango)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
             if ($col[3] === 'bs') $hoja->getStyle($col[5] . $primera . ':' . $col[5] . ($ultimaFila + 1))->getNumberFormat()->setFormatCode('#,##0.00');
             if ($col[3] === 'coord') $hoja->getStyle($rango)->getNumberFormat()->setFormatCode('0.000000');
+            if ($col[3] === 'num') $hoja->getStyle($rango)->getNumberFormat()->setFormatCode('0');
             if (in_array($col[3], ['wa', 'mapa'])) $hoja->getStyle($rango)->getFont()->setUnderline(true)->getColor()->setRGB('0563C1');
             if ($col[3] === 'dia') {
                 $hoja->getStyle($rango)->getFont()->setBold(true)->getColor()->setRGB('2E7D32');
@@ -733,9 +758,9 @@ class ClienteController extends Controller{
         $total = $ultimaFila + 1;
         $hoja->setCellValue('A' . $total, 'TOTAL (' . $clientes->count() . ' clientes)');
         $hoja->mergeCells('A' . $total . ':' . $letra('Transporte') . $total);
-        foreach (array_values($dias) as $titulo) {
+        foreach (array_merge(array_values($dias), ['Cliente esporádico']) as $titulo) {
             $col = $letra($titulo);
-            $hoja->setCellValue($col . $total, '=COUNTIF(' . $col . $primera . ':' . $col . $ultimaFila . ',"●")');
+            $hoja->setCellValue($col . $total, '=SUM(' . $col . $primera . ':' . $col . $ultimaFila . ')');
         }
         $hoja->setCellValue($colDeuda . $total, '=SUM(' . $colDeuda . $primera . ':' . $colDeuda . $ultimaFila . ')');
         $colN = $letra('N° deudas');
