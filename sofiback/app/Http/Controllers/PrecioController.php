@@ -92,7 +92,7 @@ class PrecioController extends Controller
                 if ($producto->isDirty()) {
                     $producto->save();
                     $guardados++;
-                    $lineasPedido += $this->actualizarPedidos($codigo, $antes, $producto->only(self::PRECIOS));
+                    $lineasPedido += self::actualizarPedidos($codigo, $antes, $producto->only(self::PRECIOS));
                 }
             }
         });
@@ -115,18 +115,32 @@ class PrecioController extends Controller
      * se reconoce por el valor. Si tenia el valor viejo del Precio N pasa al
      * nuevo del Precio N. Un valor que estaba en dos listas que ahora quedan
      * distintas no se sabe a cual seguir y no se toca; tampoco un precio
-     * puesto a mano que no coincide con ninguna lista.
+     * puesto a mano que no coincide con ninguna lista. Si el precio nuevo es
+     * 0 (se borro esa lista) la linea pasa al Precio 1, igual que un pedido
+     * nuevo cuando el precio del cliente esta en 0; nunca queda en 0.
+     *
+     * Tambien la usa ProductoController al editar el producto en Productos.
      *
      * Solo pedidos validos: no borrados, sin bonificacion, que salen hoy o
      * despues y sin comprobante vigente (lo facturado ya se cobro asi).
      */
-    private function actualizarPedidos($codigo, array $antes, array $despues)
+    public static function actualizarPedidos($codigo, array $antes, array $despues)
     {
+        // Precio 1 nuevo: a donde va una lista que queda en 0.
+        $precio1 = (float) ($despues['Precio'] ?? 0);
+
         // valor viejo (2 decimales, como en tbpedidos) => valores nuevos
         $destinos = [];
         foreach (self::PRECIOS as $campo) {
+            if (!array_key_exists($campo, $antes) || !array_key_exists($campo, $despues)) {
+                continue;
+            }
             $viejo = number_format((float) $antes[$campo], 2, '.', '');
-            $destinos[$viejo][number_format((float) $despues[$campo], 2, '.', '')] = true;
+            $nuevo = (float) $despues[$campo];
+            if ($nuevo <= 0) {
+                $nuevo = $precio1;
+            }
+            $destinos[$viejo][number_format($nuevo, 2, '.', '')] = true;
         }
 
         $tipo = TipoPedido::sql('p');
@@ -137,7 +151,8 @@ class PrecioController extends Controller
                 continue;
             }
             $nuevo = (string) array_keys($nuevos)[0];
-            if ($nuevo === $viejo) {
+            // Sin Precio 1 tampoco hay a donde llevarla: la linea no queda en 0.
+            if ($nuevo === $viejo || (float) $nuevo <= 0) {
                 continue;
             }
             $lineas += DB::update("

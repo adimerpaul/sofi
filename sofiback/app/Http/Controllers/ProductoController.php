@@ -184,6 +184,8 @@ class ProductoController extends Controller{
 
         $this->aplicarTipo($datos);
 
+        $preciosAntes = $producto->only(PrecioController::PRECIOS);
+
         foreach ($datos as $campo => $valor) {
             if ($campo === 'tipo_producto_id') {
                 $producto->tipo_producto_id = $valor;
@@ -206,10 +208,19 @@ class ProductoController extends Controller{
             $producto->$campo = $valor === null ? '' : trim((string) $valor);
         }
 
-        $producto->save();
+        $lineasPedido = DB::transaction(function () use ($producto, $codProd, $preciosAntes) {
+            $producto->save();
+            // Los pedidos sin facturar siguen al precio nuevo (una lista que
+            // queda en 0 los pasa al Precio 1), igual que en Cambio de precios.
+            return PrecioController::actualizarPedidos(
+                trim($codProd), $preciosAntes, $producto->only(PrecioController::PRECIOS)
+            );
+        });
 
         return response()->json([
-            'message'  => 'Producto actualizado',
+            'message'  => 'Producto actualizado'
+                . ($lineasPedido ? ' y ' . $lineasPedido . ' línea(s) de pedidos sin facturar' : ''),
+            'lineas_pedido' => $lineasPedido,
             'producto' => $producto->fresh(),
         ]);
     }
