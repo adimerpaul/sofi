@@ -243,21 +243,10 @@
           </div>-->
               <div class="col-md-6 col-xs-6">
                 <!--            <q-select dense outlined v-model="pago" :options="tipopagos" label="Tip Pagos" /></div>-->
-                <div>
-                  <q-radio v-model="pago" checked-icon="task_alt" dense unchecked-icon="panorama_fish_eye" val="CONTADO"
-                           label="Contado"/>
-                </div>
-                <div>
-                  <q-radio v-model="pago" checked-icon="task_alt" dense unchecked-icon="panorama_fish_eye" val="PAGO QR"
-                           label="Pago QR"/>
-                </div>
-                <div>
-                  <q-radio v-model="pago" checked-icon="task_alt" dense unchecked-icon="panorama_fish_eye" val="CREDITO"
-                           label="Credito"/>
-                </div>
-                <div>
-                  <q-radio v-model="pago" checked-icon="task_alt" dense unchecked-icon="panorama_fish_eye"
-                           val="BOLETA ANTERIOR" label="Boleta anterior"/>
+                <!-- Tipos de pago segun el cliente (src/utils/reglasPedido.js), igual que en Mispedidos. -->
+                <div v-for="t in tiposPago" :key="t.value">
+                  <q-radio v-model="pago" checked-icon="task_alt" dense unchecked-icon="panorama_fish_eye" :val="t.value"
+                           :label="t.label"/>
                 </div>
               </div>
               <div class="col-6">
@@ -311,21 +300,66 @@
                       </q-badge>
                     </q-td>
                   </template>
+                  <!-- Cantidad, caja, rango y precio con el mismo formato y reglas que Mispedidos. -->
                   <template v-slot:body-cell-cantidad="props">
                     <q-td :props="props" auto-width>
-                      <template v-if="props.row.tipo=='NORMAL'">
-                        <q-btn flat @click="agregar(props.row)" class="q-ma-none q-pa-none" color="positive"
-                               icon="add_circle"/>
-                        <input type="number" @keyup="tecleado(props.row)" v-model="props.row.cantidad"
-                               style="width: 2.5em">
-                      </template>
-                      <q-btn flat @click="quitar(props.row,props.rowIndex)" class="q-ma-none q-pa-none" color="negative"
-                             icon="remove_circle"/>
+                      <div class="row items-center no-wrap">
+                        <!-- Pollo, cerdo y res se cargan por piezas en el dialogo
+                             del icono de al lado; lo que se vende por caja se pide por bulto. -->
+                        <template v-if="props.row.tipo=='NORMAL' || props.row.codUnid == 'CAJA'">
+                          <q-btn flat dense @click="agregar(props.row)" class="q-ma-none q-pa-none" color="positive"
+                                 icon="add_circle"/>
+                          <input type="number" min="0" step="0.001" @keyup="tecleado(props.row)"
+                                 v-model="props.row.cantidad" class="entrada-pedido entrada-cantidad">
+                        </template>
+                        <select v-if="props.row.codUnid == 'CAJA'" v-model="props.row.caja"
+                                class="entrada-pedido entrada-caja q-ml-xs">
+                          <option v-for="u in unidadesCaja(props.row)" :key="u" :value="u">{{ u }}</option>
+                        </select>
+                        <q-btn flat dense @click="quitar(props.row,props.rowIndex)" class="q-ma-none q-pa-none"
+                               color="negative" icon="remove_circle"/>
+                      </div>
+                    </q-td>
+                  </template>
+                  <!-- Rango de peso de la linea (tbpedidos.rango_kg); solo el grupo FRIAL. -->
+                  <template v-slot:body-cell-rango="props">
+                    <q-td :props="props" auto-width>
+                      <div v-if="esFrial(props.row)" class="row items-center no-wrap">
+                        <q-toggle v-model="props.row.con_rango" dense size="sm" color="orange-8"
+                                  @update:model-value="v => { if (!v) props.row.rango_kg = null }"/>
+                        <div v-if="props.row.con_rango" class="column q-ml-xs">
+                          <input type="number" min="0" step="0.01" inputmode="decimal"
+                                 v-model="props.row.rango_kg" placeholder="kg"
+                                 class="entrada-pedido entrada-cantidad">
+                          <span class="text-caption text-grey-7" style="line-height: 1">± 100 g</span>
+                        </div>
+                      </div>
                     </q-td>
                   </template>
                   <template v-slot:body-cell-precio="props">
                     <q-td :props="props" auto-width>
-                      <input type="number" @keyup="tecleado(props.row)" v-model="props.row.precio" style="width: 3em">
+                      <!-- El precio no se escribe a mano: se elige uno de los precios del producto. -->
+                      <div class="row items-center no-wrap cursor-pointer">
+                        <input type="number" readonly tabindex="-1"
+                               v-model="props.row.precio" class="entrada-pedido entrada-precio entrada-precio-bloqueada">
+                        <q-btn flat dense size="sm" color="primary" icon="expand_more"
+                               class="q-ma-none q-pa-none"
+                               :disable="!(props.row.precios || []).length"/>
+                        <q-menu auto-close v-if="(props.row.precios || []).length">
+                          <q-list dense style="min-width: 165px">
+                            <q-item-label header class="q-py-xs">Precios del producto</q-item-label>
+                            <q-item v-for="opcion in props.row.precios" :key="opcion.etiqueta" clickable
+                                    :active="String(props.row.precio) === opcion.valor"
+                                    @click="elegirPrecio(props.row, opcion.valor)">
+                              <q-item-section>{{ opcion.etiqueta }}</q-item-section>
+                              <q-item-section side class="text-weight-bold text-primary">
+                                {{ opcion.valor }} Bs
+                              </q-item-section>
+                            </q-item>
+                          </q-list>
+                        </q-menu>
+                        <q-tooltip>Elegir uno de los precios del producto</q-tooltip>
+                      </div>
                     </q-td>
                   </template>
                   <template v-slot:top-right>
@@ -347,8 +381,8 @@
                     </q-tr>
                   </template>
                 </q-table>
-<!--                <q-btn v-if="cliente.estado=='CREADO'" @click="modificarcomanda" style="width: 100%"-->
-<!--                       label="Modificar pedido" icon="edit" color="warning"/>-->
+                <q-btn v-if="cliente.estado=='CREADO'" @click="modificarcomanda" style="width: 100%" class="q-ma-xs"
+                       label="Modificar pedido" icon="edit" color="warning"/>
 <!--                <q-btn v-if="cliente.estado=='CREADO'" @click="enviarcomanda" style="width: 100%" label="Enviar pedido"-->
 <!--                       icon="send" color="teal"/>-->
 <!--                <q-btn v-if="cliente.estado=='CREADO'" @click="eliminarcomanda" style="width: 100%"-->
@@ -866,8 +900,13 @@ import pdfFonts from 'pdfmake/build/vfs_fonts';
 pdfMake.vfs = pdfFonts.pdfMake ? pdfFonts.pdfMake.vfs : pdfFonts;
 window.JSZip = jszip;
 import {jsPDF} from "jspdf";
+import * as reglasPedido from 'src/utils/reglasPedido.js'
 
 const {addToDate} = date
+// Los 13 precios del producto en orden: el numero de precio es la posicion + 1.
+const CAMPOS_PRECIO = ['Precio', 'Precio_Costo', 'Precio3', 'Precio4', 'Precio5',
+  'Precio6', 'Precio7', 'Precio8', 'Precio9', 'Precio10', 'Precio11',
+  'Precio12', 'Precio13']
 export default {
   data() {
     return {
@@ -946,6 +985,7 @@ export default {
       columnsproducto: [
         {label: 'subtotal', name: 'subtotal', field: 'subtotal'},
         {label: 'cantidad', name: 'cantidad', field: 'cantidad'},
+        {label: 'rango', name: 'rango', field: 'rango_kg', align: 'left'},
         {label: 'precio', name: 'precio', field: 'precio', align: 'left'},
         {label: 'cod_prod', name: 'cod_prod', field: 'cod_prod', align: 'left'},
         {label: 'nombre', name: 'nombre', field: 'nombre', align: 'left'},
@@ -955,6 +995,13 @@ export default {
       fechaClonacion: date.formatDate(Date.now(), 'YYYY-MM-DD'),
       fechamenos: date.formatDate(addToDate(new Date(), {days: 0}), 'YYYY-MM-DD'),
       loading: false,
+      // Igual que en Mispedidos: cliente completo del pedido (acepta_credito),
+      // precio del cliente por grupo y la bonificacion, que se conserva al modificar.
+      clientePedido: {},
+      preciosCliente: {},
+      bonificacion: 0,
+      bonificacionAprovacion: '',
+      bonificacionId: '',
     }
   },
   created() {
@@ -1872,24 +1919,42 @@ export default {
       })
     },
 
+    // Mismas reglas que Mispedidos::modificarcomanda. El backend deja el pedido
+    // a nombre del vendedor que lo hizo.
     modificarcomanda() {
-      // console.log(this.misproductos)
-      // console.log(this.cliente)
+      const sinRango = this.misproductos.find(p => p.con_rango && !(parseFloat(p.rango_kg) > 0))
+      if (sinRango) {
+        this.$q.notify({
+          message: 'Escriba el rango (kg) de ' + sinRango.nombre + ' o apague el switch',
+          color: 'red',
+          icon: 'error',
+          position: 'top'
+        })
+        return
+      }
       this.$q.loading.show()
       this.$api.post('updatecomanda', {
         comanda: this.cliente.NroPed,
         idCli: this.cliente.Cod_Aut,
+        bonificacion: this.bonificacion,
+        bonificacionAprovacion: this.bonificacionAprovacion,
+        bonificacionId: this.bonificacionId,
         productos: this.misproductos,
         pago: this.pago,
         fact: this.fact,
-        fecha: this.fecha
+        fecha: this.fecha,
+        horario: this.horario,
+        comentario: this.coment
       }).then(res => {
-        // console.log(res.data)
         this.pago = 'CONTADO'
         this.fact = 'NO'
         this.$q.loading.hide()
+        this.$q.notify({message: 'Pedido modificado', color: 'green', icon: 'check'})
         this.modalpedido = false
         this.misclientes()
+      }).catch(err => {
+        this.$q.loading.hide()
+        this.$q.notify({message: err.response?.data?.message || 'No se pudo modificar el pedido', color: 'red', icon: 'error'})
       })
     },
     eliminarcomanda() {
@@ -2013,14 +2078,61 @@ export default {
         contado: '',
         pfrial: '',
 
+        con_rango: false,
+        rango_kg: null,
+
         tipo: this.producto.tipo,
         nombre: this.producto.Producto,
         cod_prod: this.producto.cod_prod,
-        precio: parseFloat(this.producto.Precio).toFixed(2),
+        codUnid: String(this.producto.codUnid || '').trim(),
+        cod_grup: this.producto.cod_grup,
+        caja: this.unidadPorDefecto(this.producto),
+        precio: this.precioDelCliente(this.producto),
+        precios: this.listaPrecios(this.producto),
         cantidad: 1,
-        subtotal: parseFloat(this.producto.Precio).toFixed(2)
+        subtotal: this.precioDelCliente(this.producto)
       })
     },
+    listaPrecios(producto) {
+      if (!producto) return []
+      const opciones = []
+      CAMPOS_PRECIO.forEach((campo, indice) => {
+        const valor = parseFloat(producto[campo])
+        if (!valor || isNaN(valor)) return
+        const texto = valor.toFixed(2)
+        const repetida = opciones.find(o => o.valor === texto)
+        if (repetida) repetida.numeros.push(indice + 1)
+        else opciones.push({numeros: [indice + 1], valor: texto})
+      })
+      return opciones.map(o => ({etiqueta: 'Precio ' + o.numeros.join(' / '), valor: o.valor}))
+    },
+    cargarPreciosCliente(cliente) {
+      this.preciosCliente = {}
+      if (!cliente) return
+      this.$api.get('cliente/' + cliente + '/precios').then(res => {
+        const mapa = {}
+        ;(res.data || []).forEach(p => { mapa[String(p.cod_grup).trim()] = Number(p.precio) || 1 })
+        this.preciosCliente = mapa
+      }).catch(() => {
+      })
+    },
+    /**
+     * El precio del producto que corresponde al cliente segun el grupo. Si
+     * ese precio esta vacio o en cero en el producto, el precio 1.
+     */
+    precioDelCliente(producto) {
+      const numero = this.preciosCliente[String(producto.cod_grup || '').trim()] || 1
+      const valor = parseFloat(producto[CAMPOS_PRECIO[numero - 1]])
+      return (valor > 0 ? valor : parseFloat(producto.Precio) || 0).toFixed(2)
+    },
+    elegirPrecio(fila, valor) {
+      fila.precio = valor
+      this.tecleado(fila)
+    },
+    // Reglas compartidas con la visita (src/utils/reglasPedido.js).
+    esFrial: reglasPedido.esFrial,
+    unidadesCaja: reglasPedido.unidadesCaja,
+    unidadPorDefecto: reglasPedido.unidadPorDefecto,
 
     filterFn(val, update) {
       if (val === '') {
@@ -2052,20 +2164,40 @@ export default {
     },
     listpedidos(cliente) {
       this.cliente = cliente
-      console.log(this.cliente)
-      // this.$q.loading.show()
+      this.cargarPreciosCliente(cliente.Cod_Aut)
       this.loading = true
       this.$api.post('listpedido', {NroPed: cliente.NroPed, fecha1: this.fecha1, fecha2: this.fecha2})
         .then(res => {
-          console.log(res.data)
-          // return false
-          this.pago = res.data[0].pago
+          // Igual que Mispedidos::listpedidos.
+          this.clientePedido = res.data[0].cliente || {}
+          // Un pago que el cliente ya no puede usar (PAGO QR, o credito sin
+          // "Acepta credito") vuelve al de por defecto, como en la visita.
+          this.pago = this.tiposPago.some(t => t.value == res.data[0].pago)
+            ? res.data[0].pago
+            : reglasPedido.pagoPorDefecto(this.clientePedido)
           this.fact = res.data[0].fact
           this.horario = res.data[0].horario
           this.coment = res.data[0].comentario
           this.fecha = date.formatDate(res.data[0].fecha, 'YYYY-MM-DD')
-          this.misproductos = res.data[0].pedidos
-
+          // La comanda guarda un solo precio; los demas precios del producto se
+          // sacan de la lista ya cargada para poder cambiarlo desde el menu.
+          this.misproductos = res.data[0].pedidos.map(p => {
+            const prod = this.productos2.find(x => String(x.cod_prod).trim() === String(p.cod_prod).trim())
+            p.precios = this.listaPrecios(prod)
+            p.codUnid = String(p.codUnid || (prod ? prod.codUnid : '') || '').trim()
+            p.cod_grup = p.cod_grup || (prod ? prod.cod_grup : null)
+            // Con rango guardado el switch arranca encendido; fuera del FRIAL no hay rango.
+            p.con_rango = this.esFrial(p) && p.rango_kg !== null && p.rango_kg !== undefined && p.rango_kg !== ''
+            p.rango_kg = p.con_rango ? Number(p.rango_kg) : null
+            // Una unidad que la visita no deja elegir vuelve a la de por defecto.
+            if (p.codUnid == 'CAJA' && !this.unidadesCaja(p).includes(p.caja)) {
+              p.caja = this.unidadPorDefecto(p)
+            }
+            return p
+          })
+          this.bonificacion = res.data[0].bonificacion
+          this.bonificacionAprovacion = res.data[0].bonificacionAprovacion
+          this.bonificacionId = res.data[0].bonificacionId
           this.modalpedido = true
           this.$q.loading.hide()
         }).finally(() => {
@@ -2153,6 +2285,10 @@ export default {
     },
   },
   computed: {
+    // Tipos de pago segun el cliente (src/utils/reglasPedido.js), igual que en Mispedidos.
+    tiposPago() {
+      return reglasPedido.tiposPago(this.clientePedido)
+    },
     // Vendedores que hicieron pedidos en la fecha, con su cantidad de pedidos
     vendedoresDia() {
       const mapa = {}
@@ -2406,4 +2542,32 @@ export default {
   white-space: nowrap
   overflow: hidden
   text-overflow: ellipsis
+
+// Campos del pedido (mismo formato que Mispedidos)
+.entrada-pedido
+  border: 1px solid rgba(0, 0, 0, 0.24)
+  border-radius: 4px
+  font-size: 14px
+  padding: 2px 4px
+  text-align: right
+
+.entrada-cantidad
+  width: 5em
+  -moz-appearance: textfield
+  &::-webkit-outer-spin-button, &::-webkit-inner-spin-button
+    -webkit-appearance: none
+    margin: 0
+
+.entrada-caja
+  text-align: left
+  background: white
+
+.entrada-precio
+  width: 4em
+
+.entrada-precio-bloqueada
+  background-color: #f0f0f0
+  color: rgba(0, 0, 0, 0.7)
+  cursor: pointer
+  pointer-events: none
 </style>
