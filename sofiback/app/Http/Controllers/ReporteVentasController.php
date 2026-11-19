@@ -1947,8 +1947,17 @@ class ReporteVentasController extends Controller
         foreach ($filas as $f) {
             foreach ($campos as $i => $campo) {
                 $celda = Coordinate::stringFromColumnIndex($i + 1) . $fila;
-                // Codigos y documentos como texto: si no, Excel les come los ceros.
-                if (in_array($campo, ['cod_prod', 'doc_cliente'], true)) {
+                if ($campo === 'cod_prod') {
+                    // COD. PRODUCTO como numero; si algun codigo no es solo
+                    // digitos, queda como texto.
+                    $cod = trim((string) $f[$campo]);
+                    if ($cod !== '' && ctype_digit($cod)) {
+                        $hoja->setCellValueExplicit($celda, (int) $cod, DataType::TYPE_NUMERIC);
+                    } else {
+                        $hoja->setCellValueExplicit($celda, $cod, DataType::TYPE_STRING);
+                    }
+                } elseif ($campo === 'doc_cliente') {
+                    // Documentos como texto: si no, Excel les come los ceros.
                     $hoja->setCellValueExplicit($celda, (string) $f[$campo], DataType::TYPE_STRING);
                 } else {
                     $hoja->setCellValue($celda, $f[$campo]);

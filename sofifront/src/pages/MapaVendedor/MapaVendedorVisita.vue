@@ -8,8 +8,10 @@
             <q-input v-model="fecha" label="Fecha" type="date" dense outlined @update:model-value="buscar"/>
           </div>
           <div class="col-6 col-sm-3 col-md-2">
-            <q-select v-model="tipo" label="Tipo" dense outlined :options="tipos" emit-value map-options
-                      @update:model-value="buscar"/>
+            <!-- Filtra los clientes del mapa y de las tablas por el tipo de producto
+                 que pidieron; no hace falta volver a buscar. -->
+            <q-select v-model="tipo" label="Tipo de producto" dense outlined :options="opcionesTipo"
+                      emit-value map-options/>
           </div>
           <div class="col-12 col-sm-6 col-md-3">
             <q-select v-model="vendedor" label="Vendedor" dense outlined :options="opcionesVendedor"
@@ -138,6 +140,13 @@
 
           <!-- Mapa -->
           <div class="col-12 col-md-7">
+            <!-- Cantidades de lo que se ve en el mapa (tipo, ruta y vendedor elegidos). -->
+            <div class="tarjetas q-mb-xs">
+              <div v-for="t in tarjetas" :key="t.label" class="tarjeta" :class="'borde-' + t.color">
+                <div class="tarjeta-valor" :class="'text-' + t.color">{{ t.valor }}</div>
+                <div class="tarjeta-label">{{ t.label }}</div>
+              </div>
+            </div>
             <div class="contenedor-mapa">
               <l-map ref="mapa" v-model:zoom="zoom" v-model:center="center" :use-global-leaflet="true">
                 <l-tile-layer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" layer-type="base"
@@ -155,6 +164,7 @@
                       <div>
                         <b :class="'text-' + colorEstado(c.estado)">{{ c.estado || 'SIN VISITA' }}</b>
                         · <span :class="c.en_ruta ? '' : 'text-purple-8 text-weight-bold'">{{ c.en_ruta ? 'En ruta' : 'Fuera de ruta' }}</span>
+                        <template v-if="c.se_recoge"> · <b>Se recoge</b></template>
                       </div>
                       <div v-if="c.Direccion">Dir.: {{ c.Direccion }}</div>
                       <div v-if="c.zona || c.Telf">
@@ -170,8 +180,13 @@
                       </div>
                       <div v-if="c.visita_obs">Obs.: {{ c.visita_obs }}</div>
                       <div v-if="c.pedido_nros">
-                        Pedido {{ c.pedido_nros }} ({{ c.pedido_tipos }}) · {{ c.pedido_lineas }} prod. ·
+                        Pedido {{ c.pedido_nros }} · {{ c.pedido_lineas }} prod. ·
                         <b>{{ c.pedido_total.toFixed(2) }} Bs</b>
+                      </div>
+                      <div v-if="!tipo && c.pedido_nros" class="tip-tipos">
+                        <span v-for="(p, nombre) in c.pedido_por_tipo" :key="nombre">
+                          {{ nombre }}: {{ p.total.toFixed(2) }}
+                        </span>
                       </div>
                     </div>
                   </l-tooltip>
@@ -219,13 +234,8 @@ export default {
       ruta: 'TODOS',
       buscarCliente: '',
       tipo: '',
-      tipos: [
-        { label: 'TODOS', value: '' },
-        { label: 'CERDO', value: 'CERDO' },
-        { label: 'EMBUTIDO', value: 'NORMAL' },
-        { label: 'POLLO', value: 'POLLO' },
-        { label: 'RES', value: 'RES' }
-      ],
+      // Tipos de producto (Productos > Tipo): EMBUTIDO, HUEVO, PET, POLLO...
+      tipos: [],
       columnas: [
         { name: 'Cod_Aut', label: 'Cód.', field: 'Cod_Aut', align: 'left', sortable: true },
         { name: 'Nombres', label: 'Cliente', field: 'Nombres', align: 'left', sortable: true },
@@ -240,18 +250,36 @@ export default {
     this.buscar()
   },
   computed: {
+    opcionesTipo () {
+      return [{ label: 'TODOS', value: '' }].concat(this.tipos.map(t => ({ label: t.nombre, value: t.nombre })))
+    },
     opcionesVendedor () {
       return [{ label: 'Todos', value: null }].concat(
         this.users.map(u => ({ label: this.$filters.capitalize(u.nombreCompleto), value: u.CodAut })))
     },
-    // Clientes de los vendedores elegidos con el filtro de ruta aplicado.
+    // Clientes con los filtros de ruta y de tipo de producto aplicados. Con un
+    // tipo elegido quedan solo los clientes que pidieron ese tipo, con el
+    // pedido (Bs, productos, numeros) de ese tipo.
     clientesPorRuta () {
       const filas = []
       this.users.forEach(u => {
         u.clientes.forEach(c => {
           if (this.ruta === 'RUTA' && !c.en_ruta) return
           if (this.ruta === 'FUERA' && c.en_ruta) return
-          filas.push({ ...c, clave: u.CodAut + '-' + c.Cod_Aut, vendedorId: u.CodAut, vendedor: u.nombreCompleto })
+          const fila = { ...c, clave: u.CodAut + '-' + c.Cod_Aut, vendedorId: u.CodAut, vendedor: u.nombreCompleto }
+          if (this.tipo) {
+            const p = (c.pedido_por_tipo || {})[this.tipo]
+            if (!p) return
+            Object.assign(fila, {
+              estado: c.estado || 'PEDIDO',
+              pedido_nros: p.nros,
+              pedido_tipos: this.tipo,
+              pedido_lineas: p.lineas,
+              pedido_total: p.total,
+              pedido_hora: p.hora
+            })
+          }
+          filas.push(fila)
         })
       })
       return filas
@@ -271,6 +299,20 @@ export default {
     },
     totales () {
       return this.contar(this.clientesPorRuta)
+    },
+    tarjetas () {
+      const t = this.contar(this.clientesFiltrados)
+      return [
+        { label: 'Clientes', valor: t.total, color: 'blue-8' },
+        { label: 'En ruta', valor: t.ruta, color: 'grey-8' },
+        { label: 'Fuera de ruta', valor: t.fuera, color: 'purple-8' },
+        { label: 'Pedido', valor: t.pedido, color: 'green-8' },
+        { label: 'No pedido', valor: t.nopedido, color: 'red-8' },
+        { label: 'Retorno', valor: t.parado, color: 'orange-8' },
+        { label: 'Faltan', valor: t.faltaron, color: 'grey-7' },
+        { label: 'Efectividad', valor: t.efectividad + '%', color: 'teal-8' },
+        { label: 'Total Bs', valor: t.bs.toFixed(2), color: 'indigo-8' }
+      ]
     }
   },
   methods: {
@@ -313,8 +355,9 @@ export default {
     },
     buscar () {
       this.loading = true
-      this.$api.post('mapaVendedorVisita', { fecha: this.fecha, tipo: this.tipo }).then(res => {
+      this.$api.post('mapaVendedorVisita', { fecha: this.fecha }).then(res => {
         this.users = res.data.users || []
+        this.tipos = res.data.tipos || []
         if (this.vendedor && !this.users.some(u => u.CodAut === this.vendedor)) this.vendedor = null
       }).catch(() => {
         this.$q.notify({ type: 'negative', message: 'No se pudo cargar el mapa de visitas' })
@@ -349,7 +392,7 @@ export default {
     },
     exportarExcel () {
       const filtro = { TODOS: 'Completo', RUTA: 'Ruta normal', FUERA: 'Fuera de ruta' }[this.ruta]
-      const tipo = (this.tipos.find(t => t.value === this.tipo) || {}).label
+      const tipo = this.tipo || 'TODOS'
       const vendedores = this.vendedor ? this.resumen.filter(r => r.CodAut === this.vendedor) : this.resumen
       const resumen = vendedores.map(r => ({ ...r, bs: Number(r.bs.toFixed(2)), efectividad: r.efectividad + '%' }))
       if (resumen.length > 1) {
@@ -436,9 +479,41 @@ export default {
 .filtro-ruta {
   border: 1px solid rgba(0, 0, 0, 0.24);
 }
+.tarjetas {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(78px, 1fr));
+  gap: 4px;
+}
+.tarjeta {
+  background: #fff;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-left-width: 4px;
+  border-radius: 4px;
+  padding: 3px 6px;
+  line-height: 1.1;
+}
+.tarjeta-valor {
+  font-size: 16px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.tarjeta-label {
+  font-size: 10px;
+  color: #616161;
+  white-space: nowrap;
+}
+.borde-blue-8 { border-left-color: #1565c0; }
+.borde-grey-8 { border-left-color: #424242; }
+.borde-purple-8 { border-left-color: #6a1b9a; }
+.borde-green-8 { border-left-color: #2e7d32; }
+.borde-red-8 { border-left-color: #c62828; }
+.borde-orange-8 { border-left-color: #ef6c00; }
+.borde-grey-7 { border-left-color: #616161; }
+.borde-teal-8 { border-left-color: #00695c; }
+.borde-indigo-8 { border-left-color: #283593; }
 .contenedor-mapa {
   position: relative;
-  height: calc(100vh - 150px);
+  height: calc(100vh - 200px);
   min-height: 380px;
   width: 100%;
 }
@@ -485,8 +560,13 @@ export default {
 .tip {
   font-size: 11px;
   line-height: 1.25;
-  max-width: 260px;
+  width: 320px;
   white-space: normal;
+}
+.tip-tipos {
+  display: flex;
+  flex-wrap: wrap;
+  column-gap: 8px;
 }
 :deep(.icono-vacio) {
   background: transparent;
