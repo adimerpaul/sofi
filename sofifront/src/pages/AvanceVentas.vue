@@ -22,6 +22,16 @@
       <div v-if="!mio" class="col-auto">
         <q-btn dense no-caps flat color="grey-8" icon="tune" label="Líneas" @click="abrirLineas"/>
       </div>
+      <!-- Como en la planilla AVANCE: dia del mes / dias del mes. -->
+      <div v-if="ritmo" class="col-auto">
+        <div class="objetivo-dia">
+          Objetivo al día <b>{{ ritmo.dia }}/{{ ritmo.dias }}</b>:
+          <b class="text-primary">{{ (ritmo.objetivo * 100).toFixed(1) }}%</b>
+          <span class="leyenda-avance av-verde">llega</span>
+          <span class="leyenda-avance av-amarillo">falta ≤ {{ (100 * 3 / 28).toFixed(1) }} pts</span>
+          <span class="leyenda-avance av-rojo">falta más</span>
+        </div>
+      </div>
       <q-space/>
       <div class="col-auto text-caption text-grey-7">
         Según lo facturado · volumen en kg (lo que va por unidad, por el peso de cada unidad)
@@ -53,8 +63,8 @@
               <template v-else>{{ f.objetivo ? numero(f.objetivo) : '' }}</template>
             </td>
             <td class="text-right" :class="f.tipo === 'seccion' ? 'amarillo' : ''">{{ numero(f.vol) }}<span v-if="f.porCantidad" class="text-grey-7"> U</span></td>
-            <td class="text-right" :class="f.tipo === 'seccion' ? 'amarillo' : ''">
-              <span v-if="f.avance !== null" :class="colorAvance(f.avance)">{{ (f.avance * 100).toFixed(1) }}%</span>
+            <td class="text-right" :class="f.avance !== null ? colorAvance(f.avance) : (f.tipo === 'seccion' ? 'amarillo' : '')">
+              <span v-if="f.avance !== null">{{ (f.avance * 100).toFixed(1) }}%</span>
             </td>
             <td class="text-center">{{ f.cobertura || '' }}</td>
             <td class="text-right text-grey-8">{{ f.bs ? numero(f.bs) : '' }}</td>
@@ -87,10 +97,11 @@
             <td class="text-left ellipsis" style="max-width: 150px">{{ $filters.capitalize(v.nombre) }}</td>
             <td class="text-right">{{ v.objetivo ? numero(v.objetivo) : '—' }}</td>
             <td class="text-right">{{ numero(v.vol) }}</td>
-            <td class="avance-celda">
+            <!-- Fondo segun el objetivo del dia y barra de datos azul, como la planilla. -->
+            <td class="avance-celda" :class="v.avance !== null ? colorAvance(v.avance) : ''">
               <template v-if="v.avance !== null">
                 <q-linear-progress :value="Math.min(v.avance, 1)" size="14px" rounded
-                                   :color="v.avance >= 1 ? 'green' : v.avance >= 0.7 ? 'orange' : 'red'">
+                                   color="blue-5" track-color="transparent">
                   <div class="absolute-full flex flex-center text-weight-bold texto-barra">
                     {{ (v.avance * 100).toFixed(1) }}%
                   </div>
@@ -107,7 +118,7 @@
             <td class="text-left">TOTAL</td>
             <td class="text-right">{{ totalGeneral.objetivo ? numero(totalGeneral.objetivo) : '—' }}</td>
             <td class="text-right">{{ numero(totalGeneral.vol) }}</td>
-            <td class="text-right">
+            <td class="text-right" :class="totalGeneral.avance !== null ? colorAvance(totalGeneral.avance) : ''">
               <span v-if="totalGeneral.avance !== null">{{ (totalGeneral.avance * 100).toFixed(1) }}%</span>
             </td>
             <td class="text-center">{{ totalGeneral.cobertura }}</td>
@@ -194,6 +205,10 @@ export default {
     vendedores () {
       return this.datos ? this.datos.vendedores : []
     },
+    // { dia, dias, objetivo }: avance esperado a la fecha (AvanceVentasController::ritmo).
+    ritmo () {
+      return this.datos ? this.datos.ritmo : null
+    },
     opcionesAlcance () {
       return [{ label: 'General (todos)', value: 'g' }].concat(
         this.vendedores.map(v => ({ label: this.$filters.capitalize(v.nombre), value: v.clave })))
@@ -251,8 +266,13 @@ export default {
     numero (n) {
       return (parseFloat(n) || 0).toLocaleString('es-BO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
     },
+    // Reglas de la planilla AVANCE: verde si llega al objetivo del dia, amarillo
+    // si le faltan hasta 3/28, rojo si le falta mas.
     colorAvance (a) {
-      return a >= 1 ? 'text-green-8 text-weight-bold' : a >= 0.7 ? 'text-orange-9' : 'text-red-8'
+      const obj = this.ritmo ? this.ritmo.objetivo : 1
+      if (a >= obj - 0.0005) return 'av-verde'
+      if (a >= obj - 3 / 28) return 'av-amarillo'
+      return 'av-rojo'
     },
     objetivosDe (vendedorId) {
       return (this.datos && this.datos.objetivos[vendedorId]) || {}
@@ -448,6 +468,31 @@ export default {
 }
 .avance-celda {
   min-width: 90px;
+}
+/* Colores de la planilla AVANCE (formato condicional de Excel). */
+.av-verde {
+  background: #c6efce !important;
+  color: #006100;
+  font-weight: 700;
+}
+.av-amarillo {
+  background: #ffeb9c !important;
+  color: #9c5700;
+  font-weight: 700;
+}
+.av-rojo {
+  background: #ffc7ce !important;
+  color: #9c0006;
+  font-weight: 700;
+}
+.objetivo-dia {
+  font-size: 12px;
+}
+.leyenda-avance {
+  font-size: 10px;
+  padding: 1px 5px;
+  border-radius: 3px;
+  margin-left: 4px;
 }
 .texto-barra {
   font-size: 10px;
