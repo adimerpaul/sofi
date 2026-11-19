@@ -52,6 +52,8 @@ const routes = [
       { path: '/facturacion/pedidos/:pedido/:tipo', component: () => import('pages/Facturacion/PedidoFacturaEditar.vue'), meta: { requiresAuth: true } },
       { path: '/facturacion/nueva', component: () => import('pages/Facturacion/FacturaNueva.vue'), meta: { requiresAuth: true } },
       { path: '/facturacion/reportes', component: () => import('pages/Facturacion/Reportes.vue'), meta: { requiresAuth: true } },
+      { path: '/facturacion/motivos-anulacion', component: () => import('pages/Facturacion/MotivosAnulacion.vue'), meta: { requiresAuth: true } },
+      { path: '/facturacion/horarios-envio', component: () => import('pages/Facturacion/HorariosPedido.vue'), meta: { requiresAuth: true } },
       { path: '/impuestos', component: () => import('pages/Impuestos/Impuestos.vue'), meta: { requiresAuth: true } },
       { path: '/facturacion-ficticia', component: () => import('pages/Facturacion/FacturacionFicticia.vue'), meta: { requiresAuth: true } },
       // Libro de ventas del SIAT contra facturas de Sofia por CUF: /verificacion-facturas*.

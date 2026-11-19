@@ -156,6 +156,8 @@ export default {
           children: [
             { label: 'Ventas', caption: 'Consulta por fechas', icon: 'point_of_sale', to: 'ventas', show: can('ventas') },
             { label: 'Facturación', caption: 'Ventas y facturas', icon: 'request_quote', to: 'facturacion', show: can('facturacion') },
+            { label: 'Motivos de anulación', caption: 'Los que se eligen al anular', icon: 'playlist_remove', to: 'facturacion/motivos-anulacion', show: can('motivosAnulacion') },
+            { label: 'Horarios de envío', caption: 'Hora límite por tipo de pedido', icon: 'schedule', to: 'facturacion/horarios-envio', show: can('horariosPedido') },
             { label: 'Nueva Venta', caption: 'Armar carrito y cobrar', icon: 'add_shopping_cart', to: 'facturacion/nueva', show: can('facturacionNueva') },
             { label: 'Pedido factura', caption: 'Facturar pedidos de preventistas', icon: 'assignment_turned_in', to: 'facturacion/pedidos', show: can('facturacionNueva') },
             { label: 'Reportes', caption: 'Quiebre de stock y ventas', icon: 'assessment', to: 'facturacion/reportes', show: can('reportesVentas') },

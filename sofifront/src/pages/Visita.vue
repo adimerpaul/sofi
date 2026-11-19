@@ -891,6 +891,7 @@ import "leaflet/dist/leaflet.css";
 import {date} from "quasar";
 
 import * as reglasPedido from 'src/utils/reglasPedido.js'
+import { avisarFueraHorario } from 'src/utils/horarioPedido.js'
 import {comprimirImagen} from 'src/utils/comprimirImagen.js'
 
 const {addToDate} = date
@@ -1378,6 +1379,7 @@ export default {
             position: 'top'
           })
         }
+        avisarFueraHorario(this.$q, res.data)
         //this.pago=''
         this.fact = ''
         this.horario = ''

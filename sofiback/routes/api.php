@@ -184,6 +184,15 @@ Route::group(['middleware'=>'auth:sanctum'],function (){
     // Caja marca la canasta de un comprobante como revisada o sin revisar.
     Route::post('/facturacion/{factura}/carga',[\App\Http\Controllers\FacturacionController::class,'marcarCarga']);
     Route::put('/facturacion/{factura}/anular',[\App\Http\Controllers\FacturacionController::class,'anular']);
+    // Hora limite para mandar pedidos por tipo; cambiarla pide horariosPedido.
+    Route::get('/horarios-pedido',[\App\Http\Controllers\HorarioPedidoController::class,'index']);
+    Route::put('/horarios-pedido/{id}',[\App\Http\Controllers\HorarioPedidoController::class,'update'])->where('id', '[0-9]+');
+    // Motivos de anulacion: los activos para el dialogo de anular; el resto pide motivosAnulacion.
+    Route::get('/motivos-anulacion/activos',[\App\Http\Controllers\MotivoAnulacionController::class,'activos']);
+    Route::get('/motivos-anulacion',[\App\Http\Controllers\MotivoAnulacionController::class,'index']);
+    Route::post('/motivos-anulacion',[\App\Http\Controllers\MotivoAnulacionController::class,'store']);
+    Route::put('/motivos-anulacion/{id}',[\App\Http\Controllers\MotivoAnulacionController::class,'update'])->where('id', '[0-9]+');
+    Route::delete('/motivos-anulacion/{id}',[\App\Http\Controllers\MotivoAnulacionController::class,'destroy'])->where('id', '[0-9]+');
     // Saca (o devuelve) una factura del control de envio al SIAT.
     Route::put('/facturacion/{factura}/ocultar-siat',[\App\Http\Controllers\FacturacionController::class,'ocultarSiat']);
     // Pasa el comprobante (y su pedido) a otro camion.

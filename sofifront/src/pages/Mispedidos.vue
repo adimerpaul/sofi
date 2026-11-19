@@ -806,6 +806,7 @@ window.JSZip = jszip;
 import {jsPDF} from "jspdf";
 
 import * as reglasPedido from 'src/utils/reglasPedido.js'
+import { avisarFueraHorario } from 'src/utils/horarioPedido.js'
 
 const {addToDate} = date
 // Los 13 precios del producto en orden: el numero de precio es la posicion + 1.
@@ -935,11 +936,11 @@ export default {
       }).onOk((data) => {
         this.loading = true
         this.$api.post('clonarpedido', {NroPed: this.cliente.NroPed, fecha: data}).then(res => {
-          console.log(res.data)
           this.$q.notify({
             type: 'positive',
             message: 'Pedido clonado con exito',
           })
+          avisarFueraHorario(this.$q, res.data)
         }).finally(() => {
           this.loading = false
         }).catch(err => {
@@ -1803,12 +1804,15 @@ export default {
         horario: this.horario,
         comentario: this.coment
       }).then(res => {
-        // console.log(res.data)
         this.pago = 'CONTADO'
         this.fact = 'NO'
         this.$q.loading.hide()
+        avisarFueraHorario(this.$q, res.data)
         this.modalpedido = false
         this.misclientes()
+      }).catch(err => {
+        this.$q.loading.hide()
+        this.$q.notify({message: err.response?.data?.message || 'No se pudo modificar el pedido', color: 'red', icon: 'error'})
       })
     },
     eliminarcomanda() {

@@ -1073,11 +1073,14 @@
             type="radio"
             color="negative"
           />
-          <!-- La razon de verdad, para la oficina. Opcional. -->
+          <!-- La razon de verdad, para la oficina. Obligatoria: sale de
+               Facturacion > Motivos de anulacion (solo los activos). -->
           <q-select
             v-model="motivoInterno" class="q-mt-sm"
-            outlined dense clearable options-dense
-            label="Motivo (opcional)" :options="motivosInternos"
+            outlined dense options-dense
+            label="Motivo de anulación *" :options="motivosInternos"
+            :loading="cargandoMotivos"
+            :error="!motivoInterno" error-message="Elija el motivo de anulación" no-error-icon
           />
         </q-card-section>
         <q-card-actions align="right" class="q-pa-sm">
@@ -1085,7 +1088,7 @@
           <q-btn
             :color="editando ? 'deep-orange-7' : 'negative'" dense unelevated no-caps
             :label="editando ? 'Anular y editar' : 'Anular'"
-            :disable="!codigoMotivoAnulacion" :loading="anulando" @click="anular"
+            :disable="!codigoMotivoAnulacion || !motivoInterno" :loading="anulando" @click="anular"
           />
         </q-card-actions>
       </q-card>
@@ -1174,27 +1177,11 @@ export default {
         { label: '3 - Factura o nota devuelta', value: 3 },
         { label: '4 - Sustitución de factura emitida en contingencia', value: 4 }
       ],
-      // Los mismos de FacturacionController::MOTIVOS_ANULACION_INTERNOS.
+      // Motivos activos de Facturacion > Motivos de anulacion (tabla
+      // motivos_anulacion); se leen cada vez que se abre el dialogo.
       motivoInterno: null,
-      motivosInternos: [
-        'CALIDAD DE PRODUCTO',
-        'CANCELO PEDIDO EL CLIENTE/VENDEDOR',
-        'CERRADO - NO CONTESTA',
-        'ERROR DE DIGITACION',
-        'FECHA PRONTO A VENCER',
-        'NO QUISO',
-        'NO RECOGIO',
-        'NO TIENE DINERO',
-        'PEDIDO INCORRECTO VENTAS',
-        'PEDIDO INCORRECTO DESPACHOS',
-        'TARDE',
-        'ERROR DE PRECIO',
-        'MERMA',
-        'LOCAL NO UBICADO',
-        'NO HAY SALIDAS A PROVINCIA',
-        'BLOQUEOS',
-        'POR DEVOLUCION PARCIAL'
-      ],
+      motivosInternos: [],
+      cargandoMotivos: false,
       anulando: false,
       // El dialogo de anulacion tambien sirve para Editar: anula y abre el pedido.
       editando: false,
@@ -2078,7 +2065,20 @@ export default {
       this.editando = false
       this.codigoMotivoAnulacion = null
       this.motivoInterno = null
+      this.cargarMotivosAnulacion()
       this.dialogAnular = true
+    },
+    cargarMotivosAnulacion (preferido) {
+      this.cargandoMotivos = true
+      this.$api.get('motivos-anulacion/activos')
+        .then(res => {
+          this.motivosInternos = res.data || []
+          if (preferido && !this.motivoInterno && this.motivosInternos.includes(preferido)) {
+            this.motivoInterno = preferido
+          }
+        })
+        .catch(err => { this.avisar(err, 'No se pudieron cargar los motivos de anulación') })
+        .finally(() => { this.cargandoMotivos = false })
     },
 
     /**
@@ -2143,6 +2143,8 @@ export default {
       // Con retorno parcial el motivo es la nota devuelta; si no, mal emitida.
       this.codigoMotivoAnulacion = this.retornoPendiente(row) ? 3 : 1
       this.motivoInterno = null
+      // Con retorno parcial se sugiere ese motivo (si sigue activo).
+      this.cargarMotivosAnulacion(this.retornoPendiente(row) ? 'POR DEVOLUCION PARCIAL' : null)
       this.dialogAnular = true
     },
 

@@ -749,7 +749,7 @@
           <q-btn v-if="panel === 'anulados'" color="blue-grey-7" icon="download" label="Excel por producto" no-caps
                  unelevated :loading="comp[panel].descargando === 'caja'" :disable="!comp[panel].filas.length"
                  @click="descargarComp(panel, 'caja')">
-            <q-tooltip>Una fila por producto anulado, como el reporte de anulados de caja</q-tooltip>
+            <q-tooltip>Resumen por camión, tipo de pedido, vendedor, cliente y motivo; luego una fila por producto anulado</q-tooltip>
           </q-btn>
         </div>
 

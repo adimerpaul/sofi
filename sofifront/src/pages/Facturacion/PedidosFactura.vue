@@ -130,6 +130,11 @@
               <!-- El que vuelve por una anulacion no arranca de cero: al
                    entrar trae cargado lo que ya se habia cobrado. -->
               <!-- Guardado a medias: todavia no es venta ni bajo stock. -->
+              <!-- Registrado despues de la hora limite de su tipo (Horarios de envio):
+                   entra oculto; se restablece igual que cualquier oculto. -->
+              <q-badge v-if="pedido.fuera_horario" color="deep-orange-8" class="q-mr-xs">
+                <q-icon name="schedule" size="14px" class="q-mr-xs"/>FUERA DE HORARIO
+              </q-badge>
               <q-badge v-if="pedido.oculto && !pedido.factura_id" color="grey-7">
                 <q-icon name="visibility_off" size="14px" class="q-mr-xs"/>OCULTO
               </q-badge>

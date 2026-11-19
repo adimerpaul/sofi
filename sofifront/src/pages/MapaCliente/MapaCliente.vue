@@ -193,7 +193,9 @@
                       :style="col.name === 'obs'
                         ? 'font-size:10px; white-space:normal; min-width:180px; font-weight:600'
                         : 'font-size:10px'">
-                    {{ props.row[col.field] }}
+                    <q-badge v-if="col.name === 'oculto' && props.row.oculto !== 'NO'" color="grey-8"
+                             :label="props.row.oculto"/>
+                    <template v-else>{{ props.row[col.field] }}</template>
                   </td>
                   <td key="op">
                     <q-btn color="info" icon="visibility" dense flat @click="verDetalle(props.row)"/>
@@ -462,6 +464,8 @@ export default {
         {label: 'VENDEDOR', name: 'vendedor', field: 'vendedor', sortable: true},
         {label: 'ZONA', name: 'zona', field: 'territorio', sortable: true},
         {label: 'PLACA', name: 'placa', field: 'placa', sortable: true},
+        // Oculto en Facturacion > Pedidos; el cliente se sigue mostrando.
+        {label: 'OCULTO', name: 'oculto', field: 'oculto', sortable: true, align: 'center'},
       ],
       dialgoCamion: false,
       geojsonData: null,

@@ -282,8 +282,11 @@ class PedidoController extends Controller{
         ]);
 
 
+        // Hora limite por tipo (Facturacion > Horarios de envio).
+        $fuera = \App\Services\HorarioPedido::marcar($data);
         $this->insertarPedidos($data);
-        return response()->json(['success' => true]);
+        return response()->json(['success' => true, 'fuera_horario' => $fuera,
+            'aviso' => \App\Services\HorarioPedido::aviso($fuera)]);
 
     }
 
@@ -1339,8 +1342,12 @@ $resPedido = $rows->groupBy('NroPed')->map(function ($g) use ($bonis) {
             ];
             array_push($data, $d);
         }
+        // Hora limite por tipo (Facturacion > Horarios de envio): se registra
+        // igual, pero queda fuera de horario y oculto para facturacion.
+        $fuera = \App\Services\HorarioPedido::marcar($data);
         $this->insertarPedidos($data);
-        return response()->json(['NroPed' => $numpedido, 'numero_dia' => $numeroDia]);
+        return response()->json(['NroPed' => $numpedido, 'numero_dia' => $numeroDia,
+            'fuera_horario' => $fuera, 'aviso' => \App\Services\HorarioPedido::aviso($fuera)]);
 //        return ($data);
     }
 
@@ -1918,12 +1925,19 @@ $resPedido = $rows->groupBy('NroPed')->map(function ($g) use ($bonis) {
             ];
 //            var_dump($p);
         }
+        // Hora limite por tipo: lo que ya estaba fuera de horario lo sigue
+        // estando; lo demas se mira con la hora de ahora.
+        $tiposPrevios = Pedido::where('NroPed', $numpedido)->where('fuera_horario', 1)
+            ->pluck('tipo')->map(function ($t) { return strtoupper(trim((string) $t)); })->unique()->values()->all();
+        $fuera = \App\Services\HorarioPedido::marcar($data, $tiposPrevios);
         // Todo o nada: si falla una fila no debe quedar la comanda borrada
         // sin sus productos nuevos.
         DB::transaction(function () use ($numpedido, $data) {
             $this->borrarComanda($numpedido);
             $this->insertarPedidos($data);
         });
+
+        return response()->json(['fuera_horario' => $fuera, 'aviso' => \App\Services\HorarioPedido::aviso($fuera)]);
     }
 
     public function deletecomanda(Request $request)
@@ -2532,6 +2546,8 @@ $resPedido = $rows->groupBy('NroPed')->map(function ($g) use ($bonis) {
             color,
             ruta,
             SUM(subtotal) as importe,
+            MAX(COALESCE(oculto, 0)) as oculto,
+            MAX(COALESCE(fuera_horario, 0)) as fuera_horario,
             GROUP_CONCAT(DISTINCT NULLIF(TRIM(comentario), \'\') SEPARATOR \' | \') as comentario,
             GROUP_CONCAT(DISTINCT NULLIF(TRIM(Observaciones), \'\') SEPARATOR \' | \') as observacion
         ')
@@ -2559,6 +2575,11 @@ $resPedido = $rows->groupBy('NroPed')->map(function ($g) use ($bonis) {
                     'horario'     => $pedido->horario,
                     'color'       => $pedido->color,
                     'importe'     => $pedido->importe,
+                    // Oculto en Facturacion > Pedidos (a mano o por fuera de
+                    // horario): se muestra igual en el mapa, con la marca.
+                    'oculto'      => (int) $pedido->oculto
+                        ? ((int) $pedido->fuera_horario ? 'SI (fuera de horario)' : 'SI')
+                        : 'NO',
                     'ruta'        => $pedido->ruta ?? '',
                     'comentario'  => $pedido->comentario ?? '',
                     'observacion' => $pedido->observacion ?? '',

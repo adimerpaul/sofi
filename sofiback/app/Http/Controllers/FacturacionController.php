@@ -1257,6 +1257,8 @@ class FacturacionController extends Controller
                 DB::raw('MIN(p.comentario) as comentario'),
                 // Pedido que no va a salir: no cuenta en el avance del dia.
                 DB::raw('MAX(COALESCE(p.oculto, 0)) as oculto'),
+                // Se registro despues de la hora limite de su tipo (Horarios de envio).
+                DB::raw('MAX(COALESCE(p.fuera_horario, 0)) as fuera_horario'),
                 // El camion del pedido es tbpedidos.placa; colorStyle es el color
                 // con el que esa placa ya se pinta en el mapa y en el reporte.
                 DB::raw("TRIM(COALESCE(MIN(p.placa), '')) as placa"),
@@ -1380,6 +1382,7 @@ class FacturacionController extends Controller
             }
             $pedido->nro_camion = $numerosCamion[$camion];
             $pedido->oculto = (bool) $pedido->oculto;
+            $pedido->fuera_horario = (bool) $pedido->fuera_horario;
             $borrador =$pedido->factura_id ? null : $borradores->get($llave);
             $pedido->borrador = $borrador ? [
                 'total'    => (float) $borrador->total,
@@ -3423,36 +3426,19 @@ class FacturacionController extends Controller
         ]);
     }
 
-    /**
-     * La razon de verdad de una anulacion, para la oficina. El motivo de
-     * Impuestos es uno de cuatro fijos y no explica nada; este es opcional.
-     */
-    const MOTIVOS_ANULACION_INTERNOS = [
-        'CALIDAD DE PRODUCTO',
-        'CANCELO PEDIDO EL CLIENTE/VENDEDOR',
-        'CERRADO - NO CONTESTA',
-        'ERROR DE DIGITACION',
-        'FECHA PRONTO A VENCER',
-        'NO QUISO',
-        'NO RECOGIO',
-        'NO TIENE DINERO',
-        'PEDIDO INCORRECTO VENTAS',
-        'PEDIDO INCORRECTO DESPACHOS',
-        'TARDE',
-        'ERROR DE PRECIO',
-        'MERMA',
-        'LOCAL NO UBICADO',
-        'NO HAY SALIDAS A PROVINCIA',
-        'BLOQUEOS',
-        'POR DEVOLUCION PARCIAL',
-    ];
-
     public function anular(Request $request, $id)
     {
         $datos = $request->validate([
             'codigo_motivo' => 'required|integer|between:1,4',
-            // Por que se anulo, en palabras de quien lo hizo. Puede ir vacio.
-            'observacion'   => 'nullable|string|in:' . implode(',', self::MOTIVOS_ANULACION_INTERNOS),
+            // La razon de verdad, para la oficina (el motivo de Impuestos es uno
+            // de cuatro fijos y no explica nada). Obligatorio y uno de los
+            // motivos activos de Facturacion > Motivos de anulacion; en la
+            // factura queda solo el texto.
+            'observacion'   => ['required', 'string',
+                \Illuminate\Validation\Rule::exists('motivos_anulacion', 'nombre')->where('activo', true)],
+        ], [
+            'observacion.required' => 'Elija el motivo de anulación',
+            'observacion.exists'   => 'El motivo de anulación no existe o está inactivo',
         ]);
 
         $motivos = [
@@ -4957,7 +4943,10 @@ class FacturacionController extends Controller
             ['Hijo (ID)', 'hijo', 10, null], ['Qué cambió vs. el padre', 'cambio_padre', 40, null],
             ['¿Cambió vs. pedido?', 'cambio_pedido', 10, null], ['Cambios vs. pedido', 'cambios_pedido', 40, null],
             ['Anulado el', 'anulado_at', 16, null], ['Anulado por', 'anulado_por', 20, null],
-            ['Motivo anulación', 'motivo', 30, null], ['Observación', 'observacion', 30, null],
+            // Los dos motivos por separado: el de Impuestos (uno de 4 fijos) y el
+            // elegido de Facturacion > Motivos de anulacion.
+            ['Motivo Impuestos', 'motivo_impuestos', 30, null], ['Motivo anulación', 'motivo_elegido', 30, null],
+            ['Observación', 'observacion', 30, null],
             ['Entregado camión', 'entregado', 10, null], ['Impreso', 'impreso', 8, null],
         ];
     }
@@ -5077,6 +5066,8 @@ class FacturacionController extends Controller
                 'anulado_at'     => $f->anulado_at ? $f->anulado_at->format('d/m/Y H:i') : '',
                 'anulado_por'    => $f->anulado_por ? ($personal[$f->anulado_por]->nombre ?? (string) $f->anulado_por) : '',
                 'motivo'         => trim((string) ($f->anulacion_observacion ?: $f->motivo_anulacion)),
+                'motivo_impuestos' => trim((string) $f->motivo_anulacion),
+                'motivo_elegido' => trim((string) $f->anulacion_observacion),
                 'observacion'    => (string) $f->observacion,
                 'entregado'      => $f->entregado_camion ? 'SI' : 'NO',
                 'impreso'        => (int) $f->impreso_veces > 0 ? 'SI (' . (int) $f->impreso_veces . ')' : 'NO',
@@ -5314,7 +5305,7 @@ class FacturacionController extends Controller
             ['Cadena (ID original)', 11], ['Generación', 10], ['ID venta', 12], ['Relación', 28],
             ['Padre (ID)', 10], ['Hijos (ID)', 12], ['Nro factura', 10], ['Comprobante', 11], ['Estado', 10],
             ['Fecha', 11], ['Hora', 7], ['Nro pedido', 10], ['Cliente', 32], ['Pago', 10], ['Total Bs', 12],
-            ['Motivo anulación', 30], ['Qué cambió vs. el padre', 45], ['¿En el filtro?', 9],
+            ['Motivo Impuestos', 30], ['Motivo anulación', 30], ['Qué cambió vs. el padre', 45], ['¿En el filtro?', 9],
         ];
         $ultima = Coordinate::stringFromColumnIndex(count($columnas));
         $this->cabeceraHojaExcel($hoja, 'PADRES E HIJOS: REFACTURADOS Y RETORNOS PARCIALES', $subtitulo,
@@ -5342,7 +5333,6 @@ class FacturacionController extends Controller
                 list($id, $nivel) = array_shift($pila);
                 $nodo = $cadenas[$id];
                 $f = $nodo['factura'];
-                $motivo = trim((string) ($f->anulacion_observacion ?: $f->motivo_anulacion));
                 $cambio = $nodo['padre'] ? implode(' · ', (array) (($f->modificacion_campos ?? [])['resumen'] ?? [])) : '';
                 $hoja->fromArray([
                     $raiz, $nivel + 1, str_repeat('    ', $nivel) . ($nivel ? '└ ' : '') . $id,
@@ -5350,7 +5340,7 @@ class FacturacionController extends Controller
                     (string) ($f->nro_factura ?: ''), $f->tipo_comprobante === 'FACTURA' ? 'FACTURA' : 'VOUCHER',
                     $f->estado, $this->fechaExcel($f->fecha), substr((string) $f->hora, 0, 5),
                     $f->pedido_nro ? (string) $f->pedido_nro : 'VENTA DIRECTA', $f->nombre, $f->tipo_pago,
-                    (float) $f->total, $motivo, $cambio, isset($comprobantes[$id]) ? 'SI' : 'NO',
+                    (float) $f->total, trim((string) $f->motivo_anulacion), trim((string) $f->anulacion_observacion), $cambio, isset($comprobantes[$id]) ? 'SI' : 'NO',
                 ], null, 'A' . $fila, true);
                 if (!$nivel) {
                     $hoja->getStyle('A' . $fila . ':' . $ultima . $fila)->applyFromArray([
@@ -5373,7 +5363,7 @@ class FacturacionController extends Controller
         $hoja->getStyle('A5:' . $ultima . ($fila - 1))->getBorders()->getAllBorders()
             ->setBorderStyle(Border::BORDER_HAIR)->getColor()->setRGB('BDBDBD');
         $hoja->getStyle('A6:B' . $fila)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
-        $hoja->getStyle('P6:Q' . $fila)->getAlignment()->setWrapText(true);
+        $hoja->getStyle('P6:R' . $fila)->getAlignment()->setWrapText(true);
         $hoja->freezePane('D6');
         $hoja->setAutoFilter('A5:' . $ultima . ($fila - 1));
         $this->impresionHojaExcel($hoja, 5);
@@ -5440,8 +5430,15 @@ class FacturacionController extends Controller
             return response()->json(['message' => $mensajes[$contenido]], 422);
         }
 
+        // El Excel de anulados lleva antes del detalle un resumen por camion y
+        // por cliente, contra todo lo emitido en el mismo filtro.
+        $resumen = null;
+        if ($contenido === 'anulados' && ($datos['formato'] ?? 'pdf') === 'excel') {
+            $resumen = ['anuladas' => $facturas, 'todas' => $this->filtrar($request)->reorder('id')->get()];
+        }
+
         return ($datos['formato'] ?? 'pdf') === 'excel'
-            ? $this->reporteExcel($contenido, $filas, $request)
+            ? $this->reporteExcel($contenido, $filas, $request, $resumen)
             : $this->reportePdf($contenido, $filas, $request);
     }
 
@@ -5501,8 +5498,9 @@ class FacturacionController extends Controller
                     $f->vendedor->Nombre1, $f->vendedor->Nombre2, $f->vendedor->App1, $f->vendedor->Apm,
                 ])))
                 : '';
-            // El motivo de la oficina si se eligio; si no, el de Impuestos.
-            $motivo = trim((string) ($f->anulacion_observacion ?: $f->motivo_anulacion));
+            // Dos columnas: el motivo elegido al anular y el de Impuestos.
+            $motivo = trim((string) $f->anulacion_observacion);
+            $motivoImpuestos = trim((string) $f->motivo_anulacion);
 
             foreach ($f->detalles as $d) {
                 $prod = $familias[trim((string) $d->cod_prod)] ?? null;
@@ -5526,6 +5524,7 @@ class FacturacionController extends Controller
                     'importe'    => (float) $d->subtotal,
                     // Toda anulacion de Sofia es del comprobante completo.
                     'motivo'     => $motivo !== '' ? $motivo . ' TOTAL' : '',
+                    'motivo_impuestos' => $motivoImpuestos,
                     'placa'      => trim((string) $f->placa),
                 ];
             }
@@ -5593,7 +5592,8 @@ class FacturacionController extends Controller
                 ['SUBFAMILIA', 'subfamilia', 6, false], ['VENDEDOR', 'vendedor', 8, false],
                 ['COD. PRODUCTO', 'cod_prod', 4, false], ['PRODUCTO', 'producto', 10, false],
                 ['PESO', 'peso', 4, true], ['IMPORTE', 'importe', 5, true],
-                ['MOTIVO ANUL', 'motivo', 8, false], ['PLACA', 'placa', 5, false],
+                ['MOTIVO ANUL', 'motivo', 8, false], ['MOTIVO IMPUESTOS', 'motivo_impuestos', 8, false],
+                ['PLACA', 'placa', 5, false],
             ];
         }
 
@@ -5726,7 +5726,255 @@ class FacturacionController extends Controller
         return $this->pdf($html, $contenido . '_' . date('Y-m-d'));
     }
 
-    private function reporteExcel($contenido, array $filas, Request $request)
+    /** Kilos de un comprobante: lo vendido por peso en kg, lo demas en su cantidad. */
+    private function pesoComprobante($f)
+    {
+        return $f->detalles->sum(function ($d) {
+            return (float) $d->peso > 0 ? (float) $d->peso : (float) $d->cantidad;
+        });
+    }
+
+    /**
+     * Hojas de resumen del Excel de anulados (antes del detalle): por camion,
+     * tipo de pedido, vendedor, cliente y motivo. Cuanto se anulo (boletas, Bs
+     * y peso) contra lo emitido en el mismo filtro. Un pedido cuenta una vez
+     * (un cliente con 7 pedidos y uno anulado: 1 de 7), aunque se haya
+     * refacturado y anulado mas de una vez.
+     */
+    private function hojasResumenAnulados(Spreadsheet $libro, $anuladas, $todas, $titulo, $rango)
+    {
+        $pedido = function ($f) { return $f->pedido_nro ? 'P' . $f->pedido_nro : 'F' . $f->id; };
+        $placa = function ($f) { return trim((string) $f->placa) ?: 'SIN CAMIÓN'; };
+        $cliente = function ($f) { return $f->cliente_id ? 'C' . $f->cliente_id : 'N' . mb_strtoupper(trim((string) $f->nombre)); };
+        $tipo = function ($f) {
+            if (!$f->pedido_nro) return 'VENTA DIRECTA';
+            $t = strtoupper(trim((string) $f->pedido_tipo));
+            return $t === 'NORMAL' ? 'EMBUTIDOS' : ($t ?: 'SIN TIPO');
+        };
+        $vendedor = function ($f) {
+            $v = $f->vendedor;
+            return $v ? trim(preg_replace('/\s+/', ' ', trim((string) $v->Nombre1) . ' ' . trim((string) $v->App1))) : 'SIN VENDEDOR';
+        };
+
+        // Una fila por grupo: [nombre, pedidos, anulados, %, boletas, clientes, Bs, peso, Bs vigente].
+        $agrupar = function ($clave) use ($todas, $anuladas, $pedido, $cliente) {
+            $g = [];
+            foreach ($todas as $f) {
+                $c = &$g[$clave($f)];
+                $c['pedidos'][$pedido($f)] = true;
+                $c['emitido'] = ($c['emitido'] ?? 0) + ($f->estado === 'ANULADO' ? 0 : (float) $f->total);
+                unset($c);
+            }
+            foreach ($anuladas as $f) {
+                $c = &$g[$clave($f)];
+                $c['pedidos'][$pedido($f)] = true;
+                $c['anulados'][$pedido($f)] = true;
+                $c['boletas'] = ($c['boletas'] ?? 0) + 1;
+                $c['clientes'][$cliente($f)] = true;
+                $c['bs'] = ($c['bs'] ?? 0) + (float) $f->total;
+                $c['peso'] = ($c['peso'] ?? 0) + $this->pesoComprobante($f);
+                unset($c);
+            }
+            $filas = [];
+            foreach ($g as $nombre => $c) {
+                if (empty($c['boletas'])) continue;
+                $total = count($c['pedidos']);
+                $anul = count($c['anulados']);
+                $filas[] = [(string) $nombre, $total, $anul, $total ? $anul / $total : 0, $c['boletas'],
+                    count($c['clientes']), round($c['bs'], 2), round($c['peso'], 3), round($c['emitido'] ?? 0, 2)];
+            }
+            usort($filas, function ($a, $b) { return $b[6] <=> $a[6]; });
+            return $filas;
+        };
+        $columnasGrupo = function ($nombre, $de) {
+            return [
+                [$nombre, 24, null], ['Pedidos ' . $de, 11, '0'], ['Pedidos anulados', 11, '0'],
+                ['% anulado', 10, '0.0%'], ['Boletas anuladas', 11, '0'], ['Clientes con anulación', 12, '0'],
+                ['Bs anulado', 14, '#,##0.00'], ['Peso anulado (kg)', 14, '#,##0.000'], ['Bs vigente', 15, '#,##0.00'],
+            ];
+        };
+        $sumarGrupo = [1, 2, 4, 5, 6, 7, 8];
+
+        $this->hojaPorcentajeRechazo($libro->createSheet(0), $anuladas, $todas, $titulo, $rango);
+
+        $this->hojaResumenAnulados($libro->createSheet(1), 'Por camión', $titulo . ' · POR CAMIÓN', $rango,
+            $columnasGrupo('Camión (placa)', 'del camión'), $agrupar($placa), $sumarGrupo);
+        $this->hojaResumenAnulados($libro->createSheet(2), 'Por tipo de pedido', $titulo . ' · POR TIPO DE PEDIDO', $rango,
+            $columnasGrupo('Tipo de pedido', 'del tipo'), $agrupar($tipo), $sumarGrupo);
+        $this->hojaResumenAnulados($libro->createSheet(3), 'Por vendedor', $titulo . ' · POR VENDEDOR', $rango,
+            $columnasGrupo('Vendedor', 'del vendedor'), $agrupar($vendedor), $sumarGrupo);
+
+        // ---------- Por cliente ----------
+        $clientes = [];
+        foreach ($todas as $f) {
+            $c = &$clientes[$cliente($f)];
+            $c['nombre'] = $c['nombre'] ?? ($f->nombre ?: 'Sin cliente');
+            $c['nit'] = $c['nit'] ?? (string) $f->nit;
+            $c['pedidos'][$pedido($f)] = true;
+            unset($c);
+        }
+        foreach ($anuladas as $f) {
+            $c = &$clientes[$cliente($f)];
+            $c['nombre'] = $c['nombre'] ?? ($f->nombre ?: 'Sin cliente');
+            $c['nit'] = $c['nit'] ?? (string) $f->nit;
+            $c['pedidos'][$pedido($f)] = true;
+            $c['anulados'][$pedido($f)] = true;
+            $c['boletas'] = ($c['boletas'] ?? 0) + 1;
+            $c['camiones'][$placa($f)] = true;
+            $c['vendedores'][$vendedor($f)] = true;
+            $c['motivos'][trim((string) ($f->anulacion_observacion ?: $f->motivo_anulacion))] = true;
+            $c['bs'] = ($c['bs'] ?? 0) + (float) $f->total;
+            $c['peso'] = ($c['peso'] ?? 0) + $this->pesoComprobante($f);
+            unset($c);
+        }
+        $filasCliente = [];
+        foreach ($clientes as $c) {
+            if (empty($c['boletas'])) continue;
+            $total = count($c['pedidos']);
+            $anul = count($c['anulados']);
+            $filasCliente[] = [$c['nombre'], $c['nit'], $total, $anul, $total ? $anul / $total : 0, $c['boletas'],
+                round($c['bs'], 2), round($c['peso'], 3), implode(', ', array_keys($c['camiones'])),
+                implode(', ', array_keys($c['vendedores'])), implode(', ', array_filter(array_keys($c['motivos'])))];
+        }
+        usort($filasCliente, function ($a, $b) { return $b[6] <=> $a[6]; });
+
+        $this->hojaResumenAnulados($libro->createSheet(4), 'Por cliente', $titulo . ' · POR CLIENTE', $rango, [
+            ['Cliente', 34, null], ['NIT / CI', 13, null], ['Pedidos del cliente', 11, '0'], ['Pedidos anulados', 11, '0'],
+            ['% anulado', 10, '0.0%'], ['Boletas anuladas', 11, '0'], ['Bs anulado', 14, '#,##0.00'],
+            ['Peso anulado (kg)', 14, '#,##0.000'], ['Camión', 16, null], ['Vendedor', 22, null], ['Motivos', 40, null],
+        ], $filasCliente, [2, 3, 5, 6, 7]);
+
+        // ---------- Por motivo ----------
+        // El motivo elegido al anular; los anulados sin motivo elegido (antes
+        // de que fuera obligatorio) van juntos.
+        $motivos = [];
+        $bsTotal = 0;
+        foreach ($anuladas as $f) {
+            $m = trim((string) $f->anulacion_observacion) ?: '(SIN MOTIVO ELEGIDO)';
+            $c = &$motivos[$m];
+            $c['impuestos'][trim((string) $f->motivo_anulacion)] = true;
+            $c['boletas'] = ($c['boletas'] ?? 0) + 1;
+            $c['pedidos'][$pedido($f)] = true;
+            $c['clientes'][$cliente($f)] = true;
+            $c['bs'] = ($c['bs'] ?? 0) + (float) $f->total;
+            $c['peso'] = ($c['peso'] ?? 0) + $this->pesoComprobante($f);
+            $bsTotal += (float) $f->total;
+            unset($c);
+        }
+        $filasMotivo = [];
+        foreach ($motivos as $nombre => $c) {
+            $filasMotivo[] = [(string) $nombre, implode(', ', array_filter(array_keys($c['impuestos']))), $c['boletas'],
+                count($c['pedidos']), count($c['clientes']), round($c['bs'], 2), round($c['peso'], 3),
+                $bsTotal > 0 ? $c['bs'] / $bsTotal : 0];
+        }
+        usort($filasMotivo, function ($a, $b) { return $b[5] <=> $a[5]; });
+
+        $this->hojaResumenAnulados($libro->createSheet(5), 'Por motivo', $titulo . ' · POR MOTIVO DE ANULACIÓN', $rango, [
+            ['Motivo anulación', 34, null], ['Motivo Impuestos', 34, null], ['Boletas anuladas', 11, '0'],
+            ['Pedidos anulados', 11, '0'], ['Clientes', 10, '0'], ['Bs anulado', 14, '#,##0.00'],
+            ['Peso anulado (kg)', 14, '#,##0.000'], ['% del Bs anulado', 11, '0.00%'],
+        ], $filasMotivo, [2, 3, 4, 5, 6, 7]);
+    }
+
+    /**
+     * Hoja "% de rechazo", como la arman en la oficina: VENTA (lo vigente,
+     * sin anulados), RECHAZO (lo anulado) y PORCENTAJE = rechazo / venta, en
+     * Bs y en kg.
+     */
+    private function hojaPorcentajeRechazo($hoja, $anuladas, $todas, $titulo, $rango)
+    {
+        $hoja->setTitle('% de rechazo');
+        $vigentes = $todas->filter(function ($f) { return $f->estado !== 'ANULADO'; });
+        $ventaBs = round($vigentes->sum(function ($f) { return (float) $f->total; }), 2);
+        $ventaKg = round($vigentes->sum(function ($f) { return $this->pesoComprobante($f); }), 3);
+        $rechazoBs = round($anuladas->sum(function ($f) { return (float) $f->total; }), 2);
+        $rechazoKg = round($anuladas->sum(function ($f) { return $this->pesoComprobante($f); }), 3);
+
+        $this->cabeceraHojaExcel($hoja, $titulo . ' · PORCENTAJE DE RECHAZO',
+            config('siat.emisor')['nombre'] . ' · ' . $rango . ' · generado el ' . date('d/m/Y H:i'),
+            'Comprobantes vigentes: ' . $vigentes->count() . '   ·   Anulados: ' . $anuladas->count(), 'C', 'B71C1C');
+
+        $hoja->fromArray([
+            ['', 'MONETARIO (Bs)', 'PESO (kg)'],
+            ['VENTA', $ventaBs, $ventaKg],
+            ['RECHAZO', $rechazoBs, $rechazoKg],
+            ['PORCENTAJE DE RECHAZO', '=IF(B6=0,0,B7/B6)', '=IF(C6=0,0,C7/C6)'],
+        ], null, 'A5', true);
+
+        $this->encabezadoTablaExcel($hoja, 'B5:C5');
+        $hoja->getStyle('A6:A8')->getFont()->setBold(true);
+        $hoja->getStyle('B6:B7')->getNumberFormat()->setFormatCode('#,##0.00');
+        $hoja->getStyle('C6:C7')->getNumberFormat()->setFormatCode('#,##0.000');
+        $hoja->getStyle('B8:C8')->getNumberFormat()->setFormatCode('0.0%');
+        $hoja->getStyle('A8:C8')->applyFromArray([
+            'font' => ['bold' => true, 'size' => 12, 'color' => ['rgb' => 'B71C1C']],
+            'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'FFEBEE']],
+        ]);
+        $hoja->getStyle('B6:C8')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+        $hoja->getStyle('A5:C8')->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_THIN);
+        $hoja->getStyle('A5:C8')->getFont()->setSize(12);
+        foreach (['A' => 30, 'B' => 20, 'C' => 20] as $col => $ancho) {
+            $hoja->getColumnDimension($col)->setWidth($ancho);
+        }
+        foreach ([5, 6, 7, 8] as $f) {
+            $hoja->getRowDimension($f)->setRowHeight(22);
+        }
+        $this->impresionHojaExcel($hoja, 0);
+    }
+
+    /** Una hoja de resumen: cabecera, tabla, fila TOTAL y formatos. $sumar: indices de columnas a sumar. */
+    private function hojaResumenAnulados($hoja, $nombre, $titulo, $rango, array $columnas, array $filas, array $sumar)
+    {
+        $hoja->setTitle($nombre);
+        $ultima = Coordinate::stringFromColumnIndex(count($columnas));
+        $this->cabeceraHojaExcel($hoja, $titulo, config('siat.emisor')['nombre'] . ' · ' . $rango . ' · generado el ' . date('d/m/Y H:i'),
+            count($filas) . ' fila(s) · ordenado por Bs anulado (mayor primero)', $ultima, 'B71C1C');
+        foreach ($columnas as $i => list($etiqueta, $ancho)) {
+            $letra = Coordinate::stringFromColumnIndex($i + 1);
+            $hoja->setCellValue($letra . '5', $etiqueta);
+            $hoja->getColumnDimension($letra)->setWidth($ancho);
+        }
+        $this->encabezadoTablaExcel($hoja, 'A5:' . $ultima . '5');
+        $hoja->getRowDimension(5)->setRowHeight(30);
+
+        $fila = 6;
+        foreach ($filas as $f) {
+            $hoja->fromArray($f, null, 'A' . $fila, true);
+            $fila++;
+        }
+        $fin = $fila - 1;
+
+        // Totales; el % anulado del total es pedidos anulados / pedidos.
+        $hoja->setCellValue('A' . $fila, 'TOTAL');
+        foreach ($sumar as $i) {
+            $letra = Coordinate::stringFromColumnIndex($i + 1);
+            $hoja->setCellValue($letra . $fila, $filas ? "=SUM({$letra}6:{$letra}{$fin})" : 0);
+        }
+        foreach ($columnas as $i => list($etiqueta, $ancho, $formato)) {
+            $letra = Coordinate::stringFromColumnIndex($i + 1);
+            if ($formato === '0.0%') {
+                $tot = Coordinate::stringFromColumnIndex($i - 1);
+                $anu = Coordinate::stringFromColumnIndex($i);
+                $hoja->setCellValue($letra . $fila, "=IF({$tot}{$fila}=0,0,{$anu}{$fila}/{$tot}{$fila})");
+            }
+            if ($formato) {
+                $hoja->getStyle($letra . '6:' . $letra . $fila)->getNumberFormat()->setFormatCode($formato);
+            }
+        }
+        $hoja->getStyle('A' . $fila . ':' . $ultima . $fila)->applyFromArray([
+            'font' => ['bold' => true],
+            'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'FFEBEE']],
+        ]);
+        $hoja->getStyle('A5:' . $ultima . $fila)->getBorders()->getAllBorders()
+            ->setBorderStyle(Border::BORDER_THIN)->getColor()->setRGB('BDBDBD');
+        $hoja->freezePane('B6');
+        if ($filas) {
+            $hoja->setAutoFilter('A5:' . $ultima . $fin);
+        }
+        $this->impresionHojaExcel($hoja, 5);
+    }
+
+    private function reporteExcel($contenido, array $filas, Request $request, $resumen = null)
     {
         list($titulo, $rango) = $this->tituloReporte($contenido, $request);
         $columnas = $this->columnasReporte($contenido);
@@ -5797,6 +6045,12 @@ class FacturacionController extends Controller
         // Los encabezados quedan fijos al desplazarse.
         $hoja->freezePane('A5');
         $hoja->setAutoFilter('A4:' . $ultima . ($fila - 1));
+
+        if ($resumen) {
+            $hoja->setTitle('Detalle por producto');
+            $this->hojasResumenAnulados($libro, $resumen['anuladas'], $resumen['todas'], $titulo, $rango);
+            $libro->setActiveSheetIndex(0);
+        }
 
         $writer = new Xlsx($libro);
         $nombre = $contenido . '_' . date('Y-m-d') . '.xlsx';
