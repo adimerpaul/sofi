@@ -2548,6 +2548,7 @@ $resPedido = $rows->groupBy('NroPed')->map(function ($g) use ($bonis) {
             SUM(subtotal) as importe,
             MAX(COALESCE(oculto, 0)) as oculto,
             MAX(COALESCE(fuera_horario, 0)) as fuera_horario,
+            GROUP_CONCAT(DISTINCT NroPed) as nros,
             GROUP_CONCAT(DISTINCT NULLIF(TRIM(comentario), \'\') SEPARATOR \' | \') as comentario,
             GROUP_CONCAT(DISTINCT NULLIF(TRIM(Observaciones), \'\') SEPARATOR \' | \') as observacion
         ')
@@ -2580,6 +2581,8 @@ $resPedido = $rows->groupBy('NroPed')->map(function ($g) use ($bonis) {
                     'oculto'      => (int) $pedido->oculto
                         ? ((int) $pedido->fuera_horario ? 'SI (fuera de horario)' : 'SI')
                         : 'NO',
+                    // Comandas de la fila, para ocultarlas o restablecerlas desde el mapa.
+                    'nros'        => array_values(array_filter(explode(',', (string) $pedido->nros))),
                     'ruta'        => $pedido->ruta ?? '',
                     'comentario'  => $pedido->comentario ?? '',
                     'observacion' => $pedido->observacion ?? '',
@@ -2587,6 +2590,46 @@ $resPedido = $rows->groupBy('NroPed')->map(function ($g) use ($bonis) {
             });
 
         return response()->json($resultados);
+    }
+
+    /**
+     * Ocultar o restablecer desde el mapa de clientes las comandas de una fila
+     * (mismo tbpedidos.oculto que Facturacion > Pedidos). Con un tipo elegido
+     * solo toca las lineas de ese tipo. Al ocultar se salta lo que ya tiene
+     * comprobante vigente: eso ya salio.
+     */
+    public function ocultarMapa(Request $request)
+    {
+        $datos = $request->validate([
+            'nros'   => 'required|array|min:1',
+            'nros.*' => 'integer',
+            'tipo'   => 'nullable|string',
+            'oculto' => 'required|boolean',
+        ]);
+        $tipo = strtoupper(trim((string) ($datos['tipo'] ?? 'TODOS')));
+        $oculto = (bool) $datos['oculto'];
+
+        $n = DB::table('tbpedidos as p')
+            ->whereNull('p.deleted_at')
+            ->whereIn('p.NroPed', $datos['nros'])
+            ->when($tipo !== '' && $tipo !== 'TODOS', function ($q) use ($tipo) {
+                $q->where('p.tipo', $tipo);
+            })
+            ->when($oculto, function ($q) {
+                $q->whereNotExists(function ($f) {
+                    $f->select(DB::raw(1))->from('facturas as f')
+                        ->whereColumn('f.pedido_nro', 'p.NroPed')
+                        ->whereRaw('UPPER(TRIM(f.pedido_tipo)) = ' . \App\Services\TipoPedido::sql('p'))
+                        ->where('f.estado', '<>', 'ANULADO');
+                });
+            })
+            ->update(['p.oculto' => $oculto ? 1 : 0]);
+
+        if ($oculto && !$n) {
+            return response()->json(['message' => 'No se ocultó nada: el pedido ya fue facturado'], 422);
+        }
+
+        return response()->json(['oculto' => $oculto, 'filas' => $n]);
     }
 
     public function detallePedMap(Request $request)

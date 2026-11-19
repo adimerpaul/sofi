@@ -197,8 +197,17 @@
                              :label="props.row.oculto"/>
                     <template v-else>{{ props.row[col.field] }}</template>
                   </td>
-                  <td key="op">
+                  <td key="op" class="no-wrap">
                     <q-btn color="info" icon="visibility" dense flat @click="verDetalle(props.row)"/>
+                    <!-- Mismo oculto que Facturacion > Pedidos: no sale para facturar. -->
+                    <q-btn v-if="props.row.oculto === 'NO'" color="grey-8" icon="visibility_off" dense flat
+                           :loading="ocultandoFila === props.row.num" @click.stop="cambiarOculto(props.row, true)">
+                      <q-tooltip>Ocultar (no sale en Facturación &gt; Pedidos)</q-tooltip>
+                    </q-btn>
+                    <q-btn v-else color="positive" icon="restore" dense flat
+                           :loading="ocultandoFila === props.row.num" @click.stop="cambiarOculto(props.row, false)">
+                      <q-tooltip>Quitar lo oculto</q-tooltip>
+                    </q-btn>
                   </td>
                 </tr>
               </template>
@@ -468,6 +477,7 @@ export default {
         {label: 'OCULTO', name: 'oculto', field: 'oculto', sortable: true, align: 'center'},
       ],
       dialgoCamion: false,
+      ocultandoFila: null,
       geojsonData: null,
       geojsonData5: {
         "type": "FeatureCollection",
@@ -916,6 +926,25 @@ export default {
           this.geojsonData = this.geojsonData3;
           break;
       }
+    },
+    // Oculta o restablece las comandas de la fila (con el tipo de producto elegido).
+    cambiarOculto(fila, oculto) {
+      const enviar = () => {
+        this.ocultandoFila = fila.num
+        this.$api.post('mapClientes/ocultar', { nros: fila.nros, tipo: this.tipoProducto, oculto }).then(() => {
+          fila.oculto = oculto ? 'SI' : 'NO'
+          this.$q.notify({ type: 'positive', message: oculto ? 'Pedido oculto' : 'Pedido restablecido' })
+        }).catch(err => {
+          this.$q.notify({ type: 'negative', message: err.response?.data?.message || 'No se pudo cambiar' })
+        }).finally(() => { this.ocultandoFila = null })
+      }
+      if (!oculto) return enviar()
+      this.$q.dialog({
+        title: 'Ocultar pedido',
+        message: 'El pedido de ' + fila.Nombres + ' no saldrá en Facturación > Pedidos hasta que lo restablezcan.',
+        cancel: { label: 'Cancelar', flat: true },
+        ok: { label: 'Ocultar', color: 'grey-8', unelevated: true }
+      }).onOk(enviar)
     },
     verDetalle(dato) {
       dato.fecha = this.fecha

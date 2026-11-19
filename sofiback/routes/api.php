@@ -444,6 +444,8 @@ Route::group(['middleware'=>'auth:sanctum'],function (){
     Route::get('/mapaVendedorVisita/excel-visitas',[\App\Http\Controllers\MapaVendedorController::class,'excelVisitas']);
 
     Route::post('/mapClientes',[\App\Http\Controllers\PedidoController::class,'mapClientes']);
+    // Ocultar / restablecer desde el mapa (mismo oculto que Facturacion > Pedidos).
+    Route::post('/mapClientes/ocultar',[\App\Http\Controllers\PedidoController::class,'ocultarMapa']);
     Route::post('/detallePedMap',[\App\Http\Controllers\PedidoController::class,'detallePedMap']);
 
     Route::post('/listVehiculo',[\App\Http\Controllers\PedidoController::class,'listVehiculo']);
