@@ -3444,6 +3444,7 @@ class FacturacionController extends Controller
         'LOCAL NO UBICADO',
         'NO HAY SALIDAS A PROVINCIA',
         'BLOQUEOS',
+        'POR DEVOLUCION PARCIAL',
     ];
 
     public function anular(Request $request, $id)

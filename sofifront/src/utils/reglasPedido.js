@@ -7,9 +7,17 @@
 // Grupo de productos FRIAL (tbgrupos.Cod_grup).
 export const GRUPO_FRIAL = '31'
 
+// Grupo de productos TROZADOS (tbgrupos.Cod_grup): pierna muslo, alas,
+// pechuga... a granel. Se piden por unidad o por kilo, no por caja.
+export const GRUPO_TROZADOS = '32'
+
 // Solo el grupo FRIAL lleva rango de peso (tbpedidos.rango_kg).
 export function esFrial (p) {
   return String((p && p.cod_grup) || '').trim() == GRUPO_FRIAL
+}
+
+export function esTrozado (p) {
+  return String((p && p.cod_grup) || '').trim() == GRUPO_TROZADOS
 }
 
 /**
@@ -23,13 +31,17 @@ export function unidadesCaja (p) {
   // El cerdo ya solo se pide por unidades; KG solo se deja en los pedidos
   // viejos que ya lo tenian, para no cambiarles la unidad al editarlos.
   if (p.tipo == 'CERDO') return p.caja == 'KG' ? ['U', 'KG'] : ['U']
+  // Los trozados ya no se piden por caja; CAJA solo se deja en los pedidos
+  // viejos que ya la tenian, para no cambiarles la unidad al editarlos.
+  if (esTrozado(p)) return p.caja == 'CAJA' ? ['U', 'CAJA', 'KG'] : ['U', 'KG']
   return ['U', 'CAJA', 'KG']
 }
 
+// Por defecto se pide en kilos donde se puede; si no, por unidad.
 export function unidadPorDefecto (p) {
   const unidades = unidadesCaja(p)
   if (!unidades.length) return null
-  return unidades.includes('CAJA') ? 'KG' : 'U'
+  return unidades.includes('KG') ? 'KG' : 'U'
 }
 
 // Cuentas "BAJAS POR ..." (bonificaciones, calidad, merma, vencimiento,

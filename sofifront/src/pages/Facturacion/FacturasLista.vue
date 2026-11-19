@@ -1192,7 +1192,8 @@ export default {
         'MERMA',
         'LOCAL NO UBICADO',
         'NO HAY SALIDAS A PROVINCIA',
-        'BLOQUEOS'
+        'BLOQUEOS',
+        'POR DEVOLUCION PARCIAL'
       ],
       anulando: false,
       // El dialogo de anulacion tambien sirve para Editar: anula y abre el pedido.
