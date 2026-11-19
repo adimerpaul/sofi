@@ -94,14 +94,12 @@ class MapaVendedorController extends Controller{
     function mapaVendedorVisita(Request $request)
     {
         $fecha = $request->fecha;
-        $tipo = $request->tipo;
 
-
-        // Vendedores que realizaron algún pedido ese día
+        // Vendedores que realizaron algún pedido ese día. El tipo de producto
+        // ya no filtra aqui: se filtra en pantalla sobre los clientes del mapa.
         $idUserArray = Pedido::whereDate('fecha', $fecha)
             ->orderBy('CIfunc')
             ->select('CIfunc')
-            ->whereRaw('tipo like ?', ["%$tipo%"])
             ->distinct()
             ->pluck('CIfunc')
             ->toArray();
@@ -130,22 +128,50 @@ class MapaVendedorController extends Controller{
             ->get()
             ->keyBy('cliente_id');
 
-        // Pedidos del dia por cliente (del tipo filtrado): numeros, tipos, total y hora.
-        $pedidosDia = DB::table('tbpedidos')
-            ->whereDate('fecha', $fecha)
-            ->whereNull('deleted_at')
-            ->whereIn('idCli', $clientesIdArray ?: [0])
-            ->whereRaw('tipo like ?', ["%$tipo%"])
-            ->groupBy('idCli')
+        // Tipo de producto de cada linea (Productos > Tipo); sin tipo asignado
+        // se toma el del pedido (NORMAL = EMBUTIDO).
+        $tipoLinea = "UPPER(TRIM(COALESCE(tp.nombre, CASE WHEN UPPER(TRIM(p.tipo)) = 'NORMAL' THEN 'EMBUTIDO' ELSE p.tipo END)))";
+
+        // Pedidos del dia por cliente y tipo de producto: numeros, lineas, total y hora.
+        $lineasTipo = DB::table('tbpedidos as p')
+            ->leftJoin('tbproductos as pr', function ($join) {
+                $join->on(DB::raw('TRIM(pr.cod_prod)'), '=', DB::raw('TRIM(p.cod_prod)'));
+            })
+            ->leftJoin('tipos_producto as tp', 'tp.id', '=', 'pr.tipo_producto_id')
+            ->whereDate('p.fecha', $fecha)
+            ->whereNull('p.deleted_at')
+            ->whereIn('p.idCli', $clientesIdArray ?: [0])
+            ->groupBy('p.idCli', DB::raw($tipoLinea))
             ->get([
-                'idCli',
-                DB::raw('GROUP_CONCAT(DISTINCT NroPed ORDER BY NroPed) as nros'),
-                DB::raw('GROUP_CONCAT(DISTINCT tipo) as tipos'),
+                'p.idCli',
+                DB::raw("$tipoLinea as tipo_producto"),
+                DB::raw('GROUP_CONCAT(DISTINCT p.NroPed ORDER BY p.NroPed) as nros'),
                 DB::raw('COUNT(*) as lineas'),
-                DB::raw('SUM(subtotal) as total'),
-                DB::raw('MIN(hora) as hora'),
-            ])
-            ->keyBy('idCli');
+                DB::raw('SUM(p.subtotal) as total'),
+                DB::raw('MIN(p.hora) as hora'),
+                DB::raw("MAX(UPPER(TRIM(p.horario)) = 'SE RECOGE') as se_recoge"),
+            ]);
+
+        $pedidosDia = [];
+        foreach ($lineasTipo as $l) {
+            $p = $pedidosDia[$l->idCli] ?? (object) ['nros' => [], 'tipos' => [], 'lineas' => 0, 'total' => 0, 'hora' => null, 'se_recoge' => false];
+            $p->se_recoge = $p->se_recoge || (int) $l->se_recoge === 1;
+            $nros = explode(',', (string) $l->nros);
+            $p->nros = array_unique(array_merge($p->nros, $nros));
+            $p->tipos[$l->tipo_producto] = [
+                'nros'   => implode(',', $nros),
+                'lineas' => (int) $l->lineas,
+                'total'  => round((float) $l->total, 2),
+                'hora'   => $l->hora,
+            ];
+            $p->lineas += (int) $l->lineas;
+            $p->total += (float) $l->total;
+            $p->hora = $p->hora === null || ($l->hora !== null && $l->hora < $p->hora) ? $l->hora : $p->hora;
+            $pedidosDia[$l->idCli] = $p;
+        }
+        foreach ($pedidosDia as $p) {
+            sort($p->nros);
+        }
 
         $userRes = [];
 
@@ -185,13 +211,18 @@ class MapaVendedorController extends Controller{
                     'Latitud' => $cliente->Latitud,
                     'longitud' => $cliente->longitud,
                     'estado' => $estado,
-                    'en_ruta' => $cliente->$campoDia == 1,
+                    // Un pedido con horario SE RECOGE no es fuera de ruta:
+                    // el cliente pasa a recogerlo.
+                    'en_ruta' => $cliente->$campoDia == 1 || ($pedido && $pedido->se_recoge),
+                    'se_recoge' => $pedido ? $pedido->se_recoge : false,
                     'dias' => implode(' ', $dias),
                     'visita_hora' => $visita ? $visita->hora : null,
                     'visita_obs' => $visita ? trim((string) $visita->observacion) : null,
                     'visita_distancia' => $visita ? $visita->distancia : null,
-                    'pedido_nros' => $pedido ? $pedido->nros : null,
-                    'pedido_tipos' => $pedido ? $pedido->tipos : null,
+                    'pedido_nros' => $pedido ? implode(',', $pedido->nros) : null,
+                    'pedido_tipos' => $pedido ? implode(',', array_keys($pedido->tipos)) : null,
+                    // Desglose por tipo de producto, para filtrar el mapa en pantalla.
+                    'pedido_por_tipo' => $pedido ? $pedido->tipos : (object) [],
                     'pedido_lineas' => $pedido ? (int) $pedido->lineas : 0,
                     'pedido_total' => $pedido ? round((float) $pedido->total, 2) : 0,
                     'pedido_hora' => $pedido ? $pedido->hora : null,
@@ -207,7 +238,8 @@ class MapaVendedorController extends Controller{
         }
 
         return [
-            'users' => $userRes
+            'users' => $userRes,
+            'tipos' => DB::table('tipos_producto')->orderBy('orden')->orderBy('nombre')->get(['nombre', 'color']),
         ];
     }
 
@@ -223,6 +255,10 @@ class MapaVendedorController extends Controller{
         $vendedor = (int) $request->vendedor;
         $ruta = in_array($request->ruta, ['RUTA', 'FUERA']) ? $request->ruta : 'TODOS';
         $campoDia = ['do', 'lu', 'ma', 'mi', 'ju', 'vi', 'sa'][date('w', strtotime($fecha))];
+        // En ruta: le toca ese dia o tiene un pedido del dia con horario SE
+        // RECOGE (igual que en el mapa).
+        $enRuta = "(c.$campoDia = 1 OR EXISTS (SELECT 1 FROM tbpedidos pr WHERE pr.idCli = v.cliente_id"
+            . " AND DATE(pr.fecha) = ? AND pr.deleted_at IS NULL AND UPPER(TRIM(pr.horario)) = 'SE RECOGE'))";
 
         $visitas = DB::table('misvisitas as v')
             ->leftJoin('tbclientes as c', 'c.Cod_Aut', '=', 'v.cliente_id')
@@ -231,13 +267,11 @@ class MapaVendedorController extends Controller{
             ->when($vendedor, function ($q) use ($vendedor) {
                 $q->where('v.personal_id', $vendedor);
             })
-            ->when($ruta === 'RUTA', function ($q) use ($campoDia) {
-                $q->where("c.$campoDia", 1);
+            ->when($ruta === 'RUTA', function ($q) use ($enRuta, $fecha) {
+                $q->whereRaw($enRuta, [$fecha]);
             })
-            ->when($ruta === 'FUERA', function ($q) use ($campoDia) {
-                $q->where(function ($w) use ($campoDia) {
-                    $w->whereNull("c.$campoDia")->orWhere("c.$campoDia", '<>', 1);
-                });
+            ->when($ruta === 'FUERA', function ($q) use ($enRuta, $fecha) {
+                $q->whereRaw("NOT COALESCE($enRuta, 0)", [$fecha]);
             })
             ->orderBy('v.hora')
             ->orderBy('v.id')
@@ -245,8 +279,16 @@ class MapaVendedorController extends Controller{
                 'v.hora', 'v.estado', 'v.distancia', 'v.observacion',
                 DB::raw('TRIM(c.Nombres) as cliente'),
                 DB::raw("TRIM(CONCAT(TRIM(p.Nombre1), ' ', TRIM(p.App1))) as personal"),
-                DB::raw("c.$campoDia as en_ruta"),
-            ]);
+                'v.cliente_id',
+                DB::raw("c.$campoDia as toca_dia"),
+            ])
+            ->all();
+        // Misma regla que $enRuta, calculada aqui para la columna EN RUTA.
+        $recogen = DB::table('tbpedidos')->whereDate('fecha', $fecha)->whereNull('deleted_at')
+            ->whereRaw("UPPER(TRIM(horario)) = 'SE RECOGE'")->distinct()->pluck('idCli')->flip();
+        foreach ($visitas as $v) {
+            $v->en_ruta = $v->toca_dia == 1 || isset($recogen[$v->cliente_id]) ? 1 : 0;
+        }
 
         $libro = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
         $hoja = $libro->getActiveSheet();

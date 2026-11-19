@@ -1795,7 +1795,9 @@ $resPedido = $rows->groupBy('NroPed')->map(function ($g) use ($bonis) {
         // Al modificar se conserva el numero del dia; solo se renumera si la
         // comanda cambia de fecha o de vendedor (o si es anterior a la columna).
         $anterior = Pedido::where('NroPed', $numpedido)->first();
-        $codAut = $request->user()->CodAut;
+        // El pedido sigue siendo del vendedor que lo hizo aunque lo modifique
+        // otro usuario (Pedidos totales); el que lo cambio queda en la auditoria.
+        $codAut = $anterior ? $anterior->CIfunc : $request->user()->CodAut;
         if ($anterior && $anterior->numero_dia
             && $anterior->CIfunc == $codAut
             && substr($anterior->fecha, 0, 10) == substr($request->fecha, 0, 10)) {
@@ -1813,7 +1815,7 @@ $resPedido = $rows->groupBy('NroPed')->map(function ($g) use ($bonis) {
                 'NroPed' => $numpedido,
                 'numero_dia' => $numeroDia,
                 'cod_prod' => $p['cod_prod'],
-                'CIfunc' => $request->user()->CodAut,
+                'CIfunc' => $codAut,
                 'idCli' => $request->idCli,
                 'bonificacion' => $request->bonificacion,
                 'bonificacionAprovacion' => $request->bonificacionAprovacion ?? null,

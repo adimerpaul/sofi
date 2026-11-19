@@ -352,7 +352,10 @@
                 <template v-slot:option="scope">
                   <q-item v-bind="scope.itemProps" class="opcion-producto">
                     <q-item-section avatar class="opcion-foto">
-                      <q-avatar rounded size="34px" class="foto-producto">
+                      <!-- Clic en la foto: se ve en grande y no elige el producto. -->
+                      <q-avatar rounded size="34px" class="foto-producto"
+                                :class="scope.opt.imagen ? 'cursor-pointer' : ''"
+                                @click.stop.prevent="verImagen(scope.opt)">
                         <img v-if="scope.opt.imagen" :src="urlImagen(scope.opt.imagen)" alt="">
                         <q-icon v-else name="inventory_2" size="17px" color="grey-6"/>
                       </q-avatar>
@@ -523,7 +526,9 @@
                 <q-item v-for="m in masPedidos.productos" :key="m.cod_prod" dense clickable
                         class="non-selectable" @dblclick="agregarFrecuente(m)">
                   <q-item-section avatar>
-                    <q-avatar rounded size="22px" class="foto-producto">
+                    <q-avatar rounded size="22px" class="foto-producto"
+                              :class="m.imagen ? 'cursor-pointer' : ''"
+                              @click.stop="verImagen(m)" @dblclick.stop>
                       <img v-if="m.imagen" :src="urlImagen(m.imagen)" alt="">
                       <q-icon v-else name="inventory_2" size="13px" color="grey-6"/>
                     </q-avatar>
@@ -850,6 +855,20 @@
         </q-card-actions>
       </q-card>
     </q-dialog>
+
+    <!-- Foto del producto en grande (clic en la miniatura del pedido). -->
+    <q-dialog v-model="imagenGrande.ver">
+      <q-card class="tarjeta-imagen-grande">
+        <q-card-section class="row items-center no-wrap q-py-xs q-px-sm">
+          <div class="text-weight-bold ellipsis">
+            <span class="text-grey-7">{{ imagenGrande.cod_prod }}</span> · {{ imagenGrande.producto }}
+          </div>
+          <q-space/>
+          <q-btn icon="close" flat round dense v-close-popup/>
+        </q-card-section>
+        <q-img :src="imagenGrande.src" fit="contain" class="imagen-grande" spinner-color="primary"/>
+      </q-card>
+    </q-dialog>
   </div>
 </template>
 <script>
@@ -942,6 +961,7 @@ export default {
       filteproducto: '',
       modalopciones: false,
       modalpedido: false,
+      imagenGrande: { ver: false, src: '', producto: '', cod_prod: '' },
       // Precio (1 a 13) del cliente por grupo de productos: { cod_grup: numero }.
       preciosCliente: {},
       modalnormal: false,
@@ -1861,6 +1881,10 @@ export default {
     urlImagen(ruta) {
       return String(this.$url || '').replace(/api\/?$/, '') + ruta
     },
+    verImagen(p) {
+      if (!p || !p.imagen) return
+      this.imagenGrande = { ver: true, src: this.urlImagen(p.imagen), producto: p.Producto, cod_prod: p.cod_prod }
+    },
     onReady(mapObject) {
       this.mapa = markRaw(mapObject)
       // El contenedor puede no tener su tamaño final al montar: sin esto
@@ -2055,4 +2079,14 @@ export default {
   .mas-detalle
     font-size: 10.5px
     line-height: 1.1
+
+// Foto del producto en grande
+.tarjeta-imagen-grande
+  width: 92vw
+  max-width: 640px
+
+.imagen-grande
+  height: 75vh
+  max-height: 640px
+  background: #fff
 </style>

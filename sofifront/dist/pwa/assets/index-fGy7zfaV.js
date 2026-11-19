@@ -1,4 +1,8 @@
+<<<<<<<< HEAD:sofifront/dist/pwa/assets/index-fGy7zfaV.js
 import{g as is}from"./index-DFhF4Rft.js";import"./vendor-BwiFWSlS.js";/*! *****************************************************************************
+========
+import{g as is}from"./index-CKWl9Q8Z.js";import"./vendor-BwiFWSlS.js";/*! *****************************************************************************
+>>>>>>>> ed1ba1490f062bb458f554aff8a319ea9470716f:sofifront/dist/pwa/assets/index-BECt_Ijd.js
 Copyright (c) Microsoft Corporation.
 
 Permission to use, copy, modify, and/or distribute this software for any

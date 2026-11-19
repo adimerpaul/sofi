@@ -1800,7 +1800,8 @@ export default {
         pago: this.pago,
         fact: this.fact,
         fecha: this.fecha,
-        horario: this.horario
+        horario: this.horario,
+        comentario: this.coment
       }).then(res => {
         // console.log(res.data)
         this.pago = 'CONTADO'

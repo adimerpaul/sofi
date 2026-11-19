@@ -1,4 +1,8 @@
+<<<<<<<< HEAD:sofifront/dist/pwa/assets/vfs_fonts-4276J9dC.js
 import{g as lo,b as zB,c as zi}from"./index-DFhF4Rft.js";import{c as $a}from"./_commonjs-dynamic-modules-TDtrdbi3.js";var Ao={exports:{}};/*!
+========
+import{g as lo,b as zB,c as zi}from"./index-CKWl9Q8Z.js";import{c as $a}from"./_commonjs-dynamic-modules-TDtrdbi3.js";var Ao={exports:{}};/*!
+>>>>>>>> ed1ba1490f062bb458f554aff8a319ea9470716f:sofifront/dist/pwa/assets/vfs_fonts-DCFnOw6G.js
  * jQuery JavaScript Library v3.7.1
  * https://jquery.com/
  *

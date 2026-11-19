@@ -213,6 +213,48 @@ class AvanceVentasController extends Controller
         return preg_match('/^\d{4}-\d{2}$/', $mes) ? $mes : date('Y-m');
     }
 
+    /**
+     * Avance que se espera al dia, como en la planilla AVANCE (K11 = dia / dias
+     * del mes): el mes en curso va por el dia de hoy, uno pasado al 100% y uno
+     * futuro en 0.
+     */
+    private function ritmo($mes)
+    {
+        $inicio = Carbon::createFromFormat('Y-m-d', $mes . '-01')->startOfDay();
+        $dias = $inicio->daysInMonth;
+        $hoy = Carbon::today();
+        if ($hoy->format('Y-m') === $mes) {
+            $dia = $hoy->day;
+        } else {
+            $dia = $hoy->lt($inicio) ? 0 : $dias;
+        }
+
+        return ['dia' => $dia, 'dias' => $dias, 'objetivo' => $dias ? $dia / $dias : 0];
+    }
+
+    /**
+     * Color del avance como en la planilla AVANCE: verde si llega al objetivo
+     * del dia, amarillo si le falta hasta 3/28 (unos 10,7 puntos), rojo si le
+     * falta mas. [fondo, letra] o null sin avance.
+     */
+    public static function colorAvance($avance, $objetivoDia)
+    {
+        if ($avance === null) return null;
+        if ($avance >= $objetivoDia - 0.0005) return ['C6EFCE', '006100'];
+        if ($avance >= $objetivoDia - 3 / 28) return ['FFEB9C', '9C5700'];
+        return ['FFC7CE', '9C0006'];
+    }
+
+    private function pintarAvance($hoja, $celda, $avance, $objetivoDia)
+    {
+        $color = self::colorAvance($avance, $objetivoDia);
+        if (!$color) return;
+        $hoja->getStyle($celda)->applyFromArray([
+            'font' => ['bold' => true, 'color' => ['rgb' => $color[1]]],
+            'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => $color[0]]],
+        ]);
+    }
+
     private function datos($mes)
     {
         $desde = $mes . '-01';
@@ -325,6 +367,7 @@ class AvanceVentasController extends Controller
             'mes' => $mes,
             'desde' => $desde,
             'hasta' => $hasta,
+            'ritmo' => $this->ritmo($mes),
             'lineas' => $lineas->map(function ($l) {
                 return [
                     'id' => $l->id,
@@ -398,6 +441,11 @@ class AvanceVentasController extends Controller
         $hoja->setCellValue('A2', 'Del ' . $datos['desde'] . ' al ' . $datos['hasta'] . ' · según lo facturado · volumen en kg (lo que va por unidad, por el peso de cada unidad)');
         $hoja->mergeCells('A2:F2');
         $hoja->getStyle('A2')->getFont()->setItalic(true)->setSize(9);
+        $ritmo = $datos['ritmo'];
+        $hoja->setCellValue('A3', 'OBJETIVO AL DIA (' . $ritmo['dia'] . '/' . $ritmo['dias'] . ')');
+        $hoja->setCellValue('D3', $ritmo['objetivo']);
+        $hoja->getStyle('A3:D3')->getFont()->setBold(true);
+        $hoja->getStyle('D3')->getNumberFormat()->setFormatCode('0.0%');
 
         $enc = ['DESCRIPCION', 'OBJETIVO KG', 'VOLUMEN VENDIDO KG','AVANCE %', 'COBERTURA', 'VENDIDO Bs'];
         $hoja->fromArray($enc, null, 'A4');
@@ -430,6 +478,7 @@ class AvanceVentasController extends Controller
                 $hoja->getStyle("A$fila:F$fila")->getFont()->setBold(true);
                 $hoja->getStyle("A$fila")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
             }
+            $this->pintarAvance($hoja, "D$fila", $f['avance'], $ritmo['objetivo']);
             $fila++;
         }
         $ultima = $fila - 1;
@@ -466,6 +515,7 @@ class AvanceVentasController extends Controller
                 $i + 1, $v['nombre'], $total['objetivo'] > 0 ? $total['objetivo'] : null, $total['vol'],
                 $total['avance'], $total['cobertura'], $total['bs'],
             ], null, 'A' . $fila);
+            $this->pintarAvance($hoja, "E$fila", $total['avance'], $datos['ritmo']['objetivo']);
             $fila++;
         }
         $general = collect($this->filas($datos, 'g', 0))->last();
@@ -473,6 +523,11 @@ class AvanceVentasController extends Controller
             $general['avance'], $general['cobertura'], $general['bs']], null, 'A' . $fila);
         $hoja->getStyle("A$fila:G$fila")->getFont()->setBold(true);
         $hoja->getStyle("A$fila:G$fila")->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB('FFFF00');
+        $this->pintarAvance($hoja, "E$fila", $general['avance'], $datos['ritmo']['objetivo']);
+        $hoja->setCellValue('B2', 'OBJETIVO AL DIA (' . $datos['ritmo']['dia'] . '/' . $datos['ritmo']['dias'] . ')');
+        $hoja->setCellValue('E2', $datos['ritmo']['objetivo']);
+        $hoja->getStyle('B2:E2')->getFont()->setBold(true);
+        $hoja->getStyle('E2')->getNumberFormat()->setFormatCode('0.0%');
 
         $hoja->getStyle("A3:G$fila")->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_THIN);
         $hoja->getStyle("C4:D$fila")->getNumberFormat()->setFormatCode('#,##0.00');
