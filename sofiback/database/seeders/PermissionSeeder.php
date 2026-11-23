@@ -47,6 +47,7 @@ class PermissionSeeder extends Seeder
             'almacen',
             'almacenVerificar',
             'almacenVerificado',
+            'almacenRiesgo',
             'modifica',
             'monitoreo',
             'mapavendedor',
@@ -94,7 +95,7 @@ class PermissionSeeder extends Seeder
                 'genreporte', 'despacho', 'mapavendedor', 'mapavendedorvisita', 'ventas',
             ],
             'almacen' => [
-                'almacen', 'almacenVerificar', 'almacenVerificado',
+                'almacen', 'almacenVerificar', 'almacenVerificado', 'almacenRiesgo',
             ],
             'asignar' => [
                 'mapacliente',

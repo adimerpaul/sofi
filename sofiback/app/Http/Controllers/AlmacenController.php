@@ -287,17 +287,86 @@ class AlmacenController extends Controller{
         $path = public_path('uploads/' . $file->getClientOriginalName());
         return $path;
     }
+    /**
+     * Guarda desde la web los conteos de un producto (hasta 10, como la app):
+     * cantidad, vencimiento, lote y comentario. Los que ya existen se actualizan
+     * (conservan quien los conto), los nuevos quedan a nombre de quien guarda y
+     * los que se quitaron se borran. Igual que exportData, el producto queda
+     * EXPORTADO con la suma como cantidad.
+     */
+    public function guardarRegistros(Request $request, $id){
+        $request->validate([
+            'registros' => 'present|array|max:10',
+            'registros.*.id' => 'nullable|integer',
+            'registros.*.cantidad' => 'required|numeric|min:0',
+            'registros.*.fecha_vencimiento' => 'nullable|date_format:Y-m-d',
+            'registros.*.lote' => 'nullable|string|max:100',
+            'registros.*.comentario' => 'nullable|string|max:255',
+        ], [
+            'registros.*.cantidad.required' => 'Falta la cantidad en un conteo',
+            'registros.*.fecha_vencimiento.date_format' => 'Una fecha de vencimiento no es válida',
+            'registros.max' => 'Máximo 10 conteos por producto',
+        ]);
+        $almacen = Almacen::findOrFail($id);
+        $userId = $request->user()->CodAut;
+
+        \DB::transaction(function () use ($request, $almacen, $userId) {
+            $ids = [];
+            $total = 0;
+            foreach ($request->registros as $r) {
+                $datos = [
+                    'cantidad' => round((float) $r['cantidad'], 2),
+                    'fecha_vencimiento' => !empty($r['fecha_vencimiento']) ? substr($r['fecha_vencimiento'], 0, 10) : null,
+                    'lote' => isset($r['lote']) ? trim((string) $r['lote']) : '',
+                    'comentario' => isset($r['comentario']) ? trim((string) $r['comentario']) : '',
+                ];
+                $total += $datos['cantidad'];
+                $registro = !empty($r['id'])
+                    ? RegistroAlmacen::where('almacen_id', $almacen->id)->where('id', $r['id'])->first()
+                    : null;
+                if ($registro) {
+                    $registro->update($datos);
+                } else {
+                    $registro = RegistroAlmacen::create($datos + [
+                        'almacen_id' => $almacen->id,
+                        'user_id' => $userId,
+                        'fecha_registro' => date('Y-m-d H:i:s'),
+                    ]);
+                }
+                $ids[] = $registro->id;
+            }
+            RegistroAlmacen::where('almacen_id', $almacen->id)->whereNotIn('id', $ids ?: [0])->delete();
+            $almacen->cantidad = $total;
+            if (count($ids) > 0) {
+                $almacen->se_descargo = 'EXPORTADO';
+            }
+            $almacen->save();
+        });
+
+        return response()->json(RegistroAlmacen::where('almacen_id', $almacen->id)->with('user')->get());
+    }
     public function update(Request $request, $id){
-        $almacen = Almacen::find($id);
+        $request->validate([
+            'registro' => 'nullable|date_format:Y-m-d',
+            'vencimiento' => 'nullable|date_format:Y-m-d',
+            'fecha_registro' => 'required|date_format:Y-m-d',
+            'saldo' => 'nullable|numeric',
+        ], [
+            'registro.date_format' => 'La fecha de registro no es válida',
+            'vencimiento.date_format' => 'La fecha de vencimiento no es válida',
+            'fecha_registro.required' => 'Falta la fecha de inventario',
+            'saldo.numeric' => 'El saldo debe ser un número',
+        ]);
+        $almacen = Almacen::findOrFail($id);
         $almacen->codigo = $request->codigo;
         $almacen->codigo_producto = $request->codigo_producto;
         $almacen->producto = $request->producto;
         $almacen->unidad = $request->unidad;
         $almacen->saldo = $request->saldo;
-        $almacen->registro = $request->registro;
-        $almacen->vencimiento = $request->vencimiento;
+        $almacen->registro = $request->registro ? substr($request->registro, 0, 10) : null;
+        $almacen->vencimiento = $request->vencimiento ? substr($request->vencimiento, 0, 10) : null;
         $almacen->grupo = $request->grupo;
-        $almacen->fecha_registro = $request->fecha_registro;
+        $almacen->fecha_registro = substr($request->fecha_registro, 0, 10);
         $almacen->save();
         return response()->json($almacen);
     }

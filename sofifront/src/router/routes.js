@@ -28,6 +28,7 @@ const routes = [
       { path: '/almacen', component: () => import('pages/AlmacenPage.vue') ,meta: {requiresAuth: true}},
       { path: '/almacenVerificar', component: () => import('pages/AlmacenVerificar.vue') ,meta: {requiresAuth: true}},
       { path: '/almacenVerificado', component: () => import('pages/AlmacenVerificado.vue') ,meta: {requiresAuth: true}},
+      { path: '/almacenRiesgo', component: () => import('pages/AlmacenRiesgo.vue') ,meta: {requiresAuth: true}},
       { path: '/entrega', component: () => import('pages/Entregas.vue') ,meta: {requiresAuth: true}},
       // Entregas del dia sobre facturacion (reemplaza a /entrega).
       { path: '/entregafactura', component: () => import('pages/EntregaFactura.vue'), meta: { requiresAuth: true } },

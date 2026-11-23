@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\PapeleriaSofia;
 use App\Models\Transformacion;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -24,6 +26,8 @@ use Illuminate\Support\Facades\DB;
  */
 class TransformacionController extends Controller
 {
+    use PapeleriaSofia;
+
     private const FECHA_NULA = '1899-11-30 04:32:36';
 
     private function exigir(Request $request, array $permisos)
@@ -318,6 +322,181 @@ class TransformacionController extends Controller
                     ->update(['stock_actual' => DB::raw('COALESCE(stock_actual, 0) + (' . sprintf('%.3F', $delta) . ')')]);
             }
         }
+    }
+
+    /**
+     * Excel con todo lo del listado (mismos filtros que index): hoja
+     * "Transformaciones" con una fila por transformacion y hoja "Detalle" con
+     * una fila por producto (ORIGEN y DESTINO).
+     */
+    public function excel(Request $request)
+    {
+        $datos = $this->index($request);
+        $lista = $datos['transformaciones'];
+
+        $libro = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
+        $libro->getDefaultStyle()->getFont()->setName('Calibri')->setSize(10);
+        $titulo = [
+            'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
+            'fill' => ['fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID, 'startColor' => ['rgb' => '37474F']],
+            'alignment' => ['horizontal' => 'center', 'vertical' => 'center', 'wrapText' => true],
+        ];
+        $borde = ['borders' => ['allBorders' => ['borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN, 'color' => ['rgb' => 'BDBDBD']]]];
+        $fecha = function ($f) {
+            return $f ? date('d/m/Y', strtotime($f)) : '';
+        };
+        $armar = function ($hoja, array $cabecera, array $filas, array $anchos, array $numericas) use ($titulo, $borde) {
+            $hoja->fromArray($cabecera, null, 'A1');
+            $ultimaCol = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex(count($cabecera));
+            $hoja->getStyle("A1:{$ultimaCol}1")->applyFromArray($titulo);
+            $hoja->getRowDimension(1)->setRowHeight(28);
+            if ($filas) {
+                $hoja->fromArray($filas, null, 'A2', true);
+            }
+            $ultima = max(count($filas) + 1, 1);
+            $hoja->getStyle("A1:{$ultimaCol}{$ultima}")->applyFromArray($borde);
+            foreach ($anchos as $i => $ancho) {
+                $hoja->getColumnDimensionByColumn($i + 1)->setWidth($ancho);
+            }
+            foreach ($numericas as $col) {
+                $hoja->getStyle("{$col}2:{$col}{$ultima}")->getNumberFormat()->setFormatCode('#,##0.000');
+            }
+            $hoja->freezePane('A2');
+            $hoja->setAutoFilter("A1:{$ultimaCol}{$ultima}");
+        };
+
+        $hoja = $libro->getActiveSheet();
+        $hoja->setTitle('Transformaciones');
+        $filas = [];
+        foreach ($lista as $t) {
+            $filas[] = [
+                $t['id'], $fecha($t['fecha']), $t['hora'], $t['estado'], $t['usuario'],
+                count($t['origen']), $t['total_origen_kg'], count($t['destino']), $t['total_destino_kg'],
+                $t['diferencia_kg'], $t['total_origen_kg'] > 0 ? round($t['diferencia_kg'] / $t['total_origen_kg'] * 100, 2) : 0,
+                $t['observacion'], $t['anulado_por'], $t['anulado_at'] ? date('d/m/Y H:i', strtotime($t['anulado_at'])) : '', $t['motivo_anulacion'],
+            ];
+        }
+        $armar($hoja, ['N.º', 'Fecha', 'Hora', 'Estado', 'Registrado por', 'Productos origen', 'Kg origen', 'Productos destino',
+            'Kg destino', 'Diferencia kg', 'Merma %', 'Observación', 'Anulado por', 'Anulado el', 'Motivo anulación'],
+            $filas, [7, 11, 9, 10, 24, 10, 12, 10, 12, 12, 9, 35, 22, 15, 30], ['G', 'I', 'J']);
+
+        $hoja = $libro->createSheet();
+        $hoja->setTitle('Detalle');
+        $filas = [];
+        foreach ($lista as $t) {
+            foreach (['ORIGEN' => $t['origen'], 'DESTINO' => $t['destino']] as $tipo => $lineas) {
+                foreach ($lineas as $l) {
+                    $filas[] = [
+                        $t['id'], $fecha($t['fecha']), $t['hora'], $t['estado'], $t['usuario'], $tipo,
+                        trim((string) $l['cod_prod']), $l['producto'], $l['unidad'], $l['cajas'], $l['kg'], $t['observacion'],
+                    ];
+                }
+            }
+        }
+        $armar($hoja, ['N.º', 'Fecha', 'Hora', 'Estado', 'Registrado por', 'Tipo', 'Código', 'Producto', 'Unidad', 'Cajas', 'Kg', 'Observación'],
+            $filas, [7, 11, 9, 10, 24, 10, 10, 45, 8, 9, 12, 35], ['K']);
+        $libro->setActiveSheetIndex(0);
+
+        $nombre = 'transformaciones_' . $datos['desde'] . ($datos['hasta'] !== $datos['desde'] ? '_' . $datos['hasta'] : '') . '.xlsx';
+        return response()->streamDownload(function () use ($libro) {
+            (new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($libro))->save('php://output');
+        }, $nombre, ['Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet']);
+    }
+
+    /**
+     * Hoja carta de la transformacion para imprimir y firmar: lo que salio
+     * (ORIGEN), lo que entro (DESTINO), totales, diferencia (merma) y firmas.
+     * Si esta anulada lo dice en grande con el motivo.
+     */
+    public function pdf(Request $request, $id)
+    {
+        $this->exigir($request, ['transformacionVer', 'transformacionCrear', 'transformacionAnular']);
+
+        $t = Transformacion::with(['detalles', 'usuario', 'anulador'])->find($id);
+        abort_unless($t, 404, 'La transformación no existe');
+        $d = $this->formato($t);
+
+        $kg = function ($v) {
+            return number_format((float) $v, 3, '.', ',');
+        };
+        $tabla = function ($titulo, $lineas, $total, $color) use ($kg) {
+            $filas = '';
+            $cajas = 0;
+            foreach ($lineas as $i => $l) {
+                $cajas += (float) ($l['cajas'] ?? 0);
+                $filas .= "<tr class='" . ($i % 2 ? 'par' : '') . "'>
+                    <td class='c'>" . ($i + 1) . "</td>
+                    <td class='cod'>" . e(trim((string) $l['cod_prod'])) . "</td>
+                    <td>" . e($l['producto']) . "</td>
+                    <td class='c'>" . e($l['unidad']) . "</td>
+                    <td class='r'>" . ($l['cajas'] !== null ? number_format($l['cajas'], 2) : '') . "</td>
+                    <td class='r'><b>" . $kg($l['kg']) . "</b></td>
+                </tr>";
+            }
+            return "<div class='seccion' style='border-left:4px solid $color'>$titulo</div>
+                <table class='detalle' style='margin-top:3px'>
+                    <tr><th style='width:22px'>#</th><th style='width:70px'>Código</th><th>Producto</th>
+                        <th style='width:45px'>Unid.</th><th style='width:55px'>Cajas</th><th style='width:80px'>Kg</th></tr>
+                    $filas
+                    <tr class='tot'><td colspan='4' class='r'>TOTAL $titulo</td>
+                        <td class='r'>" . ($cajas ? number_format($cajas, 2) : '') . "</td><td class='r'>" . $kg($total) . "</td></tr>
+                </table>";
+        };
+
+        $fecha = $d['fecha'] ? date('d/m/Y', strtotime($d['fecha'])) : '';
+        $anulada = $d['estado'] === 'ANULADO' || $d['estado'] === 'ANULADA';
+        $caja = "<table class='caja-doc'>
+            <tr><td colspan='2' class='tit'>TRANSFORMACIÓN</td></tr>
+            <tr><td class='et'>N.º</td><td class='nro'>" . $d['id'] . "</td></tr>
+            <tr><td class='et'>Fecha</td><td>$fecha " . e($d['hora']) . "</td></tr>
+            <tr><td class='et'>Estado</td><td><b>" . e($d['estado']) . "</b></td></tr>
+        </table>";
+
+        $dif = $d['diferencia_kg'];
+        $pct = $d['total_origen_kg'] > 0 ? round($dif / $d['total_origen_kg'] * 100, 2) : 0;
+
+        $html = "<html><head><meta charset='utf-8'><style>" . $this->estilosImpresion() . "
+            .seccion { margin-top: 12px; padding: 3px 7px; font-size: 10.5px; font-weight: bold; background: #f1f1f1 }
+            .detalle tr.tot td { background: #eceff1; font-weight: bold; border-top: 1.5px solid #37474f }
+            .resumen { width: 60%; margin: 12px 0 0 auto; border-collapse: collapse; border: 1px solid #ccc }
+            .resumen td { padding: 4px 8px; font-size: 10px; border-bottom: 1px solid #eee }
+            .resumen .final td { background: #37474f; color: #fff; font-weight: bold; font-size: 11px }
+            .firmas { width: 100%; margin-top: 55px; border-collapse: collapse }
+            .firmas td { width: 33%; text-align: center; font-size: 9px; padding: 0 14px }
+            .firmas .linea { border-top: 1px solid #333; padding-top: 3px }
+            .sello { position: fixed; top: 300px; left: 0; right: 0; text-align: center; font-size: 70px;
+                     font-weight: bold; color: rgba(198,40,40,.15); transform: rotate(-25deg) }
+        </style></head><body>"
+            . ($anulada ? "<div class='sello'>ANULADA</div>" : '')
+            . $this->cabeceraEmisor($caja)
+            . "<table class='datos'>
+                <tr><td class='et' style='width:90px'>Registrado por</td><td>" . e($d['usuario']) . "</td>
+                    <td class='et' style='width:70px'>Impreso</td><td>" . date('d/m/Y H:i') . "</td></tr>"
+            . ($d['observacion'] ? "<tr><td class='et'>Observación</td><td colspan='3'>" . e($d['observacion']) . "</td></tr>" : '')
+            . "</table>"
+            . ($anulada ? "<div class='aviso'>ANULADA por " . e($d['anulado_por']) . ' el '
+                . ($d['anulado_at'] ? date('d/m/Y H:i', strtotime($d['anulado_at'])) : '')
+                . ($d['motivo_anulacion'] ? ' · Motivo: ' . e($d['motivo_anulacion']) : '') . "</div>" : '')
+            . $tabla('ORIGEN (SALE DE STOCK)', $d['origen'], $d['total_origen_kg'], '#c62828')
+            . $tabla('DESTINO (ENTRA A STOCK)', $d['destino'], $d['total_destino_kg'], '#2e7d32')
+            . "<table class='resumen'>
+                <tr><td>Total origen</td><td class='r'>" . $kg($d['total_origen_kg']) . " kg</td></tr>
+                <tr><td>Total destino</td><td class='r'>" . $kg($d['total_destino_kg']) . " kg</td></tr>
+                <tr class='final'><td>Diferencia (merma)</td><td class='r'>" . $kg($dif) . " kg ($pct%)</td></tr>
+            </table>
+            <table class='firmas'><tr>
+                <td><div class='linea'>Entregado por<br><span class='gris'>" . e($d['usuario']) . "</span></div></td>
+                <td><div class='linea'>Recibido por</div></td>
+                <td><div class='linea'>Autorizado por</div></td>
+            </tr></table>
+        </body></html>";
+
+        $pdf = App::make('dompdf.wrapper');
+        $pdf->getDomPDF()->getOptions()->setIsFontSubsettingEnabled(true);
+        $pdf->setPaper('letter');
+        $pdf->loadHTML($html);
+
+        return $pdf->stream('transformacion_' . $d['id'] . '.pdf', ['Attachment' => false]);
     }
 
     private function nombre($u)

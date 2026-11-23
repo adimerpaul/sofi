@@ -288,6 +288,8 @@ Route::group(['middleware'=>'auth:sanctum'],function (){
     Route::get('/transformaciones',[\App\Http\Controllers\TransformacionController::class,'index']);
     Route::get('/transformaciones/productos',[\App\Http\Controllers\TransformacionController::class,'productos']);
     Route::get('/transformaciones/{id}',[\App\Http\Controllers\TransformacionController::class,'show'])->whereNumber('id');
+    Route::get('/transformaciones/excel',[\App\Http\Controllers\TransformacionController::class,'excel']);
+    Route::get('/transformaciones/{id}/pdf',[\App\Http\Controllers\TransformacionController::class,'pdf'])->whereNumber('id');
     Route::post('/transformaciones',[\App\Http\Controllers\TransformacionController::class,'store']);
     Route::put('/transformaciones/{id}/anular',[\App\Http\Controllers\TransformacionController::class,'anular'])->whereNumber('id');
 
@@ -411,12 +413,22 @@ Route::group(['middleware'=>'auth:sanctum'],function (){
 //    almacenRegistroVerificar
     Route::put('/almacenRegistroVerificar/{id}',[\App\Http\Controllers\AlmacenController::class,'almacenRegistroVerificar']);
     Route::put('/almacenes/{id}',[\App\Http\Controllers\AlmacenController::class,'update']);
+    // Conteos (cantidad, vencimiento, lote, comentario; hasta 10) llenados desde la web.
+    Route::post('/almacenes/{id}/registros',[\App\Http\Controllers\AlmacenController::class,'guardarRegistros']);
     Route::delete('/almacenes/{id}',[\App\Http\Controllers\AlmacenController::class,'destroy']);
     Route::post('/almacenesEliminarTodos',[\App\Http\Controllers\AlmacenController::class,'eliminarTodos']);
     Route::post('/cargarExcel',[\App\Http\Controllers\AlmacenController::class,'cargarExcel']);
     Route::get('/porcentaje',[\App\Http\Controllers\AlmacenController::class,'porcentaje']);
 
     Route::get('/registros',[\App\Http\Controllers\AlmacenController::class,'registros']);
+    // Almacen > Productos en riesgo (permiso almacenRiesgo); no toca el inventario.
+    Route::get('/productosRiesgo',[\App\Http\Controllers\ProductoRiesgoController::class,'index']);
+    Route::post('/productosRiesgo/generar',[\App\Http\Controllers\ProductoRiesgoController::class,'generar']);
+    Route::get('/productosRiesgo/excel',[\App\Http\Controllers\ProductoRiesgoController::class,'excel']);
+    Route::post('/productosRiesgo/actualizar',[\App\Http\Controllers\ProductoRiesgoController::class,'actualizar']);
+    Route::put('/productosRiesgo/{id}',[\App\Http\Controllers\ProductoRiesgoController::class,'update']);
+    Route::put('/productosRiesgo/{id}/quitar',[\App\Http\Controllers\ProductoRiesgoController::class,'quitar']);
+    Route::post('/productosRiesgo/{id}/reagregar',[\App\Http\Controllers\ProductoRiesgoController::class,'reagregar']);
 
     Route::post('/listRuta',[\App\Http\Controllers\RutaController::class,'listRuta']);
     Route::post('/resumenEntrega',[\App\Http\Controllers\RutaController::class,'resumenEntrega']);

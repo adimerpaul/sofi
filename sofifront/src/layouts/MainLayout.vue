@@ -217,6 +217,7 @@ export default {
         { label: 'Almacén', icon: 'o_store', to: 'almacen', show: can('almacen') },
         { label: 'Verificar Almacén', icon: 'fact_check', to: 'almacenVerificar', show: can('almacenVerificar') },
         { label: 'Almacén Verificado', icon: 'task_alt', to: 'almacenVerificado', show: can('almacenVerificado') },
+        { label: 'Productos en riesgo', caption: 'Vencen en 20 días o menos', icon: 'warning', to: 'almacenRiesgo', show: can('almacenRiesgo') },
         { label: 'Asignar Preventista', icon: 'people', to: 'modifica', show: can('modifica') },
         { label: 'Monitoreo', icon: 'computer', to: 'monitoreo', show: can('monitoreo') },
         { label: 'Resumen de Preventa', caption: 'Monitoreo', icon: 'query_stats', to: 'mapavendedor', show: can('mapavendedor') },

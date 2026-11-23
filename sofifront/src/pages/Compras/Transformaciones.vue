@@ -4,6 +4,10 @@
     <div class="row items-center q-gutter-sm">
       <div class="text-h6">{{ vista === 'crear' ? 'Nueva transformación de productos' : 'Transformaciones de productos' }}</div>
       <q-space/>
+      <q-btn v-if="vista === 'ver'" color="green-8" icon="grid_on" label="Exportar Excel" no-caps unelevated
+             :loading="exportando" @click="exportarExcel">
+        <q-tooltip>Todo lo del rango y estado elegidos: una hoja por transformación y otra con cada producto</q-tooltip>
+      </q-btn>
       <q-btn v-if="vista === 'ver' && can('transformacionCrear')" color="primary" icon="add_circle"
              label="Crear transformación" no-caps unelevated to="/compras/transformaciones/nueva"/>
       <q-btn v-if="vista === 'crear' && puedeVer" color="primary" outline icon="list"
@@ -170,6 +174,8 @@
             {{ numero(t.total_origen_kg) }} kg → {{ numero(t.total_destino_kg) }} kg ·
             dif. <b>{{ numero(t.diferencia_kg) }}</b>
           </div>
+          <q-btn dense flat no-caps color="primary" icon="print" label="Imprimir"
+                 :loading="imprimiendo === t.id" @click="imprimir(t.id)"/>
           <q-btn v-if="t.estado === 'ACTIVO' && can('transformacionAnular')" dense flat no-caps color="negative"
                  icon="block" label="Anular" @click="anular(t)"/>
         </q-card-section>
@@ -216,6 +222,7 @@
 
 <script>
 import { date } from 'quasar'
+import { imprimirPdfDirecto } from 'src/utils/impresion.js'
 
 export default {
   name: 'TransformacionesProductos',
@@ -230,7 +237,9 @@ export default {
       guardando: false,
       filtro: { desde: hoy, hasta: hoy, estado: '', buscar: '' },
       lista: [],
-      cargando: false
+      cargando: false,
+      imprimiendo: null,
+      exportando: false
     }
   },
   computed: {
@@ -318,6 +327,11 @@ export default {
           this.$q.notify({ type: 'positive', message: res.data.message })
           this.form = { origen: [], destino: [], observacion: '' }
           this.lista = []
+          const id = res.data.transformacion?.id
+          if (id) {
+            this.$q.dialog({ title: 'Transformación N° ' + id, message: '¿Imprimir la transformación?', cancel: { label: 'No', flat: true }, ok: { label: 'Imprimir', icon: 'print' } })
+              .onOk(() => this.imprimir(id))
+          }
           if (this.puedeVer) this.$router.push('/compras/transformaciones')
         }).catch(err => {
           this.$q.notify({ type: 'negative', message: err.response?.data?.message || 'No se pudo registrar' })
@@ -333,6 +347,40 @@ export default {
       }).catch(err => {
         this.$q.notify({ type: 'negative', message: err.response?.data?.message || 'No se pudo cargar' })
       }).finally(() => { this.cargando = false })
+    },
+    async mensajeBlob (err, porDefecto) {
+      try {
+        return JSON.parse(await err.response.data.text()).message || porDefecto
+      } catch (e) {
+        return porDefecto
+      }
+    },
+    // Hoja carta con origen, destino, merma y firmas; va directo a la impresora.
+    imprimir (id) {
+      this.imprimiendo = id
+      this.$api.get('transformaciones/' + id + '/pdf', { responseType: 'blob' })
+        .then(res => imprimirPdfDirecto(res.data, 'transformacion_' + id + '.pdf'))
+        .catch(async err => {
+          this.$q.notify({ type: 'negative', position: 'top', message: await this.mensajeBlob(err, 'No se pudo imprimir') })
+        })
+        .finally(() => { this.imprimiendo = null })
+    },
+    exportarExcel () {
+      this.exportando = true
+      const desde = this.filtro.desde
+      const hasta = this.filtro.hasta || desde
+      this.$api.get('transformaciones/excel', {
+        params: { desde, hasta, estado: this.filtro.estado || undefined }, responseType: 'blob'
+      }).then(res => {
+        const url = URL.createObjectURL(res.data)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = 'transformaciones_' + desde + (hasta !== desde ? '_' + hasta : '') + '.xlsx'
+        a.click()
+        URL.revokeObjectURL(url)
+      }).catch(async err => {
+        this.$q.notify({ type: 'negative', position: 'top', message: await this.mensajeBlob(err, 'No se pudo exportar') })
+      }).finally(() => { this.exportando = false })
     },
     anular (t) {
       this.$q.dialog({

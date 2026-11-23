@@ -241,7 +241,7 @@
           <div
             class="foto-zona"
             :class="{ 'foto-zona--activa': arrastrando === props.row.cod_prod, 'foto-zona--solo-ver': !puedeModificar }"
-            @click="puedeModificar && elegirImagen(props.row)"
+            @click="clicFoto(props.row)"
             @dragenter.prevent.stop="arrastrando = props.row.cod_prod"
             @dragover.prevent.stop="arrastrando = props.row.cod_prod"
             @dragleave.prevent.stop="arrastrando = null"
@@ -254,8 +254,8 @@
               <q-spinner size="18px" color="primary"/>
             </q-inner-loading>
 
-            <q-tooltip v-if="puedeModificar">
-              {{ props.row.imagen ? 'Clic o arrastra una imagen para cambiarla' : 'Clic o arrastra una imagen aquí' }}
+            <q-tooltip v-if="props.row.imagen || puedeModificar">
+              {{ props.row.imagen ? 'Clic para ver la foto' + (puedeModificar ? ' · arrastra una imagen para cambiarla' : '') : 'Clic o arrastra una imagen aquí' }}
             </q-tooltip>
           </div>
 
@@ -285,6 +285,33 @@
       class="hidden"
       @change="subirImagen"
     />
+
+    <!-- Visor de la foto del producto. -->
+    <q-dialog v-model="visor.abierto">
+      <q-card style="max-width: 92vw">
+        <q-card-section class="row items-center q-py-sm">
+          <div class="text-subtitle1 text-weight-medium ellipsis" style="max-width: 70vw">
+            {{ visor.row && visor.row.Producto }}
+          </div>
+          <q-space/>
+          <q-btn flat round dense icon="close" v-close-popup/>
+        </q-card-section>
+        <q-card-section class="q-pt-none text-center">
+          <img
+            v-if="visor.row && visor.row.imagen"
+            :src="urlImagen(visor.row.imagen)"
+            alt=""
+            style="max-width: 85vw; max-height: 75vh; object-fit: contain; display: block; margin: 0 auto"
+          />
+        </q-card-section>
+        <q-card-actions v-if="puedeModificar" align="right">
+          <q-btn flat color="negative" icon="delete" label="Quitar" no-caps
+                 @click="visor.abierto = false; quitarImagen(visor.row)"/>
+          <q-btn flat color="primary" icon="photo_camera" label="Cambiar" no-caps
+                 @click="visor.abierto = false; elegirImagen(visor.row)"/>
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
 
     <q-dialog v-model="dialogEditar">
       <q-card style="width: 640px; max-width: 96vw">
@@ -669,6 +696,8 @@ export default {
       productoImagen: null,
       // Fila sobre la que se está arrastrando una imagen.
       arrastrando: null,
+      // Diálogo para ver la foto en grande.
+      visor: { abierto: false, row: null },
       dialogEditar: false,
       // El mismo diálogo sirve para alta y edición; esto decide cuál.
       creando: false,
@@ -843,6 +872,15 @@ export default {
     // Las fotos se sirven desde public/, no desde /api/, de ahi el recorte.
     urlImagen (ruta) {
       return String(this.$url || '').replace(/api\/?$/, '') + ruta
+    },
+
+    // Con foto: se abre en grande. Sin foto: se pide una (si tiene permiso).
+    clicFoto (row) {
+      if (row.imagen) {
+        this.visor = { abierto: true, row }
+      } else if (this.puedeModificar) {
+        this.elegirImagen(row)
+      }
     },
 
     elegirImagen (row) {
