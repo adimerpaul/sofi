@@ -40,6 +40,9 @@ class ProductoController extends Controller{
             // Precio por unidad de los productos que se piden por bulto pero se
             // cobran por peso: en cero, el pedido multiplica por Precio como siempre.
             'precioAprox',
+            // Lo que vale 1 unidad pedida en la unidad del precio (1 tocino = 0.150 kg):
+            // subtotal = cantidad x factorVenta x precio. En cero no se aplica.
+            'factorVenta',
             DB::raw('TRIM(codUnid) as codUnid'),
             'tipo',
             // Tipo administrable: chips de filtro y marca de cada linea del pedido.
@@ -68,7 +71,7 @@ class ProductoController extends Controller{
     private const CAMPOS_NUMERICOS = [
         'Precio', 'Precio_Costo', 'Precio3', 'Precio4', 'Precio5', 'Precio6',
         'Precio7', 'Precio8', 'Precio9', 'Precio10', 'Precio11', 'Precio12', 'Precio13',
-        'precioAprox', 'stock_actual',
+        'precioAprox', 'factorVenta', 'stock_actual',
         // Peso de una unidad en kg (decimal(10,3)): lo usan los reportes que pasan unidades a kilos.
         'CantPren',
     ];
@@ -157,6 +160,7 @@ class ProductoController extends Controller{
             // Precio referencial que se muestra al vendedor; la columna es
             // decimal(10,3) y admite 0 como "sin referencia".
             'precioAprox'  => 'nullable|numeric|min:0',
+            'factorVenta'  => 'nullable|numeric|min:0',
             // Peso de una unidad en kg.
             'CantPren'     => 'nullable|numeric|min:0',
             // El formulario manda un check; en la tabla se guarda 'SI' o 'NO'.
@@ -314,6 +318,7 @@ class ProductoController extends Controller{
             // Vacio = sin precio de compra cargado.
             'precio_compra' => 'nullable|numeric|min:0',
             'precioAprox'  => 'nullable|numeric|min:0',
+            'factorVenta'  => 'nullable|numeric|min:0',
             'CantPren'     => 'nullable|numeric|min:0',
             'trozado'      => 'nullable|boolean',
         ]);
@@ -429,6 +434,7 @@ class ProductoController extends Controller{
         'codUnid'  => 'p.codUnid',
         'Precio'   => 'p.Precio',
         'precioAprox' => 'p.precioAprox',
+        'factorVenta' => 'p.factorVenta',
         'PreCosto' => 'p.PreCosto',
         'cantidad' => 'cantidad',
     ];
@@ -491,7 +497,7 @@ class ProductoController extends Controller{
                 'p.Precio', 'p.Precio_Costo', 'p.Precio3', 'p.Precio4', 'p.Precio5',
                 'p.Precio6', 'p.Precio7', 'p.Precio8', 'p.Precio9', 'p.Precio10',
                 'p.Precio11', 'p.Precio12', 'p.Precio13', 'p.PreCosto',
-                'p.precioAprox', 'p.precio_compra',
+                'p.precioAprox', 'p.factorVenta', 'p.precio_compra',
                 'p.CantPren',
                 'p.imagen',
                 // Bandera de texto: la pantalla la maneja como check.

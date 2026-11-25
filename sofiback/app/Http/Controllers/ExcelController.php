@@ -487,6 +487,392 @@ class ExcelController extends Controller
      * Ademas del detalle van dos resumenes, por producto y por preventista,
      * que es lo que se mira antes de entrar linea por linea.
      */
+    /**
+     * Pedido vs moda: lo que el cliente pidio en el rango comparado con lo que
+     * suele comprar (la moda de "Lo que mas pide" en /visita).
+     *
+     * La moda sale de lo facturado (comprobantes ACTIVO) en los 4 meses antes
+     * de "ini", con la misma regla que ClienteController::masPedidos: los
+     * productos que compro en 5 ventas o mas, los 8 primeros, y por cada uno la
+     * cantidad que mas se repite por venta junto con su unidad (tbpedidos.caja
+     * o la del detalle).
+     *
+     * Por cada cliente y dia con pedido (o visitado sin pedido) se compara cada
+     * producto de su moda con lo pedido ese dia en la misma unidad. El detalle
+     * trae solo lo que falto (NO PIDIO, PIDIO MENOS, OTRA UNIDAD) con la visita
+     * y los comentarios, para ver si el preventista no ofrecio el producto; los
+     * resumenes por preventista, producto y cliente cuentan tambien lo cumplido.
+     */
+    public function reporteModaPedidoExcel(Request $request)
+    {
+        $datos = $request->validate([
+            'ini' => 'required|date_format:Y-m-d',
+            'fin' => 'required|date_format:Y-m-d|after_or_equal:ini',
+        ]);
+        $ini = $datos['ini'];
+        $fin = $datos['fin'];
+        $desde = date('Y-m-d', strtotime($ini . ' -4 months'));
+
+        // Lo pedido por dia, cliente, producto y unidad.
+        $lineas = DB::select("
+            SELECT DATE(p.fecha) AS dia, p.idCli, MAX(p.CIfunc) AS CIfunc, TRIM(p.cod_prod) AS cod_prod,
+                   COALESCE(NULLIF(TRIM(p.caja), ''), TRIM(pr.codUnid)) AS unidad,
+                   SUM(p.Cant) AS cant, SUM(p.subtotal) AS subtotal,
+                   GROUP_CONCAT(DISTINCT p.NroPed ORDER BY p.NroPed) AS nros,
+                   GROUP_CONCAT(DISTINCT NULLIF(TRIM(p.comentario), '') SEPARATOR ' | ') AS comentario
+            FROM tbpedidos p
+            LEFT JOIN tbproductos pr ON pr.cod_prod = p.cod_prod
+            WHERE p.deleted_at IS NULL AND DATE(p.fecha) BETWEEN ? AND ?
+            GROUP BY DATE(p.fecha), p.idCli, TRIM(p.cod_prod),
+                     COALESCE(NULLIF(TRIM(p.caja), ''), TRIM(pr.codUnid))",
+            [$ini, $fin]
+        );
+
+        // Cliente-dia a analizar: con pedido, o visitado y sin pedido.
+        $casos = [];
+        foreach ($lineas as $l) {
+            $k = $l->dia . '|' . $l->idCli;
+            if (!isset($casos[$k])) {
+                $casos[$k] = (object) ['dia' => $l->dia, 'cliente' => (int) $l->idCli, 'vendedor' => (int) $l->CIfunc,
+                    'pedido' => true, 'nros' => [], 'comentario' => [], 'productos' => []];
+            }
+            $c = $casos[$k];
+            $c->nros = array_merge($c->nros, explode(',', (string) $l->nros));
+            if ($l->comentario) $c->comentario[] = $l->comentario;
+            $c->productos[$l->cod_prod][$l->unidad] = (float) $l->cant;
+        }
+
+        // Ultima visita del dia por cliente: estado y lo que escribio el preventista.
+        $visitas = DB::select("
+            SELECT DATE(v.fecha) AS dia, v.cliente_id, v.personal_id, v.estado, v.hora, TRIM(v.observacion) AS observacion
+            FROM misvisitas v
+            JOIN (SELECT MAX(id) AS id FROM misvisitas WHERE DATE(fecha) BETWEEN ? AND ? GROUP BY DATE(fecha), cliente_id) u
+              ON u.id = v.id",
+            [$ini, $fin]
+        );
+        $visitaDe = [];
+        foreach ($visitas as $v) {
+            $k = $v->dia . '|' . $v->cliente_id;
+            $visitaDe[$k] = $v;
+            if (!isset($casos[$k]) && $v->estado !== 'PEDIDO') {
+                $casos[$k] = (object) ['dia' => $v->dia, 'cliente' => (int) $v->cliente_id, 'vendedor' => (int) $v->personal_id,
+                    'pedido' => false, 'nros' => [], 'comentario' => [], 'productos' => []];
+            }
+        }
+
+        if (!$casos) {
+            return response()->json(['message' => 'No hay pedidos ni visitas en esas fechas'], 422);
+        }
+
+        $clientesIds = array_values(array_unique(array_map(function ($c) { return $c->cliente; }, $casos)));
+        $modas = $this->modasClientes($clientesIds, $desde, $ini);
+
+        $clientes = DB::table('tbclientes')->whereIn('Cod_Aut', $clientesIds)
+            ->get(['Cod_Aut', DB::raw('TRIM(Id) as nit'), DB::raw('TRIM(Nombres) as nombre'), DB::raw('TRIM(zona) as zona')])
+            ->keyBy('Cod_Aut');
+        $vendedoresIds = array_values(array_unique(array_map(function ($c) { return $c->vendedor; }, $casos)));
+        $vendedores = DB::table('personal')->whereIn('CodAut', $vendedoresIds)
+            ->get(['CodAut', DB::raw("TRIM(CONCAT(TRIM(Nombre1), ' ', TRIM(App1))) as nombre")])
+            ->pluck('nombre', 'CodAut');
+
+        $detalle = [];
+        $porVendedor = [];
+        $porProducto = [];
+        $porCliente = [];
+        ksort($casos);
+        foreach ($casos as $k => $c) {
+            $moda = $modas[$c->cliente] ?? [];
+            if (!$moda) continue; // Sin historial suficiente no hay contra que comparar.
+            $cli = $clientes[$c->cliente] ?? null;
+            $visita = $visitaDe[$k] ?? null;
+            $vendedor = $vendedores[$c->vendedor] ?? ('Cod. ' . $c->vendedor);
+
+            $v = &$porVendedor[$vendedor];
+            $v = ($v ?? []) + ['preventista' => $vendedor, 'clientes_dia' => 0, 'sin_pedido' => 0, 'esperados' => 0,
+                    'cumplidos' => 0, 'menos' => 0, 'no_pidio' => 0, 'otra_unidad' => 0, 'bs' => 0];
+            $v['clientes_dia']++;
+            if (!$c->pedido) $v['sin_pedido']++;
+
+            foreach ($moda as $cod => $m) {
+                $pedidoUnidades = $c->productos[$cod] ?? [];
+                $cant = $pedidoUnidades[$m['unidad']] ?? 0;
+                if ($cant >= $m['moda'] && $cant > 0) {
+                    $situacion = 'CUMPLIO';
+                } elseif ($cant == 0 && $pedidoUnidades) {
+                    $situacion = 'OTRA UNIDAD';
+                } elseif (!$c->pedido) {
+                    $situacion = 'SIN PEDIDO';
+                } elseif ($cant == 0) {
+                    $situacion = 'NO PIDIO';
+                } else {
+                    $situacion = 'PIDIO MENOS';
+                }
+                $diferencia = $situacion === 'OTRA UNIDAD' ? 0 : max(0, $m['moda'] - $cant);
+                $bs = round($diferencia * $m['precio'], 2);
+
+                $v['esperados']++;
+                $v['bs'] += $bs;
+                $clave = ['CUMPLIO' => 'cumplidos', 'PIDIO MENOS' => 'menos', 'OTRA UNIDAD' => 'otra_unidad'][$situacion] ?? 'no_pidio';
+                $v[$clave]++;
+
+                $p = &$porProducto[$cod . '|' . $m['unidad']];
+                $p = ($p ?? []) + ['cod_prod' => $cod, 'producto' => $m['producto'], 'unidad' => $m['unidad'],
+                        'esperados' => 0, 'cumplidos' => 0, 'menos' => 0, 'no_pidio' => 0, 'otra_unidad' => 0, 'bs' => 0];
+                $p['esperados']++;
+                $p[$clave]++;
+                $p['bs'] += $bs;
+                unset($p);
+
+                if ($situacion === 'CUMPLIO') continue;
+
+                $pc = &$porCliente[$c->cliente . '|' . $vendedor];
+                $pc = ($pc ?? []) + ['cliente_id' => $c->cliente, 'nit' => $cli->nit ?? '', 'cliente' => $cli->nombre ?? '',
+                        'zona' => $cli->zona ?? '', 'preventista' => $vendedor, 'dias' => [], 'faltas' => 0, 'productos' => [], 'bs' => 0];
+                $pc['dias'][$c->dia] = true;
+                $pc['faltas']++;
+                $pc['productos'][$m['producto']] = true;
+                $pc['bs'] += $bs;
+                unset($pc);
+
+                $detalle[] = [
+                    'fecha' => date('d/m/Y', strtotime($c->dia)),
+                    'preventista' => $vendedor,
+                    'cliente_id' => (string) $c->cliente,
+                    'nit' => $cli->nit ?? '',
+                    'cliente' => $cli->nombre ?? '',
+                    'zona' => $cli->zona ?? '',
+                    'pedido' => implode(',', array_unique($c->nros)),
+                    'cod_prod' => $cod,
+                    'producto' => $m['producto'],
+                    'moda' => $m['moda'],
+                    'unidad' => $m['unidad'],
+                    'frecuencia' => $m['moda_veces'] . ' de ' . $m['veces'] . ' ventas',
+                    'ultima' => $m['ultima'] ? date('d/m/Y', strtotime($m['ultima'])) : '',
+                    'pidio' => $cant,
+                    'pidio_otra' => $situacion === 'OTRA UNIDAD'
+                        ? implode(', ', array_map(function ($u, $q) { return $q . ' ' . $u; }, array_keys($pedidoUnidades), $pedidoUnidades))
+                        : '',
+                    'diferencia' => $diferencia,
+                    'cumplimiento' => $m['moda'] > 0 ? round(100 * $cant / $m['moda']) : 0,
+                    'precio' => $m['precio'],
+                    'bs' => $bs,
+                    'situacion' => $situacion,
+                    'visita' => $visita ? $visita->estado . ($visita->hora ? ' ' . substr($visita->hora, 0, 5) : '') : 'SIN VISITA',
+                    'observacion' => $visita ? (string) $visita->observacion : '',
+                    'comentario' => implode(' | ', array_unique($c->comentario)),
+                ];
+            }
+            unset($v);
+        }
+
+        if (!$detalle && !$porVendedor) {
+            return response()->json(['message' => 'Los clientes de esas fechas no tienen compras suficientes para calcular su moda'], 422);
+        }
+
+        foreach ($porVendedor as &$v) {
+            $v['cumplimiento'] = $v['esperados'] ? round(100 * $v['cumplidos'] / $v['esperados']) : 0;
+            $v['bs'] = round($v['bs'], 2);
+        }
+        unset($v);
+        foreach ($porProducto as &$p) {
+            $p['faltas'] = $p['esperados'] - $p['cumplidos'];
+            $p['cumplimiento'] = $p['esperados'] ? round(100 * $p['cumplidos'] / $p['esperados']) : 0;
+            $p['bs'] = round($p['bs'], 2);
+        }
+        unset($p);
+        foreach ($porCliente as &$pc) {
+            $pc['dias'] = count($pc['dias']);
+            $pc['productos'] = implode(', ', array_keys($pc['productos']));
+            $pc['bs'] = round($pc['bs'], 2);
+        }
+        unset($pc);
+        usort($detalle, function ($a, $b) {
+            return [strtotime(str_replace('/', '-', $a['fecha'])), $a['preventista'], $a['cliente'], -$a['bs']]
+                <=> [strtotime(str_replace('/', '-', $b['fecha'])), $b['preventista'], $b['cliente'], -$b['bs']];
+        });
+        $porBs = function ($a, $b) { return $b['bs'] <=> $a['bs']; };
+        $porVendedor = array_values($porVendedor);
+        usort($porVendedor, $porBs);
+        $porProducto = array_values($porProducto);
+        usort($porProducto, function ($a, $b) { return [$b['faltas'], $b['bs']] <=> [$a['faltas'], $a['bs']]; });
+        $porCliente = array_values($porCliente);
+        usort($porCliente, $porBs);
+
+        $rango = $ini === $fin ? date('d/m/Y', strtotime($ini))
+            : 'del ' . date('d/m/Y', strtotime($ini)) . ' al ' . date('d/m/Y', strtotime($fin));
+        $subtitulo = 'Pedidos ' . $rango . ' · moda de lo facturado del ' . date('d/m/Y', strtotime($desde))
+            . ' al ' . date('d/m/Y', strtotime($ini . ' -1 day')) . ' · generado el ' . date('d/m/Y H:i');
+
+        $libro = new Spreadsheet();
+        $this->hojaReporte($libro->getActiveSheet()->setTitle('Por preventista'), 'PEDIDO VS MODA · POR PREVENTISTA', $subtitulo, [
+            ['Preventista', 'preventista', 28, 'texto'],
+            ['Clientes-día', 'clientes_dia', 12, 'entero'],
+            ['Visitados sin pedido', 'sin_pedido', 12, 'entero'],
+            ['Productos esperados', 'esperados', 12, 'entero'],
+            ['Cumplió moda', 'cumplidos', 12, 'entero'],
+            ['Pidió menos', 'menos', 12, 'entero'],
+            ['No pidió', 'no_pidio', 12, 'entero'],
+            ['Otra unidad', 'otra_unidad', 12, 'entero'],
+            ['% cumplimiento', 'cumplimiento', 13, 'entero'],
+            ['Bs aprox. no vendido', 'bs', 16, 'importe'],
+        ], $porVendedor);
+        $this->hojaReporte($libro->createSheet()->setTitle('Detalle'), 'PEDIDO VS MODA · LO QUE FALTÓ', $subtitulo, [
+            ['Fecha', 'fecha', 11, 'texto'],
+            ['Preventista', 'preventista', 24, 'texto'],
+            ['Cód. cliente', 'cliente_id', 10, 'texto'],
+            ['CI / NIT', 'nit', 13, 'texto'],
+            ['Cliente', 'cliente', 30, 'texto'],
+            ['Zona', 'zona', 14, 'texto'],
+            ['Nº pedido', 'pedido', 11, 'texto'],
+            ['Código', 'cod_prod', 9, 'texto'],
+            ['Producto', 'producto', 34, 'texto'],
+            ['Moda', 'moda', 9, 'cantidad'],
+            ['Unidad', 'unidad', 7, 'texto'],
+            ['Frecuencia moda', 'frecuencia', 15, 'texto'],
+            ['Última compra', 'ultima', 11, 'texto'],
+            ['Pidió', 'pidio', 9, 'cantidad'],
+            ['Pidió en otra unidad', 'pidio_otra', 16, 'texto'],
+            ['Diferencia', 'diferencia', 10, 'cantidad'],
+            ['% de la moda', 'cumplimiento', 10, 'entero'],
+            ['Precio Bs', 'precio', 10, 'importe'],
+            ['Bs aprox. no vendido', 'bs', 14, 'importe'],
+            ['Situación', 'situacion', 13, 'texto'],
+            ['Visita', 'visita', 15, 'texto'],
+            ['Observación visita', 'observacion', 30, 'texto'],
+            ['Comentario pedido', 'comentario', 30, 'texto'],
+        ], $detalle);
+        $this->hojaReporte($libro->createSheet()->setTitle('Por producto'), 'PEDIDO VS MODA · POR PRODUCTO', $subtitulo, [
+            ['Código', 'cod_prod', 10, 'texto'],
+            ['Producto', 'producto', 36, 'texto'],
+            ['Unidad', 'unidad', 8, 'texto'],
+            ['Clientes que lo compran', 'esperados', 13, 'entero'],
+            ['Cumplió moda', 'cumplidos', 12, 'entero'],
+            ['Pidió menos', 'menos', 12, 'entero'],
+            ['No pidió', 'no_pidio', 12, 'entero'],
+            ['Otra unidad', 'otra_unidad', 12, 'entero'],
+            ['% cumplimiento', 'cumplimiento', 13, 'entero'],
+            ['Bs aprox. no vendido', 'bs', 16, 'importe'],
+        ], $porProducto);
+        $this->hojaReporte($libro->createSheet()->setTitle('Por cliente'), 'PEDIDO VS MODA · POR CLIENTE', $subtitulo, [
+            ['Cód. cliente', 'cliente_id', 10, 'texto'],
+            ['CI / NIT', 'nit', 13, 'texto'],
+            ['Cliente', 'cliente', 32, 'texto'],
+            ['Zona', 'zona', 14, 'texto'],
+            ['Preventista', 'preventista', 26, 'texto'],
+            ['Días con faltante', 'dias', 11, 'entero'],
+            ['Productos faltantes', 'faltas', 11, 'entero'],
+            ['Qué le faltó', 'productos', 60, 'texto'],
+            ['Bs aprox. no vendido', 'bs', 16, 'importe'],
+        ], $porCliente);
+
+        // Situacion con color en el detalle para leerlo de un vistazo.
+        $hoja = $libro->getSheetByName('Detalle');
+        $colores = ['NO PIDIO' => 'FFCDD2', 'PIDIO MENOS' => 'FFE0B2', 'OTRA UNIDAD' => 'E1F5FE', 'SIN PEDIDO' => 'E0E0E0'];
+        foreach ($detalle as $i => $d) {
+            $hoja->getStyle('T' . ($i + 5))->getFill()->setFillType(Fill::FILL_SOLID)
+                ->getStartColor()->setRGB($colores[$d['situacion']]);
+        }
+        foreach (['V', 'W'] as $col) {
+            $hoja->getStyle($col . '5:' . $col . (count($detalle) + 4))->getAlignment()->setWrapText(true);
+        }
+        $libro->getSheetByName('Por cliente')->getStyle('H5:H' . (count($porCliente) + 4))->getAlignment()->setWrapText(true);
+        $libro->setActiveSheetIndex(0);
+
+        $writer = new Xlsx($libro);
+        $nombre = 'pedido_vs_moda_' . $ini . ($ini === $fin ? '' : '_a_' . $fin) . '.xlsx';
+
+        return response()->streamDownload(function () use ($writer) {
+            $writer->save('php://output');
+        }, $nombre, ['Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet']);
+    }
+
+    /**
+     * La moda de "Lo que mas pide" (ClienteController::masPedidos) para varios
+     * clientes a la vez, sobre lo facturado entre $desde y el dia antes de
+     * $hasta. Por cliente: [cod_prod => moda, unidad, moda_veces, veces,
+     * ultima, producto, precio], con precio = Bs por unidad de lo facturado.
+     */
+    private function modasClientes(array $clientes, $desde, $hasta)
+    {
+        if (!$clientes) return [];
+        $lineas = DB::table('facturas as f')
+            ->join('factura_detalles as d', 'd.factura_id', '=', 'f.id')
+            ->leftJoin('tbproductos as pr', 'pr.cod_prod', '=', 'd.cod_prod')
+            ->whereNull('d.deleted_at')
+            ->whereNull('f.deleted_at')
+            ->where('f.estado', 'ACTIVO')
+            ->whereIn('f.cliente_id', $clientes)
+            ->where('f.fecha', '>=', $desde)
+            ->where('f.fecha', '<', $hasta)
+            ->get([
+                'f.id', 'f.fecha', 'f.cliente_id', 'd.cantidad', 'd.subtotal',
+                DB::raw('TRIM(d.cod_prod) as cod_prod'),
+                DB::raw('TRIM(d.unidad) as unidad'),
+                DB::raw('TRIM(COALESCE(pr.Producto, d.nombre)) as producto'),
+                DB::raw("(SELECT MAX(TRIM(p.caja)) FROM tbpedidos p
+                          WHERE p.NroPed = f.pedido_nro AND p.idCli = f.cliente_id
+                            AND TRIM(p.cod_prod) = TRIM(d.cod_prod)) as caja"),
+            ]);
+
+        // Una fila por venta y producto (varias lineas del mismo producto se suman).
+        $porVenta = [];
+        foreach ($lineas as $l) {
+            $k = $l->id . '|' . $l->cod_prod;
+            if (isset($porVenta[$k])) {
+                $porVenta[$k]->cantidad += (float) $l->cantidad;
+                $porVenta[$k]->subtotal += (float) $l->subtotal;
+            } else {
+                $l->cantidad = (float) $l->cantidad;
+                $l->subtotal = (float) $l->subtotal;
+                $porVenta[$k] = $l;
+            }
+        }
+
+        $stats = [];
+        foreach ($porVenta as $l) {
+            $s = &$stats[$l->cliente_id][$l->cod_prod];
+            if (!isset($s)) $s = ['veces' => 0, 'total' => 0, 'ultima' => '', 'producto' => $l->producto, 'grupos' => []];
+            $s['veces']++;
+            $s['total'] += $l->cantidad;
+            $s['ultima'] = max($s['ultima'], (string) $l->fecha);
+            $unidad = $l->caja ?: $l->unidad;
+            $clave = round($l->cantidad, 2) . '|' . $unidad;
+            $g = &$s['grupos'][$clave];
+            if (!isset($g)) $g = ['n' => 0, 'fecha' => '', 'cantidad' => round($l->cantidad, 2), 'unidad' => $unidad, 'cant' => 0, 'bs' => 0];
+            $g['n']++;
+            $g['fecha'] = max($g['fecha'], (string) $l->fecha);
+            $g['cant'] += $l->cantidad;
+            $g['bs'] += $l->subtotal;
+            unset($g, $s);
+        }
+
+        $modas = [];
+        foreach ($stats as $cliente => $productos) {
+            $productos = array_filter($productos, function ($s) { return $s['veces'] >= 5; });
+            uasort($productos, function ($a, $b) { return [$b['veces'], $b['total']] <=> [$a['veces'], $a['total']]; });
+            foreach (array_slice($productos, 0, 8, true) as $cod => $s) {
+                $grupos = $s['grupos'];
+                uasort($grupos, function ($a, $b) { return [$b['n'], $b['fecha']] <=> [$a['n'], $a['fecha']]; });
+                $m = reset($grupos);
+                // Precio por unidad de lo comprado en esa misma unidad.
+                $cant = 0; $bs = 0;
+                foreach ($grupos as $g) {
+                    if ($g['unidad'] === $m['unidad']) { $cant += $g['cant']; $bs += $g['bs']; }
+                }
+                $modas[$cliente][(string) $cod] = [
+                    'moda' => $m['cantidad'],
+                    'unidad' => $m['unidad'],
+                    'moda_veces' => $m['n'],
+                    'veces' => $s['veces'],
+                    'ultima' => substr($s['ultima'], 0, 10),
+                    'producto' => $s['producto'],
+                    'precio' => $cant > 0 ? round($bs / $cant, 2) : 0,
+                ];
+            }
+        }
+        return $modas;
+    }
+
     public function reporteEmbutidoExcel(Request $request)
     {
         return $this->reportePedidosExcel($request, 'NORMAL');

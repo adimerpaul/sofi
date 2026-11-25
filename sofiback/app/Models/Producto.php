@@ -42,6 +42,7 @@ class Producto extends Model implements Auditable{
         'Precio12',
         'Precio13',
         'precioAprox',
+        'factorVenta',
         'PreCosto',
         'stock',
         'Imprime',

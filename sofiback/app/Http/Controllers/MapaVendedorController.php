@@ -95,13 +95,16 @@ class MapaVendedorController extends Controller{
     {
         $fecha = $request->fecha;
 
-        // Vendedores que realizaron algún pedido ese día. El tipo de producto
-        // ya no filtra aqui: se filtra en pantalla sobre los clientes del mapa.
+        // Vendedores que hicieron algún pedido o marcaron alguna visita ese día
+        // (aunque todas sean PARADO / NO PEDIDO). El tipo de producto ya no
+        // filtra aqui: se filtra en pantalla sobre los clientes del mapa.
         $idUserArray = Pedido::whereDate('fecha', $fecha)
-            ->orderBy('CIfunc')
-            ->select('CIfunc')
             ->distinct()
             ->pluck('CIfunc')
+            ->merge(MisVisita::whereDate('fecha', $fecha)->distinct()->pluck('personal_id'))
+            ->filter()
+            ->unique()
+            ->values()
             ->toArray();
 
         $users = User::whereIn('CodAut', $idUserArray)
@@ -295,13 +298,14 @@ class MapaVendedorController extends Controller{
         $hoja->setTitle('Visitas');
         $hoja->setCellValue('A1', 'Sofia - Visitas del ' . date('d/m/Y', strtotime($fecha))
             . ($ruta === 'RUTA' ? ' (ruta normal)' : ($ruta === 'FUERA' ? ' (fuera de ruta)' : '')));
-        $hoja->mergeCells('A1:I1');
+        $hoja->mergeCells('A1:J1');
         $hoja->getStyle('A1')->getFont()->setBold(true)->setSize(12);
 
         $hoja->fromArray(['No', 'HORA', 'CLIENTE', 'ESTADO', 'PERSONAL', 'DISTANCIA',
-            'NO VISITADO = DISTANCIA >100 Metros', 'OBSERVACION', 'EN RUTA/ FUERA DE RUTA'], null, 'A2');
-        $hoja->getStyle('A2:I2')->getFont()->setBold(true);
-        $hoja->getStyle('A2:I2')->getAlignment()->setWrapText(true)
+            'NO VISITADO = DISTANCIA >100 Metros', 'OBSERVACION', 'EN RUTA/ FUERA DE RUTA',
+            'COMENTARIO NO PEDIDO'], null, 'A2');
+        $hoja->getStyle('A2:J2')->getFont()->setBold(true);
+        $hoja->getStyle('A2:J2')->getAlignment()->setWrapText(true)
             ->setVertical(\PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER);
         foreach (['G2', 'I2'] as $celda) {
             $hoja->getStyle($celda)->getFill()->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
@@ -322,7 +326,10 @@ class MapaVendedorController extends Controller{
                 $lejos ? 'NO VISITADO' : '',
                 trim((string) $v->observacion),
                 $v->en_ruta == 1 ? 'EN RUTA' : 'FUERA DE RUTA',
+                // Comentario que el vendedor escribe al marcar NO PEDIDO.
+                $v->estado === 'NO PEDIDO' ? trim((string) $v->observacion) : '',
             ], null, 'A' . $fila);
+            $hoja->getStyle("J$fila")->getAlignment()->setWrapText(true);
             if ($lejos) {
                 $hoja->getStyle("G$fila")->getFont()->setBold(true)->getColor()->setRGB('C00000');
             }
@@ -332,14 +339,14 @@ class MapaVendedorController extends Controller{
             $fila++;
         }
         $ultima = max(2, $fila - 1);
-        $hoja->getStyle("A2:I$ultima")->getBorders()->getAllBorders()
+        $hoja->getStyle("A2:J$ultima")->getBorders()->getAllBorders()
             ->setBorderStyle(\PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN);
         $hoja->getStyle("F3:F$ultima")->getNumberFormat()->setFormatCode('#,##0.0');
-        foreach (['A' => 6, 'B' => 11, 'C' => 45, 'D' => 12, 'E' => 26, 'F' => 12, 'G' => 20, 'H' => 24, 'I' => 18] as $col => $ancho) {
+        foreach (['A' => 6, 'B' => 11, 'C' => 45, 'D' => 12, 'E' => 26, 'F' => 12, 'G' => 20, 'H' => 24, 'I' => 18, 'J' => 40] as $col => $ancho) {
             $hoja->getColumnDimension($col)->setWidth($ancho);
         }
         $hoja->freezePane('A3');
-        $hoja->setAutoFilter("A2:I$ultima");
+        $hoja->setAutoFilter("A2:J$ultima");
 
         return response()->streamDownload(function () use ($libro) {
             (new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($libro))->save('php://output');

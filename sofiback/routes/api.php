@@ -399,6 +399,8 @@ Route::group(['middleware'=>'auth:sanctum'],function (){
     // El Excel de embutidos ya armado y con formato; enviados=1 deja solo lo
     // que los preventistas mandaron, que es lo que se va a despachar.
     Route::get('/reporteEmbutidoExcel',[\App\Http\Controllers\ExcelController::class,'reporteEmbutidoExcel']);
+    // Pedido vs moda (Lo que mas pide de /visita): lo que el cliente dejo de pedir.
+    Route::get('/reporteModaPedidoExcel',[\App\Http\Controllers\ExcelController::class,'reporteModaPedidoExcel']);
     // Lo mismo para pollo y cerdo (detalle + resumen por producto y por preventista).
     Route::get('/reportePolloExcel',[\App\Http\Controllers\ExcelController::class,'reportePolloExcel']);
     Route::get('/reporteCerdoExcel',[\App\Http\Controllers\ExcelController::class,'reporteCerdoExcel']);
