@@ -913,7 +913,7 @@ class ReporteVentasController extends Controller
 
         $hoja->setCellValue('A' . ($fila + 1), 'VENTAS DEL DIA = ventas directas de mostrador. STOCK de arriba = stock del sistema al empezar el día;'
             . ' las filas en amarillo se llenan a mano y el TOTAL y el STOCK final se recalculan solos.'
-            . ' Pollo entero (104 a 109 y BRASA) en CAJAS: pollos vendidos / cantidad por caja; su stock es aproximado'
+            . ' Pollo entero (104 a 109 y brasa 501005 a 501009) en CAJAS: pollos vendidos / cantidad por caja; su stock es aproximado'
             . ' (kilos / peso promedio de un pollo / cantidad por caja).');
         $hoja->getStyle('A' . ($fila + 1))->getFont()->setItalic(true)->setSize(8)->getColor()->setRGB('7F7F7F');
 

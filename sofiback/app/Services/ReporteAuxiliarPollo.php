@@ -33,8 +33,8 @@ class ReporteAuxiliarPollo
     /**
      * Las columnas de la planilla, en su orden: [rotulo corto, codigos].
      *
-     * Las 7 de pollo entero juntan codigos (el frial con su pollo sin menudo
-     * del mismo calibre, y todo el pollo a la brasa) y van en CAJAS: los
+     * Las 11 de pollo entero: 104 a 109 juntan el frial con su pollo sin menudo
+     * del mismo calibre y la brasa va un codigo por columna. Van en CAJAS: los
      * pollos vendidos de cada codigo divididos entre su tbproductos.cantidadCaja
      * (12 el frial y el sin menudo, 16 la brasa, 18 la brasa 1.8). El resto,
      * un codigo por columna y en kilos.
@@ -46,7 +46,12 @@ class ReporteAuxiliarPollo
         '500107' => ['107', ['500107', '501117']],
         '500108' => ['108', ['500108', '501118']],
         '500109' => ['109', ['500109', '501119']],
-        '501005' => ['BRASA', ['501005', '501006', '501007', '501008', '501009']],
+        // El pollo a la brasa va un codigo por columna.
+        '501005' => ['BR 1.8', ['501005']],
+        '501006' => ['BR 2', ['501006']],
+        '501007' => ['BR 2.3', ['501007']],
+        '501008' => ['BR 2.6', ['501008']],
+        '501009' => ['BR 2.8', ['501009']],
         '501600' => ['ALA', ['501600']], '501601' => ['CAD.', ['501601']], '501604' => ['PECH.', ['501604']],
         '501606' => ['P/M', ['501606']], '501704' => ['FILETE', ['501704']], '502101' => ['COG.', ['502101']],
         '502102' => ['COG.S/C', ['502102']], '502108' => ['HUE.', ['502108']], '502106' => ['MEN.', ['502106']],
@@ -54,7 +59,8 @@ class ReporteAuxiliarPollo
     ];
 
     /** Columnas de pollo entero (en cajas): la columna final las suma. */
-    public const ENTEROS = ['500104', '500105', '500106', '500107', '500108', '500109', '501005'];
+    public const ENTEROS = ['500104', '500105', '500106', '500107', '500108', '500109',
+        '501005', '501006', '501007', '501008', '501009'];
 
     /** Dias de facturas para sacar el peso promedio de un pollo de cada codigo. */
     private const DIAS_PESO = 30;

@@ -275,7 +275,7 @@
           Lo vendido es lo que facturó caja: cada pedido cuenta en su fecha de entrega y la venta de mostrador en
           "Ventas del día". El stock sale del sistema. Tránsito, devolución, trozado y bajas van vacíos en el Excel
           para llenarlos a mano; el stock final se recalcula solo.
-          Pollo entero (104 a 109 y BRASA) va en <b>cajas</b>: cada columna junta sus códigos (pase el mouse por el
+          Pollo entero (104 a 109 y las 5 columnas de brasa) va en <b>cajas</b>: cada columna junta sus códigos (pase el mouse por el
           encabezado) y divide los pollos vendidos entre la cantidad por caja de cada producto. Su stock es
           aproximado: kilos del sistema / peso promedio de un pollo / cantidad por caja. Lo demás va en kilos.
         </div>
