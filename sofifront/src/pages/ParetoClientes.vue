@@ -7,6 +7,27 @@
     </div>
 
     <div class="row q-col-gutter-sm">
+      <!-- Con paretoclientestodos se elige de que preventista ver el pareto. -->
+      <div v-if="puedeElegirVendedor" class="col-12">
+        <q-select v-model="vendedor" :options="opcionesVendedor" option-value="ci" option-label="nombre"
+                  emit-value map-options use-input input-debounce="0" dense outlined
+                  label="Preventista" :placeholder="vendedor ? '' : 'Elige un preventista'" :loading="cargandoVendedores"
+                  @filter="filtrarVendedores" @update:model-value="cambioVendedor">
+          <template v-slot:prepend><q-icon name="badge"/></template>
+          <template v-slot:option="scope">
+            <q-item v-bind="scope.itemProps">
+              <q-item-section>
+                <q-item-label>{{ scope.opt.nombre }}</q-item-label>
+                <q-item-label caption v-if="scope.opt.ci === 'TODOS'">Las ventas de todos los preventistas</q-item-label>
+                <q-item-label caption v-else>CI {{ scope.opt.ci }} · {{ scope.opt.clientes }} clientes</q-item-label>
+              </q-item-section>
+            </q-item>
+          </template>
+          <template v-slot:no-option>
+            <q-item><q-item-section class="text-grey-7">Nadie vendió en estas fechas</q-item-section></q-item>
+          </template>
+        </q-select>
+      </div>
       <!-- El grupo solo ya arma el pareto; elegido un producto, manda el producto. -->
       <div class="col-12 col-md-6">
         <q-select v-model="grupos" :options="opcionesGrupo" option-value="cod_grup" option-label="grupo"
@@ -245,6 +266,11 @@ export default {
   name: 'ParetoClientes',
   data () {
     return {
+      // Preventista elegido (CI); vacio = el usuario logueado.
+      vendedor: '',
+      vendedores: [],
+      opcionesVendedor: [],
+      cargandoVendedores: false,
       grupos: [],
       todosGrupos: [],
       opcionesGrupo: [],
@@ -267,7 +293,22 @@ export default {
   created () {
     this.cargarGrupos()
   },
+  watch: {
+    // Los permisos llegan de /me despues de crear la pagina (al recargar):
+    // la lista de preventistas se carga cuando el permiso aparece.
+    puedeElegirVendedor: {
+      immediate: true,
+      handler (puede) {
+        if (!puede || this.vendedores.length || this.cargandoVendedores) return
+        this.vendedor = String(this.$store.getters['login/user']?.ci || '').trim()
+        this.cargarVendedores()
+      }
+    }
+  },
   computed: {
+    puedeElegirVendedor () {
+      return this.$store.getters['login/can']('paretoclientestodos')
+    },
     // clearable deja los select en null.
     codGrupos () {
       return (this.grupos || []).map(g => g.cod_grup)
@@ -304,7 +345,39 @@ export default {
   },
   methods: {
     paramsFechas () {
-      return { desde: this.desde, hasta: this.hasta }
+      const p = { desde: this.desde, hasta: this.hasta }
+      if (this.puedeElegirVendedor && this.vendedor) p.vendedor = this.vendedor
+      return p
+    },
+    cargarVendedores () {
+      this.cargandoVendedores = true
+      this.$api.get('pareto-clientes/vendedores', { params: { desde: this.desde, hasta: this.hasta } })
+        .then(res => {
+          // "Todos" va primero, solo si alguien vendio en estas fechas.
+          this.vendedores = res.data.length ? [{ ci: 'TODOS', nombre: 'Todos los preventistas' }, ...res.data] : []
+          this.opcionesVendedor = this.vendedores
+          // Si el elegido (o uno mismo) no vendio en estas fechas, que elija otro.
+          if (this.vendedor && !this.vendedores.some(v => v.ci === this.vendedor)) this.vendedor = ''
+        })
+        .catch(() => { this.vendedores = []; this.opcionesVendedor = [] })
+        .finally(() => { this.cargandoVendedores = false })
+    },
+    filtrarVendedores (texto, actualizar) {
+      if (!this.vendedores.length && !this.cargandoVendedores) this.cargarVendedores()
+      actualizar(() => {
+        const t = (texto || '').toLowerCase()
+        this.opcionesVendedor = t
+          ? this.vendedores.filter(v => v.nombre.toLowerCase().includes(t) || v.ci.includes(t))
+          : this.vendedores
+      })
+    },
+    // Otro preventista: sus grupos y productos son otros, se empieza de cero.
+    cambioVendedor () {
+      this.grupos = []
+      this.productos = []
+      this.opciones = []
+      this.cargarGrupos()
+      this.consultar()
     },
     cargarGrupos () {
       this.cargandoGrupos = true
@@ -337,6 +410,7 @@ export default {
     },
     cambioFechas () {
       this.opciones = []
+      if (this.puedeElegirVendedor) this.cargarVendedores()
       this.cargarGrupos()
       this.consultar()
     },

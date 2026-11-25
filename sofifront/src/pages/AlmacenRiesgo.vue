@@ -21,6 +21,9 @@
           <q-btn dense unelevated no-caps color="primary" icon="sync" label="Actualizar datos" :disable="!generacion" :loading="actualizando" @click="actualizar">
             <q-tooltip>Vuelve a leer el inventario de la lista actual: agrega lo nuevo y actualiza lo ya llenado</q-tooltip>
           </q-btn>
+          <q-btn dense unelevated no-caps color="teal-8" icon="add_circle_outline" label="Agregar producto" :disable="!generacion" @click="abrirAgregar">
+            <q-tooltip>Agrega a mano un producto a la lista actual (no toca el inventario)</q-tooltip>
+          </q-btn>
           <q-input dense outlined v-model="deposito" label="Depósito" style="width:110px" />
           <q-btn dense unelevated no-caps color="green-8" icon="grid_on" label="Excel" :disable="!generacion" :loading="exportando" @click="excel">
             <q-tooltip>Hoja de trabajo: Depósito, fecha de conteo, semana y CHECK por colores</q-tooltip>
@@ -59,6 +62,7 @@
               <div class="ellipsis text-weight-medium">{{ p.row.producto }}</div>
               <div class="ellipsis text-grey-7 chico">
                 {{ p.row.codigo_producto }}<span v-if="p.row.lote"> · L {{ p.row.lote }}</span><span v-if="p.row.grupo"> · {{ p.row.grupo }}</span><span v-if="p.row.comentario"> · Conteo: {{ p.row.comentario }}</span>
+                <q-badge v-if="!p.row.registro_almacen_id" class="q-ml-xs" outline color="teal-8" label="A MANO" />
               </div>
               <q-tooltip v-if="p.row.contado_por" :delay="600">Inventario {{ formatoFecha(p.row.fecha_inventario) }} {{ p.row.codigo }} · contó {{ p.row.contado_por }}</q-tooltip>
             </q-td>
@@ -102,7 +106,8 @@
               </template>
               <q-badge v-else color="orange-9" label="ACTIVO" />
             </q-td>
-            <q-td key="acciones" :props="p">
+            <q-td key="acciones" :props="p" class="no-wrap">
+              <q-btn dense flat round size="sm" color="primary" icon="point_of_sale" @click="verVentas(p.row)"><q-tooltip>Ventas desde el inventario</q-tooltip></q-btn>
               <q-btn v-if="p.row.estado === 'ACTIVO'" dense flat round size="sm" color="negative" icon="remove_circle_outline" :loading="p.row._guardando" @click="quitar(p.row)"><q-tooltip>Quitar</q-tooltip></q-btn>
               <q-btn v-else dense flat round size="sm" color="orange-9" icon="replay" :loading="p.row._guardando" @click="reagregar(p.row)"><q-tooltip>Volver a agregar</q-tooltip></q-btn>
             </q-td>
@@ -110,6 +115,69 @@
         </template>
       </q-table>
     </q-card>
+
+    <!-- Agregar producto a mano -->
+    <q-dialog v-model="agregar.abierto" persistent>
+      <q-card style="width:460px;max-width:95vw">
+        <q-card-section class="row items-center q-pb-none">
+          <div class="text-subtitle1 text-weight-bold">Agregar producto en riesgo</div>
+          <q-space />
+          <q-btn icon="close" flat round dense v-close-popup />
+        </q-card-section>
+        <q-form @submit="guardarNuevo">
+          <q-card-section class="q-gutter-sm">
+            <q-select v-model="agregar.producto" :options="agregar.opciones" option-label="producto" dense outlined use-input
+                      input-debounce="300" label="Producto *" :loading="agregar.buscando" @filter="buscarCatalogo"
+                      :rules="[v => !!v || 'Elija el producto']" hide-bottom-space>
+              <template #option="scope">
+                <q-item v-bind="scope.itemProps">
+                  <q-item-section>
+                    <q-item-label>{{ scope.opt.producto }}</q-item-label>
+                    <q-item-label caption>{{ scope.opt.cod_prod }}<span v-if="scope.opt.unidad"> · {{ scope.opt.unidad }}</span><span v-if="scope.opt.grupo"> · {{ scope.opt.grupo }}</span></q-item-label>
+                  </q-item-section>
+                </q-item>
+              </template>
+              <template #no-option><q-item><q-item-section class="text-grey">Escriba para buscar</q-item-section></q-item></template>
+            </q-select>
+            <div class="row q-col-gutter-sm">
+              <q-input class="col-6" v-model.number="agregar.cantidad" type="number" min="0" step="0.01" dense outlined label="Cantidad *"
+                       :suffix="agregar.producto?.unidad || ''" :rules="[v => (v !== '' && v !== null && Number(v) >= 0) || 'Falta la cantidad']" hide-bottom-space />
+              <q-input class="col-6" v-model="agregar.fecha_vencimiento" type="date" stack-label dense outlined label="Vencimiento *"
+                       :rules="[v => !!v || 'Falta el vencimiento']" hide-bottom-space />
+            </div>
+            <q-input v-model="agregar.lote" dense outlined label="Lote" />
+            <q-input v-model="agregar.observacion" type="textarea" autogrow dense outlined maxlength="500" label="Comentario" />
+          </q-card-section>
+          <q-card-actions align="right">
+            <q-btn flat no-caps label="Cancelar" v-close-popup />
+            <q-btn unelevated no-caps color="teal-8" icon="add" label="Agregar" type="submit" :loading="agregar.guardando" />
+          </q-card-actions>
+        </q-form>
+      </q-card>
+    </q-dialog>
+
+    <!-- Ventas del producto desde el inventario -->
+    <q-dialog v-model="ventas.abierto">
+      <q-card style="width:900px;max-width:96vw">
+        <q-card-section class="row items-center q-pb-sm">
+          <div>
+            <div class="text-subtitle1 text-weight-bold">Ventas · {{ ventas.producto }}</div>
+            <div class="text-caption text-grey-7">{{ ventas.codigo_producto }} · desde el inventario del {{ formatoFecha(ventas.desde) }} hasta hoy · sin anulados</div>
+          </div>
+          <q-space />
+          <q-btn icon="close" flat round dense v-close-popup />
+        </q-card-section>
+        <q-card-section class="row q-gutter-sm q-pt-none">
+          <q-chip dense square color="grey-2" icon="receipt_long">{{ ventas.totales.ventas }} venta(s)</q-chip>
+          <q-chip dense square color="grey-2" icon="numbers">Cantidad {{ numero(ventas.totales.cantidad) }}</q-chip>
+          <q-chip dense square color="grey-2" icon="scale">Peso {{ numero(ventas.totales.peso) }} kg</q-chip>
+          <q-chip dense square color="green-1" text-color="green-9" icon="payments">Bs {{ numero(ventas.totales.importe) }}</q-chip>
+        </q-card-section>
+        <q-table flat dense square class="tabla-riesgo" :rows="ventas.data" :columns="columnasVentas" row-key="factura_id"
+                 :loading="ventas.loading" :pagination="{ rowsPerPage: 20 }" :rows-per-page-options="[20, 50, 0]"
+                 no-data-label="Sin ventas desde el inventario" />
+      </q-card>
+    </q-dialog>
   </q-page>
 </template>
 <script>
@@ -142,7 +210,19 @@ export default {
       loading: false,
       generando: false,
       actualizando: false,
-      pagination: { page: 1, rowsPerPage: 50, rowsNumber: 0 }
+      pagination: { page: 1, rowsPerPage: 50, rowsNumber: 0 },
+      agregar: { abierto: false, opciones: [], buscando: false, guardando: false, producto: null, cantidad: null, fecha_vencimiento: '', lote: '', observacion: '' },
+      ventas: { abierto: false, loading: false, producto: '', codigo_producto: '', desde: null, data: [], totales: { ventas: 0, cantidad: 0, peso: 0, importe: 0 } },
+      columnasVentas: [
+        { name: 'fecha', label: 'Fecha', field: r => this.formatoFecha(r.fecha) + ' ' + String(r.hora || '').slice(0, 5), align: 'left', sortable: true, sort: (a, b, x, y) => String(x.fecha + x.hora).localeCompare(String(y.fecha + y.hora)) },
+        { name: 'comprobante', label: 'Comprobante', field: r => (r.tipo_comprobante || '') + (r.nro_factura ? ' ' + r.nro_factura : ''), align: 'left' },
+        { name: 'pedido', label: 'Pedido', field: 'pedido_nro', align: 'left' },
+        { name: 'cliente', label: 'Cliente', field: 'cliente', align: 'left', sortable: true },
+        { name: 'cantidad', label: 'Cant.', field: r => this.numero(r.cantidad) + ' ' + (r.unidad || ''), align: 'right' },
+        { name: 'peso', label: 'Peso', field: r => Number(r.peso) > 0 ? this.numero(r.peso) : '', align: 'right' },
+        { name: 'precio', label: 'Precio', field: r => this.numero(r.precio), align: 'right' },
+        { name: 'subtotal', label: 'Subtotal', field: r => this.numero(r.subtotal), align: 'right', sortable: true, sort: (a, b, x, y) => Number(x.subtotal) - Number(y.subtotal) }
+      ]
     }
   },
   computed: {
@@ -249,6 +329,45 @@ export default {
         this.ok(`Actualizado: ${r.agregados} nuevo(s), ${r.actualizados} con cambios, ${r.quitados} ya no están en el inventario`)
         this.cargar(false)
       }).catch(e => this.error(e, 'No se pudo actualizar')).finally(() => { this.actualizando = false })
+    },
+    numero (v) {
+      return Number(v || 0).toLocaleString('es-BO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+    },
+    abrirAgregar () {
+      Object.assign(this.agregar, { abierto: true, producto: null, cantidad: null, fecha_vencimiento: '', lote: '', observacion: '' })
+    },
+    buscarCatalogo (texto, update) {
+      if (!texto || texto.length < 2) {
+        update(() => { this.agregar.opciones = [] })
+        return
+      }
+      this.agregar.buscando = true
+      this.$api.get('productosRiesgo/catalogo', { params: { q: texto } })
+        .then(res => update(() => { this.agregar.opciones = res.data }))
+        .catch(e => { update(); this.error(e, 'No se pudo buscar') })
+        .finally(() => { this.agregar.buscando = false })
+    },
+    guardarNuevo () {
+      const a = this.agregar
+      a.guardando = true
+      this.$api.post('productosRiesgo', {
+        codigo_producto: a.producto.cod_prod,
+        cantidad: a.cantidad,
+        fecha_vencimiento: a.fecha_vencimiento,
+        lote: a.lote || null,
+        observacion: a.observacion || null
+      }).then(() => {
+        this.ok(`${a.producto.producto} agregado a productos en riesgo`)
+        a.abierto = false
+        this.tab = 'ACTIVO'
+        this.cargar()
+      }).catch(e => this.error(e, 'No se pudo agregar')).finally(() => { a.guardando = false })
+    },
+    verVentas (row) {
+      Object.assign(this.ventas, { abierto: true, loading: true, producto: row.producto, codigo_producto: row.codigo_producto, desde: row.fecha_inventario, data: [] })
+      this.$api.get(`productosRiesgo/${row.id}/ventas`).then(res => {
+        Object.assign(this.ventas, res.data)
+      }).catch(e => this.error(e, 'No se pudieron cargar las ventas')).finally(() => { this.ventas.loading = false })
     },
     editable (row) {
       return row.estado === 'ACTIVO'

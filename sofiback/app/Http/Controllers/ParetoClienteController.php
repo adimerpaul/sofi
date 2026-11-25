@@ -16,9 +16,42 @@ use Illuminate\Support\Facades\DB;
  * de sus ventas (facturas.vendedor_ci = su ci), por fecha de entrega, sin
  * productos INACTIVO. El peso es el de factura_detalles (lo pesado en caja),
  * con el mismo criterio que el detalle de ventas de Reportes.
+ *
+ * Con el permiso paretoclientestodos se puede elegir el preventista
+ * (?vendedor=<ci>); sin el, siempre es el usuario logueado.
  */
 class ParetoClienteController extends Controller
 {
+    /**
+     * Los preventistas que se pueden elegir (solo con paretoclientestodos):
+     * los que tienen ventas facturadas en el rango, con su nombre de personal.
+     */
+    public function vendedores(Request $request)
+    {
+        $usuario = $request->user();
+        abort_unless($usuario && $usuario->can('paretoclientestodos'), 403, 'No tiene permiso para ver otros preventistas');
+
+        [$desde, $hasta] = $this->rango($request);
+
+        return DB::table('facturas as f')
+            ->leftJoin('personal as p', DB::raw('TRIM(p.ci)'), '=', DB::raw('TRIM(f.vendedor_ci)'))
+            ->whereNull('f.deleted_at')
+            ->where('f.estado', '<>', 'ANULADO')
+            ->whereRaw("TRIM(COALESCE(f.vendedor_ci, '')) NOT IN ('', '0')")
+            ->whereBetween('f.fecha_entrega', [$desde, $hasta])
+            ->groupBy(DB::raw('TRIM(f.vendedor_ci)'))
+            ->orderByRaw('MAX(TRIM(p.Nombre1)) IS NULL, MAX(TRIM(p.Nombre1)), MAX(TRIM(p.App1))')
+            ->get([
+                DB::raw('TRIM(f.vendedor_ci) as ci'),
+                DB::raw("TRIM(CONCAT(COALESCE(MAX(TRIM(p.Nombre1)), ''), ' ', COALESCE(MAX(TRIM(p.App1)), ''))) as nombre"),
+                DB::raw('COUNT(DISTINCT f.cliente_id) as clientes'),
+            ])
+            ->map(function ($v) {
+                $v->nombre = $v->nombre !== '' ? $v->nombre : 'CI ' . $v->ci;
+                return $v;
+            });
+    }
+
     /** Los grupos de producto (tbgrupos) que el preventista ya vendio. */
     public function grupos(Request $request)
     {
@@ -239,6 +272,7 @@ class ParetoClienteController extends Controller
             'medida'      => 'nullable|in:peso,cantidad',
             'desde'       => 'nullable|date_format:Y-m-d',
             'hasta'       => 'nullable|date_format:Y-m-d',
+            'vendedor'    => 'nullable|string|max:20',
         ]);
     }
 
@@ -283,16 +317,41 @@ class ParetoClienteController extends Controller
         return (float) $linea->cantidad * (float) $linea->CantPren;
     }
 
-    /** Las lineas facturadas del preventista que entra, en el rango (por defecto, el mes de hasta). */
-    private function lineas(Request $request)
+    /** Desde y hasta (por defecto, el mes de hasta), en orden. */
+    private function rango(Request $request)
     {
-        $usuario = $request->user();
-        abort_unless($usuario && $usuario->can('paretoclientes'), 403, 'No tiene permiso para el pareto de clientes');
-
         $hasta = $request->query('hasta') ?: date('Y-m-d');
         $desde = $request->query('desde') ?: substr($hasta, 0, 7) . '-01';
+        return [min($desde, $hasta), max($desde, $hasta)];
+    }
 
-        return DB::table('facturas as f')
+    /**
+     * El CI del preventista a mirar: el elegido en ?vendedor si tiene
+     * paretoclientestodos (?vendedor=TODOS = todos los preventistas, devuelve
+     * null); si no, el del usuario logueado.
+     */
+    private function vendedorCi(Request $request)
+    {
+        $usuario = $request->user();
+        abort_unless(
+            $usuario && ($usuario->can('paretoclientes') || $usuario->can('paretoclientestodos')),
+            403, 'No tiene permiso para el pareto de clientes'
+        );
+
+        $elegido = trim((string) $request->query('vendedor', ''));
+        if ($elegido !== '' && $usuario->can('paretoclientestodos')) {
+            return strtoupper($elegido) === 'TODOS' ? null : $elegido;
+        }
+        return trim((string) $usuario->ci);
+    }
+
+    /** Las lineas facturadas del preventista (el logueado o el elegido), en el rango (por defecto, el mes de hasta). */
+    private function lineas(Request $request)
+    {
+        [$desde, $hasta] = $this->rango($request);
+        $vendedor = $this->vendedorCi($request);
+
+        $q = DB::table('facturas as f')
             ->join('factura_detalles as d', 'd.factura_id', '=', 'f.id')
             ->join('tbclientes as c', 'c.Cod_Aut', '=', 'f.cliente_id')
             ->leftJoin('tbproductos as pr', DB::raw('TRIM(pr.cod_prod)'), '=', DB::raw('TRIM(d.cod_prod)'))
@@ -303,7 +362,11 @@ class ParetoClienteController extends Controller
             ->whereRaw("TRIM(COALESCE(d.cod_prod, '')) <> ''")
             // Los INACTIVO ya no se venden.
             ->whereRaw("COALESCE(pr.Producto, '') NOT LIKE '%INACTIVO%'")
-            ->whereRaw('TRIM(f.vendedor_ci) = ?', [trim((string) $usuario->ci)])
-            ->whereBetween('f.fecha_entrega', [min($desde, $hasta), max($desde, $hasta)]);
+            ->whereBetween('f.fecha_entrega', [$desde, $hasta]);
+
+        // Todos: las ventas de cualquier preventista (los mismos que lista vendedores()).
+        return $vendedor === null
+            ? $q->whereRaw("TRIM(COALESCE(f.vendedor_ci, '')) NOT IN ('', '0')")
+            : $q->whereRaw('TRIM(f.vendedor_ci) = ?', [$vendedor]);
     }
 }
