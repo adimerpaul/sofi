@@ -200,55 +200,67 @@ class AlmacenController extends Controller{
         }
         return response()->json($almacenes);
     }
+    /**
+     * Recibe de la app de almacen el conteo (JSON en "almacen") y lo guarda.
+     * Antes logueaba todo el payload con error_log() (varias veces por item):
+     * eso iba al stderr de php-fpm, llenaba el header FastCGI de nginx
+     * ("upstream sent too big header" -> 502) y la app reintentaba.
+     * Ahora: sin logs por item, todo en una transaccion y en lote.
+     */
     public function exportData(Request $request)
     {
-	error_log('dofiarequest'.json_encode($request->all()));
         $data = json_decode($request->input('almacen'));
-        $user_id = json_decode($request->input('user'));
-        error_log('dataSOfia: ' . json_encode($data));
-        $user_id = json_encode($user_id);
+        if (!is_array($data)) {
+            return response()->json(['message' => 'almacen invalido'], 422);
+        }
+        $userId = (string) json_decode($request->input('user'));
+        $ahora = date('Y-m-d H:i:s');
+
+        $ids = [];
         $insertRegistroAlmacen = [];
         $updateAlmacen = [];
         foreach ($data as $almacenData) {
-            $detalle = $almacenData->detalle;
-            RegistroAlmacen::where('almacen_id', $almacenData->id)->delete();
+            if (!isset($almacenData->id)) continue;
+            $ids[] = $almacenData->id;
+            if (($almacenData->estado ?? null) != 'REALIZADO') continue;
+
             $cantidad = 0;
-            foreach ($detalle as $item) {
-//                error_log('almacenData: ' . json_encode($almacenData));
-                if ($almacenData->estado == 'REALIZADO') {
-//                    error_log('item: ' . json_encode($item));
-                    $insertRegistroAlmacen[] = [
-                        'cantidad' => $item->cantidad==''?0:$item->cantidad,
-                        'fecha_vencimiento' => $item->vencimiento==''?null:substr($item->vencimiento,0,10),
-                        'lote' => $item->lote=='null'?'':$item->lote, //cambiar 'null' por '
-                        'comentario' => $item->comentario=='null'?'':$item->comentario, //cambiar 'null' por '
-                        'almacen_id' => $almacenData->id,
-                        'user_id' => $user_id,
-                        'fecha_registro' => date('Y-m-d H:i:s')
-                    ];
-//                    $cantidad += intval($item->cantidad==''?0:$item->cantidad); //para float
-                    $cantidad += $item->cantidad==''?0:$item->cantidad;
-                    error_log('cantidad: ' . json_encode($cantidad));
-                }
-
-            }
-            if ($almacenData->estado == 'REALIZADO') {
-                $updateAlmacen[] = [
-                    'id' => $almacenData->id,
-                    'se_descargo' => 'EXPORTADO',
-                    'cantidad' => $cantidad
+            foreach (($almacenData->detalle ?? []) as $item) {
+                $cant = ($item->cantidad ?? '') === '' ? 0 : $item->cantidad;
+                $venc = $item->vencimiento ?? '';
+                $insertRegistroAlmacen[] = [
+                    'cantidad' => $cant,
+                    'fecha_vencimiento' => $venc == '' ? null : substr($venc, 0, 10),
+                    'lote' => ($item->lote ?? null) == 'null' ? '' : ($item->lote ?? null),
+                    'comentario' => ($item->comentario ?? null) == 'null' ? '' : ($item->comentario ?? null),
+                    'almacen_id' => $almacenData->id,
+                    'user_id' => $userId,
+                    'fecha_registro' => $ahora,
                 ];
+                $cantidad += (float) $cant;
             }
-        }
-        error_log('updateAlmacen: ' . json_encode($updateAlmacen));
-        RegistroAlmacen::insert($insertRegistroAlmacen);
-        foreach ($updateAlmacen as $almacen) {
-            Almacen::where('id', $almacen['id'])->update(['se_descargo' => $almacen['se_descargo'], 'cantidad' => $almacen['cantidad']]);
-            $almacen = Almacen::find($almacen['id']);
-            error_log('almacen: ' . json_encode($almacen));
+            $updateAlmacen[$almacenData->id] = $cantidad;
         }
 
-        // Devuelve una respuesta de éxito
+        \DB::transaction(function () use ($ids, $insertRegistroAlmacen, $updateAlmacen) {
+            foreach (array_chunk($ids, 500) as $chunk) {
+                RegistroAlmacen::whereIn('almacen_id', $chunk)->delete();
+            }
+            foreach (array_chunk($insertRegistroAlmacen, 500) as $chunk) {
+                RegistroAlmacen::insert($chunk);
+            }
+            foreach ($updateAlmacen as $id => $cantidad) {
+                Almacen::where('id', $id)->update(['se_descargo' => 'EXPORTADO', 'cantidad' => $cantidad]);
+            }
+        });
+
+        \Log::info('exportData', [
+            'user' => $userId,
+            'productos' => count($ids),
+            'exportados' => count($updateAlmacen),
+            'registros' => count($insertRegistroAlmacen),
+        ]);
+
         return response()->json("success");
     }
     public function convertDMY($fecha){

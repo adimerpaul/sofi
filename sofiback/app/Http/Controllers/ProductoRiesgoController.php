@@ -143,11 +143,14 @@ class ProductoRiesgoController extends Controller
         $res = ['agregados' => 0, 'actualizados' => 0, 'quitados' => 0];
 
         DB::transaction(function () use ($generacion, $conteos, $dias, $user, $nombre, $ahora, &$res) {
-            $existentes = ProductoRiesgo::where('generacion', $generacion)->get()->keyBy('registro_almacen_id');
+            $todas = ProductoRiesgo::where('generacion', $generacion)->get();
+            $existentes = $todas->whereNotNull('registro_almacen_id')->keyBy('registro_almacen_id');
 
-            foreach ($existentes as $regId => $row) {
-                if ($row->estado !== 'ACTIVO') continue;
-                if (!$regId || !isset($conteos[$regId])) {
+            foreach ($todas as $row) {
+                $regId = $row->registro_almacen_id;
+                // Los agregados a mano no vienen del inventario: se quedan como estan.
+                if ($row->estado !== 'ACTIVO' || !$regId) continue;
+                if (!isset($conteos[$regId])) {
                     $row->update([
                         'estado' => 'QUITADO',
                         'quitado_por' => $user->CodAut, 'quitado_por_nombre' => $nombre, 'quitado_at' => $ahora,
@@ -235,6 +238,119 @@ class ProductoRiesgoController extends Controller
         });
 
         return response()->json(['agregados' => $creados, 'quitados' => $quitados]);
+    }
+
+    /** Productos del catalogo para agregar a mano (boton "Agregar producto"). */
+    public function catalogo(Request $request)
+    {
+        $this->autorizar($request);
+        $q = trim((string) $request->input('q', ''));
+        $query = DB::table('tbproductos as p')
+            ->leftJoin('tbgrupos as g', function ($join) {
+                $join->on(DB::raw('TRIM(g.Cod_grup)'), '=', DB::raw('TRIM(p.cod_grup)'));
+            })
+            ->whereNull('p.deleted_at')
+            ->select([
+                DB::raw('TRIM(p.cod_prod) as cod_prod'), DB::raw('TRIM(p.Producto) as producto'),
+                DB::raw('TRIM(p.codUnid) as unidad'), DB::raw('TRIM(g.Descripcion) as grupo'), 'p.imagen',
+            ]);
+        if ($q !== '') {
+            $query->where(function ($w) use ($q) {
+                $w->where('p.Producto', 'like', "%$q%")->orWhere('p.cod_prod', 'like', "$q%");
+            });
+        }
+        return response()->json($query->orderBy('p.Producto')->limit(40)->get());
+    }
+
+    /**
+     * Ventas del producto desde la fecha del inventario de la lista (incluida) hasta hoy:
+     * facturas y vouchers no anulados, de pedido o de mostrador.
+     */
+    public function ventas(Request $request, $id)
+    {
+        $this->autorizar($request);
+        $row = ProductoRiesgo::findOrFail($id);
+        $desde = substr((string) $row->fecha_inventario, 0, 10) ?: substr((string) $row->agregado_at, 0, 10);
+        $lineas = DB::table('facturas as f')
+            ->join('factura_detalles as d', 'd.factura_id', '=', 'f.id')
+            ->whereNull('f.deleted_at')->whereNull('d.deleted_at')
+            ->where('f.estado', '<>', 'ANULADO')
+            ->where('f.fecha', '>=', $desde)
+            ->where('d.cod_prod', trim((string) $row->codigo_producto))
+            ->orderByDesc('f.fecha')->orderByDesc('f.hora')->orderByDesc('f.id')
+            ->limit(1000)
+            ->get(['f.id as factura_id', 'f.fecha', 'f.hora', 'f.nro_factura', 'f.tipo_comprobante', 'f.nombre as cliente',
+                'f.pedido_nro', 'f.vendedor_ci', 'd.unidad', 'd.cantidad', 'd.peso', 'd.precio', 'd.subtotal']);
+
+        return response()->json([
+            'desde' => $desde,
+            'producto' => $row->producto,
+            'codigo_producto' => $row->codigo_producto,
+            'data' => $lineas,
+            'totales' => [
+                'ventas' => $lineas->count(),
+                'cantidad' => round($lineas->sum(function ($l) { return (float) $l->cantidad; }), 2),
+                'peso' => round($lineas->sum(function ($l) { return (float) $l->peso; }), 2),
+                'importe' => round($lineas->sum(function ($l) { return (float) $l->subtotal; }), 2),
+            ],
+        ]);
+    }
+
+    /**
+     * Agrega a mano un producto a la lista actual (no viene de un conteo, no toca el
+     * inventario). "Actualizar datos" no lo quita; solo se quita con el boton.
+     */
+    public function store(Request $request)
+    {
+        $this->autorizar($request);
+        $request->validate([
+            'codigo_producto' => 'required|string|max:50',
+            'cantidad' => 'required|numeric|min:0',
+            'fecha_vencimiento' => 'required|date',
+            'lote' => 'nullable|string|max:255',
+            'observacion' => 'nullable|string|max:500',
+        ], [
+            'codigo_producto.required' => 'Elija el producto',
+            'cantidad.required' => 'Falta la cantidad',
+            'fecha_vencimiento.required' => 'Falta la fecha de vencimiento',
+        ]);
+        $generacion = ProductoRiesgo::generacionActual();
+        abort_unless($generacion, 422, 'Primero llene la lista con un inventario');
+        $primera = ProductoRiesgo::where('generacion', $generacion)->orderBy('id')->first();
+
+        $prod = DB::table('tbproductos as p')
+            ->leftJoin('tbgrupos as g', function ($join) {
+                $join->on(DB::raw('TRIM(g.Cod_grup)'), '=', DB::raw('TRIM(p.cod_grup)'));
+            })
+            ->where('p.cod_prod', trim($request->codigo_producto))
+            ->first([DB::raw('TRIM(p.cod_prod) as cod_prod'), DB::raw('TRIM(p.Producto) as producto'),
+                DB::raw('TRIM(p.codUnid) as unidad'), DB::raw('TRIM(g.Descripcion) as grupo')]);
+        abort_unless($prod, 422, 'El producto no existe');
+
+        $lote = trim((string) $request->lote);
+        $lote = $lote === '' ? null : mb_strtoupper($lote);
+        $venc = substr($request->fecha_vencimiento, 0, 10);
+        $yaActivo = ProductoRiesgo::where('generacion', $generacion)->where('estado', 'ACTIVO')
+            ->where('codigo_producto', $prod->cod_prod)->whereDate('fecha_vencimiento', $venc)
+            ->where(function ($w) use ($lote) {
+                $lote === null ? $w->whereNull('lote') : $w->where('lote', $lote);
+            })->exists();
+        abort_if($yaActivo, 409, "{$prod->producto} con ese lote y vencimiento ya está en la lista");
+
+        $obs = trim((string) $request->observacion);
+        $user = $request->user();
+        $row = ProductoRiesgo::create([
+            'generacion' => $generacion, 'dias' => $primera->dias,
+            'fecha_inventario' => $primera->fecha_inventario,
+            'codigo_producto' => $prod->cod_prod, 'producto' => $prod->producto,
+            'unidad' => $prod->unidad, 'grupo' => $prod->grupo, 'lote' => $lote,
+            'fecha_vencimiento' => $venc, 'cantidad' => round((float) $request->cantidad, 2),
+            'observacion' => $obs === '' ? null : $obs,
+            'estado' => 'ACTIVO',
+            'agregado_por' => $user->CodAut, 'agregado_por_nombre' => ProductoRiesgo::nombreUsuario($user),
+            'agregado_at' => now(),
+        ]);
+        return response()->json($row, 201);
     }
 
     /**

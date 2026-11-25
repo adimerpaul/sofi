@@ -141,7 +141,8 @@ class MapaVendedorController extends Controller{
             ->whereDate('p.fecha', $fecha)
             ->whereNull('p.deleted_at')
             ->whereIn('p.idCli', $clientesIdArray ?: [0])
-            ->groupBy('p.idCli', DB::raw($tipoLinea))
+            // Agrupar por alias: con ONLY_FULL_GROUP_BY MySQL no reconoce la expresion repetida.
+            ->groupBy('p.idCli', 'tipo_producto')
             ->get([
                 'p.idCli',
                 DB::raw("$tipoLinea as tipo_producto"),

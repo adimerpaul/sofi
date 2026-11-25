@@ -140,7 +140,7 @@ export default {
         { label: 'Realizar Visita', icon: 'map', to: 'visita', show: can('visita') },
         { label: 'Clientes del Día', caption: 'Ver la semana', icon: 'today', to: 'clientevisita', show: can('clientevisita') },
         { label: 'Mis Pedidos', icon: 'list', to: 'mispedidos', show: can('mispedidos') },
-        { label: 'Pareto de Clientes', caption: 'Quién me compra cada producto', icon: 'leaderboard', to: 'paretoclientes', show: can('paretoclientes') },
+        { label: 'Pareto de Clientes', caption: 'Quién me compra cada producto', icon: 'leaderboard', to: 'paretoclientes', show: can('paretoclientes') || can('paretoclientestodos') },
         { label: 'Avance de Ventas', caption: 'Objetivo del mes por vendedor', icon: 'trending_up', to: 'avanceventas', show: can('avanceventas') },
         { label: 'Avance de Ventas Vendedores', caption: 'Mi avance del mes', icon: 'insights', to: 'avanceventasvendedores', show: can('avanceventasvendedores') },
         { label: 'Pedidos Totales', icon: 'list_alt', to: 'mispedidostotales', show: can('mispedidostotales') },

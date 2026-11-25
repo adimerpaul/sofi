@@ -354,6 +354,7 @@ Route::group(['middleware'=>'auth:sanctum'],function (){
     // El listado de Clientes en Excel con los filtros de la pantalla (buscar, vendedor, zona, estado).
     Route::get('/clientes/excel',[\App\Http\Controllers\ClienteController::class,'exportarExcel']);
     // Pareto de clientes del preventista (permiso paretoclientes): quien le pidio un producto y cuando.
+    Route::get('/pareto-clientes/vendedores',[\App\Http\Controllers\ParetoClienteController::class,'vendedores']);
     Route::get('/pareto-clientes/grupos',[\App\Http\Controllers\ParetoClienteController::class,'grupos']);
     Route::get('/pareto-clientes/productos',[\App\Http\Controllers\ParetoClienteController::class,'productos']);
     Route::get('/pareto-clientes',[\App\Http\Controllers\ParetoClienteController::class,'index']);
@@ -424,9 +425,12 @@ Route::group(['middleware'=>'auth:sanctum'],function (){
     // Almacen > Productos en riesgo (permiso almacenRiesgo); no toca el inventario.
     Route::get('/productosRiesgo',[\App\Http\Controllers\ProductoRiesgoController::class,'index']);
     Route::post('/productosRiesgo/generar',[\App\Http\Controllers\ProductoRiesgoController::class,'generar']);
+    Route::get('/productosRiesgo/catalogo',[\App\Http\Controllers\ProductoRiesgoController::class,'catalogo']);
+    Route::post('/productosRiesgo',[\App\Http\Controllers\ProductoRiesgoController::class,'store']);
     Route::get('/productosRiesgo/excel',[\App\Http\Controllers\ProductoRiesgoController::class,'excel']);
     Route::post('/productosRiesgo/actualizar',[\App\Http\Controllers\ProductoRiesgoController::class,'actualizar']);
     Route::put('/productosRiesgo/{id}',[\App\Http\Controllers\ProductoRiesgoController::class,'update']);
+    Route::get('/productosRiesgo/{id}/ventas',[\App\Http\Controllers\ProductoRiesgoController::class,'ventas']);
     Route::put('/productosRiesgo/{id}/quitar',[\App\Http\Controllers\ProductoRiesgoController::class,'quitar']);
     Route::post('/productosRiesgo/{id}/reagregar',[\App\Http\Controllers\ProductoRiesgoController::class,'reagregar']);
 
