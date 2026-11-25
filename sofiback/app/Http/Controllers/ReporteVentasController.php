@@ -846,7 +846,8 @@ class ReporteVentasController extends Controller
 
         // Encabezado: codigo arriba y rotulo corto abajo.
         foreach ($datos['columnas'] as $i => $c) {
-            $hoja->setCellValueExplicit($col($i) . '5', $c['cod_prod'], DataType::TYPE_STRING);
+            // Las columnas de pollo entero suman varios codigos y van en cajas.
+            $hoja->setCellValueExplicit($col($i) . '5', $c['codigos'], DataType::TYPE_STRING);
             $hoja->setCellValue($col($i) . '6', $c['corto']);
         }
         $hoja->setCellValue($colEntero . '5', 'POLLO');
@@ -911,7 +912,9 @@ class ReporteVentasController extends Controller
             ['font' => ['bold' => true, 'color' => ['rgb' => '1F4E79']], 'fill' => $relleno('D9C28F')]);
 
         $hoja->setCellValue('A' . ($fila + 1), 'VENTAS DEL DIA = ventas directas de mostrador. STOCK de arriba = stock del sistema al empezar el día;'
-            . ' las filas en amarillo se llenan a mano y el TOTAL y el STOCK final se recalculan solos.');
+            . ' las filas en amarillo se llenan a mano y el TOTAL y el STOCK final se recalculan solos.'
+            . ' Pollo entero (104 a 109 y BRASA) en CAJAS: pollos vendidos / cantidad por caja; su stock es aproximado'
+            . ' (kilos / peso promedio de un pollo / cantidad por caja).');
         $hoja->getStyle('A' . ($fila + 1))->getFont()->setItalic(true)->setSize(8)->getColor()->setRGB('7F7F7F');
 
         $hoja->getStyle('A5:' . $colEntero . $filaStock)->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_THIN);
@@ -919,6 +922,11 @@ class ReporteVentasController extends Controller
             'numberFormat' => ['formatCode' => '#,##0.0;[Red]-#,##0.0'],
             'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
         ]);
+        // Cajas con 2 decimales (1,25 = 15 pollos de 12), como en la planilla.
+        $hoja->getStyle($col(min($enteros)) . '7:' . $col(max($enteros)) . $filaStock)->getNumberFormat()
+            ->setFormatCode('#,##0.00;[Red]-#,##0.00');
+        $hoja->getStyle($colEntero . '7:' . $colEntero . $filaStock)->getNumberFormat()
+            ->setFormatCode('#,##0.00;[Red]-#,##0.00');
         $hoja->getStyle($colEntero . '5:' . $colEntero . $filaStock)->getFont()->setBold(true)->getColor()->setRGB('C00000');
 
         $hoja->getColumnDimension('A')->setWidth(26);

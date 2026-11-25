@@ -30,17 +30,34 @@ use Illuminate\Support\Facades\DB;
  */
 class ReporteAuxiliarPollo
 {
-    /** Las columnas de la planilla, en su orden, con su rotulo corto. */
+    /**
+     * Las columnas de la planilla, en su orden: [rotulo corto, codigos].
+     *
+     * Las 7 de pollo entero juntan codigos (el frial con su pollo sin menudo
+     * del mismo calibre, y todo el pollo a la brasa) y van en CAJAS: los
+     * pollos vendidos de cada codigo divididos entre su tbproductos.cantidadCaja
+     * (12 el frial y el sin menudo, 16 la brasa, 18 la brasa 1.8). El resto,
+     * un codigo por columna y en kilos.
+     */
     public const COLUMNAS = [
-        '500104' => '', '500105' => '', '500106' => '', '500107' => '',
-        '500108' => '', '500109' => '', '501005' => '', '501006' => '',
-        '501600' => 'ALA', '501601' => 'CAD.', '501604' => 'PECH.', '501606' => 'P/M',
-        '501704' => 'FILETE', '502101' => 'COG.', '502102' => 'COG.S/C', '502108' => 'HUE.', '502106' => 'MEN.',
-        '502109' => 'HIG.',
+        '500104' => ['104', ['500104', '501114']],
+        '500105' => ['105', ['500105', '501115']],
+        '500106' => ['106', ['500106', '501116']],
+        '500107' => ['107', ['500107', '501117']],
+        '500108' => ['108', ['500108', '501118']],
+        '500109' => ['109', ['500109', '501119']],
+        '501005' => ['BRASA', ['501005', '501006', '501007', '501008', '501009']],
+        '501600' => ['ALA', ['501600']], '501601' => ['CAD.', ['501601']], '501604' => ['PECH.', ['501604']],
+        '501606' => ['P/M', ['501606']], '501704' => ['FILETE', ['501704']], '502101' => ['COG.', ['502101']],
+        '502102' => ['COG.S/C', ['502102']], '502108' => ['HUE.', ['502108']], '502106' => ['MEN.', ['502106']],
+        '502109' => ['HIG.', ['502109']],
     ];
 
-    /** Pollo entero (frial y brasa): la columna final los suma. */
-    public const ENTEROS = ['500104', '500105', '500106', '500107', '500108', '500109', '501005', '501006'];
+    /** Columnas de pollo entero (en cajas): la columna final las suma. */
+    public const ENTEROS = ['500104', '500105', '500106', '500107', '500108', '500109', '501005'];
+
+    /** Dias de facturas para sacar el peso promedio de un pollo de cada codigo. */
+    private const DIAS_PESO = 30;
 
     /**
      * Cuantos dias antes de la salida se busca lo vendido para ese dia: caja
@@ -51,11 +68,23 @@ class ReporteAuxiliarPollo
     public function datos($fecha): array
     {
         // PHP guarda las claves numericas como enteros: el codigo va como texto.
-        $codigos = array_map('strval', array_keys(self::COLUMNAS));
+        $columnas = array_map('strval', array_keys(self::COLUMNAS));
+        $codigos = [];
+        $columnaDe = [];
+        foreach (self::COLUMNAS as $columna => $def) {
+            foreach ($def[1] as $cod) {
+                $codigos[] = $cod;
+                $columnaDe[$cod] = (string) $columna;
+            }
+        }
         $cero = array_fill_keys($codigos, 0.0);
+        $enteros = array_fill_keys(self::ENTEROS, true);
 
         $movimientos = $this->movimientos($codigos, date('Y-m-d', strtotime($fecha . ' -' . self::DIAS_ANTES . ' days')));
         $facturas = $this->facturas($movimientos);
+        // En el pollo entero el inventario se mueve en kilos pero se cuenta en
+        // pollos: cuantos pollos por kilo trae cada factura de cada codigo.
+        $pollosPorKilo = $this->pollosPorKilo($movimientos, $columnaDe, $enteros);
 
         $posterior = $cero;
         $vendedores = [];
@@ -75,12 +104,16 @@ class ReporteAuxiliarPollo
                 continue;
             }
 
+            // Pollo entero: los pollos vendidos (los kilos x pollos por kilo de su factura).
+            $vendido = isset($enteros[$columnaDe[$m->cod]])
+                ? -$delta * ($pollosPorKilo[$m->factura_id . '|' . $m->cod] ?? 1)
+                : -$delta;
             if ($factura['preventista_id'] === null) {
-                $directas[$m->cod] -= $delta;
+                $directas[$m->cod] += $vendido;
             } else {
                 $id = $factura['preventista_id'];
                 $vendedores[$id] = $vendedores[$id] ?? ['nombre' => $factura['preventista'], 'valores' => $cero];
-                $vendedores[$id]['valores'][$m->cod] -= $delta;
+                $vendedores[$id]['valores'][$m->cod] += $vendido;
             }
         }
 
@@ -105,39 +138,118 @@ class ReporteAuxiliarPollo
             }
         }
 
+        $productos = DB::table('tbproductos')
+            ->whereIn(DB::raw('TRIM(cod_prod)'), $codigos)
+            ->get([DB::raw('TRIM(cod_prod) as cod'), 'Producto', 'cantidadCaja'])
+            ->keyBy('cod');
+        // El stock del pollo entero esta en kilos: se pasa a pollos con el peso
+        // promedio de un pollo de ese codigo en lo facturado los ultimos dias.
+        $kiloPorPollo = $this->kiloPorPollo(self::codigosEnteros(), $fecha);
+
         $stockFinal = $cero;
         $stockInicial = $cero;
         foreach ($codigos as $cod) {
             $stockFinal[$cod] = (float) $actual->get($cod, 0) - $posterior[$cod];
+            if (isset($enteros[$columnaDe[$cod]])) {
+                $peso = $kiloPorPollo[$cod] ?? 0;
+                $stockFinal[$cod] = $peso > 0 ? $stockFinal[$cod] / $peso : 0;
+            }
             $stockInicial[$cod] = $stockFinal[$cod] + $totalVentas[$cod];
         }
 
-        $nombres = DB::table('tbproductos')
-            ->whereIn(DB::raw('TRIM(cod_prod)'), $codigos)
-            ->pluck('Producto', DB::raw('TRIM(cod_prod) as cod'));
-
-        $redondear = function (array $valores) {
-            return array_map(function ($v) { return round($v, 3); }, $valores);
+        // De codigos a columnas: el pollo entero en cajas (pollos / cantidadCaja
+        // de cada codigo, sin dividir si el codigo no tiene cargada la caja).
+        $porColumna = function (array $valores) use ($columnas, $columnaDe, $enteros, $productos) {
+            $res = array_fill_keys($columnas, 0.0);
+            foreach ($valores as $cod => $v) {
+                $col = $columnaDe[$cod];
+                $caja = isset($enteros[$col]) ? (float) optional($productos->get($cod))->cantidadCaja : 0;
+                $res[$col] += $caja > 0 ? $v / $caja : $v;
+            }
+            return array_map(function ($v) { return round($v, 3); }, $res);
         };
 
         return [
             'fecha' => $fecha,
-            'columnas' => array_map(function ($cod) use ($nombres) {
+            'columnas' => array_map(function ($col) use ($productos, $enteros) {
+                $cods = self::COLUMNAS[$col][1];
                 return [
-                    'cod_prod' => $cod,
-                    'corto' => self::COLUMNAS[$cod],
-                    'nombre' => trim((string) $nombres->get($cod, '')),
-                    'entero' => in_array($cod, self::ENTEROS, true),
+                    'cod_prod' => $col,
+                    // Encabezado: los codigos que suma la columna.
+                    'codigos' => implode('+', count($cods) > 2
+                        ? [reset($cods) . '…' . substr(end($cods), -2)]
+                        : $cods),
+                    'corto' => self::COLUMNAS[$col][0],
+                    'nombre' => implode(' + ', array_map(function ($cod) use ($productos) {
+                        $p = $productos->get($cod);
+                        return $cod . ' ' . trim((string) ($p->Producto ?? ''))
+                            . ($p && (float) $p->cantidadCaja > 0 ? ' (' . (float) $p->cantidadCaja . ' x caja)' : '');
+                    }, $cods)),
+                    'entero' => isset($enteros[$col]),
                 ];
-            }, $codigos),
-            'stock_inicial' => $redondear($stockInicial),
-            'vendedores' => array_values(array_map(function ($v) use ($redondear) {
-                return ['nombre' => $v['nombre'], 'valores' => $redondear($v['valores'])];
+            }, $columnas),
+            'stock_inicial' => $porColumna($stockInicial),
+            'vendedores' => array_values(array_map(function ($v) use ($porColumna) {
+                return ['nombre' => $v['nombre'], 'valores' => $porColumna($v['valores'])];
             }, $vendedores)),
-            'ventas_directas' => $redondear($directas),
-            'total_ventas' => $redondear($totalVentas),
-            'stock_final' => $redondear($stockFinal),
+            'ventas_directas' => $porColumna($directas),
+            'total_ventas' => $porColumna($totalVentas),
+            'stock_final' => $porColumna($stockFinal),
         ];
+    }
+
+    private static function codigosEnteros(): array
+    {
+        $cods = [];
+        foreach (self::ENTEROS as $col) {
+            $cods = array_merge($cods, self::COLUMNAS[$col][1]);
+        }
+        return $cods;
+    }
+
+    /**
+     * Pollos por kilo de cada factura y codigo de pollo entero (cantidad /
+     * peso del detalle), para pasar el movimiento de stock, que va en kilos,
+     * a pollos. Sin peso cargado el movimiento ya esta en pollos.
+     */
+    private function pollosPorKilo($movimientos, array $columnaDe, array $enteros): array
+    {
+        $ids = $movimientos->filter(function ($m) use ($columnaDe, $enteros) {
+            return $m->factura_id && isset($enteros[$columnaDe[$m->cod]]);
+        })->pluck('factura_id')->unique()->values()->all();
+        if (!$ids) {
+            return [];
+        }
+
+        $res = [];
+        DB::table('factura_detalles')
+            ->whereIn('factura_id', $ids)
+            ->whereIn(DB::raw('TRIM(cod_prod)'), self::codigosEnteros())
+            ->groupBy('factura_id', DB::raw('TRIM(cod_prod)'))
+            ->get(['factura_id', DB::raw('TRIM(cod_prod) as cod'),
+                DB::raw('SUM(cantidad) as cantidad'), DB::raw('SUM(COALESCE(peso, 0)) as peso')])
+            ->each(function ($d) use (&$res) {
+                $res[$d->factura_id . '|' . $d->cod] = (float) $d->peso > 0 ? (float) $d->cantidad / (float) $d->peso : 1;
+            });
+        return $res;
+    }
+
+    /** Peso promedio (kg) de un pollo de cada codigo en lo facturado antes de la fecha. */
+    private function kiloPorPollo(array $codigos, $fecha): array
+    {
+        return DB::table('factura_detalles as d')
+            ->join('facturas as f', 'f.id', '=', 'd.factura_id')
+            ->whereNull('d.deleted_at')
+            ->whereNull('f.deleted_at')
+            ->where('f.estado', 'ACTIVO')
+            ->whereBetween('f.fecha', [date('Y-m-d', strtotime($fecha . ' -' . self::DIAS_PESO . ' days')), $fecha])
+            ->whereIn(DB::raw('TRIM(d.cod_prod)'), $codigos)
+            ->where('d.peso', '>', 0)
+            ->where('d.cantidad', '>', 0)
+            ->groupBy(DB::raw('TRIM(d.cod_prod)'))
+            ->pluck(DB::raw('SUM(d.peso) / SUM(d.cantidad) as kg'), DB::raw('TRIM(d.cod_prod) as cod'))
+            ->map(function ($v) { return (float) $v; })
+            ->all();
     }
 
     /** Los movimientos web de esos codigos desde una fecha, con su factura si es venta. */

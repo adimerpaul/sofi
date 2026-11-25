@@ -275,6 +275,9 @@
           Lo vendido es lo que facturó caja: cada pedido cuenta en su fecha de entrega y la venta de mostrador en
           "Ventas del día". El stock sale del sistema. Tránsito, devolución, trozado y bajas van vacíos en el Excel
           para llenarlos a mano; el stock final se recalcula solo.
+          Pollo entero (104 a 109 y BRASA) va en <b>cajas</b>: cada columna junta sus códigos (pase el mouse por el
+          encabezado) y divide los pollos vendidos entre la cantidad por caja de cada producto. Su stock es
+          aproximado: kilos del sistema / peso promedio de un pollo / cantidad por caja. Lo demás va en kilos.
         </div>
 
         <div class="tabla-pollo-caja q-mt-sm">
@@ -282,7 +285,7 @@
             <thead>
             <tr>
               <th class="rotulo"></th>
-              <th v-for="c in pollo.columnas" :key="c.cod_prod" :title="c.nombre">{{ c.cod_prod }}</th>
+              <th v-for="c in pollo.columnas" :key="c.cod_prod" :title="c.nombre">{{ c.codigos }}</th>
               <th class="entero">POLLO</th>
             </tr>
             <tr>
@@ -298,31 +301,31 @@
             <template v-else>
               <tr class="fila-stock">
                 <td class="rotulo">STOCK</td>
-                <td v-for="c in pollo.columnas" :key="'s' + c.cod_prod">{{ kg(pollo.stock_inicial[c.cod_prod]) }}</td>
-                <td class="entero">{{ kg(entero(pollo.stock_inicial)) }}</td>
+                <td v-for="c in pollo.columnas" :key="'s' + c.cod_prod">{{ celdaPollo(c, pollo.stock_inicial[c.cod_prod]) }}</td>
+                <td class="entero">{{ cajas(entero(pollo.stock_inicial)) }}</td>
               </tr>
               <tr v-for="v in pollo.vendedores" :key="v.nombre">
                 <td class="rotulo vendedor">{{ v.nombre }}</td>
-                <td v-for="c in pollo.columnas" :key="v.nombre + c.cod_prod">{{ kg(v.valores[c.cod_prod]) }}</td>
-                <td class="entero">{{ kg(entero(v.valores)) }}</td>
+                <td v-for="c in pollo.columnas" :key="v.nombre + c.cod_prod">{{ celdaPollo(c, v.valores[c.cod_prod]) }}</td>
+                <td class="entero">{{ cajas(entero(v.valores)) }}</td>
               </tr>
               <tr class="fila-directas">
                 <td class="rotulo">VENTAS DEL DÍA</td>
-                <td v-for="c in pollo.columnas" :key="'d' + c.cod_prod">{{ kg(pollo.ventas_directas[c.cod_prod]) }}</td>
-                <td class="entero">{{ kg(entero(pollo.ventas_directas)) }}</td>
+                <td v-for="c in pollo.columnas" :key="'d' + c.cod_prod">{{ celdaPollo(c, pollo.ventas_directas[c.cod_prod]) }}</td>
+                <td class="entero">{{ cajas(entero(pollo.ventas_directas)) }}</td>
               </tr>
               <tr class="fila-total">
                 <td class="rotulo">TOTAL</td>
-                <td v-for="c in pollo.columnas" :key="'t' + c.cod_prod">{{ kg(pollo.total_ventas[c.cod_prod]) }}</td>
-                <td class="entero">{{ kg(entero(pollo.total_ventas)) }}</td>
+                <td v-for="c in pollo.columnas" :key="'t' + c.cod_prod">{{ celdaPollo(c, pollo.total_ventas[c.cod_prod]) }}</td>
+                <td class="entero">{{ cajas(entero(pollo.total_ventas)) }}</td>
               </tr>
               <tr class="fila-stock">
                 <td class="rotulo">STOCK</td>
                 <td v-for="c in pollo.columnas" :key="'f' + c.cod_prod"
                     :class="{ 'text-negative': pollo.stock_final[c.cod_prod] < 0 }">
-                  {{ kg(pollo.stock_final[c.cod_prod]) }}
+                  {{ celdaPollo(c, pollo.stock_final[c.cod_prod]) }}
                 </td>
-                <td class="entero">{{ kg(entero(pollo.stock_final)) }}</td>
+                <td class="entero">{{ cajas(entero(pollo.stock_final)) }}</td>
               </tr>
             </template>
             </tbody>
@@ -1847,6 +1850,13 @@ export default {
     },
     kg (valor) {
       return Number(valor || 0).toFixed(1)
+    },
+    // Pollo entero en cajas con 2 decimales (1,25 = 15 pollos de 12), como la planilla.
+    cajas (valor) {
+      return Number(valor || 0).toFixed(2)
+    },
+    celdaPollo (columna, valor) {
+      return columna.entero ? this.cajas(valor) : this.kg(valor)
     },
     suma (campo) {
       return this.visibles.reduce((s, f) => s + Number(f[campo] || 0), 0)

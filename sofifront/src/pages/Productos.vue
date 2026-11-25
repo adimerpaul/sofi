@@ -398,6 +398,8 @@
           <!-- Cuanto vale 1 unidad pedida en la unidad del precio (1 tocino = 0.150 kg):
                el pedido calcula cantidad x factor x precio. En 0 no se aplica. -->
           <q-input v-model.number="edicion.factorVenta" outlined dense type="number" step="0.001" min="0" class="col-6 col-sm-4" label="Factor venta (x)" hint="Monto aprox. = cant. x factor x precio; 0 = sin factor"/>
+          <!-- Unidades que trae una caja (pollos, friales); 0 = sin dato. -->
+          <q-input v-model.number="edicion.cantidadCaja" outlined dense type="number" step="1" min="0" class="col-6 col-sm-4" label="Cantidad por caja" suffix="u."/>
           <q-input
             v-model.number="edicion.CantPren" outlined dense type="number" step="0.001" min="0"
             class="col-6 col-sm-4" label="Peso por unidad" suffix="kg"
@@ -693,7 +695,7 @@ export default {
       },
       // Precio3..Precio13 quedan ocultas por defecto: son 11 columnas que
       // hacen ilegible la tabla, pero el usuario puede activarlas.
-      visibleColumns: ['acciones', 'imagen', 'cod_prod', 'Producto', 'grupo', 'tipo_nombre', 'codUnid', 'trozado', 'precio_compra', 'Precio', 'Precio_Costo', 'precioAprox', 'factorVenta', 'CantPren', 'cantidad'],
+      visibleColumns: ['acciones', 'imagen', 'cod_prod', 'Producto', 'grupo', 'tipo_nombre', 'codUnid', 'trozado', 'precio_compra', 'Precio', 'Precio_Costo', 'precioAprox', 'factorVenta', 'cantidadCaja', 'CantPren', 'cantidad'],
       // Producto cuya foto se está subiendo, para el spinner de la miniatura.
       subiendo: null,
       productoImagen: null,
@@ -726,6 +728,7 @@ export default {
         { name: 'Precio_Costo', label: 'P. Costo', field: 'Precio_Costo', align: 'right', format: v => Number(v || 0).toFixed(2) },
         { name: 'precioAprox', label: 'P. Aprox.', field: 'precioAprox', align: 'right', sortable: true, format: v => Number(v || 0).toFixed(2) },
         { name: 'factorVenta', label: 'Factor', field: 'factorVenta', align: 'right', sortable: true, format: v => (Number(v) ? Number(v).toFixed(3) : '') },
+        { name: 'cantidadCaja', label: 'Cant. caja', field: 'cantidadCaja', align: 'right', sortable: true, format: v => (Number(v) ? Number(v).toString() : '') },
         { name: 'CantPren', label: 'Peso U. (kg)', field: 'CantPren', align: 'right', sortable: true, format: v => Number(v || 0).toFixed(3) },
         { name: 'PreCosto', label: 'PreCosto', field: 'PreCosto', align: 'right', sortable: true, format: v => Number(v || 0).toFixed(2) },
         { name: 'cantidad', label: 'Stock', field: 'cantidad', align: 'right', sortable: true }
@@ -1080,6 +1083,7 @@ export default {
         Precio_Costo: 0,
         precioAprox: 0,
         factorVenta: 0,
+        cantidadCaja: 0,
         CantPren: 1,
         Precio3: 0,
         Precio4: 0,
@@ -1118,6 +1122,7 @@ export default {
         Precio_Costo: Number(row.Precio_Costo) || 0,
         precioAprox: Number(row.precioAprox) || 0,
         factorVenta: Number(row.factorVenta) || 0,
+        cantidadCaja: Number(row.cantidadCaja) || 0,
         CantPren: Number(row.CantPren) || 0,
         Precio3: Number(row.Precio3) || 0,
         Precio4: Number(row.Precio4) || 0,
