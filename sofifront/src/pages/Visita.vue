@@ -432,7 +432,7 @@
                            del bloque de arriba porque el pollo, el cerdo y la
                            res tambien se venden por caja aunque la cantidad la
                            carguen por piezas. -->
-                      <select v-if="props.row.codUnid == 'CAJA'" v-model="props.row.caja"
+                      <select v-if="props.row.codUnid == 'CAJA'" v-model="props.row.caja" @change="tecleado(props.row)"
                               class="entrada-pedido entrada-caja q-ml-xs">
                         <option v-for="u in unidadesCaja(props.row)" :key="u" :value="u">{{ u }}</option>
                       </select>
@@ -1463,11 +1463,10 @@ export default {
      * tenga que elegir nada. En cero, que es como quedan todos los demas, se
      * multiplica por el precio de siempre.
      */
+    // Con factorVenta (Productos) el subtotal es cantidad x factor x precio,
+    // ver src/utils/reglasPedido.js.
     calcularSubtotal(fila) {
-      const cantidad = parseFloat(fila.cantidad) || 0
-      const aprox = parseFloat(fila.precioAprox) || 0
-      const unitario = aprox > 0 ? aprox : (parseFloat(fila.precio) || 0)
-      return (cantidad * unitario).toFixed(2)
+      return reglasPedido.subtotalLinea(fila)
     },
     agregar(producto) {
       producto.cantidad = (parseFloat(producto.cantidad) || 0) + 1
@@ -1614,6 +1613,8 @@ export default {
         // Si el producto lo trae, el subtotal sale de este monto y no del
         // precio por kilo.
         precioAprox: parseFloat(this.producto.precioAprox) || 0,
+        // 1 unidad pedida = factorVenta en la unidad del precio (1 tocino = 0.150 kg).
+        factorVenta: parseFloat(this.producto.factorVenta) || 0,
         cantidad: 1,
         subtotal: '0.00'
       })

@@ -223,7 +223,7 @@
                              o kilos; se recupera de tbpedidos.caja para poder
                              corregirlo al modificar la comanda. Las opciones
                              son las mismas que en la visita. -->
-                        <select v-if="props.row.codUnid == 'CAJA'" v-model="props.row.caja"
+                        <select v-if="props.row.codUnid == 'CAJA'" v-model="props.row.caja" @change="tecleado(props.row)"
                                 class="entrada-pedido entrada-caja q-ml-xs">
                           <option v-for="u in unidadesCaja(props.row)" :key="u" :value="u">{{ u }}</option>
                         </select>
@@ -1730,8 +1730,12 @@ export default {
 
     },
 
+    // cantidad x precio, o cantidad x factorVenta x precio (src/utils/reglasPedido.js).
+    calcularSubtotal(fila) {
+      return reglasPedido.subtotalLinea(fila)
+    },
     tecleado(e) {
-      e.subtotal = (e.cantidad * e.precio).toFixed(2);
+      e.subtotal = this.calcularSubtotal(e)
     },
     enviarpedidos() {
       this.$q.loading.show()
@@ -2152,10 +2156,14 @@ export default {
         // Igual que en la visita: arranca con el precio que el cliente tiene
         // para el grupo del producto (Clientes > Precios).
         precio: this.precioDelCliente(this.producto),
+        // 1 unidad pedida = factorVenta en la unidad del precio (Productos).
+        factorVenta: parseFloat(this.producto.factorVenta) || 0,
         precios: this.listaPrecios(this.producto),
         cantidad: 1,
-        subtotal: this.precioDelCliente(this.producto)
+        subtotal: null
       })
+      const nueva = this.misproductos[this.misproductos.length - 1]
+      nueva.subtotal = this.calcularSubtotal(nueva)
     },
 
     filterFn(val, update) {
@@ -2215,14 +2223,14 @@ export default {
     },
     agregar(producto) {
       producto.cantidad = parseFloat(producto.cantidad) + 1
-      producto.subtotal = (producto.cantidad * parseFloat(producto.precio)).toFixed(2)
+      producto.subtotal = this.calcularSubtotal(producto)
     },
     quitar(producto, index) {
       if (parseFloat(producto.cantidad) == 1) {
         this.misproductos.splice(index, 1);
       } else {
         producto.cantidad = parseFloat(producto.cantidad) - 1
-        producto.subtotal = (producto.cantidad * parseFloat(producto.precio)).toFixed(2)
+        producto.subtotal = this.calcularSubtotal(producto)
       }
     },
     listpedidos(cliente) {
@@ -2252,6 +2260,7 @@ export default {
             p.precios = this.listaPrecios(prod)
             p.codUnid = String(p.codUnid || (prod ? prod.codUnid : '') || '').trim()
             p.cod_grup = p.cod_grup || (prod ? prod.cod_grup : null)
+            p.factorVenta = prod ? parseFloat(prod.factorVenta) || 0 : 0
             // Con rango guardado el switch arranca encendido; fuera del FRIAL no hay rango.
             p.con_rango = this.esFrial(p) && p.rango_kg !== null && p.rango_kg !== undefined && p.rango_kg !== ''
             p.rango_kg = p.con_rango ? Number(p.rango_kg) : null

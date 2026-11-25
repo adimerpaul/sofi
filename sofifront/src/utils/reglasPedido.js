@@ -44,6 +44,25 @@ export function unidadPorDefecto (p) {
   return unidades.includes('KG') ? 'KG' : 'U'
 }
 
+/**
+ * Subtotal aproximado de una linea del pedido.
+ *
+ * - precioAprox > 0: monto fijo por unidad (cajas, cerdo entero), como antes.
+ * - factorVenta > 0 (Productos > Factor venta): lo que vale 1 unidad pedida en
+ *   la unidad del precio, ej. 1 tocino de 150 g = 0.150 kg, 1 frial = 2.51 kg.
+ *   El subtotal es cantidad x factorVenta x precio. No se aplica si la linea
+ *   ya se pide en kilos.
+ * - Si no, cantidad x precio.
+ */
+export function subtotalLinea (fila) {
+  const cantidad = parseFloat(fila.cantidad) || 0
+  const aprox = parseFloat(fila.precioAprox) || 0
+  if (aprox > 0) return (cantidad * aprox).toFixed(2)
+  const factor = parseFloat(fila.factorVenta) || 0
+  const multiplica = factor > 0 && fila.caja !== 'KG' ? factor : 1
+  return (cantidad * multiplica * (parseFloat(fila.precio) || 0)).toFixed(2)
+}
+
 // Cuentas "BAJAS POR ..." (bonificaciones, calidad, merma, vencimiento,
 // degustacion): se reconocen por el nombre, como en CreditoController.
 export function esBaja (cliente) {

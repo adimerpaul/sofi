@@ -218,18 +218,18 @@ export default {
         { label: 'Verificar Almacén', icon: 'fact_check', to: 'almacenVerificar', show: can('almacenVerificar') },
         { label: 'Almacén Verificado', icon: 'task_alt', to: 'almacenVerificado', show: can('almacenVerificado') },
         { label: 'Productos en riesgo', caption: 'Vencen en 20 días o menos', icon: 'warning', to: 'almacenRiesgo', show: can('almacenRiesgo') },
-        { label: 'Asignar Preventista', icon: 'people', to: 'modifica', show: can('modifica') },
+        // { label: 'Asignar Preventista', icon: 'people', to: 'modifica', show: can('modifica') },
         { label: 'Monitoreo', icon: 'computer', to: 'monitoreo', show: can('monitoreo') },
         { label: 'Resumen de Preventa', caption: 'Monitoreo', icon: 'query_stats', to: 'mapavendedor', show: can('mapavendedor') },
         { label: 'Mapa Visitas', icon: 'map', to: 'mapavendedorvisita', show: can('mapavendedorvisita') },
         { label: 'Asignación', caption: 'Monitoreo', icon: 'computer', to: 'mapacliente', show: can('mapacliente') },
-        { label: 'Alta Cliente', caption: 'Formulario', icon: 'person_add', handler: 'irformulario', show: can('altacliente') },
+        // { label: 'Alta Cliente', caption: 'Formulario', icon: 'person_add', handler: 'irformulario', show: can('altacliente') },
         { label: 'Nuevo Cliente', caption: 'Paso a paso, con foto y GPS', icon: 'add_business', to: 'clientenuevo', show: can('clienteNuevo') },
         { label: 'Cambios', icon: 'no_food', to: 'bonificaciones', show: can('bonificaciones') },
         { label: 'Clientes Fotografías', icon: 'photo_camera', to: 'clientefotografias', show: can('clientefotografias') },
         { label: 'Pedidos', icon: 'shopping_cart', to: 'pedidos', show: can('pedidos') },
         { label: 'Encuestas', icon: 'assignment', to: 'encuestasIndex', show: can('encuestasIndex') },
-        { label: 'Cambios por Calidad', caption: 'Formulario', icon: 'published_with_changes', handler: 'irformulario2', show: can('cambioscalidad') },
+        // { label: 'Cambios por Calidad', caption: 'Formulario', icon: 'published_with_changes', handler: 'irformulario2', show: can('cambioscalidad') },
         { label: 'Usuarios', caption: 'Roles y permisos', icon: 'manage_accounts', to: 'usuario', show: can('usuario') }
       ]
 

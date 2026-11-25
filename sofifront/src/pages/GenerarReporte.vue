@@ -40,6 +40,23 @@
               </q-card-actions>
             </q-card>
           </div>
+          <!-- Lo pedido contra la moda de "Lo que mas pide" (Visita): que dejo
+               de pedir cada cliente, para ver si el preventista no lo ofrecio. -->
+          <div class="col-12 col-sm-4">
+            <q-card flat bordered class="tarjeta-reporte" style="border-top-color: #00695c">
+              <q-card-section class="row items-center no-wrap q-pb-xs">
+                <q-avatar color="teal-8" text-color="white" icon="trending_down" size="38px"/>
+                <div class="q-ml-sm">
+                  <div class="text-subtitle1 text-weight-bold">Pedido vs moda</div>
+                  <div class="text-caption text-grey-7">Lo que el cliente pidió menos de lo que suele comprar</div>
+                </div>
+              </q-card-section>
+              <q-card-actions class="q-pt-none">
+                <q-btn class="col" unelevated color="teal-8" icon="download" label="Excel" no-caps
+                       @click="abrirReporte('moda')"/>
+              </q-card-actions>
+            </q-card>
+          </div>
         </div>
       </div>
       <div class="col-12">
@@ -136,7 +153,15 @@ export default {
   methods: {
     // tipo: 'vendedor', o el tipo de tiposReporte con 'Enviados' al final para solo lo enviado.
     abrirReporte(tipo, vendedor = null) {
-      if (vendedor) {
+      if (tipo === 'moda') {
+        this.reporteSeleccionado = {
+          tipo,
+          titulo: 'Pedido vs moda',
+          detalle: 'Compara lo pedido cada día con la moda de "Lo que más pide" (lo facturado en los 4 meses ' +
+            'antes de "Desde"). Trae lo que no pidió o pidió menos con la visita y los comentarios, y ' +
+            'resúmenes por preventista, producto y cliente.'
+        }
+      } else if (vendedor) {
         this.reporteSeleccionado = {
           tipo,
           vendedor,
@@ -169,7 +194,8 @@ export default {
       this.generandoReporte = true
       try {
         const { tipo, vendedor, base, soloEnviados } = this.reporteSeleccionado
-        if (tipo === 'vendedor') await this.generarConsulta(vendedor)
+        if (tipo === 'moda') await this.exportModa()
+        else if (tipo === 'vendedor') await this.generarConsulta(vendedor)
         else await this.exportReporte(base, soloEnviados)
         this.dialogReporte = false
       } catch (error) {
@@ -249,6 +275,14 @@ export default {
         responseType: 'blob'
       })
       this.descargarArchivo(res, base.tipo + '_' + (soloEnviados ? 'enviados' : 'todos') + '_' + this.fecha + '.xlsx')
+    },
+    // Lo arma el backend (ExcelController::reporteModaPedidoExcel).
+    async exportModa() {
+      const res = await this.$api.get('reporteModaPedidoExcel', {
+        params: { ini: this.fecha, fin: this.fecha2 },
+        responseType: 'blob'
+      })
+      this.descargarArchivo(res, 'pedido_vs_moda_' + this.fecha + '.xlsx')
     },
     consultar() {
       this.$q.loading.show()
